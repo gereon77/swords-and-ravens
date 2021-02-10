@@ -1,5 +1,7 @@
-import {Component, default as React, ReactNode} from "react";
-import {observer} from "mobx-react";
+import { Component, default as React, ReactNode } from "react";
+import { observer } from "mobx-react";
+import preventOverflow from '@popperjs/core/lib/modifiers/preventOverflow';
+
 import HouseCard from "../../../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import houseCardImages from "../../houseCardImages";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
@@ -20,17 +22,19 @@ export default class HouseCardComponent extends Component<HouseCardComponentProp
                 overlay={
                     <div className="vertical-game-card" style={{
                         backgroundImage: `url(${houseCardImages.get(this.props.houseCard.id)})`
-                    }}/>
+                    }} />
                 }
-                popperConfig={{modifiers: {preventOverflow: {boundariesElement: "viewport"}}}}
-                delay={{show: 120, hide: 0}}
+                popperConfig={{
+                    modifiers: [preventOverflow]
+                }}
+                delay={{ show: 120, hide: 0 }}
                 placement="auto"
             >
                 <div
                     className={classNames(
                         "vertical-game-card hover-weak-outline",
                         this.props.size,
-                        {"medium-outline hover-strong-outline": this.props.selected}
+                        { "medium-outline hover-strong-outline": this.props.selected }
                     )}
                     style={{
                         backgroundImage: `url(${houseCardImages.get(this.props.houseCard.id)})`

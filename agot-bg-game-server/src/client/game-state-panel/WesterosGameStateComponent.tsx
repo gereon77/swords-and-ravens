@@ -1,5 +1,6 @@
-import {observer} from "mobx-react";
-import {Component, ReactNode} from "react";
+import { observer } from "mobx-react";
+import { Component, ReactNode } from "react";
+
 import WesterosGameState from "../../common/ingame-game-state/westeros-game-state/WesterosGameState";
 import WildlingsAttackGameState
     from "../../common/ingame-game-state/westeros-game-state/wildlings-attack-game-state/WildlingsAttackGameState";
@@ -44,7 +45,7 @@ export default class WesterosGameStateComponent extends Component<GameStateCompo
                                         westerosDeckI={i}
                                         size={"small"}
                                         tooltip={true}
-                                        classNames={classNames({"medium-outline": this.props.gameState.currentCardI == i})}
+                                        classNames={classNames({ "medium-outline": this.props.gameState.currentCardI == i })}
                                     />
                                 </Col>
                             ))}
@@ -55,24 +56,24 @@ export default class WesterosGameStateComponent extends Component<GameStateCompo
                     <ListGroupItem>
                         <Row>
                             <SimpleChoiceComponent gameClient={this.props.gameClient}
-                                                   gameState={this.props.gameState.childGameState.childGameState}
-                                                   mapControls={this.props.mapControls}/>
+                                gameState={this.props.gameState.childGameState.childGameState}
+                                mapControls={this.props.mapControls} />
                         </Row>
                     </ListGroupItem>
                 ) : this.props.gameState.childGameState instanceof DarkWingsDarkWordsGameState ? (
                     <ListGroupItem>
                         <Row>
                             <SimpleChoiceComponent gameClient={this.props.gameClient}
-                                                   gameState={this.props.gameState.childGameState.childGameState}
-                                                   mapControls={this.props.mapControls}/>
+                                gameState={this.props.gameState.childGameState.childGameState}
+                                mapControls={this.props.mapControls} />
                         </Row>
                     </ListGroupItem>
                 ) : this.props.gameState.childGameState instanceof AThroneOfBladesGameState ? (
                     <ListGroupItem>
                         <Row>
                             <SimpleChoiceComponent gameClient={this.props.gameClient}
-                                                   gameState={this.props.gameState.childGameState.childGameState}
-                                                   mapControls={this.props.mapControls}/>
+                                gameState={this.props.gameState.childGameState.childGameState}
+                                mapControls={this.props.mapControls} />
                         </Row>
                     </ListGroupItem>
                 ) : renderChildGameState(this.props, [
