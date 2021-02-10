@@ -1,12 +1,12 @@
-import {Component, ReactNode} from "react";
+import { Component, ReactNode } from "react";
 import GameClient from "./GameClient";
 import IngameGameState from "../common/ingame-game-state/IngameGameState";
 import * as React from "react";
 import Region from "../common/ingame-game-state/game-data-structure/Region";
 import Unit from "../common/ingame-game-state/game-data-structure/Unit";
 import PlanningGameState from "../common/ingame-game-state/planning-game-state/PlanningGameState";
-import MapControls, {OrderOnMapProperties, RegionOnMapProperties, UnitOnMapProperties} from "./MapControls";
-import {observer} from "mobx-react";
+import MapControls, { OrderOnMapProperties, RegionOnMapProperties, UnitOnMapProperties } from "./MapControls";
+import { observer } from "mobx-react";
 import ActionGameState from "../common/ingame-game-state/action-game-state/ActionGameState";
 import Order from "../common/ingame-game-state/game-data-structure/Order";
 import backgroundImage from "../../public/images/westeros.jpg";
@@ -16,7 +16,9 @@ import unitImages from "./unitImages";
 import classNames = require("classnames");
 import housePowerTokensImages from "./housePowerTokensImages";
 import garrisonTokens from "./garrisonTokens";
-import {OverlayTrigger, Tooltip} from "react-bootstrap";
+import Tooltip from 'react-bootstrap/Tooltip'
+import { OverlayChildren } from 'react-bootstrap/Overlay'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import ConditionalWrap from "./utils/ConditionalWrap";
 import BetterMap from "../utils/BetterMap";
 import _ from "lodash";
@@ -33,13 +35,13 @@ interface MapComponentProps {
 
 @observer
 export default class MapComponent extends Component<MapComponentProps> {
-    refOverlayTriggerRegion: OverlayTrigger;
+    refOverlayTriggerRegion: ReactNode;
 
     render(): ReactNode {
         return (
             <div className="map"
-                 style={{backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", borderRadius: "0.25rem"}}>
-                <div style={{position: "relative"}}>
+                style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", borderRadius: "0.25rem" }}>
+                <div style={{ position: "relative" }}>
                     {this.props.ingameGameState.world.regions.values.map(r => (
                         <div key={r.id}>
                             {r.garrison > 0 && r.garrison != 1000 && (
@@ -68,7 +70,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                     {this.renderUnits()}
                     {this.renderOrders()}
                 </div>
-                <svg style={{width: "741px", height: "1378px"}}>
+                <svg style={{ width: "741px", height: "1378px" }}>
                     {this.renderRegions()}
                 </svg>
             </div>
@@ -79,7 +81,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         const propertiesForRegions = this.getModifiedPropertiesForEntities<Region, RegionOnMapProperties>(
             this.props.ingameGameState.world.regions.values,
             this.props.mapControls.modifyRegionsOnMap,
-            {highlight: {active: false, color: "white"}, onClick: null, wrap: null}
+            { highlight: { active: false, color: "white" }, onClick: null, wrap: null }
         );
 
         return propertiesForRegions.entries.map(([region, properties]) => {
@@ -119,16 +121,16 @@ export default class MapComponent extends Component<MapComponentProps> {
         });
     }
 
-    private renderRegionTooltip(region: Region): ReactNode {
-        const controller =  region.getController();
+    private renderRegionTooltip(region: Region): OverlayChildren {
+        const controller = region.getController();
 
         return <Tooltip id="region-details">
             <b>{region.name}</b> {controller && (<small>of <b>{controller.name}</b></small>)} {region.castleLevel > 0 && (<small> ({region.castleLevel == 1 ? "Castle" : "Stronghold"})</small>)}
             {region.superControlPowerToken ? (
-                <small><br/>Capital of {region.superControlPowerToken.name} {region.garrison > 0 && <>(Garrison of <b>{region.garrison}</b>)</>}</small>
+                <small><br />Capital of {region.superControlPowerToken.name} {region.garrison > 0 && <>(Garrison of <b>{region.garrison}</b>)</>}</small>
             ) : (
-                region.garrison > 0 && (<small><br />Neutral force of <b>{region.garrison}</b></small>)
-            )}
+                    region.garrison > 0 && (<small><br />Neutral force of <b>{region.garrison}</b></small>)
+                )}
             {(region.supplyIcons > 0 || region.crownIcons) > 0 && (
                 <>
                     <br />{region.supplyIcons > 0 && <><b>{region.supplyIcons}</b> Barrel{region.supplyIcons > 1 && "s"}</>}
@@ -137,7 +139,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                 </>
             )}
             {region.units.size > 0 && (
-                <><br/>{joinReactNodes(region.units.values.map(u => u.wounded ? <s key={u.id}>{u.type.name}</s> : <b key={u.id}>{u.type.name}</b>), ", ")}</>
+                <><br />{joinReactNodes(region.units.values.map(u => u.wounded ? <s key={u.id}>{u.type.name}</s> : <b key={u.id}>{u.type.name}</b>), ", ")}</>
             )}
         </Tooltip>;
     }
@@ -146,7 +148,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         const propertiesForUnits = this.getModifiedPropertiesForEntities<Unit, UnitOnMapProperties>(
             _.flatMap(this.props.ingameGameState.world.regions.values.map(r => r.units.values)),
             this.props.mapControls.modifyUnitsOnMap,
-            {highlight: {active: false, color: "white"}, onClick: null}
+            { highlight: { active: false, color: "white" }, onClick: null }
         );
 
         return this.props.ingameGameState.world.regions.values.map(r => {
@@ -154,7 +156,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             return <div
                 key={r.id}
                 className="units-container"
-                style={{left: r.unitSlot.point.x, top: r.unitSlot.point.y, width: r.unitSlot.width, flexWrap: r.type == land ? "wrap-reverse" : "wrap"}}
+                style={{ left: r.unitSlot.point.x, top: r.unitSlot.point.y, width: r.unitSlot.width, flexWrap: r.type == land ? "wrap-reverse" : "wrap" }}
             >
                 {r.units.values.map(u => {
                     const property = propertiesForUnits.get(u);
@@ -174,31 +176,31 @@ export default class MapComponent extends Component<MapComponentProps> {
                         transform = `rotate(90deg)`;
                     }
 
-                return <OverlayTrigger
-                            key={"unit-overlay-" + u.id}
-                            delay={{ show: 750, hide: 100 }}
-                            placement="auto"
-                            overlay={<Tooltip id={"unit-tooltip-" + u.id}>
-                                <b>{u.type.name}</b>{controller != null && <small> of <b>{controller.name}</b></small>}
-                            </Tooltip>}
-                        >
-                            <div onClick={property.onClick ? property.onClick : undefined}
-                                className={classNames(
-                                    "unit-icon hover-weak-outline",
-                                    {
-                                        "medium-outline hover-strong-outline": property.highlight.active
-                                    },
-                                    {
-                                        "attacking-army-highlight": property.highlight.color == "red"
-                                    }
-                                )}
-                                style={{
-                                    backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.type.id)})`,
-                                    opacity: opacity,
-                                    transform: transform
-                                }}
-                            />
-                        </OverlayTrigger>
+                    return <OverlayTrigger
+                        key={"unit-overlay-" + u.id}
+                        delay={{ show: 750, hide: 100 }}
+                        placement="auto"
+                        overlay={<Tooltip id={"unit-tooltip-" + u.id}>
+                            <b>{u.type.name}</b>{controller != null && <small> of <b>{controller.name}</b></small>}
+                        </Tooltip>}
+                    >
+                        <div onClick={property.onClick ? property.onClick : undefined}
+                            className={classNames(
+                                "unit-icon hover-weak-outline",
+                                {
+                                    "medium-outline hover-strong-outline": property.highlight.active
+                                },
+                                {
+                                    "attacking-army-highlight": property.highlight.color == "red"
+                                }
+                            )}
+                            style={{
+                                backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.type.id)})`,
+                                opacity: opacity,
+                                transform: transform
+                            }}
+                        />
+                    </OverlayTrigger>
                 })}
             </div>
         });
@@ -208,7 +210,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         const propertiesForOrders = this.getModifiedPropertiesForEntities<Region, OrderOnMapProperties>(
             _.flatMap(this.props.ingameGameState.world.regions.values),
             this.props.mapControls.modifyOrdersOnMap,
-            {highlight: {active: false, color: "white"}, onClick: null}
+            { highlight: { active: false, color: "white" }, onClick: null }
         );
 
         return propertiesForOrders.map((region, properties) => {
@@ -276,24 +278,24 @@ export default class MapComponent extends Component<MapComponentProps> {
     renderOrder(region: Region, order: Order | null, backgroundUrl: string, properties: OrderOnMapProperties, _isActionGameState: boolean): ReactNode {
         return (
             <div className={classNames(
-                    "order-container", "hover-weak-outline",
-                    {
-                        "medium-outline hover-strong-outline clickable": properties.highlight.active
-                    }
-                )}
-                 style={{left: region.orderSlot.x, top: region.orderSlot.y}}
-                 onClick={properties.onClick ? properties.onClick : undefined}
-                 key={"region-" + region.id}
+                "order-container", "hover-weak-outline",
+                {
+                    "medium-outline hover-strong-outline clickable": properties.highlight.active
+                }
+            )}
+                style={{ left: region.orderSlot.x, top: region.orderSlot.y }}
+                onClick={properties.onClick ? properties.onClick : undefined}
+                key={"region-" + region.id}
             >
                 <OverlayTrigger overlay={this.renderOrderTooltip(order, region)}
-                    delay={{show: 750, hide: 100}}>
-                    <div className="order-icon" style={{backgroundImage: `url(${backgroundUrl})`}}/>
+                    delay={{ show: 750, hide: 100 }}>
+                    <div className="order-icon" style={{ backgroundImage: `url(${backgroundUrl})` }} />
                 </OverlayTrigger>
             </div>
         );
     }
 
-    private renderOrderTooltip(order: Order | null, region: Region): ReactNode {
+    private renderOrderTooltip(order: Order | null, region: Region): OverlayChildren {
         const regionController = region.getController();
 
         return <Tooltip id={"order-info"}>

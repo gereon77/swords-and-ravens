@@ -1,7 +1,9 @@
-import {Component, ReactNode} from "react";
+import { Component, ReactNode } from "react";
+import preventOverflow from '@popperjs/core/lib/modifiers/preventOverflow';
+
 import classNames from "classnames";
 import React from "react";
-import {observer} from "mobx-react";
+import { observer } from "mobx-react";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import WesterosCardType from "../../../common/ingame-game-state/game-data-structure/westeros-card/WesterosCardType";
 import westerosCardImages from "../../westerosCardImages";
@@ -25,10 +27,12 @@ export default class WesterosCardComponent extends Component<WesterosCardProps> 
                         style={{
                             backgroundImage: this.props.cardType ? `url(${westerosCardImages.get(this.props.westerosDeckI).get(this.props.cardType.id)})` : undefined
                         }}
-                    /> : <div/>
+                    /> : <div />
                 }
-                popperConfig={{modifiers: {preventOverflow: {boundariesElement: "viewport"}}}}
-                delay={{show: 120, hide: 0}}
+                popperConfig={{
+                    modifiers: [preventOverflow]
+                }}
+                delay={{ show: 120, hide: 0 }}
                 placement="auto"
             >
                 <div

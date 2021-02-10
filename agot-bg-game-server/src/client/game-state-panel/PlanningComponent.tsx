@@ -1,7 +1,7 @@
-import {Component, ReactNode, ReactElement} from "react";
+import { Component, ReactNode, ReactElement } from "react";
 import PlanningGameState from "../../common/ingame-game-state/planning-game-state/PlanningGameState";
 import orders from "../../common/ingame-game-state/game-data-structure/orders";
-import {observer} from "mobx-react";
+import { observer } from "mobx-react";
 import Order from "../../common/ingame-game-state/game-data-structure/Order";
 import React from "react";
 import Region from "../../common/ingame-game-state/game-data-structure/Region";
@@ -12,19 +12,22 @@ import Button from "react-bootstrap/Button";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import OrderGridComponent from "./utils/OrderGridComponent";
-import {OrderOnMapProperties, RegionOnMapProperties} from "../MapControls";
+import { OrderOnMapProperties, RegionOnMapProperties } from "../MapControls";
 import PartialRecursive from "../../utils/PartialRecursive";
 import Player from "../../common/ingame-game-state/Player";
-import { OverlayTrigger, Popover } from "react-bootstrap";
+import { Popover, OverlayTrigger } from "react-bootstrap";
 import { observable } from "mobx";
 import BetterMap from "../../utils/BetterMap";
+
+// Passing a ref now triggers TS compilation error, so instruct the compiler to ignore this here.
+const OverlayTriggerAsAny: any = OverlayTrigger
 
 @observer
 export default class PlanningComponent extends Component<GameStateComponentProps<PlanningGameState>> {
     modifyRegionsOnMapCallback: any;
     modifyOrdersOnMapCallback: any;
 
-    @observable overlayTriggers = new BetterMap<Region, OverlayTrigger>();
+    @observable overlayTriggers = new BetterMap<Region, ReactNode>();
 
     render(): ReactNode {
         return (
@@ -56,7 +59,7 @@ export default class PlanningComponent extends Component<GameStateComponentProps
                                 </Row>
                             )}
                             <Row>
-                                <div className="text-center" style={{marginTop: 10}}>
+                                <div className="text-center" style={{ marginTop: 10 }}>
                                     Waiting for {this.props.gameState.getNotReadyPlayers().map(p => p.house.name).join(', ')}...
                                 </div>
                             </Row>
@@ -90,12 +93,12 @@ export default class PlanningComponent extends Component<GameStateComponentProps
                 r,
                 {
                     // Highlight areas with no order
-                    highlight: {active: !this.props.gameState.placedOrders.has(r)},
+                    highlight: { active: !this.props.gameState.placedOrders.has(r) },
                     wrap: (child: ReactElement) => (
-                        <OverlayTrigger
+                        <OverlayTriggerAsAny
                             placement="auto"
                             trigger="click"
-                            ref={(ref: OverlayTrigger) => {this.overlayTriggers.set(r, ref)}}
+                            ref={(ref: ReactNode) => { this.overlayTriggers.set(r, ref) }}
                             rootClose
                             overlay={
                                 <Popover id={"region" + r.id}>
@@ -115,7 +118,7 @@ export default class PlanningComponent extends Component<GameStateComponentProps
                             }
                         >
                             {child}
-                        </OverlayTrigger>
+                        </OverlayTriggerAsAny>
                     )
                 }
             ]));
@@ -129,7 +132,7 @@ export default class PlanningComponent extends Component<GameStateComponentProps
             return this.props.gameState.getPossibleRegionsForOrders(this.props.gameClient.authenticatedPlayer.house).map(r => ([
                 r,
                 {
-                    highlight: {active: true},
+                    highlight: { active: true },
                     onClick: () => this.onOrderClick(r)
                 }
             ]));
