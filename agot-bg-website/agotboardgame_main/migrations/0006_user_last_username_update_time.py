@@ -15,4 +15,14 @@ class Migration(migrations.Migration):
             name='last_username_update_time',
             field=models.DateTimeField(default=None, null=True),
         ),
+        migrations.AddField(
+            model_name='user',
+            name='email_notification_active',
+            field=models.BooleanField(default=True),
+        ),
+        migrations.AddField(
+            model_name='user',
+            name='vanilla_forum_user_id',
+            field=models.IntegerField(default=0),
+        ),
     ]

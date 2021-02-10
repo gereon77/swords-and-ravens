@@ -7,7 +7,7 @@ from agotboardgame_main.models import User
 
 
 def forward(apps, schema_editor):
-    group = Group.objects.get(name=settings.DEFAULT_GROUP)
+    group = Group.objects.get_or_create(name=settings.DEFAULT_GROUP)
 
     for user in User.objects.all():
         group.user_set.add(user)

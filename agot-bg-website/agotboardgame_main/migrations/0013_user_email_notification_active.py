@@ -10,9 +10,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='user',
-            name='email_notification_active',
-            field=models.BooleanField(default=True),
-        ),
+    #     migrations.AddField(
+    #         model_name='user',
+    #         name='email_notification_active',
+    #         field=models.BooleanField(default=True),
+    #     ),
     ]

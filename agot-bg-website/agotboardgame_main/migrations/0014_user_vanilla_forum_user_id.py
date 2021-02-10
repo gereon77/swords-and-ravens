@@ -26,10 +26,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='user',
-            name='vanilla_forum_user_id',
-            field=models.IntegerField(default=0),
-        ),
+        # migrations.AddField(
+        #     model_name='user',
+        #     name='vanilla_forum_user_id',
+        #     field=models.IntegerField(default=0),
+        # ),
         migrations.RunPython(forward, reverse)
     ]
