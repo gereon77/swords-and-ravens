@@ -1,13 +1,15 @@
-import {observer} from "mobx-react";
-import {Component, ReactNode} from "react";
+import { observer } from "mobx-react";
+import { Component, ReactNode } from "react";
+import preventOverflow from '@popperjs/core/lib/modifiers/preventOverflow';
+
 import GameClient from "../GameClient";
 import Row from "react-bootstrap/Row";
 import Button from "react-bootstrap/Button";
 import React from "react";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import {observable} from "mobx";
-import ChatClient, {Channel, Message} from "./ChatClient";
+import { observable } from "mobx";
+import ChatClient, { Channel, Message } from "./ChatClient";
 import EntireGame from "../../common/EntireGame";
 // @ts-ignore
 import ScrollToBottom from "react-scroll-to-bottom";
@@ -73,11 +75,13 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                                 </React.Fragment>
                             )}
                             <Row noGutters={true} className="flex-nowrap" key={m.id}>
-                                <Col xs="auto" style={{width: "38px"}} className="text-center">
+                                <Col xs="auto" style={{ width: "38px" }} className="text-center">
                                     <OverlayTrigger
                                         placement="auto"
                                         overlay={<Tooltip id={"message-date-" + m.id}>{m.createdAt.toLocaleString()}</Tooltip>}
-                                        popperConfig={{modifiers: {preventOverflow: {boundariesElement: "viewport"}}}}
+                                        popperConfig={{
+                                            modifiers: [preventOverflow]
+                                        }}
                                     >
                                         <small className="text-muted">
                                             {('0' + m.createdAt.getHours()).slice(-2)}:{('0' + m.createdAt.getMinutes()).slice(-2)}
@@ -87,7 +91,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                                 <Col xs="auto" className="mx-1">
                                     <strong>{this.props.getUserDisplayName(m.user)}</strong>
                                 </Col>
-                                <Col style={{overflowWrap: "anywhere"}}>
+                                <Col style={{ overflowWrap: "anywhere" }}>
                                     {m.text}
                                 </Col>
                             </Row>
@@ -105,7 +109,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                                 <Form.Control type="text" maxLength={200} value={this.inputText} onChange={(e: any) => this.inputText = e.target.value} />
                             </Col>
                             <Col xs="auto">
-                                <Button type="submit" onClick={(e: any) => {this.send(); e.preventDefault()}}>Send</Button>
+                                <Button type="submit" onClick={(e: any) => { this.send(); e.preventDefault() }}>Send</Button>
                             </Col>
                         </Row>
                     </Form>

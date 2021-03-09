@@ -15,12 +15,15 @@ import renderChildGameState from "../utils/renderChildGameState";
 import ClaimVassalsComponent from "./ClaimVassalsComponent";
 import PlaceOrdersComponent from "./PlaceOrdersComponent";
 
+// Passing a ref now triggers TS compilation error, so instruct the compiler to ignore this here.
+const OverlayTriggerAsAny: any = OverlayTrigger
+
 @observer
 export default class PlanningComponent extends Component<GameStateComponentProps<PlanningGameState>> {
     modifyRegionsOnMapCallback: any;
     modifyOrdersOnMapCallback: any;
 
-    @observable overlayTriggers = new BetterMap<Region, OverlayTrigger>();
+    @observable overlayTriggers = new BetterMap<Region, ReactNode>();
 
     render(): ReactNode {
         return (
