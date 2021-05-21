@@ -1500,7 +1500,8 @@
         },
         "godric-borrell": {
           "name": "Godric Borrell",
-          "combatStrength": 1
+          "combatStrength": 1,
+          "ability": "godric-borrell"
         },
         "anya-waynwood": {
           "name": "Anya Waynwood",
