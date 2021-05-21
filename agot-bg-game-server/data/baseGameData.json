@@ -1505,7 +1505,8 @@
         },
         "anya-waynwood": {
           "name": "Anya Waynwood",
-          "combatStrength": 1
+          "combatStrength": 1,
+          "ability": "anya-waynwood"
         },
         "robert-arryn": {
           "name": "Robert Arryn"
