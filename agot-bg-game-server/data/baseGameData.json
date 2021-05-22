@@ -1491,9 +1491,10 @@
           "swordIcons": 1,
           "towerIcons": 1
         },
-        "xaro-choan-daxos": {
-          "name": "Xaro Choan Daxos",
-          "combatStrength": 2
+        "xaro-xhoan-daxos": {
+          "name": "Xaro Xhoan Daxos",
+          "combatStrength": 2,
+          "ability": "xaro-xhoan-daxos"
         },
         "ser-jorah-mormont": {
           "name": "Ser Jorah Mormont",

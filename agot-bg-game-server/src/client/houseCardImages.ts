@@ -125,7 +125,7 @@ import serJorahMormontAImage from "../../public/images/house-cards/SerJorahMormo
 import serVardisEgenModImage from "../../public/images/house-cards/SerVardisEgen-mod.png"
 import strongBelwasBImage from "../../public/images/house-cards/StrongBelwas-B.png"
 import viserysTargaryenAImage from "../../public/images/house-cards/ViserysTargaryen-A.png"
-import xaroChoanDaxosAImage from "../../public/images/house-cards/XaroChoanDaxos-A.png"
+import xaroXhoanDaxosAImage from "../../public/images/house-cards/XaroXhoanDaxos-A.png"
 
 const houseCardImages = new BetterMap([
     ["queen-of-thorns", queenImage],
@@ -247,7 +247,7 @@ const houseCardImages = new BetterMap([
     ["ser-vardis-egen", serVardisEgenModImage],
     ["strong-belwas", strongBelwasBImage],
     ["viserys-targaryen", viserysTargaryenAImage],
-    ["xaro-choan-daxos", xaroChoanDaxosAImage]
+    ["xaro-xhoan-daxos", xaroXhoanDaxosAImage]
 ]);
 
 export default houseCardImages;
