@@ -6,7 +6,7 @@ import React from "react";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import Spinner from "react-bootstrap/Spinner";
-import houseInfluenceImages from "./houseInfluenceImages";
+import houseInfluenceImages, { houseInfluenceImagesDwd } from "./houseInfluenceImages";
 import voteImage from "../../public/images/icons/vote.svg";
 import Button from "react-bootstrap/Button";
 import {faCheck} from "@fortawesome/free-solid-svg-icons/faCheck";
@@ -46,7 +46,11 @@ export default class VoteComponent extends Component<VoteComponentProps> {
                                     <Col xs={"auto"} key={p.user.id}>
                                         <div className="mb-2" key={p.user.id}>
                                             <div className="influence-icon"
-                                                style={{backgroundImage: `url(${houseInfluenceImages.get(p.house.id)})`}}>
+                                                style={{backgroundImage: `url(${(
+                                                    this.props.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons'
+                                                    ? houseInfluenceImagesDwd
+                                                    : houseInfluenceImages
+                                                ).get(p.house.id)})`}}>
                                             </div>
                                         </div>
                                         <div className="text-center">

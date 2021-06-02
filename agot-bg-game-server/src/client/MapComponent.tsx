@@ -11,11 +11,11 @@ import ActionGameState from "../common/ingame-game-state/action-game-state/Actio
 import Order from "../common/ingame-game-state/game-data-structure/Order";
 import westerosImage from "../../public/images/westeros.jpg";
 import westeros7pImage from "../../public/images/westeros-7p.jpg";
-import houseOrderImages from "./houseOrderImages";
+import houseOrderImages, { houseOrderImagesDwd } from "./houseOrderImages";
 import orderImages from "./orderImages";
-import unitImages from "./unitImages";
+import unitImages, { unitImagesDwd } from "./unitImages";
 import classNames = require("classnames");
-import housePowerTokensImages from "./housePowerTokensImages";
+import housePowerTokensImages, { housePowerTokensImagesDwd } from "./housePowerTokensImages";
 import {OverlayTrigger, Tooltip} from "react-bootstrap";
 import ConditionalWrap from "./utils/ConditionalWrap";
 import BetterMap from "../utils/BetterMap";
@@ -67,7 +67,11 @@ export default class MapComponent extends Component<MapComponentProps> {
                                     style={{
                                         left: r.powerTokenSlot.x,
                                         top: r.powerTokenSlot.y,
-                                        backgroundImage: `url(${housePowerTokensImages.get(r.controlPowerToken.id)})`
+                                        backgroundImage: `url(${(
+                                            this.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                            ? housePowerTokensImagesDwd
+                                            : housePowerTokensImages
+                                        ).get(r.controlPowerToken.id)})`
                                     }}
                                 >
                                 </div>
@@ -185,7 +189,11 @@ export default class MapComponent extends Component<MapComponentProps> {
                                     },
                                 )}
                                 style={{
-                                    backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.upgradedType ? u.upgradedType.id : u.type.id)})`,
+                                    backgroundImage: `url(${(
+                                    this.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                    ? unitImagesDwd
+                                    : unitImages
+                                    ).get(u.allegiance.id).get(u.upgradedType ? u.upgradedType.id : u.type.id)})`,
                                     opacity: opacity,
                                     transform: transform
                                 }}
@@ -218,7 +226,11 @@ export default class MapComponent extends Component<MapComponentProps> {
                         throw new Error("Should never happen. If there's an order, there's a controller.");
                     }
 
-                    const backgroundUrl = order ? orderImages.get(order.type.id) : houseOrderImages.get(controller.id);
+                    const backgroundUrl = order ? orderImages.get(order.type.id) : (
+                        this.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                        ? houseOrderImagesDwd
+                        : houseOrderImages
+                    ).get(controller.id);
 
                     return this.renderOrder(region, order, backgroundUrl, properties, false);
                 }

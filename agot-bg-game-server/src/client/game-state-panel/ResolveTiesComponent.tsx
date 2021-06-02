@@ -10,7 +10,7 @@ import GameStateComponentProps from "./GameStateComponentProps";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import Button from "react-bootstrap/Button";
-import houseInfluenceImages from "../houseInfluenceImages";
+import houseInfluenceImages, {houseInfluenceImagesDwd} from "../houseInfluenceImages";
 import {faAngleLeft} from "@fortawesome/free-solid-svg-icons/faAngleLeft";
 import {faAngleRight} from "@fortawesome/free-solid-svg-icons/faAngleRight";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
@@ -39,7 +39,11 @@ export default class ResolveTiesComponent extends Component<GameStateComponentPr
                                     <Col xs="auto" key={h.id} className="d-flex flex-md-column align-items-center">
                                         <div className="mb-2">
                                             <div className="influence-icon"
-                                                 style={{backgroundImage: `url(${houseInfluenceImages.get(h.id)})`}}>
+                                                 style={{backgroundImage: `url(${(
+                                                    this.props.gameState.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                                    ? houseInfluenceImagesDwd
+                                                    : houseInfluenceImages
+                                                ).get(h.id)})`}}>
                                             </div>
                                         </div>
                                         <div className="text-center" style={{fontSize: "18px", marginBottom: "5px"}}>{this.props.gameState.getBidOfHouse(h)}</div>
