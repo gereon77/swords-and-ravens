@@ -8,8 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import classNames from "classnames";
 import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
 import unitTypes from "..//common/ingame-game-state/game-data-structure/unitTypes";
-import unitImages from "./unitImages";
-import housePowerTokensImages from "./housePowerTokensImages";
+import unitImages, { unitImagesDwd } from "./unitImages";
+import housePowerTokensImages, { housePowerTokensImagesDwd } from "./housePowerTokensImages";
 import _ from "lodash";
 import { HouseCardState } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import HouseCardComponent from "./game-state-panel/utils/HouseCardComponent";
@@ -117,7 +117,11 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
                                                 placement="auto">
                                                 <div className="unit-icon small hover-weak-outline"
                                                     style={{
-                                                        backgroundImage: `url(${unitImages.get(this.house.id).get(type.id)})`,
+                                                        backgroundImage: `url(${(
+                                                            this.props.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                                            ? unitImagesDwd
+                                                            : unitImages
+                                                        ).get(this.house.id).get(type.id)})`,
                                                     }}
                                                 />
                                             </OverlayTrigger>
@@ -155,7 +159,11 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
                             <div
                                 className="house-power-token hover-weak-outline"
                                 style={{
-                                    backgroundImage: `url(${housePowerTokensImages.get(this.house.id)})`,
+                                    backgroundImage: `url(${(
+                                        this.props.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                        ? housePowerTokensImagesDwd
+                                        : housePowerTokensImages
+                                    ).get(this.house.id)})`,
                                     marginLeft: "10px"
                                 }}
                             />

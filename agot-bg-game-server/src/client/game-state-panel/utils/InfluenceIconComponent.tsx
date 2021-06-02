@@ -1,7 +1,7 @@
 import {Component, default as React, ReactNode} from "react";
 import {observer} from "mobx-react";
 import Tooltip from "react-bootstrap/Tooltip";
-import houseInfluenceImages from "../../houseInfluenceImages";
+import houseInfluenceImages, { houseInfluenceImagesDwd } from "../../houseInfluenceImages";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import House from "../../../common/ingame-game-state/game-data-structure/House";
 import IngameGameState from "../../../common/ingame-game-state/IngameGameState";
@@ -37,7 +37,13 @@ export default class InfluenceIconComponent extends Component<InfluenceIconCompo
                 placement="bottom"
             >
                 <div className={classNames("influence-icon", {"medium-outline": this.ingame.game.getTokenHolder(this.track) == this.house})}
-                    style={{backgroundImage: `url(${houseInfluenceImages.get(this.house.id)})`}}>
+                    style={{backgroundImage: `url(${
+                    (
+                        this.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                        ? houseInfluenceImagesDwd
+                        : houseInfluenceImages
+                    )
+                    .get(this.house.id)})`}}>
                 </div>
             </OverlayTrigger>
         );

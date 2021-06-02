@@ -1,5 +1,6 @@
 import BetterMap from "../utils/BetterMap";
 import baratheonOrder from "../../public/images/orders/BaratheonOrder.png";
+import boltonOrder from "../../public/images/orders/BoltonOrder.png";
 import tyrellOrder from "../../public/images/orders/TyrellOrder.png";
 import martellOrder from "../../public/images/orders/MartellOrder.png";
 import starkOrder from "../../public/images/orders/StarkOrder.png";
@@ -18,3 +19,13 @@ const houseOrderImages = new BetterMap([
 ]);
 
 export default houseOrderImages;
+
+export const houseOrderImagesDwd = new BetterMap([
+    ["tyrell", tyrellOrder],
+    ["baratheon", baratheonOrder],
+    ["stark", boltonOrder],
+    ["martell", martellOrder],
+    ["lannister", lannisterOrder],
+    ["greyjoy", greyjoyOrder],
+    ["arryn", arrynOrder]
+]);

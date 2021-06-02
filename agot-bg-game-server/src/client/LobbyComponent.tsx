@@ -9,7 +9,7 @@ import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import ListGroup from "react-bootstrap/ListGroup";
 import ListGroupItem from "react-bootstrap/ListGroupItem";
-import houseInfluenceImages from "./houseInfluenceImages";
+import houseInfluenceImages, { houseInfluenceImagesDwd } from "./houseInfluenceImages";
 import classNames = require("classnames");
 import ChatComponent from "./chat-client/ChatComponent";
 import GameSettingsComponent from "./GameSettingsComponent";
@@ -60,7 +60,11 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                                         <Row className="align-items-center">
                                             {!this.randomHouses && <Col xs="auto">
                                                 <div className="influence-icon"
-                                                     style={{backgroundImage: `url(${houseInfluenceImages.get(h.id)})`}}>
+                                                     style={{backgroundImage: `url(${(
+                                                        this.lobby.entireGame.gameSettings.setupId === 'a-dance-with-dragons' 
+                                                        ? houseInfluenceImagesDwd
+                                                        : houseInfluenceImages
+                                                     ).get(h.id)})`}}>
                                                 </div>
                                             </Col>}
                                             <Col>
