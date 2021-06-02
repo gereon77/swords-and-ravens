@@ -55,7 +55,10 @@ export default class PostCombatComponent extends Component<GameStateComponentPro
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <h5>Battle for <b>{houseCombatDatas[1].region.name}</b></h5>
                     </div>
-                    <CombatInfoComponent housesCombatData={houseCombatDatas}/>
+                    <CombatInfoComponent
+                        isDwd={this.props.gameState.entireGame.gameSettings.setupId === 'a-dance-with-dragons'}
+                        housesCombatData={houseCombatDatas}
+                    />
                 </Col>}
                 <Col xs={12} className="text-center">
                     Winner: {this.postCombat.winner.name}

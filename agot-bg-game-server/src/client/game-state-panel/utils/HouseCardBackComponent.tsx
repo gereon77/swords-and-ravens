@@ -3,7 +3,7 @@ import {observer} from "mobx-react";
 import houseCardImages from "../../houseCardImages";
 import classNames = require("classnames");
 import House from "../../../common/ingame-game-state/game-data-structure/House";
-import houseCardsBackImages from "../../houseCardsBackImages";
+import houseCardsBackImages, { houseCardsBackImagesDwd } from "../../houseCardsBackImages";
 import HouseCard from "../../../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 
@@ -11,6 +11,7 @@ interface HouseCardBackComponentProps {
     house: House;
     houseCard: HouseCard;
     size?: "small" | "medium" | "tiny";
+    isDwd: boolean;
 }
 
 @observer
@@ -33,7 +34,11 @@ export default class HouseCardBackComponent extends Component<HouseCardBackCompo
                         this.props.size
                     )}
                     style={{
-                        backgroundImage: `url(${houseCardsBackImages.get(this.props.house.id)})`
+                        backgroundImage: `url(${(
+                            this.props.isDwd
+                                ? houseCardsBackImagesDwd
+                                : houseCardsBackImages
+                            ).get(this.props.house.id)})`
                     }}
                 />
             </OverlayTrigger>

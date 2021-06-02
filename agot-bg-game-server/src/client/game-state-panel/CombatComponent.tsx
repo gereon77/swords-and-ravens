@@ -62,6 +62,7 @@ export default class CombatComponent extends Component<GameStateComponentProps<C
                                 <h5>Battle for <b>{this.combatGameState.defendingRegion.name}</b></h5>
                             </div>
                             <CombatInfoComponent
+                                isDwd={this.props.gameState.entireGame.gameSettings.setupId === 'a-dance-with-dragons'}
                                 housesCombatData={[
                                     {
                                         house: this.attacker,

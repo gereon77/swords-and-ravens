@@ -181,6 +181,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
                                 />
                             ) : (
                                 <HouseCardBackComponent
+                                    isDwd={this.game.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons'}
                                     house={this.house}
                                     houseCard={hc}
                                     size="tiny"
