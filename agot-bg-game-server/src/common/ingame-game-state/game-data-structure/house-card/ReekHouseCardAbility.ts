@@ -10,16 +10,17 @@ import ReekAbilityGameState
 
 export default class ReekHouseCardAbility extends HouseCardAbility {
     immediatelyResolution(immediately: ImmediatelyHouseCardAbilitiesResolutionGameState, house: House, _houseCard: HouseCard): void {
-        const ramsaybolton = house.houseCards.get("ramsay-bolton");
-        ramsaybolton.state = HouseCardState.AVAILABLE;
-        immediately.onHouseCardResolutionFinish();
-        immediately.entireGame.broadcastToClients({
-            type: "change-state-house-card",
-            houseId: house.id,
-            cardIds: [ramsaybolton.id],
-            state: HouseCardState.AVAILABLE
-        });
-
+        const houseCardWithThreeStrength = house.houseCards.values.filter(hc => hc.combatStrength == 3);
+        if (houseCardWithThreeStrength.length == 1) {
+            houseCardWithThreeStrength[0].state = HouseCardState.AVAILABLE;
+            immediately.entireGame.broadcastToClients({
+                type: "change-state-house-card",
+                houseId: house.id,
+                cardIds: [houseCardWithThreeStrength[0].id],
+                state: HouseCardState.AVAILABLE
+            });
+        }
+        immediately.childGameState.onHouseCardResolutionFinish(house);
     }
 
     afterWinnerDetermination(afterWinnerDetermination: AfterWinnerDeterminationGameState, house: House, _houseCard: HouseCard): void {
@@ -29,6 +30,7 @@ export default class ReekHouseCardAbility extends HouseCardAbility {
                 .firstStart(house);
             return;
         }
-        afterWinnerDetermination.onHouseCardResolutionFinish();
+
+        afterWinnerDetermination.childGameState.onHouseCardResolutionFinish(house);
     }
 }

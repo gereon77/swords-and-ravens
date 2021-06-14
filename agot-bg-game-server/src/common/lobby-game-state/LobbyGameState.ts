@@ -9,10 +9,13 @@ import baseGameData from "../../../data/baseGameData.json";
 import CancelledGameState from "../cancelled-game-state/CancelledGameState";
 import shuffle from "../../utils/shuffle";
 import _ from "lodash";
+import { MIN_PLAYER_COUNT_WITH_VASSALS } from "../ingame-game-state/game-data-structure/Game";
+import { v4 } from "uuid";
 
 export default class LobbyGameState extends GameState<EntireGame> {
     lobbyHouses: BetterMap<string, LobbyHouse>;
     @observable players = new BetterMap<LobbyHouse, User>();
+    @observable password = "";
 
     get entireGame(): EntireGame {
         return this.parentGameState;
@@ -31,7 +34,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
     }
 
     getAvailableHouses(): LobbyHouse[] {
-        return this.lobbyHouses.values.filter(h => this.entireGame.getSelectedGameSetup().houses.includes(h.id));
+        return this.lobbyHouses.values.filter(h => this.entireGame.selectedGameSetup.houses.includes(h.id));
     }
 
     onGameSettingsChange(): void {
@@ -48,7 +51,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
             }
         });
 
-        if (usersForReassignment.length > 0 && this.players.size < this.entireGame.getSelectedGameSetup().playerCount) {
+        if (usersForReassignment.length > 0 && this.players.size < this.entireGame.selectedGameSetup.playerCount) {
             const freeHouses = _.difference(availableHouses, this.players.keys);
 
             while (freeHouses.length > 0 && usersForReassignment.length > 0) {
@@ -66,24 +69,37 @@ export default class LobbyGameState extends GameState<EntireGame> {
 
     onClientMessage(user: User, message: ClientMessage): void {
         if (message.type == "launch-game") {
-            if (!this.entireGame.isOwner(user)) {
-                return;
-            }
-
             if (!this.canStartGame(user).success) {
                 return;
             }
 
             if (this.entireGame.gameSettings.randomHouses) {
+                // Assign a random house to the players
+                const allShuffledHouses = _.shuffle(this.getAvailableHouses());
+                const connectedUsers = this.players.values;
+                this.players = new BetterMap();
+                for(const user of connectedUsers) {
+                    this.players.set(allShuffledHouses.splice(0, 1)[0], user);
+                }
+            } else if (this.entireGame.gameSettings.randomChosenHouses) {
                 const shuffled = shuffle(this.players.entries);
 
-                const lobbyHouses = this.players.keys;
-                for (let i = 0; i < shuffled.length; i++) {
-                    this.players.set(lobbyHouses[i], shuffled[i][1]);
-                }
+                    const lobbyHouses = this.players.keys;
+                    for (let i = 0; i < shuffled.length; i++) {
+                        this.players.set(lobbyHouses[i], shuffled[i][1]);
+                    }
             }
 
-            this.entireGame.proceedToIngameGameState(new BetterMap(this.players.map((h, u) => ([h.id, u]))));
+            let housesToCreate = this.getAvailableHouses().map(h => h.id);
+            if (this.entireGame.gameSettings.setupId == "learn-the-game" && !this.entireGame.gameSettings.vassals) {
+                const lobbyHouses = this.players.keys.map(lh => lh.id);
+                housesToCreate = housesToCreate.filter(h => lobbyHouses.includes(h));
+            }
+
+            this.entireGame.proceedToIngameGameState(
+                housesToCreate,
+                new BetterMap(this.players.map((h, u) => ([h.id, u])))
+            );
         } else if (message.type == "kick-player") {
             const kickedUser = this.entireGame.users.get(message.user);
 
@@ -107,6 +123,30 @@ export default class LobbyGameState extends GameState<EntireGame> {
             }
 
             this.setUserForLobbyHouse(house, user);
+        } else if (message.type == "set-password") {
+            let answer = v4();
+            if (this.entireGame.isRealOwner(user)) {
+                this.password = message.password;
+                // If owner has reset the password, send "" to the clients
+                // Otherwise send a GUID so their password validation check fails
+                this.entireGame.sendMessageToClients(_.without(this.entireGame.users.values, user), {
+                    type: "password-response",
+                    password: message.password == "" ? "" : answer
+                });
+                // Always send back the chosen password to the owner
+                answer = message.password;
+            } else {
+                // If user sent the correct password, or no password is set
+                // send password back the correct password
+                if (this.password == "" || this.password == message.password) {
+                    answer = this.password;
+                }
+            }
+
+            this.entireGame.sendMessageToClients([user], {
+                type: "password-response",
+                password: answer
+            });
         }
     }
 
@@ -125,6 +165,8 @@ export default class LobbyGameState extends GameState<EntireGame> {
             type: "house-chosen",
             players: this.players.entries.map(([house, user]) => [house.id, user.id])
         });
+
+        this.entireGame.notifyWaitedUsers();
     }
 
     canStartGame(user: User): {success: boolean; reason: string} {
@@ -132,7 +174,12 @@ export default class LobbyGameState extends GameState<EntireGame> {
             return {success: false, reason: "not-owner"};
         }
 
-        if (this.players.size < this.entireGame.getSelectedGameSetup().playerCount) {
+        // If Vassals are toggled we need at least min_player_count_with_vassals
+        if (this.entireGame.gameSettings.vassals) {
+            if (this.players.size < MIN_PLAYER_COUNT_WITH_VASSALS && this.players.size != this.entireGame.selectedGameSetup.playerCount) {
+                return {success: false, reason: "not-enough-players"};
+            }
+        } else if (this.players.size < this.entireGame.selectedGameSetup.playerCount) {
             return {success: false, reason: "not-enough-players"};
         }
 
@@ -158,6 +205,8 @@ export default class LobbyGameState extends GameState<EntireGame> {
                 // Fake a game state change to play a sound also in case lobby is full
                 this.entireGame.onClientGameStateChange();
             }
+        } else if (message.type == "password-response") {
+            this.password = message.password;
         }
     }
 
@@ -187,20 +236,32 @@ export default class LobbyGameState extends GameState<EntireGame> {
         });
     }
 
+    sendPassword(password: string): void {
+        this.entireGame.sendMessageToServer({
+            type: "set-password",
+            password: password
+        });
+    }
+
     getWaitedUsers(): User[] {
-        const owner = this.entireGame.owner;
-        if (!owner || !this.canStartGame(owner).success) {
+        if (!this.entireGame.users.has(this.entireGame.ownerUserId)) {
             return [];
         }
 
-        return [owner];
+        const owner = this.entireGame.users.get(this.entireGame.ownerUserId);
+
+        return this.canStartGame(owner).success ? [owner] : [];
     }
 
-    serializeToClient(_admin: boolean, _user: User | null): SerializedLobbyGameState {
+    serializeToClient(admin: boolean, user: User | null): SerializedLobbyGameState {
         return {
             type: "lobby",
             lobbyHouses: this.lobbyHouses.values,
-            players: this.players.entries.map(([h, u]) => [h.id, u.id])
+            players: this.players.entries.map(([h, u]) => [h.id, u.id]),
+            password: this.password == "" ||
+                admin || (user && this.entireGame.isRealOwner(user))
+                ? this.password
+                : v4()
         };
     }
 
@@ -209,6 +270,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
 
         lobbyGameState.lobbyHouses = new BetterMap(data.lobbyHouses.map(h => [h.id, h]));
         lobbyGameState.players = new BetterMap(data["players"].map(([hid, uid]) => [lobbyGameState.lobbyHouses.get(hid), entireGame.users.get(uid)]));
+        lobbyGameState.password = data.password;
 
         return lobbyGameState;
     }
@@ -218,6 +280,7 @@ export interface SerializedLobbyGameState {
     type: "lobby";
     players: [string, string][];
     lobbyHouses: LobbyHouse[];
+    password: string;
 }
 
 export interface LobbyHouse {

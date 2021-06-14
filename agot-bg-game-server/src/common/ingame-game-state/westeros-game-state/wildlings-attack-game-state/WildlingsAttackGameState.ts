@@ -28,6 +28,7 @@ import TheHordeDescendsWildlingVictoryGameState, {SerializedTheHordeDescendsWild
 import TheHordeDescendsNightsWatchVictoryGameState, {SerializedTheHordeDescendsNightsWatchVictoryGameState} from "./the-horde-descends-nights-watch-victory-game-state/TheHordeDescendsNightsWatchVictoryGameState";
 import IngameGameState from "../../IngameGameState";
 import { observable } from "mobx";
+import BetterMap from "../../../../utils/BetterMap";
 
 export default class WildlingsAttackGameState extends GameState<WesterosGameState,
     BiddingGameState<WildlingsAttackGameState> | SimpleChoiceGameState | PreemptiveRaidWildlingVictoryGameState
@@ -45,7 +46,7 @@ export default class WildlingsAttackGameState extends GameState<WesterosGameStat
     wildlingStrength: number;
     _highestBidder: House | null;
     _lowestBidder: House | null;
-    biddingResults: [number, House[]][] | null;
+    @observable biddingResults: [number, House[]][] | null;
 
     get excludedHouses(): House[] {
         return _.difference(this.game.houses.values, this.participatingHouses);
@@ -71,7 +72,6 @@ export default class WildlingsAttackGameState extends GameState<WesterosGameStat
         if (this.biddingResults == null) {
             throw new Error();
         }
-
 
         return this.biddingResults[0][1];
     }
@@ -114,7 +114,9 @@ export default class WildlingsAttackGameState extends GameState<WesterosGameStat
 
     firstStart(wildlingStrength: number, participatingHouses: House[] = []): void {
         this.wildlingStrength = wildlingStrength;
-        this.participatingHouses = participatingHouses;
+
+        // Filter out Vassal houses, who never participates in wildling attacks
+        this.participatingHouses = participatingHouses.filter(h => !this.ingame.isVassalHouse(h));
 
         this.setChildGameState(new BiddingGameState(this)).firstStart(this.participatingHouses);
     }
@@ -126,18 +128,34 @@ export default class WildlingsAttackGameState extends GameState<WesterosGameStat
     onServerMessage(message: ServerMessage): void {
         if (message.type == "reveal-wildling-card") {
             this.wildlingCard = this.game.wildlingDeck.find(c => c.id == message.wildlingCard) as WildlingCard;
+        } else if (message.type == "reveal-bids") {
+            this.biddingResults = message.bids.map(([bid, houses]) => [bid, houses.map(h => this.game.houses.get(h))]);
         } else {
             this.childGameState.onServerMessage(message);
         }
     }
 
     onBiddingGameStateEnd(results: [number, House[]][]): void {
-        this.biddingResults = results;
+        const resultsWithoutVassals = new BetterMap(results);
+        resultsWithoutVassals.keys.forEach(bid => {
+            const houses = resultsWithoutVassals.get(bid).filter(h => !this.ingame.isVassalHouse(h));
+            if (houses.length > 0) {
+                resultsWithoutVassals.set(bid, houses);
+            } else {
+                resultsWithoutVassals.delete(bid);
+            }
+        });
+        this.biddingResults = resultsWithoutVassals.entries;
+
+        this.westerosGameState.entireGame.broadcastToClients({
+            type: "reveal-bids",
+            bids: this.biddingResults.map(([bid, houses]) => [bid, houses.map(h => h.id)])
+        });
 
         this.westerosGameState.ingame.log({
             type: "wildling-bidding",
             wildlingStrength: this.westerosGameState.game.wildlingStrength,
-            results: results.map(([bid, houses]) => [bid, houses.map(h => h.id)]),
+            results: this.biddingResults.map(([bid, houses]) => [bid, houses.map(h => h.id)]),
             nightsWatchVictory: this.nightsWatchWon
         });
 
@@ -251,7 +269,7 @@ export default class WildlingsAttackGameState extends GameState<WesterosGameStat
         if (this.nightsWatchWon) {
             this.game.wildlingStrength = 0;
         } else {
-            this.game.wildlingStrength = Math.max(0, this.game.wildlingStrength - 4);
+            this.game.updateWildlingStrength(-4);
         }
         this.entireGame.broadcastToClients({
             type: "change-wildling-strength",

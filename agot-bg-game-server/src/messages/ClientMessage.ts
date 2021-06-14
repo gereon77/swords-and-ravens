@@ -3,7 +3,8 @@ export type ClientMessage = Ping | Authenticate | PlaceOrder | Ready | Unready |
     | ChooseTopWildlingCardAction | ReplaceOrder | SkipReplaceOrder | ResolveRaid | Bid | ChooseChoice
     | DecideBiggest | ReconcileArmies | Muster | ResolveTies | SelectUnits | LaunchGame | ChooseHouse
     | SelectOrders | SelectHouseCard | SelectRegion | ChangeSettings | CreatePrivateChatRoom | ChangeGameSettings
-    | CancelGame | Vote | LaunchCancelGameVote | CancelVote | LaunchReplacePlayerVote | UpdateNote | SelectWesterosCard;
+    | CancelGame | Vote | LaunchCancelGameVote | CancelVote | LaunchReplacePlayerVote | UpdateNote | SelectWesterosCard
+    | ClaimVassal | LaunchReplacePlayerByVassalVote | GiftPowerTokens | LaunchEndGameVote | SetPassword;
 
 interface Ping {
     type: "ping";
@@ -69,6 +70,7 @@ interface UseValyrianSteelBlade {
 interface ChooseHouseCard {
     type: "choose-house-card";
     houseCardId: string;
+    burnValyrianSteelBlade: boolean;
 }
 
 interface ChooseCasualties {
@@ -176,9 +178,10 @@ export interface UserSettings {
     mapScrollbar: boolean;
     lastOpenedTab: string | null;
     chatHouseNames: boolean;
+    responsiveLayout: boolean;
 }
 
-interface ChangeGameSettings {
+export interface ChangeGameSettings {
     type: "change-game-settings";
     settings: any;
 }
@@ -216,4 +219,29 @@ interface LaunchReplacePlayerVote {
 interface UpdateNote {
     type: "update-note";
     note: string;
+}
+
+interface ClaimVassal {
+    type: "claim-vassal";
+    houses: string[];
+}
+
+interface LaunchReplacePlayerByVassalVote {
+    type: "launch-replace-player-by-vassal-vote";
+    player: string;
+}
+
+interface GiftPowerTokens {
+    type: "gift-power-tokens";
+    toHouse: string;
+    powerTokens: number;
+}
+
+interface LaunchEndGameVote {
+    type: "launch-end-game-vote";
+}
+
+interface SetPassword {
+    type: "set-password";
+    password: string;
 }

@@ -10,13 +10,12 @@ import {ServerMessage} from "../../../../../../../../messages/ServerMessage";
 import ActionGameState from "../../../../../ActionGameState";
 import IngameGameState from "../../../../../../IngameGameState";
 import { jonSnow } from "../../../../../../game-data-structure/house-card/houseCardAbilities";
+import BetterMap from "../../../../../../../../utils/BetterMap";
 
 export default class JonSnowBaratheonAbilityGameState extends GameState<
     AfterWinnerDeterminationGameState["childGameState"],
     SimpleChoiceGameState
 > {
-    wildingsTrackChange: number[] | null;
-
     get game(): Game {
         return this.parentGameState.game;
     }
@@ -33,30 +32,44 @@ export default class JonSnowBaratheonAbilityGameState extends GameState<
         return this.parentGameState.parentGameState.parentGameState.parentGameState.ingameGameState;
     }
 
-    firstStart(house: House): void {
-        const choices: string[] = ["Ignore"];
-        this.wildingsTrackChange = [0];
+    get choices(): BetterMap<string, number> {
+        const choices = new BetterMap<string, number>();
+        choices.set("Ignore", 0);
         if (this.parentGameState.game.wildlingStrength >= 2) {
-            choices.push("Decrease one space");
-            this.wildingsTrackChange.push(-2);
+            choices.set("Decrease one space", -2);
         }
 
         if (this.parentGameState.game.wildlingStrength <= 8) {
-            choices.push("Increase one space");
-            this.wildingsTrackChange.push(2);
+            choices.set("Increase one space", 2);
         }
+
+        return choices;
+    }
+
+    firstStart(house: House): void {
+        const choices = this.choices.keys;
+
+        if (choices.length == 1) {
+            this.ingame.log({
+                type: "house-card-ability-not-used",
+                house: house.id,
+                houseCard: jonSnow.id
+            });
+
+            this.parentGameState.onHouseCardResolutionFinish(house);
+            return;
+        }
+
         this.setChildGameState(new SimpleChoiceGameState(this))
             .firstStart(
                 house,
                 "",
                 choices
             );
-
     }
 
     onSimpleChoiceGameStateEnd(choice: number): void {
         const house = this.childGameState.house;
-        this.parentGameState.game.wildlingStrength += choice;
 
         if (choice == 0) {
             this.ingame.log({
@@ -65,10 +78,14 @@ export default class JonSnowBaratheonAbilityGameState extends GameState<
                 houseCard: jonSnow.id
             });
         } else {
+            const changeToApply = this.choices.values[choice];
+
+            this.game.updateWildlingStrength(changeToApply);
+
             this.ingame.log({
                 type: "jon-snow-used",
                 house: house.id,
-                wildlingsStrength: choice,
+                wildlingsStrength: changeToApply,
             });
 
             this.entireGame.broadcastToClients({
@@ -77,6 +94,7 @@ export default class JonSnowBaratheonAbilityGameState extends GameState<
             });
 
         }
+
         this.parentGameState.onHouseCardResolutionFinish(house);
     }
 

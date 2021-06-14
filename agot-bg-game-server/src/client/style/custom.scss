@@ -275,6 +275,24 @@ $attacking-army-outline: rgba(red, 1.0);
   filter: drop-shadow(4px 4px 4px $attacking-army-outline) drop-shadow(-4px -4px 4px $attacking-army-outline);
 }
 
+$unit-highlight-outline-yellow: rgba(yellow, 1.0);
+.unit-highlight-yellow {
+  filter: drop-shadow(4px 4px 4px $unit-highlight-outline-yellow) drop-shadow(-4px -4px 4px $unit-highlight-outline-yellow);
+}
+
+.unit-highlight-yellow:hover {
+  filter: drop-shadow(4px 4px 4px $unit-highlight-outline-yellow) drop-shadow(-4px -4px 4px $unit-highlight-outline-yellow);
+}
+
+$unit-highlight-outline-green: rgba(green, 1.0);
+.unit-highlight-green {
+  filter: drop-shadow(4px 4px 4px $unit-highlight-outline-green) drop-shadow(-4px -4px 4px $unit-highlight-outline-green);
+}
+
+.unit-highlight-green:hover {
+  filter: drop-shadow(4px 4px 4px $unit-highlight-outline-green) drop-shadow(-4px -4px 4px $unit-highlight-outline-green);
+}
+
 $wildling-outline: rgba(#f8ff00, 0.5);
 .wildling-highlight {
   filter: drop-shadow(1px 1px 3px $wildling-outline) drop-shadow(-1px -1px 3px $wildling-outline);
@@ -363,4 +381,51 @@ div.new-event {
 
 .westeros-tooltip > .tooltip-inner {
   max-width: 100%;
+}
+
+.displayNone {
+  display: none;
+}
+
+.restricted-order {
+  opacity: 0.4;
+}
+
+.unavailable-order {
+  opacity: 0.1;
+}
+
+/*
+ https://stackoverflow.com/questions/7415872/change-color-of-png-image-via-css
+ https://codepen.io/sosuke/pen/Pjoqqp
+
+ First we make the image black with "brightness(0) saturate(100%)"
+ and then we apply the specified filters to get the color F39C12 (orange) for warning and FF0000 (red) for critical
+*/
+.victoryPointsWarning {
+  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(565%) hue-rotate(353deg) brightness(98%) contrast(94%);
+}
+
+.victoryPointsWarning:hover {
+  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(565%) hue-rotate(353deg) brightness(98%) contrast(94%);
+}
+
+.victoryPointsCritical {
+  filter: brightness(0) saturate(100%) invert(11%) sepia(82%) saturate(7445%) hue-rotate(4deg) brightness(109%) contrast(114%);
+}
+
+.victoryPointsCritical:hover {
+  filter: brightness(0) saturate(100%) invert(11%) sepia(82%) saturate(7445%) hue-rotate(4deg) brightness(109%) contrast(114%);
+}
+
+.unavailable-monotone {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  opacity: 0.2;
+}
+
+.unavailable-monotone:hover {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  opacity: 0.5;
 }

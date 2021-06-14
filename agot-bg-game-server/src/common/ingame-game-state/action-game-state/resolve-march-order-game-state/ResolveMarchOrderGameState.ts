@@ -58,29 +58,18 @@ export default class ResolveMarchOrderGameState extends GameState<ActionGameStat
         this.findOrphanedOrdersAndRemoveThem();
 
         // Reset all card abilities (e.g. due to DWD Queen of Thorns)
-        const allHouseCards = _.flatMap(this.game.houses.values.map(h => h.houseCards.values));
-        const manipulatedHouseCards = allHouseCards.filter(hc => 
-               hc.disabled
-            || hc.combatStrength != hc.originalCombatStrength 
-            || hc.swordIcons != hc.originalSwordIcons 
-            || hc.originalTowerIcons != hc.originalTowerIcons);
+        const allHouseCards = _.concat(_.flatMap(this.game.houses.values.map(h => h.houseCards.values)), this.game.vassalHouseCards.values);
+        const disabledHouseCards = allHouseCards.filter(hc => hc.disabled);
 
-        manipulatedHouseCards.filter(hc => hc.disabled).forEach(card => {
+        disabledHouseCards.forEach(card => {
             card.ability = card.disabledAbility;
             card.disabled = false;
             card.disabledAbility = null;
         });
 
-        // Reset DWD Aeron and Qyburn
-        manipulatedHouseCards.forEach(hc => {
-                hc.combatStrength = hc.originalCombatStrength;
-                hc.swordIcons = hc.originalSwordIcons;
-                hc.towerIcons = hc.originalTowerIcons;
-        });
-
         this.entireGame.broadcastToClients({
             type: "manipulate-combat-house-card",
-            manipulatedHouseCards: manipulatedHouseCards.map(hc => [hc.id, hc.serializeToClient()])
+            manipulatedHouseCards: disabledHouseCards.map(hc => [hc.id, hc.serializeToClient()])
         });
 
         //   ... destroy orphaned ships (e.g. caused by Arianne)
@@ -105,13 +94,7 @@ export default class ResolveMarchOrderGameState extends GameState<ActionGameStat
         const orphanedOrders = this.actionGameState.ordersOnBoard.entries.filter(([region, _]) => region.units.size == 0);
 
         orphanedOrders.forEach(([region, _]) => {
-            // todo: Add a game log for this event
-            this.actionGameState.ordersOnBoard.delete(region);
-            this.actionGameState.entireGame.broadcastToClients({
-                type: "action-phase-change-order",
-                region: region.id,
-                order: null
-            });
+            this.actionGameState.removeOrderFromRegion(region);
         });
     }
 
@@ -162,15 +145,7 @@ export default class ResolveMarchOrderGameState extends GameState<ActionGameStat
 
         if (controllerToRegion != units[0].allegiance) {
             // If there was an order from an other house, remove it
-            if (this.actionGameState.ordersOnBoard.has(to)) {
-                this.actionGameState.ordersOnBoard.delete(to);
-
-                this.entireGame.broadcastToClients({
-                    type: "action-phase-change-order",
-                    region: to.id,
-                    order: null
-                });
-            }
+            this.actionGameState.removeOrderFromRegion(to);
 
             // If there was a power token from an other house, remove it
             if (to.controlPowerToken) {
@@ -219,7 +194,6 @@ export default class ResolveMarchOrderGameState extends GameState<ActionGameStat
         }
 
         // We should never reach this line because we removed orphaned ships earlier.
-        // is Martell playing Arianne in a non-capital city. So the ships have to be destroyed
         throw new Error(`$Port with id '{portRegion.id}' contains orphaned ships which should have been removed before!`);
     }
 
@@ -238,6 +212,10 @@ export default class ResolveMarchOrderGameState extends GameState<ActionGameStat
                     found.towerIcons = shc.towerIcons;
                 }
             });
+
+            if (this.childGameState instanceof CombatGameState) {
+                this.childGameState.rerender++;
+            }
         } else {
             this.childGameState.onServerMessage(message);
         }

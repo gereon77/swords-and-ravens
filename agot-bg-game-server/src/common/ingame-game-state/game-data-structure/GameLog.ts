@@ -1,3 +1,5 @@
+import { CombatStats } from "../action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
+
 export default interface GameLog {
     time: Date;
     data: GameLogData;
@@ -7,7 +9,7 @@ export type GameLogData = TurnBegin | SupportDeclared | SupportRefused | Attack 
     | WesterosCardExecuted | WesterosCardDrawn | CombatResult | WildlingCardRevealed | WildlingBidding
     | HighestBidderChosen | LowestBidderChosen | PlayerMustered | WinnerDeclared
     | RavenHolderWildlingCardPutBottom | RavenHolderWildlingCardPutTop | RavenHolderReplaceOrder | RavenNotUsed | RaidDone | DarkWingsDarkWordsChoice
-    | PutToTheSwordChoice | AThroneOfBladesChoice | WinterIsComing | WesterosPhaseBegan
+    | PutToTheSwordChoice | AThroneOfBladesChoice | WinterIsComing | WesterosPhaseBegan | ClaimVassalsBegan
     | CombatHouseCardChosen | CombatValyrianSwordUsed | ClashOfKingsBiddingDone | ClashOfKingsFinalOrdering
     | ActionPhaseBegan | ActionPhaseResolveRaidBegan | ActionPhaseResolveMarchBegan | ActionPhaseResolveConsolidatePowerBegan | PlanningPhaseBegan | WildlingStrengthTriggerWildlingsAttack | MarchOrderRemoved
     | ConsolidatePowerOrderResolved | ArmiesReconciled | EnemyPortTaken | ShipsDestroyedByEmptyCastle
@@ -28,8 +30,13 @@ export type GameLogData = TurnBegin | SupportDeclared | SupportRefused | Attack 
     | SkinchangerScoutNightsWatchVictory | SkinchangerScoutWildlingVictory
     | RattleshirtsRaidersNightsWatchVictory | RattleshirtsRaidersWildlingVictory
     | GameOfThronesPowerTokensGained | ImmediatelyBattleCasualtiesSuffered | BattleCasualtiesSuffered
-    | SupplyAdjusted | PlayerReplaced | UserHouseAssignments | PlayerAction | MelisandreUsed | JonSnowUsed
-    | QarlTheMaidPowerTokensGained | AeronDamhairUsed | QyburnUsed | MelisandreDwDUsed;
+    | SupplyAdjusted | PlayerReplaced | UserHouseAssignments | PlayerAction | JonSnowUsed
+    | QarlTheMaidPowerTokensGained | AeronDamhairUsed | QyburnUsed | MelisandreDwDUsed | SerIlynPayneFootmanKilled | RodrikTheReaderUsed
+    | VassalsClaimed | CommanderPowerTokenGained | BericDondarrionUsed | VarysUsed | JaqenHGharUsed | JonConningtonUsed | BronnUsed
+    | SerGerrisDrinkwaterUsed | DraftHouseCardsBegan | HouseCardPicked
+    | LittlefingerPowerTokensGained | AlayneStoneUsed | LysaArrynFfcPowerTokensGained | AnyaWaynwoodPowerTokensGained | RobertArrynUsed
+    | HouseCardRemovedFromGame | ViserysTargaryenUsed | IllyrioMopatisPowerTokensGained | DaenerysTargaryenPowerTokensDiscarded | MissandeiUsed
+    | PowerTokensGifted;
 
 export enum PlayerActionType {
     ORDERS_PLACED,
@@ -101,19 +108,7 @@ interface WesterosCardDrawn {
 interface CombatResult {
     type: "combat-result";
     winner: string;
-    stats: {
-        house: string;
-        region: string;
-        army: number;
-        armyUnits: string[];
-        orderBonus: number;
-        support: number;
-        garrison: number;
-        houseCard: string | null;
-        houseCardStrength: number;
-        valyrianSteelBlade: number;
-        total: number;
-    }[];
+    stats: CombatStats[];
 }
 
 interface WildlingCardRevealed {
@@ -207,6 +202,10 @@ interface WinterIsComing {
     deckIndex: number;
 }
 
+interface ClaimVassalsBegan {
+    type: "claim-vassals-began";
+}
+
 interface WesterosPhaseBegan {
     type: "westeros-phase-began";
 }
@@ -219,6 +218,7 @@ interface CombatHouseCardChosen {
 interface CombatValyrianSwordUsed {
     type: "combat-valyrian-sword-used";
     house: string;
+    forNewTidesOfBattleCard: boolean;
 }
 
 interface ClashOfKingsBiddingDone {
@@ -251,6 +251,7 @@ interface ActionPhaseResolveConsolidatePowerBegan {
 
 interface PlanningPhaseBegan {
     type: "planning-phase-began";
+    forVassals?: boolean;
 }
 
 interface WildlingStrengthTriggerWildlingsAttack {
@@ -291,12 +292,6 @@ interface PatchfaceUsed {
     houseCard: string;
 }
 
-interface MelisandreUsed {
-    type: "melisandre-used";
-    house: string;
-    houseCard: string;
-}
-
 interface MelisandreDwDUsed {
     type: "melisandre-dwd-used";
     house: string;
@@ -314,6 +309,18 @@ interface DoranUsed {
     house: string;
     affectedHouse: string;
     influenceTrack: number;
+}
+
+interface SerGerrisDrinkwaterUsed {
+    type: "ser-gerris-drinkwater-used";
+    house: string;
+    influenceTrack: number;
+}
+
+interface RodrikTheReaderUsed {
+    type: "rodrik-the-reader-used";
+    house: string;
+    westerosDeckI: number;
 }
 
 interface QyburnUsed {
@@ -416,6 +423,12 @@ interface MaceTyrellCasualtiesPrevented {
 
 interface MaceTyrellFootmanKilled {
     type: "mace-tyrell-footman-killed";
+    house: string;
+    region: string;
+}
+
+interface SerIlynPayneFootmanKilled {
+    type: "ser-ilyn-payne-footman-killed";
     house: string;
     region: string;
 }
@@ -628,6 +641,126 @@ interface SupplyAdjusted {
 interface PlayerReplaced {
     type: "player-replaced";
     oldUser: string;
-    newUser: string;
+    newUser?: string;
     house: string;
+}
+
+interface VassalsClaimed {
+    type: "vassals-claimed";
+    house: string;
+    vassals: string[];
+}
+
+interface CommanderPowerTokenGained {
+    type: "commander-power-token-gained";
+    house: string;
+}
+
+interface BericDondarrionUsed {
+    type: "beric-dondarrion-used";
+    house: string;
+    casualty: string;
+}
+
+interface VarysUsed {
+    type: "varys-used";
+    house: string;
+}
+
+interface JaqenHGharUsed {
+    type: "jaqen-h-ghar-house-card-replaced";
+    house: string;
+    affectedHouse: string;
+    oldHouseCard: string;
+    newHouseCard: string;
+}
+
+interface JonConningtonUsed {
+    type: "jon-connington-used";
+    house: string;
+    region: string;
+}
+
+interface BronnUsed {
+    type: "bronn-used";
+    house: string;
+}
+
+interface DraftHouseCardsBegan {
+    type: "draft-house-cards-began";
+}
+
+interface HouseCardPicked {
+    type: "house-card-picked";
+    house: string;
+    houseCard: string;
+}
+
+interface LittlefingerPowerTokensGained {
+    type: "littlefinger-power-tokens-gained";
+    house: string;
+    powerTokens: number;
+}
+
+interface AlayneStoneUsed {
+    type: "alayne-stone-used";
+    house: string;
+    affectedHouse: string;
+    lostPowerTokens: number;
+}
+
+interface LysaArrynFfcPowerTokensGained {
+    type: "lysa-arryn-ffc-power-tokens-gained";
+    house: string;
+    powerTokens: number;
+}
+
+interface AnyaWaynwoodPowerTokensGained {
+    type: "anya-waynwood-power-tokens-gained";
+    gains: [string, number][];
+}
+
+interface RobertArrynUsed {
+    type: "robert-arryn-used";
+    house: string;
+    affectedHouse: string;
+    removedHouseCard: string | null;
+}
+
+interface HouseCardRemovedFromGame {
+    type: "house-card-removed-from-game";
+    house: string;
+    houseCard: string;
+}
+
+interface ViserysTargaryenUsed {
+    type: "viserys-targaryen-used";
+    house: string;
+    houseCard: string;
+}
+
+interface IllyrioMopatisPowerTokensGained {
+    type: "illyrio-mopatis-power-tokens-gained";
+    house: string;
+    powerTokensGained: number;
+}
+
+interface DaenerysTargaryenPowerTokensDiscarded {
+    type: "daenerys-targaryen-b-power-tokens-discarded";
+    house: string;
+    affectedHouse: string;
+    powerTokensDiscarded: number;
+}
+
+interface MissandeiUsed {
+    type: "missandei-used";
+    house: string;
+    houseCard: string;
+}
+
+interface PowerTokensGifted {
+    type: "power-tokens-gifted";
+    house: string;
+    affectedHouse: string;
+    powerTokens: number;
 }

@@ -8,6 +8,8 @@ import {UserSettings} from "./ClientMessage";
 import { SerializedWesterosCard } from "../common/ingame-game-state/game-data-structure/westeros-card/WesterosCard";
 import { SerializedVote } from "../common/ingame-game-state/vote-system/Vote";
 import { CrowKillersStep } from "../common/ingame-game-state/westeros-game-state/wildlings-attack-game-state/crow-killers-wildling-victory-game-state/CrowKillersWildlingVictoryGameState";
+import HouseCardModifier from "../common/ingame-game-state/game-data-structure/house-card/HouseCardModifier";
+import { CombatStats } from "../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 
 export type ServerMessage = NewUser | HouseChosen | AuthenticationResponse | OrderPlaced | PlayerReady | PlayerUnready
     | HouseCardChosen | CombatImmediatelyKilledUnits | SupportDeclared | SupportRefused | NewTurn | RemovePlacedOrder
@@ -19,7 +21,9 @@ export type ServerMessage = NewUser | HouseChosen | AuthenticationResponse | Ord
     | RemoveUnits | AddUnits | ChangeTracker | ActionPhaseChangeOrder | ChangeStateHouseCard
     | SettingsChanged | ChangeValyrianSteelBladeUse |  NewPrivateChatRoom | GameSettingsChanged
     | UpdateWesterosDecks | UpdateConnectionStatus | VoteStarted | VoteCancelled | VoteDone | PlayerReplaced
-    | CrowKillersStepChanged | ManipulateCombatHouseCard;
+    | CrowKillersStepChanged | ManipulateCombatHouseCard | ChangeCombatTidesOfBattleCard
+    | VassalRelations | UpdateHouseCardModifier | UpdateHouseCards | UpdateHouseCardsForDrafting | UpdateCombatStats
+    | UpdateDraftIndices | RevealBids | UpdateMaxTurns | PasswordResponse;
 
 interface AuthenticationResponse {
     type: "authenticate-response";
@@ -84,6 +88,11 @@ interface HouseCardChosen {
 interface ChangeCombatHouseCard {
     type: "change-combat-house-card";
     houseCardIds: [string, string | null][];
+}
+
+interface ChangeCombatTidesOfBattleCard {
+    type: "change-combat-tides-of-battle-card";
+    tidesOfBattleCardIds: [string, string | null][];
 }
 
 interface ManipulateCombatHouseCard {
@@ -253,6 +262,7 @@ interface NewPrivateChatRoom {
     type: "new-private-chat-room";
     users: string[];
     roomId: string;
+    initiator: string;
 }
 
 interface GameSettingsChanged {
@@ -291,10 +301,58 @@ interface VoteDone {
 interface PlayerReplaced {
     type: "player-replaced";
     oldUser: string;
-    newUser: string;
+    newUser?: string ;
 }
 
 interface CrowKillersStepChanged {
     type: "crow-killers-step-changed";
     newStep: CrowKillersStep;
+}
+
+interface VassalRelations {
+    type: "vassal-relations";
+    vassalRelations: [string, string][];
+}
+
+interface UpdateHouseCardModifier {
+    type: "update-house-card-modifier";
+    id: string;
+    modifier: HouseCardModifier;
+}
+
+interface UpdateHouseCards {
+    type: "update-house-cards";
+    house: string;
+    houseCards: string[];
+}
+
+interface UpdateHouseCardsForDrafting {
+    type: "update-house-cards-for-drafting";
+    houseCards: string[];
+}
+
+interface UpdateCombatStats {
+    type: "update-combat-stats";
+    stats: CombatStats[];
+}
+
+interface UpdateDraftIndices {
+    type: "update-draft-indices";
+    rowIndex: number;
+    columnIndex: number;
+}
+
+interface RevealBids {
+    type: "reveal-bids";
+    bids: [number, string[]][];
+}
+
+interface UpdateMaxTurns {
+    type: "update-max-turns";
+    maxTurns: number;
+}
+
+interface PasswordResponse {
+    type: "password-response";
+    password: string;
 }

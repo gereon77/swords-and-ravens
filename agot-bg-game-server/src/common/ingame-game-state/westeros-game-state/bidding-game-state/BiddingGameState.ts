@@ -33,15 +33,16 @@ export default class BiddingGameState<ParentGameState extends BiddingGameStatePa
 
     onPlayerMessage(player: Player, message: ClientMessage): void {
         if (message.type == "bid") {
-            if (!this.participatingHouses.includes(player.house)) {
+            const bid = message.powerTokens;
+            if (!this.participatingHouses.includes(player.house)
+                || bid < 0
+                || bid > player.house.powerTokens) {
                 return;
             }
 
-            const bid = Math.max(0, Math.min(message.powerTokens, player.house.powerTokens));
             this.bids.set(player.house, bid);
 
-            const otherHouses = _.difference(this.game.houses.values, [player.house]);
-            this.entireGame.sendMessageToClients(otherHouses.map(h => this.parentGameState.ingame.getControllerOfHouse(h).user), {
+            this.entireGame.sendMessageToClients(_.without(this.entireGame.users.values, player.user), {
                 type: "bid-done",
                 houseId: player.house.id,
                 value: -1
@@ -129,13 +130,16 @@ export default class BiddingGameState<ParentGameState extends BiddingGameStatePa
 
         // Already make the bidding for houses that have 0 power tokens
         this.participatingHouses.forEach(h => {
-            if (h.powerTokens == 0) {
+            if (h.powerTokens == 0 || this.ingame.isVassalHouse(h)) {
                 this.bids.set(h, 0);
-                this.ingame.log({
-                    type: "player-action",
-                    house: h.id,
-                    action: PlayerActionType.BID_MADE
-                })
+
+                if (!this.ingame.isVassalHouse(h)) {
+                    this.ingame.log({
+                        type: "player-action",
+                        house: h.id,
+                        action: PlayerActionType.BID_MADE
+                    });
+                }
             }
         });
 
@@ -170,6 +174,19 @@ export default class BiddingGameState<ParentGameState extends BiddingGameStatePa
         biddingGameState.bids = new BetterMap(data.bids.map(([houseId, bid]) => [parent.game.houses.get(houseId), bid]));
 
         return biddingGameState
+    }
+
+    actionAfterVassalReplacement(newVassal: House): void {
+        if (this.participatingHouses.includes(newVassal)) {
+            this.bids.set(newVassal, 0);
+            this.ingame.entireGame.broadcastToClients({
+                type: "bid-done",
+                houseId: newVassal.id,
+                // We can reveal the value here as it's clear vassals bid 0
+                value: 0
+            });
+            this.checkAndProceedEndOfBidding();
+        }
     }
 }
 

@@ -6,42 +6,43 @@ import HouseCard from "../../../common/ingame-game-state/game-data-structure/hou
 import houseCardImages from "../../houseCardImages";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import classNames = require("classnames");
+import ImagePopover from "./ImagePopover";
 
 interface HouseCardComponentProps {
     houseCard: HouseCard;
     size?: "small" | "medium" | "tiny";
     selected?: boolean;
+    unavailable?: boolean;
     onClick?: () => void;
 }
 
 @observer
 export default class HouseCardComponent extends Component<HouseCardComponentProps> {
     render(): ReactNode {
-        return (
-            <OverlayTrigger
-                overlay={
-                    <div className="vertical-game-card" style={{
-                        backgroundImage: `url(${houseCardImages.get(this.props.houseCard.id)})`
-                    }} />
-                }
+        return <OverlayTrigger
+                overlay={this.renderPopover()}
                 popperConfig={{
                     modifiers: [preventOverflow]
                 }}
-                delay={{ show: 120, hide: 0 }}
+                delay={{show: 120, hide: 0}}
                 placement="auto"
             >
-                <div
+                <img
                     className={classNames(
                         "vertical-game-card hover-weak-outline",
+                        {"unavailable-monotone": this.props.unavailable},
                         this.props.size,
                         { "medium-outline hover-strong-outline": this.props.selected }
                     )}
-                    style={{
-                        backgroundImage: `url(${houseCardImages.get(this.props.houseCard.id)})`
-                    }}
+                    src={houseCardImages.get(this.props.houseCard.id)}
                     onClick={() => this.props.onClick ? this.props.onClick() : undefined}
                 />
-            </OverlayTrigger>
-        );
+            </OverlayTrigger>;
+    }
+
+    private renderPopover(): ReactNode {
+        return <ImagePopover className="vertical-game-card" style={{
+            backgroundImage: `url(${houseCardImages.get(this.props.houseCard.id)})`}}
+        />;
     }
 }

@@ -87,7 +87,18 @@ export default class GameClient {
         }
     }
 
+    /**
+     * Returns whether the given house is controlled by the authenticated player,
+     * either because it is the directy controled house, or because it's one of its vassals.
+     * @param house
+     */
     doesControlHouse(house: House | null): boolean {
+        if (this.entireGame == null || !(this.entireGame.childGameState instanceof IngameGameState)) {
+            throw new Error();
+        }
+
+        const ingame = this.entireGame.childGameState;
+
         if (house == null) {
             return false;
         }
@@ -95,7 +106,13 @@ export default class GameClient {
         const player = this.authenticatedPlayer;
 
         if (player) {
-            return player.house == house;
+            // Houses may be uncontrolled during Claim Vassals state and getControllerOfHouse will throw an error.
+            // We have to catch it here
+            try {
+                return ingame.getControllerOfHouse(house) == player;
+            } catch {
+                return false;
+            }
         } else {
             return false;
         }
@@ -111,6 +128,18 @@ export default class GameClient {
         }
 
         return this.entireGame.isOwner(this.authenticatedUser);
+    }
+
+    isRealOwner(): boolean {
+        if (!this.entireGame) {
+            throw new Error();
+        }
+
+        if (!this.authenticatedUser) {
+            throw new Error();
+        }
+
+        return this.entireGame.isRealOwner(this.authenticatedUser);
     }
 
     onOpen(): void {
@@ -163,14 +192,16 @@ export default class GameClient {
 
             // @ts-ignore
             const users = message.users.map(uid => this.entireGame.users.get(uid));
+            const initiator = this.entireGame.users.get(message.initiator);
 
             if (!this.entireGame.privateChatRoomsIds.has(users[0])) {
                 this.entireGame.privateChatRoomsIds.set(users[0], new BetterMap());
             }
 
             this.entireGame.privateChatRoomsIds.get(users[0]).set(users[1], message.roomId);
-
-
+            if (this.entireGame.onNewPrivateChatRoomCreated && this.isAuthenticatedUser(initiator)) {
+                this.entireGame.onNewPrivateChatRoomCreated(message.roomId);
+            }
         } else {
             if (!this.entireGame) {
                 console.error("Message other than \"authenticate-response\" received but entireGame == null");

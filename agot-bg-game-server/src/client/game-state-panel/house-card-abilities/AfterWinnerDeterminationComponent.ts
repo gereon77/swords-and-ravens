@@ -22,6 +22,17 @@ import SerGerrisDrinkwaterAbilityComponent from "./SerGerrisDrinkwaterAbilityCom
 import ReekAbilityGameState
     from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/reek-ability-game-state/ReekAbilityGameState";
 import ReekAbilityComponent from "./ReekAbilityComponent";
+import RodrikTheReaderAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/rodrik-the-reader-ability-game-state/RodrikTheReaderAbilityGameState";
+import RodrikTheReaderAbilityComponent from "./RodrikTheReaderAbilityComponent";
+import BericDondarrionAbilityComponent from "./BericDondarrionAbilityComponent";
+import BericDondarrionAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/beric-dondarrion-ability-game-state/BericDondarrionAbilityGameState";
+import AlayneStoneAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/alayne-stone-ability-game-state/AlayneStoneAbilityGameState";
+import AlayneStoneAbilityComponent from "./AlayneStoneAbilityComponent";
+import LysaArrynModAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/lysa-arryn-mod-game-state/LysaArrynModAbilityGameState";
+import LysaArrynModAbilityComponent from "./LysaArrynModAbilityComponent";
+import MissandeiAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/missandei-ability-game-state/MissandeiAbilityGameState";
+import MissandeiAbilityComponent from "./MissandeiAbilityComponent";
+
 @observer
 export default class AfterWinnerDeterminationComponent extends Component<GameStateComponentProps<AfterWinnerDeterminationGameState>> {
     render(): ReactNode {
@@ -31,7 +42,12 @@ export default class AfterWinnerDeterminationComponent extends Component<GameSta
             [JonSnowBaratheonAbilityGameState, JonSnowBaratheonAbilityComponent],
             [SerIlynPayneAbilityGameState, SerIlynPayneAbilityComponent],
             [SerGerrisDrinkwaterAbilityGameState, SerGerrisDrinkwaterAbilityComponent],
-            [ReekAbilityGameState, ReekAbilityComponent]
+            [ReekAbilityGameState, ReekAbilityComponent],
+            [RodrikTheReaderAbilityGameState, RodrikTheReaderAbilityComponent],
+            [BericDondarrionAbilityGameState, BericDondarrionAbilityComponent],
+            [AlayneStoneAbilityGameState, AlayneStoneAbilityComponent],
+            [LysaArrynModAbilityGameState, LysaArrynModAbilityComponent],
+            [MissandeiAbilityGameState, MissandeiAbilityComponent]
         ]);
     }
 }

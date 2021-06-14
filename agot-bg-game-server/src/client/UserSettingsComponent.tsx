@@ -20,6 +20,7 @@ interface UserSettingsComponentProps {
 export default class UserSettingsComponent extends Component<UserSettingsComponentProps> {
     @observable mapScrollbar = false;
     @observable chatHouseNames = false;
+    @observable responsiveLayout = false;
 
     render(): ReactNode {
         return (
@@ -29,14 +30,36 @@ export default class UserSettingsComponent extends Component<UserSettingsCompone
                         <Row>
                             <Col xs="auto">
                                 <FormCheck
+                                    id="responsive-layout-setting"
+                                    type="checkbox"
+                                    label={
+                                        <OverlayTrigger overlay={
+                                            <Tooltip id="responsive-layout-setting-tooltip">
+                                                Enables the previous responsive layout on devices with a small screen.
+                                            </Tooltip>}>
+                                            <label htmlFor="responsive-layout-setting">Responsive layout</label>
+                                        </OverlayTrigger>}
+                                    checked={this.responsiveLayout}
+                                    onChange={() => {
+                                        this.responsiveLayout = !this.responsiveLayout;
+                                        this.changeUserSettings();
+                                    }}
+                                />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs="auto">
+                                <FormCheck
                                     id="map-scrollbar-setting"
                                     type="checkbox"
                                     label={
                                         <OverlayTrigger overlay={
                                             <Tooltip id="map-scrollbar-tooltip">
                                                 Enables a fixed game map with a scrollbar. The map height then resizes with the actual window height.
+                                                It will be only available for desktop browsers. So you can keep it activated without affecting the
+                                                mobile decvice experience.
                                             </Tooltip>}>
-                                            <label htmlFor="map-scrollbar-setting">Map scrollbar</label>
+                                            <label htmlFor="map-scrollbar-setting">Map scrollbar (Desktop only)</label>
                                         </OverlayTrigger>}
                                     checked={this.mapScrollbar}
                                     onChange={() => {
@@ -83,11 +106,12 @@ export default class UserSettingsComponent extends Component<UserSettingsCompone
         if (this.props.user) {
             this.props.user.settings.mapScrollbar = this.mapScrollbar;
             this.props.user.settings.chatHouseNames = this.chatHouseNames;
+            this.props.user.settings.responsiveLayout = this.responsiveLayout;
             this.props.user.syncSettings();
         }
 
         if (this.props.parent) {
-            this.props.parent.adjustMapHeight();
+            this.props.parent.setHeight();
         }
     }
 }

@@ -5,7 +5,7 @@ import renderChildGameState from "../../utils/renderChildGameState";
 import React from "react";
 import Col from "react-bootstrap/Col";
 import RodrikTheReaderAbilityGameState
-    from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-combat-house-card-abilities-game-state/rodrik-the-reader-ability-game-state/RodrikTheReaderAbilityGameState";
+    from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/rodrik-the-reader-ability-game-state/RodrikTheReaderAbilityGameState";
 import SelectWesterosCardGameState
     from "../../../common/ingame-game-state/select-westeros-card-game-state/SelectWesterosCardGameState";
 import SelectWesterosCardComponent from "../SelectWesterosCardComponent";
@@ -18,7 +18,8 @@ export default class RodrikTheReaderAbilityComponent extends Component<GameState
         return (
             <>
                 <Col xs={12}>
-                    <b>Rodrik The Reader:</b> Greyjoy may search any Westers deck for a card of his choice and place the chosen card facedown on top of the deck.
+                    <b>Rodrik The Reader</b>: House <b>{this.props.gameState.childGameState.house.name}</b> may search any Westeros deck for a card
+                    of his choice and place the chosen card facedown on top of the deck.
                 </Col>
                 {renderChildGameState(this.props, [
                     [SimpleChoiceGameState, SimpleChoiceComponent],

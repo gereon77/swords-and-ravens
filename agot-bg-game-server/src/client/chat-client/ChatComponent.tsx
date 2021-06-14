@@ -142,7 +142,6 @@ export default class ChatComponent extends Component<ChatComponentProps> {
     }
 
     onMessage(): void {
-        console.log(this.props.currentlyViewed);
         if (this.props.currentlyViewed) {
             this.chatClient.markAsViewed(this.channel);
         }

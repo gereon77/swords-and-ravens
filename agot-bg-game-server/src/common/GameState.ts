@@ -1,6 +1,7 @@
 import {observable} from "mobx";
 import EntireGame from "./EntireGame";
 import User from "../server/User";
+import House from "./ingame-game-state/game-data-structure/House";
 
 type AnyGameState = GameState<any, any> | null;
 
@@ -49,6 +50,22 @@ export default class GameState<ParentGameState extends AnyGameState, ChildGameSt
                 : false;
     }
 
+    hasParentGameState(gameState: any): boolean {
+        return this instanceof gameState
+            ? true
+            : this.parentGameState
+                ? this.parentGameState.hasParentGameState(gameState)
+                : false;
+    }
+
+    getFirstChildGameState(gameState: any): AnyGameState | null {
+        return this instanceof gameState
+            ? this
+            : this.childGameState
+                ? this.childGameState.getFirstChildGameState(gameState)
+                : null;
+    }
+
     getWaitedUsers(): User[] {
         if (this.childGameState) {
             return this.childGameState.getWaitedUsers();
@@ -95,6 +112,9 @@ export default class GameState<ParentGameState extends AnyGameState, ChildGameSt
 
     deserializeChildGameState(_data: any): ChildGameState {
         throw new Error(`"deserializeChildGameState" is not defined for class "${this.constructor.name}"`);
+    }
+
+    actionAfterVassalReplacement(_newVassal: House): void {
     }
 }
 

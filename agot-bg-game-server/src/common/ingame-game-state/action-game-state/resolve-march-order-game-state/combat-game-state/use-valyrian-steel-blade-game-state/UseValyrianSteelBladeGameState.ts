@@ -8,9 +8,11 @@ import {ServerMessage} from "../../../../../../messages/ServerMessage";
 import EntireGame from "../../../../../EntireGame";
 import IngameGameState from "../../../../IngameGameState";
 import User from "../../../../../../server/User";
+import popRandom from "../../../../../../utils/popRandom";
 
 export default class UseValyrianSteelBladeGameState extends GameState<CombatGameState> {
     house: House;
+    forNewTidesOfBattleCard: boolean;
 
     get combatGameState(): CombatGameState {
         return this.parentGameState;
@@ -28,43 +30,59 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
         return this.parentGameState.ingameGameState;
     }
 
-    firstStart(house: House): void {
+    firstStart(house: House, forNewTidesOfBattleCard: boolean): void {
         this.house = house;
+        this.forNewTidesOfBattleCard = forNewTidesOfBattleCard;
 
-        // Check if we can fast-track this state by checking that no involved house card forces the VSB decision
-        // and that VSB holders current battle strength is one less than his opponent
-        const forcedByHouseCard = this.combatGameState.houseCombatDatas.values.some(hcd => hcd.houseCard != null
-             && hcd.houseCard.ability != null
-             && hcd.houseCard.ability.forcesValyrianSteelBladeDecision(this.combatGameState, house));
-
-        if (forcedByHouseCard) {
-            return;
-        }
-
-        const vsbBattleStrength = this.combatGameState.getTotalCombatStrength(house);
-        const opponent = this.combatGameState.houseCombatDatas.keys.filter(h => h != house)[0];
-        const opponentsBattleStrength = this.combatGameState.getTotalCombatStrength(opponent);
-
-        if (opponentsBattleStrength - vsbBattleStrength != 1) {
+        if (!forNewTidesOfBattleCard && this.canBeSkipped(house)) {
             // Using VSB would make no sense as battle is already won or VSB doesn't help to win it.
             // So we end this state with VSB not used
             this.combatGameState.onUseValyrianSteelBladeGameStateEnd();
         }
     }
 
+    canBeSkipped(house: House): boolean {
+        // Check if we can fast-track this state by checking that no involved house card forces the VSB decision
+        // and that VSB holders current battle strength is one less than his opponent
+        const forcedByHouseCard = this.combatGameState.houseCombatDatas.values.some(hcd => hcd.houseCard != null
+            && hcd.houseCard.ability != null
+            && hcd.houseCard.ability.forcesValyrianSteelBladeDecision(this.combatGameState, house));
+
+       if (forcedByHouseCard) {
+           return false;
+       }
+
+        const vsbBattleStrength = this.combatGameState.getTotalCombatStrength(house);
+        const enemy = this.combatGameState.getEnemy(house);
+        const enemyBattleStrength = this.combatGameState.getTotalCombatStrength(enemy);
+
+        // Due to vassals the VSB holder not necessarily must be in front of fief
+        if (this.game.isAheadInTrack(this.game.fiefdomsTrack, house, enemy)) {
+            return enemyBattleStrength - vsbBattleStrength != 1;
+        } else {
+            return enemyBattleStrength - vsbBattleStrength != 0;
+        }
+    }
+
     onPlayerMessage(player: Player, message: ClientMessage): void {
         if (message.type == "use-valyrian-steel-blade") {
-            if (player.house != this.house) {
+            if (this.ingame.getControllerOfHouse(this.house) != player) {
                 return;
             }
 
             if (message.use) {
-                this.combatGameState.valyrianSteelBladeUser = this.house;
+                if (this.forNewTidesOfBattleCard) {
+                    this.combatGameState.houseCombatDatas.get(this.house).tidesOfBattleCard = popRandom(this.combatGameState.tidesOfBattleDeck);
+                } else {
+                    this.combatGameState.valyrianSteelBladeUser = this.house;
+                }
+
                 this.combatGameState.game.valyrianSteelBladeUsed = true;
 
                 this.combatGameState.ingameGameState.log({
                     type: "combat-valyrian-sword-used",
-                    house: player.house.id
+                    house: player.house.id,
+                    forNewTidesOfBattleCard: this.forNewTidesOfBattleCard
                 });
 
                 this.entireGame.broadcastToClients({
@@ -73,7 +91,13 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
                 });
             }
 
-            this.combatGameState.onUseValyrianSteelBladeGameStateEnd();
+            if (this.forNewTidesOfBattleCard) {
+                if (!this.combatGameState.proceedValyrianSteelBladeUsage()) {
+                    this.combatGameState.onUseValyrianSteelBladeGameStateEnd();
+                }
+            } else {
+                this.combatGameState.onUseValyrianSteelBladeGameStateEnd();
+            }
         }
     }
 
@@ -95,7 +119,8 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
     serializeToClient(_admin: boolean, _player: Player | null): SerializedUseValyrianSteelBladeGameState {
         return {
             type: "use-valyrian-steel-blade",
-            houseId: this.house.id
+            houseId: this.house.id,
+            forNewTidesOfBattleCard: this.forNewTidesOfBattleCard
         }
     }
 
@@ -103,6 +128,7 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
         const useValyrianSteelBladeGameState = new UseValyrianSteelBladeGameState(combatGameState);
 
         useValyrianSteelBladeGameState.house = combatGameState.game.houses.get(data.houseId);
+        useValyrianSteelBladeGameState.forNewTidesOfBattleCard = data.forNewTidesOfBattleCard;
 
         return useValyrianSteelBladeGameState;
     }
@@ -111,4 +137,5 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
 export interface SerializedUseValyrianSteelBladeGameState {
     type: "use-valyrian-steel-blade";
     houseId: string;
+    forNewTidesOfBattleCard: boolean;
 }

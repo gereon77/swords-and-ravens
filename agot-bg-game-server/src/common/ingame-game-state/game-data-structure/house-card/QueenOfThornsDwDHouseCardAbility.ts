@@ -18,7 +18,6 @@ export default class QueenOfThornsDwDHouseCardAbility extends HouseCardAbility {
             });
         }
 
-        
-        cancelResolutionState.onHouseCardResolutionFinish();
+        cancelResolutionState.childGameState.onHouseCardResolutionFinish(house);
     }
 }

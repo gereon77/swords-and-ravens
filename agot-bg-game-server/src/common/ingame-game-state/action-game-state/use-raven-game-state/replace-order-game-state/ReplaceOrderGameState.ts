@@ -55,11 +55,17 @@ export default class ReplaceOrderGameState extends GameState<UseRavenGameState> 
                 return
             }
 
-            const replacedOrder = this.actionGameState.ordersOnBoard.get(region);
-
-            if (!this.getAvailableOrders(replacedOrder).includes(order)) {
+            if (!this.getAvailableOrders(region).includes(order)) {
                 return;
             }
+
+            this.ingameGameState.log({
+                type: "raven-holder-replace-order",
+                ravenHolder: this.ravenHolder.id,
+                region: region.id,
+                originalOrder: this.actionGameState.ordersOnBoard.get(region).id,
+                newOrder: order.id
+            });
 
             this.actionGameState.ordersOnBoard.set(region, order);
 
@@ -67,14 +73,6 @@ export default class ReplaceOrderGameState extends GameState<UseRavenGameState> 
                 type: "raven-order-replaced",
                 regionId: region.id,
                 orderId: order.id
-            });
-
-            this.ingameGameState.log({
-                type: "raven-holder-replace-order",
-                ravenHolder: this.ravenHolder.id,
-                region: region.id,
-                originalOrder: replacedOrder.id,
-                newOrder: order.id
             });
 
             this.useRavenGameState.onReplaceOrderGameStateEnd();
@@ -96,7 +94,9 @@ export default class ReplaceOrderGameState extends GameState<UseRavenGameState> 
         return [this.parentGameState.ingameGameState.getControllerOfHouse(this.ravenHolder).user];
     }
 
-    getAvailableOrders(replacedOrder: Order): Order[] {
+    getAvailableOrders(region: Region): Order[] {
+        const replacedOrder = this.actionGameState.ordersOnBoard.has(region) ? this.actionGameState.ordersOnBoard.get(region) : null;
+
         const placedOrders = new BetterMap(
             this.actionGameState.getOrdersOfHouse(this.ravenHolder).filter(([_r, o]) => replacedOrder != o)
         );

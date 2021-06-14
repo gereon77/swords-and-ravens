@@ -9,7 +9,6 @@ import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import ListGroup from "react-bootstrap/ListGroup";
 import ListGroupItem from "react-bootstrap/ListGroupItem";
-import houseInfluenceImages from "./houseInfluenceImages";
 import classNames = require("classnames");
 import ChatComponent from "./chat-client/ChatComponent";
 import GameSettingsComponent from "./GameSettingsComponent";
@@ -20,6 +19,11 @@ import Tooltip from "react-bootstrap/Tooltip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {faTimes} from "@fortawesome/free-solid-svg-icons/faTimes";
 import UserLabel from "./UserLabel";
+import EntireGame from "../common/EntireGame";
+import SimpleInfluenceIconComponent from "./game-state-panel/utils/SimpleInfluenceIconComponent";
+import { observable } from "mobx";
+import DebouncedPasswordComponent from "./utils/DebouncedPasswordComponent";
+import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 interface LobbyComponentProps {
     gameClient: GameClient;
@@ -28,95 +32,99 @@ interface LobbyComponentProps {
 
 @observer
 export default class LobbyComponent extends Component<LobbyComponentProps> {
+    @observable password = this.props.gameClient.isRealOwner() ? this.props.gameState.password : "";
+
     get authenticatedUser(): User {
         return this.props.gameClient.authenticatedUser as User;
     }
 
-    get randomHouses(): boolean {
-        return this.props.gameState.entireGame.gameSettings.randomHouses;
+    get entireGame(): EntireGame {
+        return this.lobby.entireGame;
     }
 
-    render(): ReactNode {
-        const {success: canStartGame, reason: canStartGameReason} = this.props.gameState.canStartGame(this.authenticatedUser);
-        const {success: canCancelGame, reason: canCancelGameReason} = this.props.gameState.canCancel(this.authenticatedUser);
+    get randomHouses(): boolean {
+        return this.entireGame.gameSettings.randomHouses;
+    }
 
-        return (
-            <Col xs={12} sm={10} md={8} lg={6} xl={3}>
-                <Row>
-                    <Col>
-                        <Card>
-                            <ListGroup variant="flush">
-                                {this.props.gameState.lobbyHouses.values.map((h, i) => (
-                                    <ListGroupItem key={h.id} style={{opacity: this.isHouseAvailable(h) ? 1 : 0.3}}>
-                                        <Row className="align-items-center">
-                                            {!this.randomHouses && <Col xs="auto">
-                                                <div className="influence-icon"
-                                                     style={{backgroundImage: `url(${houseInfluenceImages.get(h.id)})`}}>
-                                                </div>
-                                            </Col>}
-                                            <Col>
-                                                <div>
-                                                    <b>{this.randomHouses ? "Seat " + (i + 1): h.name}</b>
-                                                </div>
-                                                <div className={classNames({"invisible": !this.props.gameState.players.has(h)})}>
-                                                    {this.props.gameState.players.has(h) ? (
-                                                        <UserLabel
+    get lobby(): LobbyGameState {
+        return this.props.gameState;
+    }
+
+    @observable chatHeight = 430;
+
+    render(): ReactNode {
+        const {success: canStartGame, reason: canStartGameReason} = this.lobby.canStartGame(this.authenticatedUser);
+        const {success: canCancelGame, reason: canCancelGameReason} = this.lobby.canCancel(this.authenticatedUser);
+
+        return <>
+                <Col xs={10} lg={4} className="mb-3">
+                    <Card id="lobby-houses-list">
+                        <ListGroup variant="flush">
+                            {this.lobby.lobbyHouses.values.map((h, i) => (
+                                <ListGroupItem key={h.id} style={{opacity: this.isHouseAvailable(h) ? 1 : 0.3}}>
+                                    <Row className="align-items-center">
+                                        {!this.randomHouses && <Col xs="auto">
+                                            <SimpleInfluenceIconComponent house={h}/>
+                                        </Col>}
+                                        <Col>
+                                            <div>
+                                                <b>{this.randomHouses ? "Seat " + (i + 1): h.name}</b>
+                                            </div>
+                                            <div className={classNames({"invisible": !this.lobby.players.has(h)})}>
+                                                {this.lobby.players.has(h) && <UserLabel
                                                             gameClient={this.props.gameClient}
-                                                            gameState={this.props.gameState}
-                                                            user={this.props.gameState.players.get(h)}
-                                                        />
-                                                    ) : <div className="small">XXX</div>}
-                                                </div>
-                                            </Col>
-                                            {this.isHouseAvailable(h) && (
-                                                !this.props.gameState.players.has(h) ? (
-                                                    <Col xs="auto">
-                                                        <Button onClick={() => this.choose(h)}>Choose</Button>
-                                                    </Col>
-                                                ) : this.props.gameState.players.get(h) == this.authenticatedUser ? (
-                                                    <Col xs="auto">
-                                                        <Button variant="danger" onClick={() => this.leave()}>Leave</Button>
-                                                    </Col>
-                                                ) : (
-                                                    this.props.gameState.entireGame.isOwner(this.authenticatedUser) && (
-                                                        <Col xs="auto">
-                                                            <Button variant="danger" onClick={() => this.kick(h)}>Kick</Button>
-                                                        </Col>
-                                                    )
-                                                )
-                                            )}
-                                        </Row>
-                                    </ListGroupItem>
-                                ))}
-                            </ListGroup>
-                        </Card>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Card>
-                            <Card.Body>
-                                <ChatComponent gameClient={this.props.gameClient}
-                                               entireGame={this.props.gameState.entireGame}
-                                               roomId={this.props.gameState.entireGame.publicChatRoomId}
-                                               currentlyViewed={true}/>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Card>
-                            <Card.Body>
-                                <Row>
-                                    <Col>
-                                        <GameSettingsComponent
-                                            gameClient={this.props.gameClient}
-                                            entireGame={this.props.gameState.entireGame} />
-                                    </Col>
-                                </Row>
-                                <Row>
-                                    <Col>
+                                                            gameState={this.lobby}
+                                                            user={this.lobby.players.get(h)}/>}
+                                            </div>
+                                        </Col>
+                                        {this.renderLobbyHouseButtons(h)}
+                                    </Row>
+                                </ListGroupItem>
+                            ))}
+                        </ListGroup>
+                    </Card>
+                </Col>
+                <Col xs={10} lg={6} className="mb-3">
+                    <Card>
+                        <Card.Body style={{height: this.chatHeight}}>
+                            <ChatComponent gameClient={this.props.gameClient}
+                                        entireGame={this.lobby.entireGame}
+                                        roomId={this.lobby.entireGame.publicChatRoomId}
+                                        currentlyViewed={true}/>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col xs={10} lg={5}>
+                    <Card>
+                        <Card.Body>
+                            <Row>
+                                <Col>
+                                    <GameSettingsComponent
+                                        gameClient={this.props.gameClient}
+                                        entireGame={this.lobby.entireGame} />
+                                </Col>
+                            </Row>
+                            {(this.props.gameClient.isRealOwner() || this.props.gameState.password != "") &&
+                            <Row className="mt-2">
+                                <Col>
+                                    <Row className="justify-content-center">
+                                        <DebouncedPasswordComponent
+                                            password={this.password}
+                                            onChangeCallback={newPassword => {
+                                                this.password = newPassword;
+                                                this.props.gameState.sendPassword(newPassword);
+                                            }}
+                                        />
+                                    </Row>
+                                </Col>
+                            </Row>}
+                            <Row className="mt-3">
+                                <Col>
+                                    <Button
+                                        block
+                                        onClick={() => this.lobby.start()}
+                                        disabled={!canStartGame}
+                                    >
                                         <ConditionalWrap
                                             condition={!canStartGame}
                                             wrap={children =>
@@ -135,17 +143,17 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                                                 </OverlayTrigger>
                                             }
                                         >
-                                            <Button
-                                                block
-                                                onClick={() => this.props.gameState.start()}
-                                                disabled={!canStartGame}
-                                            >
-                                                Start
-                                            </Button>
+                                            <span>Start</span>
                                         </ConditionalWrap>
-                                    </Col>
-                                    <Col xs="auto">
-                                    <ConditionalWrap
+                                    </Button>
+                                </Col>
+                                <Col xs="auto">
+                                    <Button
+                                        variant="danger"
+                                        onClick={() => this.cancel()}
+                                        disabled={!canCancelGame}
+                                    >
+                                        <ConditionalWrap
                                             condition={!canCancelGame}
                                             wrap={children =>
                                                 <OverlayTrigger
@@ -161,43 +169,85 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                                                 </OverlayTrigger>
                                             }
                                         >
-                                            <Button
-                                                variant="danger"
-                                                onClick={() => this.cancel()}
-                                                disabled={!canCancelGame}
-                                            >
-                                                <FontAwesomeIcon icon={faTimes} />
-                                            </Button>
+                                            <FontAwesomeIcon icon={faTimes} />
                                         </ConditionalWrap>
-                                    </Col>
-                                </Row>
-                            </Card.Body>
-                        </Card>
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
+                </Col>
+        </>;
+    }
+
+    renderLobbyHouseButtons(h: LobbyHouse): React.ReactNode {
+        if (!this.isHouseAvailable(h)) {
+            return <></>;
+        }
+
+        if (!this.props.gameClient.isRealOwner() &&
+            this.props.gameState.password != "" &&
+            this.password != this.props.gameState.password &&
+            // If user is already seated, allow them to "Leave"
+            (!this.lobby.players.has(h) || this.lobby.players.get(h) != this.authenticatedUser)) {
+            return <Col xs="auto">
+                <FontAwesomeIcon icon={faLock} />
+            </Col>;
+        }
+
+        return  (
+            !this.lobby.players.has(h) ? (
+                <Col xs="auto">
+                    <Button onClick={() => this.choose(h)}>Choose</Button>
+                </Col>
+            ) : this.lobby.players.get(h) == this.authenticatedUser ? (
+                <Col xs="auto">
+                    <Button variant="danger" onClick={() => this.leave()}>Leave</Button>
+                </Col>
+            ) : (
+                this.props.gameClient.isOwner() && (
+                    <Col xs="auto">
+                        <Button variant="danger" onClick={() => this.kick(h)}>Kick</Button>
                     </Col>
-                </Row>
-            </Col>
+                )
+            )
         );
     }
 
     isHouseAvailable(house: LobbyHouse): boolean {
-        return this.props.gameState.getAvailableHouses().includes(house);
+        return this.lobby.getAvailableHouses().includes(house);
     }
 
     choose(house: LobbyHouse): void {
-        this.props.gameState.chooseHouse(house);
+        this.lobby.chooseHouse(house);
     }
 
     kick(house: LobbyHouse): void {
-        this.props.gameState.kick(this.props.gameState.players.get(house));
+        this.lobby.kick(this.lobby.players.get(house));
     }
 
     cancel(): void {
         if (confirm("Are you sure you want to cancel the game?")) {
-            this.props.gameState.cancel();
+            this.lobby.cancel();
         }
     }
 
     leave(): void {
-        this.props.gameState.chooseHouse(null);
+        this.lobby.chooseHouse(null);
+    }
+
+    componentDidMount(): void {
+        window.addEventListener('resize', () => this.setChatHeight());
+        this.setChatHeight();
+    }
+
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', () => this.setChatHeight());
+    }
+
+    setChatHeight(): void {
+        const lobbyHousesList = document.getElementById("lobby-houses-list");
+        const boundingClientRect = lobbyHousesList ? lobbyHousesList.getBoundingClientRect() : null;
+        this.chatHeight = boundingClientRect ? boundingClientRect.height : 430;
     }
 }

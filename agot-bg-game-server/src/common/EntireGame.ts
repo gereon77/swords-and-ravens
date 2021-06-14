@@ -2,41 +2,61 @@ import GameState, {SerializedGameState} from "./GameState";
 import LobbyGameState, {SerializedLobbyGameState} from "./lobby-game-state/LobbyGameState";
 import IngameGameState, {SerializedIngameGameState} from "./ingame-game-state/IngameGameState";
 import {ServerMessage} from "../messages/ServerMessage";
-import {ClientMessage} from "../messages/ClientMessage";
-import * as baseGameData from "../../data/baseGameData.json";
+import {ChangeGameSettings, ClientMessage} from "../messages/ClientMessage";
 import User, {SerializedUser} from "../server/User";
 import {observable} from "mobx";
 import * as _ from "lodash";
 import BetterMap from "../utils/BetterMap";
 import GameEndedGameState from "./ingame-game-state/game-ended-game-state/GameEndedGameState";
-import { GameSetup, GameSetupContainer } from "./ingame-game-state/game-data-structure/createGame";
+import { GameSetup, getGameSetupContainer } from "./ingame-game-state/game-data-structure/createGame";
 import CancelledGameState, { SerializedCancelledGameState } from "./cancelled-game-state/CancelledGameState";
+import { VoteState } from "./ingame-game-state/vote-system/Vote";
+import CombatGameState from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
+import sleep from "../utils/sleep";
+import PostCombatGameState from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/PostCombatGameState";
 
 export default class EntireGame extends GameState<null, LobbyGameState | IngameGameState | CancelledGameState> {
     id: string;
-    allGameSetups = new BetterMap(Object.entries(baseGameData.setups as {[key: string]: GameSetupContainer}));
-
     @observable users = new BetterMap<string, User>();
     ownerUserId: string;
     name: string;
 
-    @observable gameSettings: GameSettings = { pbem: false, setupId: "base-game", playerCount: 6, randomHouses: false, cokWesterosPhase: false, adwdHouseCards: false };
+    @observable gameSettings: GameSettings = { pbem: false, setupId: "base-game", playerCount: 6, randomHouses: false,
+        cokWesterosPhase: false, adwdHouseCards: false, vassals: false,
+        seaOrderTokens: false, randomChosenHouses: false, draftHouseCards: false, tidesOfBattle: false,
+        thematicDraft: false };
     onSendClientMessage: (message: ClientMessage) => void;
     onSendServerMessage: (users: User[], message: ServerMessage) => void;
-    onWaitedUsers: (users: User[]) => void;
+    onWaitedUsers: (users: User[], forceNotification: boolean) => void;
     publicChatRoomId: string;
     // Keys are the two users participating in the private chat.
     // A pair of user is sorted alphabetically by their id when used as a key.
     @observable privateChatRoomsIds: BetterMap<User, BetterMap<User, string>> = new BetterMap();
+    // Client-side callback fired whenever a new private chat-window was created
+    onNewPrivateChatRoomCreated: ((roomId: string) => void) | null;
     // Client-side callback fired whenever the current GameState changes.
     onClientGameStateChange: (() => void) | null;
 
-    get lobbyGameState(): LobbyGameState | null{
+    get lobbyGameState(): LobbyGameState | null {
         return this.childGameState instanceof LobbyGameState ? this.childGameState : null;
     }
 
-    get owner(): User | null {
-        return this.users.tryGet(this.ownerUserId, null);
+    get ingameGameState(): IngameGameState | null {
+        return this.childGameState instanceof IngameGameState ? this.childGameState : null;
+    }
+
+    get selectedGameSetup(): GameSetup {
+        const container = getGameSetupContainer(this.gameSettings.setupId);
+
+        const playerSetups = container.playerSetups;
+
+        const gameSetup = playerSetups.find(gameSetup => this.gameSettings.playerCount == gameSetup.playerCount);
+
+        if (gameSetup == undefined) {
+            throw new Error(`Invalid playerCount ${this.gameSettings.playerCount} for setupId ${this.gameSettings.setupId}`);
+        }
+
+        return gameSetup;
     }
 
     constructor(id: string, ownerId: string, name: string) {
@@ -50,8 +70,8 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         this.setChildGameState(new LobbyGameState(this)).firstStart();
     }
 
-    proceedToIngameGameState(futurePlayers: BetterMap<string, User>): void {
-        this.setChildGameState(new IngameGameState(this)).beginGame(futurePlayers);
+    proceedToIngameGameState(housesToCreate: string[], futurePlayers: BetterMap<string, User>): void {
+        this.setChildGameState(new IngameGameState(this)).beginGame(housesToCreate, futurePlayers);
 
         this.checkGameStateChanged();
     }
@@ -89,36 +109,37 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 gameState = gameState.childGameState;
             }
 
-            // If the game is PBEM, send a notification to all waited users
-            if (this.gameSettings.pbem && this.onWaitedUsers) {
-                this.onWaitedUsers(this.leafState.getWaitedUsers());
-            }
+            this.notifyWaitedUsers();
+        }
+    }
+
+    notifyWaitedUsers(): void {
+        if (!this.onWaitedUsers) {
+            return;
+        }
+
+        // If game is in LobbyGameState, always notify the owner when game is ready to start or
+        // if the game is PBEM, send a notification to all waited users
+        if (this.leafState instanceof LobbyGameState || this.gameSettings.pbem) {
+            this.onWaitedUsers(this.leafState.getWaitedUsers(), this.leafState instanceof LobbyGameState);
         }
     }
 
     isOwner(user: User): boolean {
-        const owner = this.owner;
-        if (!owner) {
-            return this.isRealOwner(user);
-        }
-
-        // If owner is not seated every player becomes owner ...
         if (this.lobbyGameState) {
-            if (this.lobbyGameState.players.values.includes(owner)) {
-                return this.isRealOwner(user);
-            } else {
-                // ... and can kick players, change settings, start the game, etc. in LobbyGameState
-                return this.lobbyGameState.players.values.includes(user);
-            }
+            // If owner is not seated every player becomes owner
+            // and can kick players, change settings, start the game, etc. in LobbyGameState
+            return this.lobbyGameState.players.values.map(u => u.id).includes(this.ownerUserId)
+                ? this.isRealOwner(user)
+                : this.isRealOwner(user) || this.lobbyGameState.players.values.includes(user);
         }
 
-        if (this.childGameState instanceof IngameGameState) {
-            if (this.childGameState.players.keys.includes(owner)) {
-                return this.isRealOwner(user);
-            } else {
-                // ... and can toggle PBEM during game
-                return this.childGameState.players.keys.includes(user);
-            }
+        if (this.ingameGameState) {
+            // If owner is not present ingame
+            // every player becomes owner to be able to toggle PBEM
+            return this.ingameGameState.players.keys.map(u => u.id).includes(this.ownerUserId)
+                ? this.isRealOwner(user)
+                : this.ingameGameState.players.keys.includes(user);
         }
 
         return this.isRealOwner(user);
@@ -150,30 +171,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 settings: user.settings
             })
         } else if (message.type == "change-game-settings") {
-            if (!this.isOwner(user)) {
-                return;
-            }
-
-            let settings =  message.settings as GameSettings;
-            if (!settings || (this.lobbyGameState && this.lobbyGameState.players.size > settings.playerCount)) {
-                // A variant which contains less players than connected is not allowed
-                settings = this.gameSettings;
-            }
-
-            if (settings.setupId == "a-dance-with-dragons") {
-                settings.adwdHouseCards = true;
-            }
-
-            this.gameSettings = settings;
-
-            if (this.lobbyGameState) {
-                this.lobbyGameState.onGameSettingsChange();
-            }
-
-            this.broadcastToClients({
-                type: "game-settings-changed",
-                settings: settings
-            });
+            this.onGameSettingsChange(user, message);
         } else {
             this.childGameState.onClientMessage(user, message);
         }
@@ -182,13 +180,18 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         this.checkGameStateChanged();
     }
 
-    onServerMessage(message: ServerMessage): void {
+    async onServerMessage(message: ServerMessage): Promise<void> {
         if (message.type == "game-state-change") {
             const {level, serializedGameState} = message;
 
             // Get the GameState for whose the childGameState must change
             const parentGameState = this.getGameStateNthLevelDown(level - 1);
-            parentGameState.childGameState = parentGameState.deserializeChildGameState(serializedGameState);
+
+            const newChildGameState = parentGameState.deserializeChildGameState(serializedGameState);
+
+            await this.waitBeforeChangingChildGameState(parentGameState, newChildGameState);
+
+            parentGameState.childGameState = newChildGameState;
 
             if (this.onClientGameStateChange) {
                 this.onClientGameStateChange();
@@ -209,6 +212,65 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         } else {
             this.childGameState.onServerMessage(message);
         }
+    }
+
+    async waitBeforeChangingChildGameState(parentGameState: GameState<any, any>, newChildGameState: GameState<any, any>): Promise<void> {
+        // Wait 4 seconds when CombatGameState is over to show the battle results via the CombatInfoComponent
+        if (this.hasChildGameState(CombatGameState) &&
+                // Only do it when there is no PostCombatGameState in the tree as PostCombat shows the dialog already
+                !this.hasChildGameState(PostCombatGameState) &&
+                !parentGameState.hasParentGameState(CombatGameState) &&
+                !newChildGameState.hasChildGameState(CombatGameState)) {
+            await sleep(5000);
+        }
+    }
+
+    onGameSettingsChange(user: User, message: ChangeGameSettings): void {
+        if (!this.isOwner(user)) {
+            return;
+        }
+
+        let settings =  message.settings as GameSettings;
+        if (!settings || (this.lobbyGameState && this.lobbyGameState.players.size > settings.playerCount)) {
+            // A variant which contains less players than connected is not allowed
+            settings = this.gameSettings;
+        }
+
+        if (settings.setupId == "a-dance-with-dragons") {
+            settings.adwdHouseCards = true;
+        }
+
+        if (settings.thematicDraft) {
+            settings.draftHouseCards = true;
+        }
+
+        if (settings.draftHouseCards) {
+            settings.adwdHouseCards = false;
+        }
+
+        if (settings.setupId == "mother-of-dragons") {
+            settings.vassals = true;
+            settings.seaOrderTokens = true;
+        }
+
+        // Check if PBEM was enabled during ingame
+        const notifyWaitedUsersDueToPbemChange = this.ingameGameState && settings.pbem && !this.gameSettings.pbem;
+
+        this.gameSettings = settings;
+
+        if (notifyWaitedUsersDueToPbemChange) {
+            // Notify waited users now
+            this.notifyWaitedUsers();
+        }
+
+        if (this.lobbyGameState) {
+            this.lobbyGameState.onGameSettingsChange();
+        }
+
+        this.broadcastToClients({
+            type: "game-settings-changed",
+            settings: settings
+        });
     }
 
     broadcastToClients(message: ServerMessage): void {
@@ -263,7 +325,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 // If the game is in "randomize house" mode, don't specify any houses in the PlayerInGame data
                 const playerData: {[key: string]: any} = {};
 
-                if (!this.gameSettings.randomHouses) {
+                if (!this.gameSettings.randomHouses && !this.gameSettings.randomChosenHouses) {
                     playerData["house"] = house.id;
                 }
 
@@ -273,9 +335,10 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 });
             });
         } else if (this.childGameState instanceof IngameGameState) {
-            const waitedForUsers = this.childGameState.getWaitedUsers();
+            const ingame = this.childGameState as IngameGameState;
+            const waitedForUsers = ingame.getWaitedUsers();
 
-            this.childGameState.players.forEach((player, user) => {
+            ingame.players.forEach((player, user) => {
                 // "Important chat rooms" are chat rooms where unseen messages will display
                 // a badge next to the game in the website.
                 // In this case, it's all private rooms with this player in it. The next line
@@ -288,7 +351,9 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                     data: {
                         "house": player.house.id,
                         "waited_for": waitedForUsers.includes(user),
-                        "important_chat_rooms": importantChatRooms.map(cr => cr.roomId)
+                        "important_chat_rooms": importantChatRooms.map(cr => cr.roomId),
+                        "is_winner": ingame.childGameState instanceof GameEndedGameState ? ingame.childGameState.winner == player.house : false,
+                        "needed_for_vote": ingame.votes.values.filter(vote => vote.state == VoteState.ONGOING).some(vote => !vote.votes.has(player.house))
                     }
                 });
             });
@@ -315,32 +380,6 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                     return {user: otherUser, roomId};
                 })
         ));
-    }
-
-    getGameSetupContainer(setupId: string): GameSetupContainer {
-        if (!this.allGameSetups.has(setupId)) {
-            throw new Error("Invalid setupId");
-        }
-
-        return this.allGameSetups.get(setupId);
-    }
-
-    getGameSetupByIdAndPlayerCount(setupId: string, playerCount: number): GameSetup {
-        const container = this.getGameSetupContainer(setupId);
-
-        const playerSetups = container.playerSetups;
-
-        const gameSetup = playerSetups.find(gameSetup => playerCount == gameSetup.playerCount);
-
-        if (!gameSetup) {
-            throw new Error(`Invalid playerCount ${playerCount} for setupId ${setupId}`);
-        }
-
-        return gameSetup;
-    }
-
-    getSelectedGameSetup(): GameSetup {
-        return this.getGameSetupByIdAndPlayerCount(this.gameSettings.setupId, this.gameSettings.playerCount);
     }
 
     serializeToClient(user: User | null): SerializedEntireGame {
@@ -403,6 +442,12 @@ export interface GameSettings {
     setupId: string;
     playerCount: number;
     randomHouses: boolean;
+    randomChosenHouses: boolean;
     adwdHouseCards: boolean;
     cokWesterosPhase: boolean;
+    vassals: boolean;
+    seaOrderTokens: boolean;
+    draftHouseCards: boolean;
+    tidesOfBattle: boolean;
+    thematicDraft: boolean;
 }

@@ -7,18 +7,21 @@ import BetterMap from "../../../utils/BetterMap";
 import {land, port, sea} from "./regionTypes";
 import * as _ from "lodash";
 import StaticBorder from "./static-data-structure/StaticBorder";
-import staticWorld from "./static-data-structure/globalStaticWorld";
 import StaticRegion from "./static-data-structure/StaticRegion";
+import RegionKind from "./RegionKind";
+import getStaticWorld from "./static-data-structure/getStaticWorld";
 
 export default class World {
+    gameSetupId: string;
     regions: BetterMap<string, Region>;
 
     get borders(): StaticBorder[] {
-        return staticWorld.staticBorders;
+        return getStaticWorld(this.gameSetupId).staticBorders;
     }
 
-    constructor(regions: BetterMap<string, Region>) {
+    constructor(regions: BetterMap<string, Region>, gameSetupId: string) {
         this.regions = regions;
+        this.gameSetupId = gameSetupId;
     }
 
     getRegion(staticRegion: StaticRegion): Region {
@@ -89,8 +92,8 @@ export default class World {
         );
     }
 
-    getReachableRegions(startingRegion: Region, house: House, army: Unit[]): Region[] {
-        const regionsToCheck: Region[] = this.getNeighbouringRegions(startingRegion);
+    getReachableRegions(startingRegion: Region, house: House, army: Unit[], viaTransportOnly = false): Region[] {
+        let regionsToCheck: Region[] = this.getNeighbouringRegions(startingRegion);
         const checkedRegions: Region[] = [];
         const reachableRegions: Region[] = [];
 
@@ -98,6 +101,10 @@ export default class World {
         const regionKindOfArmy = army[0].type.walksOn;
         if (!army.every(u => u.type.walksOn == regionKindOfArmy)) {
             throw new Error();
+        }
+
+        if (viaTransportOnly) {
+            regionsToCheck = regionsToCheck.filter(r => this.canActAsBridge(r, house, regionKindOfArmy));
         }
 
         // This is basically a DFS, where some units can act as bridges
@@ -114,16 +121,18 @@ export default class World {
             }
 
             // Can this region act as a bridge ?
-            if (region.getController() == house && region.units.size > 0) {
-                if (region.units.values.some(u => u.type.canTransport == regionKindOfArmy)) {
-                    regionsToCheck.push(...this.getNeighbouringRegions(region));
-                }
+            if (this.canActAsBridge(region, house, regionKindOfArmy)) {
+                regionsToCheck.push(...this.getNeighbouringRegions(region));
             }
 
             checkedRegions.push(region);
         }
 
         return reachableRegions;
+    }
+
+    canActAsBridge(region: Region, house: House, regionKindOfArmy: RegionKind): boolean {
+        return region.getController() == house && region.units.values.some(u => u.type.canTransport == regionKindOfArmy)
     }
 
     getControlledRegions(house: House): Region[] {
@@ -191,19 +200,26 @@ export default class World {
         return region.units.get(unitId);
     }
 
+    getCapitalOfHouse(house: House): Region | null {
+        const capital = this.regions.values.filter(r => r.superControlPowerToken == house);
+        return capital.length == 1 ? capital[0] : null;
+    }
+
     serializeToClient(): SerializedWorld {
         return {
             regions: this.regions.values.map(r => r.serializeToClient()),
+            gameSetupId: this.gameSetupId
         };
     }
 
     static deserializeFromServer(game: Game, data: SerializedWorld): World {
         const regions = new BetterMap(data.regions.map(r => [r.id, Region.deserializeFromServer(game, r)]));
 
-        return new World(regions);
+        return new World(regions, data.gameSetupId);
     }
 }
 
 export interface SerializedWorld {
     regions: SerializedRegion[];
+    gameSetupId: string;
 }

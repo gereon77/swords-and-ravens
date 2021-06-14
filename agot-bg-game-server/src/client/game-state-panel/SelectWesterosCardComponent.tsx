@@ -22,11 +22,10 @@ export default class SelectWesterosCardComponent extends Component<GameStateComp
                         <Row className="justify-content-center">
                             <Col xs="12">
                                 <Row className="justify-content-center">
-                                    {this.props.gameState.westerosCards.map(wc => (
-                                        // The house argument is used to decide which card-back is used
-                                        // Since we will never show a back-card here, we can give whatever value fits.
+                                    {this.props.gameState.selectableCards.map(wc => (
                                         <Col xs="auto" key={wc.id}>
                                             <WesterosCardComponent
+                                                tooltip={true}
                                                 cardType={wc.type}
                                                 westerosDeckI={this.props.gameState.deckId}
                                                 size="small"

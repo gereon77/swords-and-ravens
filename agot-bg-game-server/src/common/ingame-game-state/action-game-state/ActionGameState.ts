@@ -21,9 +21,12 @@ import ConsolidatePowerOrderType from "../game-data-structure/order-types/Consol
 import SupportOrderType from "../game-data-structure/order-types/SupportOrderType";
 import {port, sea, land} from "../game-data-structure/regionTypes";
 import PlanningRestriction from "../game-data-structure/westeros-card/planning-restriction/PlanningRestriction";
-import planningRestrictions from "../game-data-structure/westeros-card/planning-restriction/planningRestrictions";
+import planningRestrictions, { noSupportOrder } from "../game-data-structure/westeros-card/planning-restriction/planningRestrictions";
+import RaidSupportOrderType from "../game-data-structure/order-types/RaidSupportOrderType";
 import Unit from "../game-data-structure/Unit";
 import {footman} from "../game-data-structure/unitTypes";
+import DefenseMusterOrderType from "../game-data-structure/order-types/DefenseMusterOrderType";
+import { raidSupportPlusOne } from "../game-data-structure/order-types/orderTypes";
 
 export default class ActionGameState extends GameState<IngameGameState, UseRavenGameState | ResolveRaidOrderGameState | ResolveMarchOrderGameState | ResolveConsolidatePowerGameState> {
     planningRestrictions: PlanningRestriction[];
@@ -65,10 +68,43 @@ export default class ActionGameState extends GameState<IngameGameState, UseRaven
     }
 
     onResolveRaidOrderGameStateFinish(): void {
+        // In case of no support orders (web of lies) now remove raid/support orders
+        if (this.planningRestrictions.some(pr => pr == noSupportOrder)) {
+            const regionsWithRaidSupportPlusOneOrders = this.ordersOnBoard.entries.filter(([_r, o]) => o.type == raidSupportPlusOne).map(([r, _o]) => r);
+            for(const region of regionsWithRaidSupportPlusOneOrders) {
+                this.removeOrderFromRegion(region);
+            }
+        }
+
         this.setChildGameState(new ResolveMarchOrderGameState(this)).firstStart();
     }
 
+    removeOrderFromRegion(region: Region): Order | null {
+        // todo: Add param to log this event
+        if (this.ordersOnBoard.has(region)) {
+            const order = this.ordersOnBoard.get(region);
+            this.ordersOnBoard.delete(region);
+            this.entireGame.broadcastToClients({
+                type: "action-phase-change-order",
+                region: region.id,
+                order: null
+            });
+
+            return order;
+        }
+
+        return null;
+    }
+
     onUseRavenGameStateEnd(): void {
+        // Remove restricted orders from board:
+        this.ordersOnBoard.keys.forEach(region => {
+            const order = this.ordersOnBoard.get(region);
+            if (this.game.isOrderRestricted(region, order, this.planningRestrictions)) {
+                this.removeOrderFromRegion(region);
+            }
+        });
+
         this.setChildGameState(new ResolveRaidOrderGameState(this)).firstStart();
     }
 
@@ -88,7 +124,7 @@ export default class ActionGameState extends GameState<IngameGameState, UseRaven
             if (order) {
                 this.ordersOnBoard.set(region, order);
             } else {
-                this.ordersOnBoard.delete(region);
+                try { this.ordersOnBoard.delete(region); } catch { }
             }
         } else {
             this.childGameState.onServerMessage(message);
@@ -110,16 +146,16 @@ export default class ActionGameState extends GameState<IngameGameState, UseRaven
                     if (unit.type == footman) {
                         footmen.push(unit);
                     }
-                })
+                });
             });
         return footmen;
     }
 
-    getRegionsWithRaidOrderOfHouse(house: House): Region[] {
+    getRegionsWithRaidOrderOfHouse(house: House): [Region, RaidOrderType | RaidSupportOrderType][] {
         return this.ordersOnBoard.entries
             .filter(([region, _order]) => region.getController() == house)
-            .filter(([_region, order]) => order.type instanceof RaidOrderType)
-            .map(([region, _order]) => region);
+            .filter(([_region, order]) => order.type instanceof RaidOrderType || order.type instanceof RaidSupportOrderType)
+            .map(([region, order]) => [region, order.type as RaidOrderType | RaidSupportOrderType]);
     }
 
     getRegionsWithMarchOrderOfHouse(house: House): Region[] {
@@ -129,20 +165,27 @@ export default class ActionGameState extends GameState<IngameGameState, UseRaven
             .map(([region, _order]) => region);
     }
 
-    getRegionsWithConsolidatePowerOrderOfHouse(house: House): [Region, Order][] {
+    getRegionsWithConsolidatePowerOrderOfHouse(house: House): [Region, ConsolidatePowerOrderType][] {
         return this.ordersOnBoard.entries
             .filter(([region, _order]) => region.getController() == house)
-            .filter(([_region, order]) => order.type instanceof ConsolidatePowerOrderType);
+            .filter(([_region, order]) => order.type instanceof ConsolidatePowerOrderType)
+            .map(([region, order]) => [region, order.type]);
     }
 
     getRegionsWithStarredConsolidatePowerOrderOfHouse(house: House): Region[] {
-        return this.getRegionsWithConsolidatePowerOrderOfHouse(house).filter(([_, o]) => o.type.starred).map(([r, _]) => r);
+        return this.getRegionsWithConsolidatePowerOrderOfHouse(house).filter(([_, ot]) => ot.starred).map(([r, _]) => r);
+    }
+
+    getRegionsWithDefenseMusterOrderOfHouse(house: House): Region[] {
+        return this.ordersOnBoard.entries
+            .filter(([region, _order]) => region.getController() == house)
+            .filter(([_region, order]) => order.type instanceof DefenseMusterOrderType).map(([r, _]) => r);
     }
 
     getPossibleSupportingRegions(attackedRegion: Region): {region: Region; support: SupportOrderType}[] {
         return this.game.world.getNeighbouringRegions(attackedRegion)
             .filter(r => this.ordersOnBoard.has(r))
-            .filter(r => this.ordersOnBoard.get(r).type instanceof SupportOrderType)
+            .filter(r => this.ordersOnBoard.get(r).type instanceof SupportOrderType || this.ordersOnBoard.get(r).type instanceof RaidSupportOrderType)
             // A port can't support the adjacent land region
             .filter(r => !(r.type == port && this.game.world.getAdjacentLandOfPort(r) == attackedRegion))
             // A sea battle can't be supported by land units

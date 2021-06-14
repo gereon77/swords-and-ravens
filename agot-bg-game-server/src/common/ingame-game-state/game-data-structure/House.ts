@@ -3,13 +3,14 @@ import {observable} from "mobx";
 import BetterMap from "../../../utils/BetterMap";
 import UnitType from "./UnitType";
 import unitTypes from "./unitTypes";
+import Game from "./Game";
 
 export default class House {
     id: string;
     name: string;
     color: string;
     knowsNextWildlingCard: boolean;
-    houseCards: BetterMap<string, HouseCard>;
+    @observable houseCards: BetterMap<string, HouseCard>;
     unitLimits: BetterMap<UnitType, number>;
     @observable powerTokens: number;
     @observable supplyLevel: number;
@@ -38,7 +39,7 @@ export default class House {
         };
     }
 
-    static deserializeFromServer(data: SerializedHouse): House {
+    static deserializeFromServer(_game: Game, data: SerializedHouse): House {
         const house = new House(
             data.id,
             data.name,

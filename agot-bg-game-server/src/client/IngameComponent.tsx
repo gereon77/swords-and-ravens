@@ -26,31 +26,26 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
 import { faStickyNote } from "@fortawesome/free-solid-svg-icons/faStickyNote";
 import Tooltip from "react-bootstrap/Tooltip";
-import castleImage from "../../public/images/icons/castle.svg";
 import stoneThroneImage from "../../public/images/icons/stone-throne.svg";
 import cancelImage from "../../public/images/icons/cancel.svg";
+import truceImage from "../../public/images/icons/truce.svg";
 import ravenImage from "../../public/images/icons/raven.svg";
 import diamondHiltImage from "../../public/images/icons/diamond-hilt.svg";
+import diamondHiltUsedImage from "../../public/images/icons/diamond-hilt-used.svg";
 import hourglassImage from "../../public/images/icons/hourglass.svg";
 import mammothImage from "../../public/images/icons/mammoth.svg";
 import chatBubble from "../../public/images/icons/chat-bubble.svg";
 import speaker from "../../public/images/icons/speaker.svg";
 import speakerOff from "../../public/images/icons/speaker-off.svg";
 import House from "../common/ingame-game-state/game-data-structure/House";
-import housePowerTokensImages from "./housePowerTokensImages";
 import marked from "marked";
 import GameLogListComponent from "./GameLogListComponent";
-import HouseCardComponent from "./game-state-panel/utils/HouseCardComponent";
 import Game from "../common/ingame-game-state/game-data-structure/Game";
-import unitTypes from "../common/ingame-game-state/game-data-structure/unitTypes";
-import unitImages from "./unitImages";
 import GameEndedGameState from "../common/ingame-game-state/game-ended-game-state/GameEndedGameState";
 import GameEndedComponent from "./game-state-panel/GameEndedComponent";
 import Nav from "react-bootstrap/Nav";
 import Tab from "react-bootstrap/Tab";
 import ChatComponent from "./chat-client/ChatComponent";
-import { HouseCardState } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
-import HouseCardBackComponent from "./game-state-panel/utils/HouseCardBackComponent";
 import InfluenceIconComponent from "./game-state-panel/utils/InfluenceIconComponent";
 import SupplyTrackComponent from "./game-state-panel/utils/SupplyTrackComponent";
 import Dropdown from "react-bootstrap/Dropdown";
@@ -62,15 +57,20 @@ import { Channel, Message } from "./chat-client/ChatClient";
 // @ts-ignore
 import ScrollToBottom from "react-scroll-to-bottom";
 import GameSettingsComponent from "./GameSettingsComponent";
-import UserLabel from "./UserLabel";
 import VoteComponent from "./VoteComponent";
 import IngameCancelledComponent from "./game-state-panel/IngameCancelledComponent";
 import CancelledGameState from "../common/cancelled-game-state/CancelledGameState";
 import joinReactNodes from "./utils/joinReactNodes";
 import NoteComponent from "./NoteComponent";
-import UnitType from "../common/ingame-game-state/game-data-structure/UnitType";
+import HouseRowComponent from "./HouseRowComponent";
 import UserSettingsComponent from "./UserSettingsComponent";
 import { GameSettings } from '../common/EntireGame';
+import {isMobile} from 'react-device-detect';
+import DraftHouseCardsGameState from "../common/ingame-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
+import DraftHouseCardsComponent from "./game-state-panel/DraftHouseCardsComponent";
+import ThematicDraftHouseCardsGameState from "../common/ingame-game-state/thematic-draft-house-cards-game-state/ThematicDraftHouseCardsGameState";
+import ThematicDraftHouseCardsComponent from "./game-state-panel/ThematicDraftHouseCardsComponent";
+import ClashOfKingsGameState from "../common/ingame-game-state/westeros-game-state/clash-of-kings-game-state/ClashOfKingsGameState";
 
 interface IngameComponentProps {
     gameClient: GameClient;
@@ -80,19 +80,42 @@ interface IngameComponentProps {
 @observer
 export default class IngameComponent extends Component<IngameComponentProps> {
     mapControls: MapControls = new MapControls();
-    @observable currentOpenedTab: string | null = (this.user && this.user.settings.lastOpenedTab) ? this.user.settings.lastOpenedTab : "chat";
-    @observable height: number | null = null;
+    @observable currentOpenedTab = (this.user && this.user.settings.lastOpenedTab) ? this.user.settings.lastOpenedTab : "chat";
+    @observable height: number | null;
 
     get game(): Game {
-        return this.props.gameState.game;
+        return this.ingame.game;
     }
 
     get gameSettings(): GameSettings {
-        return this.props.gameState.entireGame.gameSettings;
+        return this.ingame.entireGame.gameSettings;
     }
 
     get user(): User | null {
         return this.props.gameClient.authenticatedUser ? this.props.gameClient.authenticatedUser : null;
+    }
+
+    get ingame(): IngameGameState {
+        return this.props.gameState;
+    }
+
+    get authenticatedPlayer(): Player | null {
+        return this.props.gameClient.authenticatedPlayer;
+    }
+
+    get tracks(): {name: string; tracker: House[]; stars: boolean}[] {
+        const influenceTracks = this.game.influenceTracks;
+        if (this.ingame.hasChildGameState(ClashOfKingsGameState)) {
+            const cok = this.ingame.getChildGameState(ClashOfKingsGameState) as ClashOfKingsGameState;
+            for (let i = cok.currentTrackI; i < influenceTracks.length; i++) {
+                influenceTracks[i] = i == 0 ? [this.game.ironThroneHolder] : [];
+            }
+        }
+        return [
+            {name: "Iron Throne", tracker: influenceTracks[0], stars: false},
+            {name: "Fiefdoms", tracker: influenceTracks[1], stars: false},
+            {name: "King's Court", tracker: influenceTracks[2], stars: true},
+        ]
     }
 
     render(): ReactNode {
@@ -102,17 +125,26 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             { name: "Action", gameState: ActionGameState, component: ActionComponent }
         ];
 
-        const knowsWildlingCard = this.props.gameClient.authenticatedPlayer != null &&
-            this.props.gameClient.authenticatedPlayer.house.knowsNextWildlingCard;
+        const knowsWildlingCard = this.authenticatedPlayer != null &&
+            this.authenticatedPlayer.house.knowsNextWildlingCard;
         const nextWildlingCard = this.game.wildlingDeck.filter(c => c.id == this.game.clientNextWildlingCardId)[0];
 
-        const { result: canLaunchCancelGameVote, reason: canLaunchCancelGameVoteReason } = this.props.gameState.canLaunchCancelGameVote();
+        const {result: canLaunchCancelGameVote, reason: canLaunchCancelGameVoteReason} = this.props.gameState.canLaunchCancelGameVote(this.authenticatedPlayer);
+        const {result: canLaunchEndGameVote, reason: canLaunchEndGameVoteReason} = this.props.gameState.canLaunchEndGameVote(this.authenticatedPlayer);
 
         const connectedSpectators = this.getConnectedSpectators();
 
+        const forceResponsiveLayout = this.user ? this.user.settings.responsiveLayout : false;
+        const mobileDevice = isMobile;
+        const draftHouseCards = this.props.gameState.childGameState instanceof DraftHouseCardsGameState;
+
+        const columnOrders = this.getColumnOrders(mobileDevice);
+        const gameStateColumnSpan = this.getGameStateColumnSpan(mobileDevice, forceResponsiveLayout, draftHouseCards);
+        const gameStatePanelOrders = this.getGameStatePanelOrders(mobileDevice, forceResponsiveLayout);
+
         return (
             <>
-                <Col xs={{ span: "auto", order: "3" }} xl={{ span: "auto", order: "1" }}>
+                <Col xs={{span: "auto", order: columnOrders.tracksColumn}}>
                     <Row className="stackable">
                         <Col>
                             <Card>
@@ -139,10 +171,10 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                                         In case of a tie in a combat, the winner is the house which is
                                                                         the highest in this tracker.<br /><br />
                                                                         {this.props.gameState.game.valyrianSteelBladeUsed ? (
-                                                                            <>The Valyrian Steel Blade has been used this round</>
+                                                                            <>The Valyrian Steel Blade has been used this round.</>
                                                                         ) : (
-                                                                                <>The Valyrian Steel Blade is available</>
-                                                                            )}
+                                                                            <>The Valyrian Steel Blade is available.</>
+                                                                        )}
                                                                     </>
                                                                 ) : (
                                                                             <>
@@ -157,13 +189,15 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                         }
                                                         placement="right"
                                                     >
-                                                        <img src={i == 0 ? stoneThroneImage : i == 1 ? diamondHiltImage : ravenImage} width={32} />
+                                                        <img src={i == 0 ? stoneThroneImage : i == 1 ? this.game.valyrianSteelBladeUsed ? diamondHiltUsedImage : diamondHiltImage : ravenImage} width={32}/>
                                                     </OverlayTrigger>
                                                 </Col>
                                                 {tracker.map((h, i) => (
                                                     <Col xs="auto" key={h.id}>
                                                         <InfluenceIconComponent
                                                             house={h}
+                                                            ingame={this.props.gameState}
+                                                            track={tracker}
                                                         />
                                                         <div className="tracker-star-container">
                                                             {stars && i < this.game.starredOrderRestrictions.length && (
@@ -195,99 +229,13 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                         <Col>
                             <Card>
                                 <ListGroup variant="flush">
-                                    {this.props.gameState.sortedByLeadingPlayers.map(p => (
-                                        <ListGroupItem key={p.user.id}>
-                                            <Row className="align-items-center">
-                                                <Col xs="auto" className="pr-0">
-                                                    <FontAwesomeIcon
-                                                        className={classNames({ "invisible": !this.props.gameClient.isAuthenticatedUser(p.user) })}
-                                                        style={{ color: p.house.color }}
-                                                        icon={faStar}
-                                                    />
-                                                </Col>
-                                                <Col>
-                                                    <b style={{ "color": p.house.color }}>{p.house.name}</b>
-                                                    {" "}
-                                                    <UserLabel
-                                                        user={p.user}
-                                                        gameState={this.props.gameState}
-                                                        gameClient={this.props.gameClient}
-                                                    />
-                                                </Col>
-                                                <Col xs="auto">
-                                                    <Row className="justify-content-center align-items-center" style={{ width: 110 }}>
-                                                        {unitTypes.values.map(type => (
-                                                            <Col xs={6} key={type.id}>
-                                                                <Row className="justify-content-center no-gutters align-items-center">
-                                                                    <Col xs="auto">
-                                                                        {this.game.getAvailableUnitsOfType(p.house, type)}
-                                                                    </Col>
-                                                                    <Col xs="auto" style={{ marginLeft: 4 }}>
-                                                                        <OverlayTrigger
-                                                                            overlay={this.renderUnitTypeTooltip(type)}
-                                                                            delay={{ show: 250, hide: 100 }}
-                                                                            placement="auto">
-                                                                            <div className="unit-icon small hover-weak-outline"
-                                                                                style={{
-                                                                                    backgroundImage: `url(${unitImages.get(p.house.id).get(type.id)})`,
-                                                                                }}
-                                                                            />
-                                                                        </OverlayTrigger>
-                                                                    </Col>
-                                                                </Row>
-                                                            </Col>
-                                                        ))}
-                                                    </Row>
-                                                </Col>
-                                                <OverlayTrigger
-                                                    overlay={this.renderTotalLandRegionsTooltip(p.house)}
-                                                    delay={{ show: 250, hide: 100 }}
-                                                    placement="auto"
-                                                >
-                                                    <Col xs="auto" className="d-flex align-items-center">
-                                                        <div style={{ fontSize: "18px" }}>{this.game.getTotalHeldStructures(p.house)}</div>
-                                                        <img
-                                                            src={castleImage} width={32} className="hover-weak-outline"
-                                                            style={{ marginLeft: "10px" }}
-                                                        />
-                                                    </Col>
-                                                </OverlayTrigger>
-                                                <Col xs="auto" className="d-flex align-items-center">
-                                                    <div style={{ fontSize: "18px" }}>{p.house.powerTokens}</div>
-                                                    <OverlayTrigger
-                                                        overlay={this.renderPowerTooltip(p.house)}
-                                                        delay={{ show: 250, hide: 100 }}
-                                                        placement="auto"
-                                                    >
-                                                        <div
-                                                            className="house-power-token hover-weak-outline"
-                                                            style={{
-                                                                backgroundImage: `url(${housePowerTokensImages.get(p.house.id)})`,
-                                                                marginLeft: "10px"
-                                                            }}
-                                                        />
-                                                    </OverlayTrigger>
-                                                </Col>
-                                            </Row>
-                                            <Row className="justify-content-center">
-                                                {_.sortBy(p.house.houseCards.values, hc => hc.combatStrength).map(hc => (
-                                                    <Col xs="auto" key={hc.id}>
-                                                        {hc.state == HouseCardState.AVAILABLE ? (
-                                                            <HouseCardComponent
-                                                                houseCard={hc}
-                                                                size="tiny"
-                                                            />
-                                                        ) : (
-                                                                <HouseCardBackComponent
-                                                                    house={p.house}
-                                                                    houseCard={hc}
-                                                                    size="tiny"
-                                                                />
-                                                            )}
-                                                    </Col>
-                                                ))}
-                                            </Row>
-                                        </ListGroupItem>
+                                    {this.props.gameState.game.getPotentialWinners().map(h => (
+                                        <HouseRowComponent
+                                            key={h.id}
+                                            gameClient={this.props.gameClient}
+                                            ingame={this.props.gameState}
+                                            house={h}
+                                        />
                                     ))}
                                     <ListGroupItem className="text-center font-italic">
                                         <small>
@@ -308,47 +256,79 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                 <img src={this.props.gameClient.muted ? speakerOff : speaker} width={32} />
                             </button>
                         </Col>
-                        {this.props.gameState.players.has(this.props.gameClient.authenticatedUser as User) && (
+                        {this.authenticatedPlayer && (
                             <Col xs="auto">
-                                <OverlayTrigger
-                                    overlay={
-                                        <Tooltip id="cancel-game-vote-tooltip">
-                                            {canLaunchCancelGameVote ? (
-                                                "Launch a vote to cancel the game"
-                                            ) : canLaunchCancelGameVoteReason == "already-existing" ? (
-                                                "A vote to cancel the game is already ongoing"
-                                            ) : canLaunchCancelGameVoteReason == "already-cancelled" ? (
-                                                "Game has already been cancelled"
-                                            ) : canLaunchCancelGameVoteReason == "already-ended" && (
-                                                "Game has already ended"
-                                            )}
-                                        </Tooltip>
-                                    }
+                                <button
+                                    className="btn btn-outline-light btn-sm"
+                                    onClick={() => this.props.gameState.launchCancelGameVote()}
+                                    disabled={!canLaunchCancelGameVote}
                                 >
+                                    <OverlayTrigger
+                                        overlay={
+                                            <Tooltip id="cancel-game-vote-tooltip">
+                                                {canLaunchCancelGameVote ? (
+                                                    "Launch a vote to cancel the game"
+                                                ) : canLaunchCancelGameVoteReason == "only-players-can-vote" ? (
+                                                    "Only participating players can vote"
+                                                ) : canLaunchCancelGameVoteReason == "already-existing" ? (
+                                                    "A vote to cancel the game is already ongoing"
+                                                ) : canLaunchCancelGameVoteReason == "already-cancelled" ? (
+                                                    "Game has already been cancelled"
+                                                ) : canLaunchCancelGameVoteReason == "already-ended" ? (
+                                                    "Game has already ended"
+                                                ) : "Vote not possible"}
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <img src={cancelImage} width={32}/>
+                                    </OverlayTrigger>
+                                </button>
+                            </Col>
+                        )}
+                        {this.authenticatedPlayer && (
+                            <Col xs="auto">
                                     <button
                                         className="btn btn-outline-light btn-sm"
-                                        onClick={() => this.props.gameState.launchCancelGameVote()}
-                                        disabled={!canLaunchCancelGameVote}
+                                        onClick={() => this.props.gameState.launchEndGameVote()}
+                                        disabled={!canLaunchEndGameVote}
                                     >
-                                        <img src={cancelImage} width={32} />
+                                        <OverlayTrigger
+                                            overlay={
+                                                <Tooltip id="end-game-vote-tooltip">
+                                                    {canLaunchEndGameVote ? (
+                                                        "Launch a vote to end the game after the current round"
+                                                    ) : canLaunchEndGameVoteReason == "only-players-can-vote" ? (
+                                                        "Only participating players can vote"
+                                                    ) : canLaunchEndGameVoteReason == "already-last-turn" ? (
+                                                        "It is already the last round"
+                                                    ) : canLaunchEndGameVoteReason == "already-existing" ? (
+                                                        "A vote to end the game is already ongoing"
+                                                    ) : canLaunchEndGameVoteReason == "already-cancelled" ? (
+                                                        "Game has already been cancelled"
+                                                    ) : canLaunchEndGameVoteReason == "already-ended" ? (
+                                                        "Game has already ended"
+                                                    ) : "Vote not possible"}
+                                                </Tooltip>}
+                                        >
+                                            <img src={truceImage} width={32}/>
+                                        </OverlayTrigger>
                                     </button>
-                                </OverlayTrigger>
                             </Col>
                         )}
                     </Row>
                 </Col>
-                <Col xs={{ span: "auto", order: "2" }} xl={{ span: "auto", order: "2" }}>
-                    <div style={{ height: this.height != null ? this.height - 90 : "auto", overflowY: this.height != null ? "scroll" : "visible", maxHeight: 1378, minHeight: 460 }}>
+                {!draftHouseCards && <Col xs={{span: "auto", order: columnOrders.mapColumn}}>
+                    <div style={{height: this.height != null ? this.height - 100 : "auto", overflowY: this.height != null ? "scroll" : "visible", maxHeight: 1378, minHeight: 460}}>
                         <MapComponent
                             gameClient={this.props.gameClient}
                             ingameGameState={this.props.gameState}
                             mapControls={this.mapControls}
                         />
                     </div>
-                </Col>
-                <Col xs={{ span: "8", order: "1" }} xl={{ span: 3, order: "3" }}>
+                </Col>}
+                <Col xs={{span: gameStateColumnSpan, order: columnOrders.gameStateColumn}}>
                     <Row className="mt-0"> {/* This row is necessary to make child column ordering work */}
-                        <Col xs={{ span: "12", order: "2" }} xl={{ span: "12", order: "1" }}>
+                        <Col xs={{span: "12", order: gameStatePanelOrders.gameStatePanel}}>
                             <Row>
                                 <Col>
                                     <Card border={this.props.gameClient.isOwnTurn() ? "warning" : undefined} bg={this.props.gameState.childGameState instanceof CancelledGameState ? "danger" : undefined}>
@@ -383,8 +363,10 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                 { mapControls: this.mapControls, ...this.props },
                                                 _.concat(
                                                     phases.map(phase => [phase.gameState, phase.component] as [any, typeof Component]),
+                                                    [[ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent]],
+                                                    [[DraftHouseCardsGameState, DraftHouseCardsComponent]],
                                                     [[GameEndedGameState, GameEndedComponent]],
-                                                    [[CancelledGameState, IngameCancelledComponent]],
+                                                    [[CancelledGameState, IngameCancelledComponent]]
                                                 )
                                             )}
                                         </ListGroup>
@@ -394,10 +376,10 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                     <Col style={{ width: "28px", fontSize: "22px", textAlign: "center" }}>
                                         <Row className="mb-3">
                                             <OverlayTrigger overlay={
-                                                <Tooltip id="round">
-                                                    <b>Round</b>
-                                                </Tooltip>
-                                            }
+                                                    <Tooltip id="round">
+                                                        <b>Round {this.game.turn} / {this.game.maxTurns}</b>
+                                                    </Tooltip>
+                                                }
                                                 placement="auto">
                                                 <div>
                                                     <img src={hourglassImage} width={28} />
@@ -429,7 +411,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                 </Col>
                             </Row>
                         </Col>
-                        <Col xs={{ span: "12", order: "1" }} xl={{ span: "12", order: "2" }}>
+                        <Col xs={{span: "12", order: gameStatePanelOrders.gameLogAndChatPanel}}>
                             <Card>
                                 <Tab.Container activeKey={this.currentOpenedTab}
                                     onSelect={k => {
@@ -451,7 +433,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                     </Nav.Link>
                                                 </div>
                                             </Nav.Item>
-                                            {this.props.gameClient.authenticatedPlayer && (
+                                            {this.authenticatedPlayer && (
                                                 <Nav.Item>
                                                     <Nav.Link eventKey="note">
                                                         <OverlayTrigger
@@ -517,7 +499,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                     entireGame={this.props.gameState.entireGame}
                                                     parent={this} />
                                             </Tab.Pane>
-                                            {this.props.gameClient.authenticatedPlayer && (
+                                            {this.authenticatedPlayer && (
                                                 <Tab.Pane eventKey="note" className="h-100">
                                                     <NoteComponent gameClient={this.props.gameClient} ingame={this.props.gameState} />
                                                 </Tab.Pane>
@@ -542,6 +524,44 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         );
     }
 
+    getGameStateColumnSpan(mobileDevice: boolean, forceResponsiveLayout: boolean, draftHouseCards: boolean): any {
+        if (draftHouseCards) {
+            return undefined;
+        }
+
+        if (mobileDevice && forceResponsiveLayout) {
+            return "8";
+        }
+
+        return "3";
+    }
+
+    getColumnOrders(mobileDevice: boolean): { tracksColumn: number; mapColumn: number; gameStateColumn: number } {
+        const result = { tracksColumn: 1, mapColumn: 2, gameStateColumn: 3};
+
+        if (mobileDevice) {
+            result.tracksColumn = 3;
+            result.gameStateColumn = 1;
+        }
+
+        return result;
+    }
+
+    getGameStatePanelOrders(mobileDevice: boolean, forceResponsiveLayout: boolean): {gameStatePanel: number; gameLogAndChatPanel: number} {
+        const result = {gameStatePanel: 1, gameLogAndChatPanel: 2};
+
+        if (!mobileDevice) {
+            return result;
+        }
+
+        if (mobileDevice && forceResponsiveLayout) {
+            result.gameLogAndChatPanel = 1;
+            result.gameStatePanel = 2;
+        }
+
+        return result;
+    }
+
     getUserDisplayName(user: User): React.ReactNode {
         const authenticatedUser = this.props.gameClient.authenticatedUser;
         if (!authenticatedUser || !authenticatedUser.settings.chatHouseNames) {
@@ -556,45 +576,11 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         return <>{user.name}</>;
     }
 
-    get tracks(): { name: string; tracker: House[]; stars: boolean }[] {
-        return [
-            { name: "Iron Throne", tracker: this.game.ironThroneTrack, stars: false },
-            { name: "Fiefdoms", tracker: this.game.fiefdomsTrack, stars: false },
-            { name: "King's Court", tracker: this.game.kingsCourtTrack, stars: true },
-        ]
-    }
-
     get publicChatRoom(): Channel {
         return this.props.gameClient.chatClient.channels.get(this.props.gameState.entireGame.publicChatRoomId);
     }
 
-    private renderUnitTypeTooltip(unitType: UnitType): OverlayChildren {
-        return <Tooltip id={unitType.id + "-tooltip"}>
-            <b>{unitType.name}</b><br />
-            <small>{unitType.description}</small>
-        </Tooltip>;
-    }
-
-    private renderTotalLandRegionsTooltip(house: House): OverlayChildren {
-        return <Tooltip id={house.id + "-total-land-regions"}>
-            <h5>Total Land Areas</h5><br /><h4 style={{ textAlign: "center" }}><b>{this.game.getTotalControlledLandRegions(house)}</b></h4>
-        </Tooltip>;
-    }
-
-    private renderPowerTooltip(house: House): OverlayChildren {
-        const availablePower = house.powerTokens;
-        const powerTokensOnBoard = this.game.countPowerTokensOnBoard(house);
-        const powerInPool = this.game.maxPowerTokens - availablePower - powerTokensOnBoard;
-
-        return <Tooltip id={house.id + "-power-tooltip"}>
-            <b>{house.name}</b><br />
-            <small>Available: </small><b>{availablePower}</b><br />
-            <small>On the board: </small><b>{powerTokensOnBoard}</b><br />
-            <small>Power Pool: </small><b>{powerInPool}</b>
-        </Tooltip>;
-    }
-
-    private renderRemainingWesterosCards(): OverlayChildren {
+    private renderRemainingWesterosCards(): ReactNode {
         const remainingCards = this.game.remainingWesterosCardTypes;
         const nextCards = this.game.nextWesterosCardTypes;
 
@@ -679,23 +665,27 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         // Take the necessary votes to render, based on the `createdAt` times of
         // `previous` and `next`.
         const votesToRender = this.props.gameState.votes.values.filter(v => (previous != null ? previous.createdAt < v.createdAt : true) && (next ? v.createdAt < next.createdAt : true));
-        console.log(votesToRender);
         return _.sortBy(votesToRender, v => v.createdAt).map(v => (
             <VoteComponent key={v.id} vote={v} gameClient={this.props.gameClient} ingame={this.props.gameState} />
         ));
     }
 
-    adjustMapHeight(): void {
-        this.height = (this.user && this.user.settings.mapScrollbar) ? window.innerHeight : null;
+    setHeight(): void {
+        this.height = (!isMobile && this.user && this.user.settings.mapScrollbar) ? window.innerHeight : null;
+    }
+
+    onNewPrivateChatRoomCreated(roomId: string): void {
+        this.currentOpenedTab = roomId;
     }
 
     componentDidMount(): void {
-        this.adjustMapHeight();
-        window.addEventListener('resize', () => this.adjustMapHeight());
-
+        this.props.gameState.entireGame.onNewPrivateChatRoomCreated = (roomId: string) => this.onNewPrivateChatRoomCreated(roomId);
+        window.addEventListener('resize', () => this.setHeight());
+        this.setHeight();
     }
 
     componentWillUnmount(): void {
-        window.removeEventListener('resize', () => this.adjustMapHeight());
+        this.props.gameState.entireGame.onNewPrivateChatRoomCreated = null;
+        window.removeEventListener('resize', () => this.setHeight());
     }
 }

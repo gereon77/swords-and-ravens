@@ -10,15 +10,36 @@ import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import HouseCardComponent from "./utils/HouseCardComponent";
 import { observable } from "mobx";
+import CombatGameState from "../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
+import Player from "../../common/ingame-game-state/Player";
+import { FormCheck, OverlayTrigger, Tooltip } from "react-bootstrap";
 
 @observer
 export default class ChooseHouseCardComponent extends Component<GameStateComponentProps<ChooseHouseCardGameState>> {
     @observable dirty: boolean;
+    @observable burnValyrianSteelBlade: boolean;
 
     get chosenHouseCard(): HouseCard | null {
-        return this.props.gameClient.authenticatedPlayer
-            ? this.props.gameState.houseCards.tryGet(this.props.gameClient.authenticatedPlayer.house, null)
-            : null;
+        const commandedHouse = this.combat.tryGetCommandedHouseInCombat(this.props.gameClient.authenticatedPlayer);
+        if (!commandedHouse) {
+            return null;
+        }
+
+        return this.props.gameState.houseCards.tryGet(commandedHouse, null);
+    }
+
+    get combat(): CombatGameState {
+        return this.props.gameState.combatGameState;
+    }
+
+    get authenticatedPlayer(): Player | null {
+        return this.props.gameClient.authenticatedPlayer;
+    }
+
+    get isValyrianSteelBladeHolder(): boolean {
+        return this.authenticatedPlayer
+            ? this.authenticatedPlayer.house == this.props.gameState.combatGameState.game.valyrianSteelBladeHolder
+            : false;
     }
 
     get selectedHouseCard(): HouseCard | null {
@@ -31,18 +52,16 @@ export default class ChooseHouseCardComponent extends Component<GameStateCompone
 
     constructor(props: GameStateComponentProps<ChooseHouseCardGameState>) {
         super(props);
-
-        const authenticatedPlayer = this.props.gameClient.authenticatedPlayer;
-
         this.selectedHouseCard = this.chosenHouseCard;
-
-        this.dirty = authenticatedPlayer
-            ? !this.props.gameState.houseCards.has(authenticatedPlayer.house)
+        const commandedHouse = this.combat.tryGetCommandedHouseInCombat(this.props.gameClient.authenticatedPlayer);
+        this.dirty = commandedHouse
+            ? !this.props.gameState.houseCards.has(commandedHouse)
             :  false;
     }
 
     render(): JSX.Element {
         return (
+            this.combat.stats.length > 0 ? <></> :
             <>
                 <Col xs={12}>
                     The attacker and the defender must choose a House Card
@@ -69,6 +88,24 @@ export default class ChooseHouseCardComponent extends Component<GameStateCompone
                             </Row>
                         </Col>
                         <Col xs={12}>
+                            {this.isValyrianSteelBladeHolder && !this.props.gameState.combatGameState.game.valyrianSteelBladeUsed &&
+                            <Row className="justify-content-center">
+                                <Col xs="auto">
+                                    <FormCheck
+                                        id="burn-vsb"
+                                        type="checkbox"
+                                        label={
+                                            <OverlayTrigger overlay={
+                                                <Tooltip id="burn-vsb-tooltip">
+                                                    By selecting this option you will use the Valyrian Steel Blade independent from the outcome of the battle.
+                                                </Tooltip>}>
+                                                <label htmlFor="burn-vsb">Burn Valyrian Steel Blade</label>
+                                            </OverlayTrigger>}
+                                        checked={this.burnValyrianSteelBlade}
+                                        onChange={() => this.burnValyrianSteelBlade = !this.burnValyrianSteelBlade}
+                                    />
+                                </Col>
+                            </Row>}
                             <Row className="justify-content-center">
                                 <Col xs="auto">
                                     <Button onClick={() => this.chooseHouseCard()} disabled={!this.dirty || this.selectedHouseCard == null}>
@@ -82,7 +119,7 @@ export default class ChooseHouseCardComponent extends Component<GameStateCompone
                                                 this.props.gameState.refuseSupport();
                                             }
                                         }}
-                                        disabled={!this.props.gameState.canRefuseSupport(this.props.gameClient.authenticatedPlayer.house)}>
+                                        disabled={!this.props.gameState.canRefuseSupport(this.combat.tryGetCommandedHouseInCombat(this.props.gameClient.authenticatedPlayer))}>
                                         Refuse received support
                                     </Button>
                                 </Col>}
@@ -108,15 +145,15 @@ export default class ChooseHouseCardComponent extends Component<GameStateCompone
             return;
         }
 
-        this.props.gameState.chooseHouseCard(this.selectedHouseCard);
+        this.props.gameState.chooseHouseCard(this.selectedHouseCard, this.burnValyrianSteelBlade);
         this.dirty = false;
     }
 
     getChoosableHouseCards(): HouseCard[] {
-        if (!this.props.gameClient.authenticatedPlayer) {
+        const commandedHouse = this.props.gameState.combatGameState.tryGetCommandedHouseInCombat(this.props.gameClient.authenticatedPlayer);
+        if (!commandedHouse) {
             return [];
         }
-
-        return this.props.gameState.getChoosableCards(this.props.gameClient.authenticatedPlayer.house).sort((a, b) => a.combatStrength - b.combatStrength);
+        return this.props.gameState.getChoosableCards(commandedHouse);
     }
 }
