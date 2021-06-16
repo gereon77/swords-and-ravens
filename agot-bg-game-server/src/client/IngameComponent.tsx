@@ -216,6 +216,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                         <SupplyTrackComponent
                                             supplyRestrictions={this.game.supplyRestrictions}
                                             houses={this.game.houses}
+                                            isDwd={this.game.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons'}
                                         />
                                     </ListGroupItem>
                                 </ListGroup>

@@ -7,7 +7,7 @@ import Region from "../common/ingame-game-state/game-data-structure/Region";
 import HouseCardComponent from "./game-state-panel/utils/HouseCardComponent";
 import HouseCard from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import UnitType from "../common/ingame-game-state/game-data-structure/UnitType";
-import houseCardsBackImages from "./houseCardsBackImages";
+import houseCardsBackImages, { houseCardsBackImagesDwd } from "./houseCardsBackImages";
 import { TidesOfBattleCard } from "../common/ingame-game-state/game-data-structure/static-data-structure/tidesOfBattleCards";
 import TidesOfBattleCardComponent from "./game-state-panel/utils/TidesOfBattleCardComponent";
 
@@ -30,6 +30,7 @@ interface HouseCombatData {
 
 interface CombatInfoComponentProps {
     housesCombatData: HouseCombatData[];
+    isDwd: boolean;
 }
 
 @observer
@@ -74,7 +75,11 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                         ? <div
                                 className="vertical-game-card small"
                                 style={{
-                                    backgroundImage: `url(${houseCardsBackImages.get(this.attacker.houseCardBackId)})`
+                                    backgroundImage: `url(${(
+                                    this.props.isDwd
+                                        ? houseCardsBackImagesDwd
+                                        : houseCardsBackImages
+                                    ).get(this.attacker.houseCardBackId)})`
                                 }}
                             />
                         : <div className="vertical-game-card game-card-slot small"/>}

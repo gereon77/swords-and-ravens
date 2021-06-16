@@ -59,6 +59,10 @@ export default class CombatComponent extends Component<GameStateComponentProps<C
         return this.props.gameState.stats;
     }
 
+    get isDwd(): boolean {
+        return _.get(this.props, 'gameClient.entireGame.gameSettings.setupId') === 'a-dance-with-dragons'
+    }
+
     render(): ReactNode {
         // If combatStats have been set by PostCombatState show the fixed dialog, otherwise the dynamic one!
         const winners = this.combatStats.filter(cs => cs.isWinner);
@@ -119,6 +123,7 @@ export default class CombatComponent extends Component<GameStateComponentProps<C
                                 <h5>Battle {this.combatStats.length > 0 && "results "} for <b>{this.combat.defendingRegion.name}</b></h5>
                             </div>
                             <CombatInfoComponent
+                                isDwd={this.isDwd}
                                 housesCombatData={houseCombatDatas}
                             />
                         </>
