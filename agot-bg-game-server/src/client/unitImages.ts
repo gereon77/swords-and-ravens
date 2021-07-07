@@ -4,6 +4,10 @@ import barathFoot from "../../public/images/units/BarathFoot.png";
 import barathKnight from "../../public/images/units/BarathKnight.png";
 import barathSiege from "../../public/images/units/BarathSeige.png";
 import barathShip from "../../public/images/units/BarathShip.png";
+import boltonFoot from "../../public/images/units/BoltonFoot.png";
+import boltonKnight from "../../public/images/units/BoltonKnight.png";
+import boltonSiege from "../../public/images/units/BoltonSiege.png";
+import boltonShip from "../../public/images/units/BoltonShip.png";
 import lanFoot from "../../public/images/units/LanFoot.png";
 import lanKnight from "../../public/images/units/LanKnight.png";
 import lanSiege from "../../public/images/units/LanSeige.png";
@@ -76,3 +80,48 @@ const unitImages = new BetterMap([
 ]);
 
 export default unitImages;
+
+export const unitImagesDwd = new BetterMap([
+    ["baratheon", new BetterMap([
+        [footman.id, barathFoot],
+        [knight.id, barathKnight],
+        [siegeEngine.id, barathSiege],
+        [ship.id, barathShip]
+    ])],
+    ["lannister", new BetterMap([
+        [footman.id, lanFoot],
+        [knight.id, lanKnight],
+        [siegeEngine.id, lanSiege],
+        [ship.id, lanShip]
+    ])],
+    ["stark", new BetterMap([
+        [footman.id, boltonFoot],
+        [knight.id, boltonKnight],
+        [siegeEngine.id, boltonSiege],
+        [ship.id, boltonShip]
+    ])],
+    ["greyjoy", new BetterMap([
+        [footman.id, greyFoot],
+        [knight.id, greyKnight],
+        [siegeEngine.id, greySiege],
+        [ship.id, greyShip]
+    ])],
+    ["martell", new BetterMap([
+        [footman.id, martFoot],
+        [knight.id, martKnight],
+        [siegeEngine.id, martSiege],
+        [ship.id, martShip]
+    ])],
+    ["tyrell", new BetterMap([
+        [footman.id, tyrFoot],
+        [knight.id, tyrKnight],
+        [siegeEngine.id, tyrSiege],
+        [ship.id, tyrShip]
+    ])],
+    ["arryn", new BetterMap([
+        [footman.id, arrynFoot],
+        [knight.id, arrynKnight],
+        [siegeEngine.id, arrynSiege],
+        [ship.id, arrynShip]
+    ])]
+]);

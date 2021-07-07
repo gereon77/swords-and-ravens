@@ -239,7 +239,10 @@ export default class GameLogListComponent extends Component<GameLogListComponent
                 return (
                     <>
                         <p>Combat result</p>
-                        <CombatInfoComponent housesCombatData={houseCombatDatas} />
+                        <CombatInfoComponent 
+                            housesCombatData={houseCombatDatas}
+                            isDwd={this.game.ingame.entireGame.gameSettings.setupId === 'a-dance-with-dragons'}
+                        />
                         <p className="mt-1 text-center"><b style={{color: winner.color}}>{winner.name}</b> won the battle!</p>
                     </>
                 );

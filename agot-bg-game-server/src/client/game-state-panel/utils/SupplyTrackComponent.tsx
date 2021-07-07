@@ -5,7 +5,7 @@ import Col from "react-bootstrap/Col";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Row from "react-bootstrap/Row";
 import Tooltip from "react-bootstrap/Tooltip";
-import houseInfluenceImages from "../../houseInfluenceImages";
+import houseInfluenceImages, { houseInfluenceImagesDwd } from "../../houseInfluenceImages";
 import House from "../../../common/ingame-game-state/game-data-structure/House";
 import BetterMap from "../../../utils/BetterMap";
 import barrelImage from "../../../../public/images/icons/barrel.svg";
@@ -13,6 +13,7 @@ import barrelImage from "../../../../public/images/icons/barrel.svg";
 interface SupplyTrackComponentProps {
     supplyRestrictions: number[][];
     houses: BetterMap<string, House>;
+    isDwd: boolean;
 }
 
 @observer
@@ -106,7 +107,11 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
                                                         key={h.id}
                                                         className="supply-icon hover-weak-outline"
                                                         style={{
-                                                            backgroundImage: `url(${houseInfluenceImages.get(h.id)})`,
+                                                            backgroundImage: `url(${(
+                                                                this.props.isDwd
+                                                                ? houseInfluenceImagesDwd
+                                                                : houseInfluenceImages
+                                                            ).get(h.id)})`,
                                                             marginTop: "-5px"
                                                         }}
                                                     >

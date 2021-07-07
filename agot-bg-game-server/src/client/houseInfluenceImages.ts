@@ -1,5 +1,6 @@
 import BetterMap from "../utils/BetterMap";
 import baratheonInfluence from "../../public/images/influence/BaratheonInfluence.png";
+import boltonInfluence from "../../public/images/influence/BoltonInfluence.png";
 import starkInfluence from "../../public/images/influence/StarkInfluence.png";
 import greyjoyInfluence from "../../public/images/influence/GreyjoyInfluence.png";
 import martellInfluence from "../../public/images/influence/MartellInfluence.png";
@@ -18,3 +19,13 @@ const houseInfluenceImages = new BetterMap([
 ]);
 
 export default houseInfluenceImages;
+
+export const houseInfluenceImagesDwd = new BetterMap([
+    ["baratheon", baratheonInfluence],
+    ["lannister", lannisterInfluence],
+    ["stark", boltonInfluence],
+    ["greyjoy", greyjoyInfluence],
+    ["tyrell", tyrellInfluence],
+    ["martell", martellInfluence],
+    ["arryn", arrynInfluence]
+]);
