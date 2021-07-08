@@ -41,7 +41,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         mixedWesterosDeck1: false, removeTob3: false, removeTobSkulls: false, limitTob2: false, faceless: false,
         randomStartPositions: false, addPortToTheEyrie: false, reduceVictoryPointsCountNeededToWinTo6: false};
     onSendClientMessage: (message: ClientMessage) => void;
-    onSendServerMessage: (users: User[], message: ServerMessage) => void;
+    onSendServerMessage: ((users: User[], message: ServerMessage) => void) | null = null;
     onWaitedUsers: (users: User[]) => void;
     onReadyToStart: (users: User[]) => void;
     onNewVoteStarted: (users: User[]) => void;
@@ -383,7 +383,9 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
     }
 
     sendMessageToClients(users: User[], message: ServerMessage): void {
-        this.onSendServerMessage(users, message);
+        if (this.onSendServerMessage) {
+            this.onSendServerMessage(users, message);
+        }
     }
 
     getStateOfGame(): string {

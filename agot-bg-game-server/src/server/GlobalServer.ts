@@ -295,11 +295,17 @@ export default class GlobalServer {
         return migratedSerializedGame;
     }
 
-    async createGame(id: string, ownedId: string, name: string): Promise<EntireGame> {
+    async createGame(id: string, ownerId: string, name: string): Promise<EntireGame> {
         // Create a public chat room ID
         const publicChatRoomId = await this.websiteClient.createPublicChatRoom(`Chat for game ${id}`);
+        const owner = await this.websiteClient.getUser(ownerId);
 
-        const entireGame = new EntireGame(id, ownedId, name);
+        if (!owner) {
+            throw new Error(`OwnerUserId ${ownerId} does not exist.`);
+        }
+        
+        const entireGame = new EntireGame(id, ownerId, name);
+        entireGame.addUser(owner.id, owner.name);
         entireGame.publicChatRoomId = publicChatRoomId;
         entireGame.firstStart();
 

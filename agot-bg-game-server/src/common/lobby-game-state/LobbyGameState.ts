@@ -29,6 +29,9 @@ export default class LobbyGameState extends GameState<EntireGame> {
     firstStart(): void {
         // Load the available houses for this game
         this.lobbyHouses = this.getLobbyHouses();
+
+        // Automatically seat the owner:
+        this.players.set(this.lobbyHouses.get("baratheon"), _.first(this.entireGame.users.values) as User);
     }
 
     getLobbyHouses(): BetterMap<string, LobbyHouse> {
