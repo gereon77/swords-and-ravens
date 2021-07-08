@@ -33,7 +33,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         seaOrderTokens: false, randomChosenHouses: false, draftHouseCards: false, tidesOfBattle: false,
         thematicDraft: false, endless: false };
     onSendClientMessage: (message: ClientMessage) => void;
-    onSendServerMessage: (users: User[], message: ServerMessage) => void;
+    onSendServerMessage: ((users: User[], message: ServerMessage) => void) | null = null;
     onWaitedUsers: (users: User[]) => void;
     onReadyToStart: (users: User[]) => void;
     onNewVoteStarted: (users: User[]) => void;
@@ -332,7 +332,9 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
     }
 
     sendMessageToClients(users: User[], message: ServerMessage): void {
-        this.onSendServerMessage(users, message);
+        if (this.onSendServerMessage) {
+            this.onSendServerMessage(users, message);
+        }
     }
 
     getStateOfGame(): string {
