@@ -1,9 +1,10 @@
 import * as React from "react";
 import {Component, ReactNode} from "react";
+import ResizeObserver from 'resize-observer-polyfill';
 import GameClient from "./GameClient";
 import {observer} from "mobx-react";
 import IngameGameState from "../common/ingame-game-state/IngameGameState";
-import MapComponent from "./MapComponent";
+import MapComponent, { MAP_HEIGHT } from "./MapComponent";
 import MapControls from "./MapControls";
 import ListGroup from "react-bootstrap/ListGroup";
 import ListGroupItem from "react-bootstrap/ListGroupItem";
@@ -73,17 +74,27 @@ import houseInfluenceImages from "./houseInfluenceImages";
 import houseOrderImages from "./houseOrderImages";
 import housePowerTokensImages from "./housePowerTokensImages";
 import unitImages from "./unitImages";
+import DraftInfluencePositionsGameState from "../common/ingame-game-state/draft-influence-positions-game-state/DraftInfluencePositionsGameState";
+import DraftInfluencePositionsComponent from "./game-state-panel/DraftInfluencePositionsComponent";
 
 interface IngameComponentProps {
     gameClient: GameClient;
     gameState: IngameGameState;
 }
 
+const BOTTOM_MARGIN_PX = 35;
+const GAME_LOG_MIN_HEIGHT = 400;
+const HOUSES_PANEL_MIN_HEIGHT = 430;
+const MAP_MIN_HEIGHT = Math.trunc(MAP_HEIGHT / 2);
+
 @observer
 export default class IngameComponent extends Component<IngameComponentProps> {
     mapControls: MapControls = new MapControls();
     @observable currentOpenedTab = (this.user && this.user.settings.lastOpenedTab) ? this.user.settings.lastOpenedTab : "chat";
-    @observable height: number | null;
+    @observable windowHeight: number | null = null;
+    @observable gameLogHeight: number = GAME_LOG_MIN_HEIGHT;
+    @observable housesHeight: number | null = null;
+    resizeObserver: ResizeObserver | null = null;
 
     get game(): Game {
         return this.ingame.game;
@@ -120,6 +131,26 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         ]
     }
 
+    get gameStatePanel(): HTMLElement {
+        return document.getElementById('game-state-panel') as HTMLElement;
+    }
+
+    get mapComponent(): HTMLElement | null { // The map is hidden from the DOM in drafting mode, therefore this element can be null
+        return document.getElementById('map-component');
+    }
+
+    get gameLogPanel(): HTMLElement {
+        return document.getElementById('game-log-panel') as HTMLElement;
+    }
+
+    get housesPanel(): HTMLElement {
+        return document.getElementById('houses-panel') as HTMLElement;
+    }
+
+    get gameControlsRow(): HTMLElement | null { // Spectators don't see this game controls, therefore this element can be null
+        return document.getElementById('game-controls');
+    }
+
     render(): ReactNode {
         const phases: {name: string; gameState: any; component: typeof Component}[] = [
             {name: "Westeros", gameState: WesterosGameState, component: WesterosGameStateComponent},
@@ -150,6 +181,19 @@ export default class IngameComponent extends Component<IngameComponentProps> {
 
         const wildlingsWarning = gameRunning && (this.game.wildlingStrength == MAX_WILDLING_STRENGTH - 2 || this.game.wildlingStrength == MAX_WILDLING_STRENGTH - 4);
         const wildlingsCritical = gameRunning && this.game.wildlingStrength == MAX_WILDLING_STRENGTH;
+
+        const mapStyle = {
+            height: (this.windowHeight != null && this.mapComponent != null) ? (this.windowHeight - this.mapComponent.getBoundingClientRect().top - BOTTOM_MARGIN_PX) : "auto",
+            overflowY: (this.windowHeight != null ? "scroll" : "visible") as any,
+            maxHeight: MAP_HEIGHT,
+            minHeight: MAP_MIN_HEIGHT
+        };
+
+        const housesPanelStyle = {
+            height: this.housesHeight != null ? `${this.housesHeight}px` : "auto",
+            overflowY: (mobileDevice ? "visible" : "scroll") as any,
+            minHeight: mobileDevice ? "auto" : `${HOUSES_PANEL_MIN_HEIGHT}px`
+        };
 
         return (
             <>
@@ -235,31 +279,34 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                         </Col>
                     </Row>
                     <Row className="stackable">
-                        <Col>
-                            <Card>
-                                <ListGroup variant="flush">
-                                    {this.props.gameState.game.getPotentialWinners().map(h => (
-                                        <HouseRowComponent
-                                            key={h.id}
-                                            gameClient={this.props.gameClient}
-                                            ingame={this.props.gameState}
-                                            house={h}
-                                        />
-                                    ))}
-                                    <ListGroupItem className="text-center font-italic">
-                                        <small>
-                                        {connectedSpectators.length > 0 ? (
-                                            <>Spectators: {joinReactNodes(this.getConnectedSpectators().map(u => <strong key={u.id}>{u.name}</strong>), ", ")}</>
-                                        ) : (
-                                            <>No spectators</>
-                                        )}
-                                        </small>
-                                    </ListGroupItem>
-                                </ListGroup>
-                            </Card>
+                        <Col className="pb-0">
+                            <div style={housesPanelStyle}>
+                                <Card id="houses-panel">
+                                    <ListGroup variant="flush">
+                                        {this.props.gameState.game.getPotentialWinners().map(h => (
+                                            <HouseRowComponent
+                                                key={h.id}
+                                                gameClient={this.props.gameClient}
+                                                ingame={this.props.gameState}
+                                                house={h}
+                                            />
+                                        ))}
+                                        <ListGroupItem className="text-center font-italic">
+                                            <small>
+                                            {connectedSpectators.length > 0 ? (
+                                                <>Spectators: {joinReactNodes(this.getConnectedSpectators().map(u => <strong key={u.id}>{u.name}</strong>), ", ")}</>
+                                            ) : (
+                                                <>No spectators</>
+                                            )}
+                                            </small>
+                                        </ListGroupItem>
+                                    </ListGroup>
+                                </Card>
+                            </div>
                         </Col>
                     </Row>
-                    <Row>
+                    {this.authenticatedPlayer && (
+                    <Row id="game-controls">
                         <Col xs="auto">
                             <button className="btn btn-outline-light btn-sm" onClick={() => this.props.gameClient.muted = !this.props.gameClient.muted}>
                                 <OverlayTrigger
@@ -275,69 +322,65 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                 </OverlayTrigger>
                             </button>
                         </Col>
-                        {this.authenticatedPlayer && (
-                            <Col xs="auto">
+                        <Col xs="auto">
+                            <button
+                                className="btn btn-outline-light btn-sm"
+                                onClick={() => this.props.gameState.launchCancelGameVote()}
+                                disabled={!canLaunchCancelGameVote}
+                            >
+                                <OverlayTrigger
+                                    overlay={
+                                        <Tooltip id="cancel-game-vote-tooltip">
+                                            {canLaunchCancelGameVote ? (
+                                                "Launch a vote to cancel the game"
+                                            ) : canLaunchCancelGameVoteReason == "only-players-can-vote" ? (
+                                                "Only participating players can vote"
+                                            ) : canLaunchCancelGameVoteReason == "already-existing" ? (
+                                                "A vote to cancel the game is already ongoing"
+                                            ) : canLaunchCancelGameVoteReason == "already-cancelled" ? (
+                                                "Game has already been cancelled"
+                                            ) : canLaunchCancelGameVoteReason == "already-ended" ? (
+                                                "Game has already ended"
+                                            ) : "Vote not possible"}
+                                        </Tooltip>
+                                    }
+                                >
+                                    <img src={cancelImage} width={32}/>
+                                </OverlayTrigger>
+                            </button>
+                        </Col>
+                        <Col xs="auto">
                                 <button
                                     className="btn btn-outline-light btn-sm"
-                                    onClick={() => this.props.gameState.launchCancelGameVote()}
-                                    disabled={!canLaunchCancelGameVote}
+                                    onClick={() => this.props.gameState.launchEndGameVote()}
+                                    disabled={!canLaunchEndGameVote}
                                 >
                                     <OverlayTrigger
                                         overlay={
-                                            <Tooltip id="cancel-game-vote-tooltip">
-                                                {canLaunchCancelGameVote ? (
-                                                    "Launch a vote to cancel the game"
-                                                ) : canLaunchCancelGameVoteReason == "only-players-can-vote" ? (
+                                            <Tooltip id="end-game-vote-tooltip">
+                                                {canLaunchEndGameVote ? (
+                                                    "Launch a vote to end the game after the current round"
+                                                ) : canLaunchEndGameVoteReason == "only-players-can-vote" ? (
                                                     "Only participating players can vote"
-                                                ) : canLaunchCancelGameVoteReason == "already-existing" ? (
-                                                    "A vote to cancel the game is already ongoing"
-                                                ) : canLaunchCancelGameVoteReason == "already-cancelled" ? (
+                                                ) : canLaunchEndGameVoteReason == "already-last-turn" ? (
+                                                    "It is already the last round"
+                                                ) : canLaunchEndGameVoteReason == "already-existing" ? (
+                                                    "A vote to end the game is already ongoing"
+                                                ) : canLaunchEndGameVoteReason == "already-cancelled" ? (
                                                     "Game has already been cancelled"
-                                                ) : canLaunchCancelGameVoteReason == "already-ended" ? (
+                                                ) : canLaunchEndGameVoteReason == "already-ended" ? (
                                                     "Game has already ended"
                                                 ) : "Vote not possible"}
-                                            </Tooltip>
-                                        }
+                                            </Tooltip>}
                                     >
-                                        <img src={cancelImage} width={32}/>
+                                        <img src={truceImage} width={32}/>
                                     </OverlayTrigger>
                                 </button>
-                            </Col>
-                        )}
-                        {this.authenticatedPlayer && (
-                            <Col xs="auto">
-                                    <button
-                                        className="btn btn-outline-light btn-sm"
-                                        onClick={() => this.props.gameState.launchEndGameVote()}
-                                        disabled={!canLaunchEndGameVote}
-                                    >
-                                        <OverlayTrigger
-                                            overlay={
-                                                <Tooltip id="end-game-vote-tooltip">
-                                                    {canLaunchEndGameVote ? (
-                                                        "Launch a vote to end the game after the current round"
-                                                    ) : canLaunchEndGameVoteReason == "only-players-can-vote" ? (
-                                                        "Only participating players can vote"
-                                                    ) : canLaunchEndGameVoteReason == "already-last-turn" ? (
-                                                        "It is already the last round"
-                                                    ) : canLaunchEndGameVoteReason == "already-existing" ? (
-                                                        "A vote to end the game is already ongoing"
-                                                    ) : canLaunchEndGameVoteReason == "already-cancelled" ? (
-                                                        "Game has already been cancelled"
-                                                    ) : canLaunchEndGameVoteReason == "already-ended" ? (
-                                                        "Game has already ended"
-                                                    ) : "Vote not possible"}
-                                                </Tooltip>}
-                                        >
-                                            <img src={truceImage} width={32}/>
-                                        </OverlayTrigger>
-                                    </button>
-                            </Col>
-                        )}
-                    </Row>
+                        </Col>
+                    </Row>)}
                 </Col>
                 {!draftHouseCards && <Col xs={{span: "auto", order: columnOrders.mapColumn}}>
-                    <div style={{height: this.height != null ? this.height - 100 : "auto", overflowY: this.height != null ? "scroll" : "visible", maxHeight: 1378, minHeight: 460}}>
+                    <div id="map-component" style={mapStyle}>
                         <MapComponent
                             gameClient={this.props.gameClient}
                             ingameGameState={this.props.gameState}
@@ -347,7 +390,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                 </Col>}
                 <Col xs={{span: gameStateColumnSpan, order: columnOrders.gameStateColumn}}>
                     <Row className="mt-0"> {/* This row is necessary to make child column ordering work */}
-                        <Col xs={{span: "12", order: gameStatePanelOrders.gameStatePanel}}>
+                        <Col id="game-state-panel" xs={{span: "12", order: gameStatePanelOrders.gameStatePanel}}>
                             <Row>
                                 <Col>
                                     <Card border={this.props.gameClient.isOwnTurn() ? "warning" : undefined} bg={this.props.gameState.childGameState instanceof CancelledGameState ? "danger" : undefined}>
@@ -382,6 +425,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                                     phases.map(phase => [phase.gameState, phase.component] as [any, typeof Component]),
                                                     [[ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent]],
                                                     [[DraftHouseCardsGameState, DraftHouseCardsComponent]],
+                                                    [[DraftInfluencePositionsGameState, DraftInfluencePositionsComponent]],
                                                     [[GameEndedGameState, GameEndedComponent]],
                                                     [[CancelledGameState, IngameCancelledComponent]]
                                                 )
@@ -501,7 +545,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                                             </Nav.Item>
                                         </Nav>
                                     </Card.Header>
-                                    <Card.Body style={{height: "450px"}}>
+                                    <Card.Body id="game-log-panel" style={{minHeight: GAME_LOG_MIN_HEIGHT, height: this.gameLogHeight}} >
                                         <Tab.Content className="h-100">
                                             <Tab.Pane eventKey="chat" className="h-100">
                                                 <ChatComponent gameClient={this.props.gameClient}
@@ -605,7 +649,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
     }
 
     private renderRemainingWesterosCards(): ReactNode {
-        const remainingCards = this.game.remainingWesterosCardTypes;
+        const remainingCards = this.game.remainingWesterosCardTypes.map(deck => _.sortBy(deck.entries, rwct => -rwct[1]));
         const nextCards = this.game.nextWesterosCardTypes;
 
         return <Tooltip id="remaining-westeros-cards" className="westeros-tooltip">
@@ -618,29 +662,29 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                     </Row>
                     <Row>
                         {nextCards.map((_, i) =>
-                            <Col key={"westeros-deck-" + i + "-header"} className='text-center'>Deck {i + 1}</Col>)}
+                            <Col key={"westeros-deck-" + i + "-header"} className='text-center'><b>Deck {i + 1}</b></Col>)}
                     </Row>
                     <Row>
                         {nextCards.map((wd, i) =>
                             <Col key={"westeros-deck-" + i + "-data"}>
-                                {wd.map((wc, j) => <div key={"westeros-deck-" + i + "-" + j + "-data"}><small>{wc.name}</small></div>)}
+                                {wd.map((wc, j) => <div key={"westeros-deck-" + i + "-" + j + "-data"}>{wc.name}{wc.shortDescription && (<span>&ensp;<small>({wc.shortDescription})</small></span>)}</div>)}
                             </Col>)}
                     </Row>
                 </>
             )}
-            <Row className='mt-0'>
+            <Row className={this.gameSettings.cokWesterosPhase ? 'mt-4' : 'mt-0'}>
                 <Col>
                     <h5 className='text-center'>Remaining Westeros Cards</h5>
                 </Col>
             </Row>
             <Row>
                 {remainingCards.map((_, i) =>
-                    <Col key={"westeros-deck-" + i + "-header"} style={{ textAlign: "center" }}>Deck {i + 1}</Col>)}
+                    <Col key={"westeros-deck-" + i + "-header"} style={{ textAlign: "center" }}><b>Deck {i + 1}</b></Col>)}
             </Row>
-            <Row>
+            <Row className="mb-2">
                 {remainingCards.map((rc, i) =>
                     <Col key={"westeros-deck-" + i + "-data"}>
-                        {rc.entries.map(([wc, count], j) => <div key={"westeros-deck-" + i + "-" + j + "-data"}><small>{wc.name}</small> ({count})</div>)}
+                        {rc.map(([wc, count], j) => <div key={"westeros-deck-" + i + "-" + j + "-data"}>{count}x {wc.name}{wc.shortDescription && (<span>&ensp;<small>({wc.shortDescription})</small></span>)}</div>)}
                     </Col>
                 )}
             </Row>
@@ -694,8 +738,27 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         ));
     }
 
-    setHeight(): void {
-        this.height = (!isMobile && this.user && this.user.settings.mapScrollbar) ? window.innerHeight : null;
+    setHeights(): void {
+        const mobileDevice = isMobile;
+        this.windowHeight = (!mobileDevice && this.user && this.user.settings.mapScrollbar) ? window.innerHeight : null;
+        this.gameLogHeight = (!mobileDevice || (this.user && !this.user.settings.responsiveLayout)) ? window.innerHeight - this.gameLogPanel.getBoundingClientRect().top - BOTTOM_MARGIN_PX : GAME_LOG_MIN_HEIGHT;
+        let calculatedHousesHeight = mobileDevice
+            ? null
+            // The additional 5 px are needed to get rid of the outer window scrollbar. Probably due to different padding behaviour compared to the map and game state panels.
+            // It's not nice but ok for now.
+            : Math.trunc(Math.max(window.innerHeight - this.housesPanel.getBoundingClientRect().top - BOTTOM_MARGIN_PX - 5, HOUSES_PANEL_MIN_HEIGHT));
+
+        if (!calculatedHousesHeight) {
+            this.housesHeight = null;
+            return;
+        }
+
+        if (this.gameControlsRow) { // Spectators don't have this row in their DOM
+            calculatedHousesHeight -= this.gameControlsRow.offsetHeight;
+        }
+
+        // If actual height is less than calculated height, we dont need to stretch this panel
+        this.housesHeight = Math.min(calculatedHousesHeight, this.housesPanel.offsetHeight);
     }
 
     onNewPrivateChatRoomCreated(roomId: string): void {
@@ -723,12 +786,23 @@ export default class IngameComponent extends Component<IngameComponentProps> {
 
     componentDidMount(): void {
         this.props.gameState.entireGame.onNewPrivateChatRoomCreated = (roomId: string) => this.onNewPrivateChatRoomCreated(roomId);
-        window.addEventListener('resize', () => this.setHeight());
-        this.setHeight();
+        if (!isMobile) {
+            window.addEventListener('resize', () => this.setHeights());
+        }
+
+        this.resizeObserver = new ResizeObserver(() => this.setHeights());
+        this.resizeObserver.observe(this.gameStatePanel);
     }
 
     componentWillUnmount(): void {
         this.props.gameState.entireGame.onNewPrivateChatRoomCreated = null;
-        window.removeEventListener('resize', () => this.setHeight());
+
+        if (!isMobile) {
+            window.removeEventListener('resize', () => this.setHeights());
+        }
+
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
     }
 }

@@ -2,7 +2,7 @@ import GameState, {SerializedGameState} from "./GameState";
 import LobbyGameState, {SerializedLobbyGameState} from "./lobby-game-state/LobbyGameState";
 import IngameGameState, {SerializedIngameGameState} from "./ingame-game-state/IngameGameState";
 import {ServerMessage} from "../messages/ServerMessage";
-import {ChangeGameSettings, ClientMessage} from "../messages/ClientMessage";
+import {ClientMessage} from "../messages/ClientMessage";
 import User, {SerializedUser} from "../server/User";
 import {observable} from "mobx";
 import * as _ from "lodash";
@@ -14,6 +14,7 @@ import { VoteState } from "./ingame-game-state/vote-system/Vote";
 import CombatGameState from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 import sleep from "../utils/sleep";
 import PostCombatGameState from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/PostCombatGameState";
+import { StoredProfileSettings } from "../server/website-client/WebsiteClient";
 
 export enum NotificationType {
     READY_TO_START,
@@ -31,7 +32,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
     @observable gameSettings: GameSettings = { pbem: false, setupId: "base-game", playerCount: 6, randomHouses: false,
         cokWesterosPhase: false, adwdHouseCards: false, vassals: false,
         seaOrderTokens: false, randomChosenHouses: false, draftHouseCards: false, tidesOfBattle: false,
-        thematicDraft: false, endless: false };
+        thematicDraft: false, limitedDraft: false, endless: false, startWithSevenPowerTokens: false, allowGiftingPowerTokens: false };
     onSendClientMessage: (message: ClientMessage) => void;
     onSendServerMessage: (users: User[], message: ServerMessage) => void;
     onWaitedUsers: (users: User[]) => void;
@@ -193,8 +194,14 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
         return user.id == this.ownerUserId;
     }
 
-    addUser(userId: string, userName: string): User {
-        const user = new User(userId, userName, this);
+    addUser(userId: string, userName: string, profileSettings: StoredProfileSettings): User {
+        const user = new User(userId, userName, this, {
+            chatHouseNames: profileSettings.houseNamesForChat,
+            mapScrollbar: profileSettings.mapScrollbar,
+            responsiveLayout: profileSettings.responsiveLayout,
+            muted: profileSettings.muted,
+            lastOpenedTab: null
+        });
         this.users.set(user.id, user);
 
         this.broadcastToClients({
@@ -215,7 +222,31 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 settings: user.settings
             })
         } else if (message.type == "change-game-settings") {
-            this.onGameSettingsChange(user, message);
+            if (!this.isOwner(user)) {
+                return;
+            }
+
+            // Only allow PBEM to be changed ingame
+            const settings = message.settings as GameSettings;
+
+            if (this.gameSettings.pbem != settings.pbem) {
+                this.gameSettings.pbem = settings.pbem;
+                this.broadcastToClients({
+                    type: "game-settings-changed",
+                    settings: this.gameSettings
+                });
+
+                if (this.ingameGameState) {
+                    // Notify waited users due to ingame PBEM change
+                    this.notifyWaitedUsers();
+                }
+
+                // The PBEM setting has been changed => no need to pass the message to the child game state
+                return;
+            }
+
+            // For changing settings other than PBEM pass the message to the client game state
+            this.childGameState.onClientMessage(user, message);
         } else {
             this.childGameState.onClientMessage(user, message);
         }
@@ -267,54 +298,6 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
                 !newChildGameState.hasChildGameState(CombatGameState)) {
             await sleep(6000);
         }
-    }
-
-    onGameSettingsChange(user: User, message: ChangeGameSettings): void {
-        if (!this.isOwner(user)) {
-            return;
-        }
-
-        let settings =  message.settings as GameSettings;
-        if (!settings || (this.lobbyGameState && this.lobbyGameState.players.size > settings.playerCount)) {
-            // A variant which contains less players than connected is not allowed
-            settings = this.gameSettings;
-        }
-
-        if (settings.setupId == "a-dance-with-dragons") {
-            settings.adwdHouseCards = true;
-        }
-
-        if (settings.thematicDraft) {
-            settings.draftHouseCards = true;
-        }
-
-        if (settings.draftHouseCards) {
-            settings.adwdHouseCards = false;
-        }
-
-        if (settings.setupId == "mother-of-dragons") {
-            settings.vassals = true;
-            settings.seaOrderTokens = true;
-        }
-
-        // Check if PBEM was enabled during ingame
-        const notifyWaitedUsersDueToPbemChange = this.ingameGameState && settings.pbem && !this.gameSettings.pbem;
-
-        this.gameSettings = settings;
-
-        if (notifyWaitedUsersDueToPbemChange) {
-            // Notify waited users now
-            this.notifyWaitedUsers();
-        }
-
-        if (this.lobbyGameState) {
-            this.lobbyGameState.onGameSettingsChange();
-        }
-
-        this.broadcastToClients({
-            type: "game-settings-changed",
-            settings: settings
-        });
     }
 
     broadcastToClients(message: ServerMessage): void {
@@ -446,13 +429,14 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
 
         entireGame.users = new BetterMap<string, User>(data.users.map((ur: any) => [ur.id, User.deserializeFromServer(entireGame, ur)]));
         entireGame.ownerUserId = data.ownerUserId;
-        entireGame.childGameState = entireGame.deserializeChildGameState(data.childGameState);
         entireGame.publicChatRoomId = data.publicChatRoomId;
         entireGame.gameSettings = data.gameSettings;
         entireGame.privateChatRoomsIds = new BetterMap(data.privateChatRoomIds.map(([uid1, bm]) => [
             entireGame.users.get(uid1),
             new BetterMap(bm.map(([uid2, roomId]) => [entireGame.users.get(uid2), roomId]))
         ]));
+
+        entireGame.childGameState = entireGame.deserializeChildGameState(data.childGameState);
 
         return entireGame;
     }
@@ -491,8 +475,11 @@ export interface GameSettings {
     cokWesterosPhase: boolean;
     vassals: boolean;
     seaOrderTokens: boolean;
-    draftHouseCards: boolean;
+    startWithSevenPowerTokens: boolean;
+    allowGiftingPowerTokens: boolean;
     tidesOfBattle: boolean;
+    draftHouseCards: boolean;
     thematicDraft: boolean;
+    limitedDraft: boolean;
     endless: boolean;
 }

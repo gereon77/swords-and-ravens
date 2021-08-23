@@ -143,7 +143,7 @@ export default function createGame(ingame: IngameGameState, housesToCreate: stri
      */
 
      // Overwrite house cards
-    if (gameSettings.adwdHouseCards) {
+    if (gameSettings.adwdHouseCards && !gameSettings.limitedDraft) {
         const adwdHouseCards = baseGameData.adwdHouseCards as {[key: string]: HouseCardContainer};
         const ffcHouseCards = baseGameData.ffcHouseCards as {[key: string]: HouseCardContainer};
         const newHouseCards = new BetterMap(
@@ -188,33 +188,11 @@ export default function createGame(ingame: IngameGameState, housesToCreate: stri
                     .map(([unitTypeId, limit]) => [unitTypes.get(unitTypeId), limit])
             );
 
-            let powerTokens = gameSettings.vassals ? playerHouses.length < entireGame.selectedGameSetup.playerCount ? 7 : 5 : 5;
-            if (entireGame.gameSettings.setupId == "mother-of-dragons") {
-                powerTokens = 7;
-            }
-            const house = new House(hid, houseData.name, houseData.color, playerHouses.includes(hid) ? houseCards : new BetterMap(), unitLimits, powerTokens, houseData.supplyLevel);
+            const house = new House(hid, houseData.name, houseData.color, playerHouses.includes(hid) ? houseCards : new BetterMap(), unitLimits, gameSettings.startWithSevenPowerTokens ? 7 : 5, houseData.supplyLevel);
 
             return [hid, house];
         })
     );
-
-    if (gameSettings.draftHouseCards) {
-        const baseGameHouseCards = getHouseCardSet(baseGameData.houses);
-        const adwdHouseCards = getHouseCardSet(baseGameData.adwdHouseCards);
-        const ffcHouseCards = getHouseCardSet(baseGameData.ffcHouseCards);
-        const modAHouseCards = getHouseCardSet(baseGameData.modAHouseCards);
-        const modBHouseCards = getHouseCardSet(baseGameData.modBHouseCards);
-
-        const allHouseCards = _.concat(baseGameHouseCards, adwdHouseCards, ffcHouseCards, modAHouseCards, modBHouseCards);
-        game.houseCardsForDrafting = new BetterMap(allHouseCards.map(hc => [hc.id, hc]));
-
-        game.houses.forEach(h => {
-            // Reset already assigned house cards
-            if (playerHouses.includes(h.id)) {
-                h.houseCards = new BetterMap();
-            }
-        });
-    }
 
     game.maxTurns = entireGame.selectedGameSetup.maxTurns ? entireGame.selectedGameSetup.maxTurns : baseGameData.maxTurns;
 
@@ -250,6 +228,47 @@ export default function createGame(ingame: IngameGameState, housesToCreate: stri
     game.ironThroneTrack = getTrackWithAdjustedVassalPositions(game.ironThroneTrack, playerHouses);
     game.fiefdomsTrack = getTrackWithAdjustedVassalPositions(game.fiefdomsTrack, playerHouses);
     game.kingsCourtTrack = getTrackWithAdjustedVassalPositions(game.kingsCourtTrack, playerHouses);
+
+    if (gameSettings.draftHouseCards) {
+        const baseGameHouseCards = getHouseCardSet(baseGameData.houses);
+        const adwdHouseCards = getHouseCardSet(baseGameData.adwdHouseCards);
+        const ffcHouseCards = getHouseCardSet(baseGameData.ffcHouseCards);
+        const modAHouseCards = getHouseCardSet(baseGameData.modAHouseCards);
+        const modBHouseCards = getHouseCardSet(baseGameData.modBHouseCards);
+
+        if (gameSettings.limitedDraft) {
+            let limitedHouseCards = [];
+
+            if (gameSettings.setupId == 'mother-of-dragons') {
+                if (gameSettings.adwdHouseCards) {
+                    limitedHouseCards = _.concat(modBHouseCards, adwdHouseCards, ffcHouseCards);
+                } else {
+                    limitedHouseCards = _.concat(baseGameHouseCards, modAHouseCards);
+                }
+            } else if (gameSettings.adwdHouseCards) {
+                limitedHouseCards = _.concat(adwdHouseCards);
+            } else {
+                const excludeArryn = baseGameHouseCards.filter(hc => hc.houseId != "arryn");
+                limitedHouseCards = excludeArryn;
+            }
+            game.houseCardsForDrafting = new BetterMap(limitedHouseCards.map(hc => [hc.id, hc]));
+        } else {
+            const allHouseCards = _.concat(baseGameHouseCards, adwdHouseCards, ffcHouseCards, modAHouseCards, modBHouseCards);
+            game.houseCardsForDrafting = new BetterMap(allHouseCards.map(hc => [hc.id, hc]));
+        }
+
+        game.houses.forEach(h => {
+            // Reset already assigned house cards
+            if (playerHouses.includes(h.id)) {
+                h.houseCards = new BetterMap();
+            }
+        });
+
+        // Remove player houses from the influence tracks allowing to draft them as well
+        game.ironThroneTrack = game.ironThroneTrack.filter(h => !playerHouses.includes(h.id));
+        game.fiefdomsTrack = game.fiefdomsTrack.filter(h => !playerHouses.includes(h.id));
+        game.kingsCourtTrack = game.kingsCourtTrack.filter(h => !playerHouses.includes(h.id));
+    }
 
     // Loading Tiled map
     const garrisonsFromGameSetup = entireGame.selectedGameSetup.garrisons ? new BetterMap(Object.entries(entireGame.selectedGameSetup.garrisons)) : null;

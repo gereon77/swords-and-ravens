@@ -32,12 +32,14 @@ import DraftHouseCardsGameState, { SerializedDraftHouseCardsGameState } from "./
 import CombatGameState from "./action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 import DeclareSupportGameState from "./action-game-state/resolve-march-order-game-state/combat-game-state/declare-support-game-state/DeclareSupportGameState";
 import ThematicDraftHouseCardsGameState, { SerializedThematicDraftHouseCardsGameState } from "./thematic-draft-house-cards-game-state/ThematicDraftHouseCardsGameState";
+import DraftInfluencePositionsGameState, { SerializedDraftInfluencePositionsGameState } from "./draft-influence-positions-game-state/DraftInfluencePositionsGameState";
 
 export const NOTE_MAX_LENGTH = 5000;
 
 export default class IngameGameState extends GameState<
     EntireGame,
-    DraftHouseCardsGameState | ThematicDraftHouseCardsGameState | WesterosGameState | PlanningGameState | ActionGameState | CancelledGameState | GameEndedGameState
+    WesterosGameState | PlanningGameState | ActionGameState | CancelledGameState | GameEndedGameState
+    | DraftHouseCardsGameState | ThematicDraftHouseCardsGameState | DraftInfluencePositionsGameState
 > {
     players: BetterMap<User, Player> = new BetterMap<User, Player>();
     game: Game;
@@ -85,8 +87,8 @@ export default class IngameGameState extends GameState<
         }
     }
 
-    onDraftHouseCardsGameStateFinish(): void {
-        this.beginNewTurn();
+    proceedDraftingInfluencePositions(vassalsOnInfluenceTracks: House[][]): void {
+        this.setChildGameState(new DraftInfluencePositionsGameState(this)).firstStart(vassalsOnInfluenceTracks);
     }
 
     log(data: GameLogData): void {
@@ -187,7 +189,7 @@ export default class IngameGameState extends GameState<
         if (message.type == "vote") {
             const vote = this.votes.get(message.vote);
 
-            if (vote.state != VoteState.ONGOING || !vote.participatingPlayers.some(p => p.user.id == player.user.id)) {
+            if (vote.state != VoteState.ONGOING || !vote.participatingHouses.includes(player.house)) {
                 return;
             }
 
@@ -251,7 +253,7 @@ export default class IngameGameState extends GameState<
     }
 
     createVote(initiator: User, type: VoteType): Vote {
-        const vote = new Vote(this, v4(), this.players.values, initiator, type);
+        const vote = new Vote(this, v4(), this.players.values.map(p => p.house), initiator, type);
 
         this.votes.set(vote.id, vote);
 
@@ -465,14 +467,13 @@ export default class IngameGameState extends GameState<
         } else if (message.type == "player-replaced") {
             const oldPlayer = this.players.get(this.entireGame.users.get(message.oldUser));
             const newUser = message.newUser ? this.entireGame.users.get(message.newUser) : null;
-
             const newPlayer = newUser ? new Player(newUser, oldPlayer.house) : null;
-
-            this.players.delete(oldPlayer.user);
 
             if (newUser && newPlayer) {
                 this.players.set(newUser, newPlayer);
             }
+
+            this.players.delete(oldPlayer.user);
 
             this.rerender++;
         } else if (message.type == "vassal-relations") {
@@ -480,9 +481,11 @@ export default class IngameGameState extends GameState<
             this.rerender++;
         } else if (message.type == "update-house-cards") {
             const house = this.game.houses.get(message.house);
-            house.houseCards = new BetterMap(message.houseCards.map(hc => [hc, this.game.getHouseCardById(hc)]));
+            house.houseCards = new BetterMap(message.houseCards.map(hc => [hc.id, HouseCard.deserializeFromServer(hc)]));
         } else if (message.type == "update-house-cards-for-drafting") {
-            this.game.houseCardsForDrafting = new BetterMap(message.houseCards.map(hc => [hc, this.game.getHouseCardById(hc)]));
+            this.game.houseCardsForDrafting = new BetterMap(message.houseCards.map(hc => [hc.id, HouseCard.deserializeFromServer(hc)]));
+        } else if (message.type == "update-deleted-house-cards") {
+            this.game.deletedHouseCards = new BetterMap(message.houseCards.map(hc => [hc.id, HouseCard.deserializeFromServer(hc)]));
         } else if (message.type == "update-max-turns") {
             this.game.maxTurns = message.maxTurns;
         } else {
@@ -719,6 +722,10 @@ export default class IngameGameState extends GameState<
     }
 
     canGiftPowerTokens(): boolean {
+        if (!this.entireGame.gameSettings.allowGiftingPowerTokens) {
+            return false;
+        }
+
         if (this.entireGame.hasChildGameState(CombatGameState) &&
             !(this.entireGame.leafState instanceof DeclareSupportGameState)) {
             return false;
@@ -778,6 +785,8 @@ export default class IngameGameState extends GameState<
                 return DraftHouseCardsGameState.deserializeFromServer(this, data);
             case "thematic-draft-house-cards":
                 return ThematicDraftHouseCardsGameState.deserializeFromServer(this, data);
+            case "draft-influence-positions":
+                return DraftInfluencePositionsGameState.deserializeFromServer(this, data);
         }
     }
 }
@@ -790,5 +799,5 @@ export interface SerializedIngameGameState {
     gameLogManager: SerializedGameLogManager;
     childGameState: SerializedPlanningGameState | SerializedActionGameState | SerializedWesterosGameState
         | SerializedGameEndedGameState | SerializedCancelledGameState | SerializedDraftHouseCardsGameState
-        | SerializedThematicDraftHouseCardsGameState;
+        | SerializedThematicDraftHouseCardsGameState | SerializedDraftInfluencePositionsGameState;
 }

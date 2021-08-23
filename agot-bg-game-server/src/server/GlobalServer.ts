@@ -143,7 +143,7 @@ export default class GlobalServer {
             // Check if the game already contains this user
             const user = entireGame.users.has(userData.id)
                 ? entireGame.users.get(userData.id)
-                : entireGame.addUser(userData.id, userData.name);
+                : entireGame.addUser(userData.id, userData.name, userData.profileSettings);
 
             this.clientToUser.set(client, user);
             user.connectedClients.push(client);
@@ -391,10 +391,19 @@ export default class GlobalServer {
         );
 
         if (otherUsersWithSameIp.length > 0) {
-            const message = `${userData.name} with id ${userData.id} and IP ${clientIp} is possibly multi-accounting in game ${entireGame.id}!\n` +
-                `Other users with same IP:\n${otherUsersWithSameIp.map(u => JSON.stringify(u, null, 1)).join("\n")}`;
-            console.warn(message);
-            Sentry.captureMessage(message, Sentry.Severity.Warning);
+            const message = {
+                type: "multi-account-warning",
+                game: entireGame.id,
+                userName: userData.name,
+                userId: userData.id,
+                userIp: clientIp,
+                otherUsersWithSameIp: otherUsersWithSameIp.map(uci => ({
+                    userName: uci.userName,
+                    userId: uci.userId
+                }))
+            }
+            console.warn(JSON.stringify(message));
+            Sentry.captureMessage(JSON.stringify(message), Sentry.Severity.Info);
             return true;
         }
 
