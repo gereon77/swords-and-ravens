@@ -116,7 +116,7 @@ export default class EntireGame extends GameState<null, LobbyGameState | IngameG
 
     get minPlayerCount(): number {
         // For Debug we can manipulate this to allow games with only 1 player
-        //return 1;
+        return 1;
         return this.gameSettings.playerCount >= 8 ? 4 : 3;
     }
 

@@ -252,7 +252,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
 
     canReady(player: Player): {status: boolean; reason: string} {
         // Here we can bypass canReady for debugging
-        // return {status: true, reason: "bypassed"};
+        return {status: true, reason: "bypassed"};
 
         // Return false if player is already ready
         if ((this.forVassals && this.ingame.getVassalsControlledByPlayer(player).every(h => this.isReady(h)))
