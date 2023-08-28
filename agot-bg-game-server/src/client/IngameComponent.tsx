@@ -254,6 +254,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                             gameClient={this.gameClient}
                             ingameGameState={this.ingame}
                             mapControls={this.mapControls}
+                            authenticatedPlayer={this.authenticatedPlayer}
                         />
                     </div>
                     </Col>}
