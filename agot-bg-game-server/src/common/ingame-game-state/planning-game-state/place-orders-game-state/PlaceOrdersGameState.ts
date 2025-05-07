@@ -147,8 +147,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
         return;
       }
 
-      if (
-        order &&
+      /* if (order &&
         this.game.isOrderRestricted(
           region,
           order,
@@ -173,7 +172,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
           // Player has to use their legal orders first
           return;
         }
-      }
+      } */
 
       // When a player placed or removed an order he is unready
       this.setUnready(player);
@@ -276,6 +275,30 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
           possibleRegions.every((r) => this.placedOrders.has(r)) ||
           this.getAvailableOrders(house).length == 0
         ) {
+          // Check no banned orders are present, though we have legal ones available
+          // Actually it should not be possible to place a banned order, when legal ones
+          // are available, but as deranger managed it somehow in
+          // https://swordsandravens.net/play/10f644e1-a53f-401f-beca-8b73759b3262 round 4 to place 2 banned defense orders
+          // and later replace such a banned order by a CP* in CPP we now have to check it here
+          const placedOrders = this.getPlacedOrdersOfHouse(house);
+          if (
+            placedOrders.some(([r, o]) =>
+              this.game.isOrderRestricted(
+                r,
+                o,
+                this.planningGameState.planningRestrictions,
+                true
+              )
+            )
+          ) {
+            if (this.getAvailableOrders(house).length > 0) {
+              return {
+                status: false,
+                reason: "illegal-orders-placed-though-legal-avaible",
+              };
+            }
+          }
+
           // All possible regions have orders
           return state;
         }
