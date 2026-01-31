@@ -262,7 +262,7 @@ export default class IngameGameState extends GameState<
 
     this.log({
       type: "user-house-assignments",
-      assignments: futurePlayers.map((house, user) => [house, user.id]) as [
+      assignments: futurePlayers.map((house, user) => [house, user._id]) as [
         string,
         string,
       ][],
@@ -1259,7 +1259,7 @@ export default class IngameGameState extends GameState<
 
     this.log({
       type: "player-replaced",
-      oldUser: player.user.id,
+      oldUser: player.user._id,
       house: newVassalHouse.id,
       reason: reason,
     });
@@ -2899,7 +2899,7 @@ export default class IngameGameState extends GameState<
 
     return {
       type: "ingame",
-      players: this.players.values.map((p) => p.serializeToClient()),
+      players: this.players.values.map((p) => p.serializeToClient(admin)),
       visibleRegionsPerPlayer: admin
         ? this.visibleRegionsPerPlayer.entries.map(([p, regions]) => [
             p.user.id,
