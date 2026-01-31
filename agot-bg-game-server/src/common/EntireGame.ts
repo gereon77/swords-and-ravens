@@ -43,6 +43,7 @@ import WildlingCardType from "./ingame-game-state/game-data-structure/wildling-c
 import House from "./ingame-game-state/game-data-structure/House";
 import { GameSettings, SerializedGameSettings } from "./GameSettings";
 import GameClient from "../client/GameClient";
+import UserMap from "../utils/UserMap";
 
 export enum NotificationType {
   READY_TO_START,
@@ -57,7 +58,7 @@ export default class EntireGame extends GameState<
   LobbyGameState | IngameGameState | CancelledGameState
 > {
   id: string;
-  @observable users = new BetterMap<string, User>();
+  @observable users = new UserMap<string, User>(this);
   ownerUserId: string;
   name: string;
   publicChatRoomId: string;
@@ -65,6 +66,8 @@ export default class EntireGame extends GameState<
   // A pair of user is sorted alphabetically by their id when used as a key.
   @observable privateChatRoomsIds: BetterMap<User, BetterMap<User, string>> =
     new BetterMap();
+  fakeIdToUserIdMap = new BetterMap<string, string>();
+  userIdToFakeIdMap = new BetterMap<string, string>();
   @observable leafStateId = v4();
   lastMessageReceivedAt: Date | null = null;
   multiAccountProtectionMap: BetterMap<string, Set<string>> = new BetterMap();
@@ -187,6 +190,12 @@ export default class EntireGame extends GameState<
       });
     }
 
+    // Generate and broadcast final stable fake IDs before transitioning to ingame
+    // This is called while still in lobby, so IDs will be regenerated one last time
+    if (this.gameSettings.faceless) {
+      this.hideOrRevealUserNames(false);
+    }
+
     this.setChildGameState(new IngameGameState(this)).beginGame(
       housesToCreate,
       futurePlayers
@@ -199,6 +208,7 @@ export default class EntireGame extends GameState<
     // Assign new faceless names after we have updated the game-state tree on client-side.
     // This will load the IngameComponent first and prevent the new names to be shown
     // in the LobbyComponent for a short period.
+    // This will call hideOrRevealUserNames again, but fake IDs won't be regenerated
     this.ingameGameState?.assignNewFacelessNames();
   }
 
@@ -252,11 +262,11 @@ export default class EntireGame extends GameState<
           // Basically this should not happen, but we keep it for safety!
           if (p.waitedForData?.handled === false) {
             console.warn(
-              `Unhandled waitedForData for user ${p.user.name} (${p.user.id})`
+              `Unhandled waitedForData for user ${p.user.name} (${p.user._id})`
             );
             if (this.onCaptureSentryMessage) {
               this.onCaptureSentryMessage(
-                `Unhandled waitedForData for user ${p.user.name} (${p.user.id})`,
+                `Unhandled waitedForData for user ${p.user.name} (${p.user._id})`,
                 "warning"
               );
             }
@@ -353,7 +363,7 @@ export default class EntireGame extends GameState<
   }
 
   isRealOwner(user: User): boolean {
-    return user.id == this.ownerUserId;
+    return user._id == this.ownerUserId;
   }
 
   addUser(
@@ -378,6 +388,12 @@ export default class EntireGame extends GameState<
       }
     );
     this.users.set(user.id, user);
+    // Assign a fake id if faceless mode is active
+    if (this.gameSettings.faceless) {
+      const fakeId = v4();
+      this.fakeIdToUserIdMap.set(fakeId, user.id);
+      this.userIdToFakeIdMap.set(user.id, fakeId);
+    }
 
     this.broadcastToClients({
       type: "new-user",
@@ -722,7 +738,7 @@ export default class EntireGame extends GameState<
           `${wf.house}${this.gameSettings.faceless ? "" : ` (${wf.user.name})`}`
       )
       .join(", ");
-    const waitingForIds = _waitingFor.map((wf) => wf.user.id);
+    const waitingForIds = _waitingFor.map((wf) => wf.user._id);
     let winner: string | undefined = undefined;
     if (this.ingameGameState?.leafState instanceof GameEndedGameState) {
       const user = this.ingameGameState.getControllerOfHouse(
@@ -803,7 +819,7 @@ export default class EntireGame extends GameState<
         }
 
         players.push({
-          userId: user.id,
+          userId: user._id,
           data: playerData
         });
       });
@@ -819,7 +835,7 @@ export default class EntireGame extends GameState<
         const importantChatRooms = this.getPrivateChatRoomsOf(user);
 
         players.push({
-          userId: user.id,
+          userId: user._id,
           data: {
             house: player.house.id,
             waited_for: waitedForUsers.includes(user),
@@ -860,16 +876,48 @@ export default class EntireGame extends GameState<
   }
 
   hideOrRevealUserNames(revealForever: boolean): void {
+    const gameHasStarted = this.childGameState instanceof IngameGameState;
+
     if (revealForever) {
+      this.fakeIdToUserIdMap.clear();
+      this.userIdToFakeIdMap.clear();
       this.gameSettings.faceless = false;
+    } else if (this.gameSettings.faceless) {
+      // Only re-assign fake ids during lobby phase to prevent mapping attacks
+      // Once the game has started, keep the same fake IDs to avoid breaking client state
+
+      if (!gameHasStarted) {
+        // Re-assign fake ids during lobby
+        this.fakeIdToUserIdMap.clear();
+        this.userIdToFakeIdMap.clear();
+        this.users.keys.forEach((uid) => {
+          const fakeId = v4();
+          this.fakeIdToUserIdMap.set(fakeId, uid);
+          this.userIdToFakeIdMap.set(uid, fakeId);
+        });
+      }
+      // If game has started, fake IDs remain unchanged
     }
 
-    this.broadcastToClients({
-      type: "hide-or-reveal-user-names",
-      names: this.users.values
-        .map((u) => u.serializeToClient(false, null))
-        .map((su) => [su.id, su.name])
-    });
+    if (!gameHasStarted || revealForever) {
+      // During lobby and when revealedForever, send each user their own authenticated game state
+      // to refresh complete tree with new fake IDs
+      for (const user of this.users.values) {
+        this.sendMessageToClients([user], {
+          type: "authenticate-response",
+          userId: user.id,
+          game: this.serializeToClient(user)
+        });
+      }
+    } else {
+      // During ingame, just send a message to update the names
+      this.broadcastToClients({
+        type: "hide-or-reveal-user-names",
+        names: this.users.values
+          .map((u) => u.serializeToClient(false, null))
+          .map((su) => [su.id, su.name])
+      });
+    }
   }
 
   private privateSaveGame(updateLastActive: boolean): void {
@@ -885,13 +933,19 @@ export default class EntireGame extends GameState<
       id: this.id,
       name: this.name,
       users: this.users.values.map((u) => u.serializeToClient(admin, user)),
-      ownerUserId: this.ownerUserId,
+      ownerUserId: admin
+        ? this.ownerUserId
+        : user != null && this.userIdToFakeIdMap.has(user._id)
+          ? this.userIdToFakeIdMap.get(user._id)
+          : this.ownerUserId,
       publicChatRoomId: this.publicChatRoomId,
       gameSettings: this.gameSettings.serializeToClient(),
       privateChatRoomIds: this.privateChatRoomsIds.map((u1, v) => [
-        u1.id,
-        v.map((u2, rid) => [u2.id, rid])
+        admin ? u1._id : u1.id,
+        v.map((u2, rid) => [admin ? u2._id : u2.id, rid])
       ]),
+      fakeIdToUserIdMap: admin ? this.fakeIdToUserIdMap.entries : undefined,
+      userIdToFakeIdMap: admin ? this.userIdToFakeIdMap.entries : undefined,
       leafStateId: this.leafStateId,
       multiAccountProtectionMap: admin
         ? this.multiAccountProtectionMap.entries.map(([uid, uix]) => [
@@ -906,7 +960,8 @@ export default class EntireGame extends GameState<
   static deserializeFromServer(data: SerializedEntireGame): EntireGame {
     const entireGame = new EntireGame(data.id, data.ownerUserId, data.name);
 
-    entireGame.users = new BetterMap<string, User>(
+    entireGame.users = new UserMap<string, User>(
+      entireGame,
       data.users.map((ur) => [
         ur.id,
         User.deserializeFromServer(entireGame, ur)
@@ -925,6 +980,12 @@ export default class EntireGame extends GameState<
         )
       ])
     );
+    entireGame.fakeIdToUserIdMap = data.fakeIdToUserIdMap
+      ? new BetterMap(data.fakeIdToUserIdMap)
+      : new BetterMap();
+    entireGame.userIdToFakeIdMap = data.userIdToFakeIdMap
+      ? new BetterMap(data.userIdToFakeIdMap)
+      : new BetterMap();
 
     entireGame.leafStateId = data.leafStateId;
     entireGame.multiAccountProtectionMap = new BetterMap(
@@ -960,6 +1021,8 @@ export interface SerializedEntireGame {
   ownerUserId: string;
   publicChatRoomId: string;
   privateChatRoomIds: [string, [string, string][]][];
+  fakeIdToUserIdMap?: [string, string][];
+  userIdToFakeIdMap?: [string, string][];
   leafStateId: string;
   multiAccountProtectionMap: [string, string[]][];
   childGameState:
