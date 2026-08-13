@@ -59,9 +59,12 @@ export default class SerIlynPayneASoSAbilityGameState extends GameState<
       return;
     }
 
-    const enemyArmy = this.combatGameState.houseCombatDatas.get(
-      this.enemy
-    ).army;
+    // Filter the enemy army to only include units that can retreat and are not wounded
+    // (wounded units or Siege Engines will be destroyed later during casualties anyway,
+    // so we avoid that a player picks a unit as a casualty that will be destroyed anyway)
+    const enemyArmy = this.combatGameState.houseCombatDatas
+      .get(this.enemy)
+      .army.filter((u) => u.type.canRetreat && !u.wounded);
 
     if (enemyArmy.length == 0) {
       // Casualties are resolved later, but in case of an attack on a garrison, there may be no army
