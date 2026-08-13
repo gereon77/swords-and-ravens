@@ -102,12 +102,12 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
         this.combatGameState.ingameGameState.log({
           type: "combat-valyrian-sword-used",
           house: player.house.id,
-          forNewTidesOfBattleCard: this.forNewTidesOfBattleCard,
+          forNewTidesOfBattleCard: this.forNewTidesOfBattleCard
         });
 
         this.entireGame.broadcastToClients({
           type: "change-valyrian-steel-blade-use",
-          used: true,
+          used: true
         });
       }
 
@@ -128,7 +128,7 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
   choose(use: boolean): void {
     this.entireGame.sendMessageToServer({
       type: "use-valyrian-steel-blade",
-      use: use,
+      use: use
     });
   }
 
@@ -152,7 +152,7 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
     return {
       type: "use-valyrian-steel-blade",
       houseId: this.house.id,
-      forNewTidesOfBattleCard: this.forNewTidesOfBattleCard,
+      forNewTidesOfBattleCard: this.forNewTidesOfBattleCard
     };
   }
 

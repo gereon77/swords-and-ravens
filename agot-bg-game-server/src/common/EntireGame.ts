@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import GameState, { SerializedGameState } from "./GameState";
 import LobbyGameState, {
-  SerializedLobbyGameState,
+  SerializedLobbyGameState
 } from "./lobby-game-state/LobbyGameState";
 import IngameGameState, {
-  SerializedIngameGameState,
+  SerializedIngameGameState
 } from "./ingame-game-state/IngameGameState";
 import { ServerMessage } from "../messages/ServerMessage";
 import { ClientMessage } from "../messages/ClientMessage";
@@ -15,25 +15,25 @@ import BetterMap from "../utils/BetterMap";
 import GameEndedGameState from "./ingame-game-state/game-ended-game-state/GameEndedGameState";
 import {
   GameSetup,
-  getGameSetupContainer,
+  getGameSetupContainer
 } from "./ingame-game-state/game-data-structure/createGame";
 import CancelledGameState, {
-  SerializedCancelledGameState,
+  SerializedCancelledGameState
 } from "./cancelled-game-state/CancelledGameState";
 import { VoteState } from "./ingame-game-state/vote-system/Vote";
 import CombatGameState, {
-  CombatStats,
+  CombatStats
 } from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 import PostCombatGameState from "./ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/PostCombatGameState";
 import {
   StoredProfileSettings,
-  StoredUserData,
+  StoredUserData
 } from "../server/website-client/WebsiteClient";
 import Player from "./ingame-game-state/Player";
 import { v4 } from "uuid";
 import {
   ReplacePlayer,
-  ReplacePlayerByVassal,
+  ReplacePlayerByVassal
 } from "./ingame-game-state/vote-system/VoteType";
 import WildlingsAttackGameState from "./ingame-game-state/westeros-game-state/wildlings-attack-game-state/WildlingsAttackGameState";
 import BiddingGameState from "./ingame-game-state/westeros-game-state/bidding-game-state/BiddingGameState";
@@ -48,7 +48,7 @@ export enum NotificationType {
   BRIBE_FOR_SUPPORT,
   BATTLE_RESULTS,
   NEW_VOTE_STARTED,
-  GAME_ENDED,
+  GAME_ENDED
 }
 
 export default class EntireGame extends GameState<
@@ -82,7 +82,7 @@ export default class EntireGame extends GameState<
   onClearChatRoom?: (roomId: string) => void;
   onCaptureSentryMessage?: (
     message: string,
-    severity: "info" | "warning" | "error" | "fatal",
+    severity: "info" | "warning" | "error" | "fatal"
   ) => void;
   onSaveGame?: (updateLastActive: boolean) => void;
   onGetUser?: (userId: string) => Promise<StoredUserData | null>;
@@ -90,7 +90,7 @@ export default class EntireGame extends GameState<
   // Throttled saveGame so we don't spam the website client
   saveGame: (updateLastActive: boolean) => void = _.throttle(
     this.privateSaveGame,
-    2000,
+    2000
   );
 
   // Client-side callbacks
@@ -103,7 +103,7 @@ export default class EntireGame extends GameState<
         wildingCard: WildlingCardType,
         biddings: [number, House[]][] | null,
         highestBidder: House | null,
-        lowestBidder: House | null,
+        lowestBidder: House | null
       ) => void)
     | null = null;
 
@@ -129,12 +129,12 @@ export default class EntireGame extends GameState<
     const playerSetups = container.playerSetups;
 
     const gameSetup = playerSetups.find(
-      (gameSetup) => this.gameSettings.playerCount == gameSetup.playerCount,
+      (gameSetup) => this.gameSettings.playerCount == gameSetup.playerCount
     );
 
     if (gameSetup == undefined) {
       throw new Error(
-        `Invalid playerCount ${this.gameSettings.playerCount} for setupId ${this.gameSettings.setupId}`,
+        `Invalid playerCount ${this.gameSettings.playerCount} for setupId ${this.gameSettings.setupId}`
       );
     }
 
@@ -176,19 +176,19 @@ export default class EntireGame extends GameState<
 
   proceedToIngameGameState(
     housesToCreate: string[],
-    futurePlayers: BetterMap<string, User>,
+    futurePlayers: BetterMap<string, User>
   ): void {
     if (this.gameSettings.faceless && this.onClearChatRoom) {
       this.onClearChatRoom(this.publicChatRoomId);
       this.broadcastToClients({
         type: "clear-chat-room",
-        roomId: this.publicChatRoomId,
+        roomId: this.publicChatRoomId
       });
     }
 
     this.setChildGameState(new IngameGameState(this)).beginGame(
       housesToCreate,
-      futurePlayers,
+      futurePlayers
     );
 
     this.checkGameStateChanged();
@@ -218,7 +218,7 @@ export default class EntireGame extends GameState<
         const serializedEntireGame = this.serializeToClient(u);
         const serializedGameState = _.range(level).reduce(
           (s, _) => s.childGameState,
-          serializedEntireGame as SerializedGameState,
+          serializedEntireGame as SerializedGameState
         );
 
         if (!serializedGameState) {
@@ -229,7 +229,7 @@ export default class EntireGame extends GameState<
           type: "game-state-change",
           level,
           serializedGameState,
-          newLeafId: this.leafStateId,
+          newLeafId: this.leafStateId
         };
       });
 
@@ -254,12 +254,12 @@ export default class EntireGame extends GameState<
           // Basically this should not happen, but we keep it for safety!
           if (p.waitedForData?.handled === false) {
             console.warn(
-              `Unhandled waitedForData for user ${p.user.name} (${p.user.id})`,
+              `Unhandled waitedForData for user ${p.user.name} (${p.user.id})`
             );
             if (this.onCaptureSentryMessage) {
               this.onCaptureSentryMessage(
                 `Unhandled waitedForData for user ${p.user.name} (${p.user.id})`,
-                "warning",
+                "warning"
               );
             }
           }
@@ -364,7 +364,7 @@ export default class EntireGame extends GameState<
   addUser(
     userId: string,
     userName: string,
-    profileSettings: StoredProfileSettings,
+    profileSettings: StoredProfileSettings
   ): User {
     const user = new User(
       userId,
@@ -378,14 +378,14 @@ export default class EntireGame extends GameState<
         muted: profileSettings.muted,
         musicVolume: profileSettings.muted ? 0 : 1,
         notificationsVolume: profileSettings.muted ? 0 : 1,
-        sfxVolume: profileSettings.muted ? 0 : 1,
-      },
+        sfxVolume: profileSettings.muted ? 0 : 1
+      }
     );
     this.users.set(user.id, user);
 
     this.broadcastToClients({
       type: "new-user",
-      user: user.serializeToClient(false, null),
+      user: user.serializeToClient(false, null)
     });
 
     // Save the new user to the database
@@ -408,7 +408,7 @@ export default class EntireGame extends GameState<
       this.broadcastToClients({
         type: "settings-changed",
         user: user.id,
-        settings: user.settings,
+        settings: user.settings
       });
     } else if (message.type == "change-game-settings") {
       if (!this.canActAsOwner(user)) {
@@ -437,7 +437,7 @@ export default class EntireGame extends GameState<
 
           this.ingameGameState.log({
             type: "live-pbem-switch",
-            isNowPbem: true,
+            isNowPbem: true
           });
         } else if (this.gameSettings.pbem && !settings.pbem) {
           // Reset waitedFor as we are now Live
@@ -445,7 +445,7 @@ export default class EntireGame extends GameState<
 
           this.ingameGameState.log({
             type: "live-pbem-switch",
-            isNowPbem: false,
+            isNowPbem: false
           });
         }
       }
@@ -467,7 +467,7 @@ export default class EntireGame extends GameState<
 
       this.broadcastToClients({
         type: "game-settings-changed",
-        settings: this.gameSettings.serializeToClient(),
+        settings: this.gameSettings.serializeToClient()
       });
     } else {
       updateLastActive = this.childGameState.onClientMessage(user, message);
@@ -477,7 +477,7 @@ export default class EntireGame extends GameState<
       this.ingameGameState?.checkWaitedForPlayers() ?? [];
     const gameStateChanged = this.checkGameStateChanged();
     this.ingameGameState?.setWaitedForPlayers(
-      gameStateChanged ? notWaitedAnymore : [],
+      gameStateChanged ? notWaitedAnymore : []
     );
 
     this.doPlayerClocksHandling();
@@ -501,14 +501,14 @@ export default class EntireGame extends GameState<
     }
     const notWaitedPlayers = _.difference(
       this.ingameGameState.players.values,
-      waitedPlayers,
+      waitedPlayers
     );
 
     if (!this.ingameGameState.paused) {
       waitedPlayers.forEach((p) => {
         if (!p.liveClockData) {
           throw new Error(
-            "LiveClockData must be present in doPlayerClocksHandling",
+            "LiveClockData must be present in doPlayerClocksHandling"
           );
         }
 
@@ -524,7 +524,7 @@ export default class EntireGame extends GameState<
               type: "start-player-clock",
               remainingSeconds: p.liveClockData.remainingSeconds,
               timerStartedAt: p.liveClockData.timerStartedAt.getTime(),
-              userId: p.user.id,
+              userId: p.user.id
             });
           } else {
             this.ingameGameState?.onPlayerClockTimeout(p);
@@ -536,14 +536,14 @@ export default class EntireGame extends GameState<
     notWaitedPlayers.forEach((p) => {
       if (!p.liveClockData) {
         throw new Error(
-          "LiveClockData must be present in doPlayerClocksHandling",
+          "LiveClockData must be present in doPlayerClocksHandling"
         );
       }
 
       if (p.liveClockData.timerStartedAt) {
         if (!p.liveClockData.serverTimer) {
           throw new Error(
-            "serverTimer must be present in doPlayerClocksHandling",
+            "serverTimer must be present in doPlayerClocksHandling"
           );
         }
 
@@ -554,18 +554,18 @@ export default class EntireGame extends GameState<
         // This user is no longer waited for
         // Calculate new remainingSeconds and broadcast to clients
         p.liveClockData.remainingSeconds -= getElapsedSeconds(
-          p.liveClockData.timerStartedAt,
+          p.liveClockData.timerStartedAt
         );
         p.liveClockData.remainingSeconds = Math.max(
           0,
-          p.liveClockData.remainingSeconds,
+          p.liveClockData.remainingSeconds
         );
         p.liveClockData.timerStartedAt = null;
 
         this.broadcastToClients({
           type: "stop-player-clock",
           remainingSeconds: p.liveClockData.remainingSeconds,
-          userId: p.user.id,
+          userId: p.user.id
         });
       }
     });
@@ -577,7 +577,7 @@ export default class EntireGame extends GameState<
       const parentGameState = this.getGameStateNthLevelDown(message.level - 1);
 
       const newChildGameState = parentGameState.deserializeChildGameState(
-        message.serializedGameState,
+        message.serializedGameState
       );
 
       this.checkGameStatesFastTracked(parentGameState, newChildGameState);
@@ -617,7 +617,7 @@ export default class EntireGame extends GameState<
 
   checkGameStatesFastTracked(
     parentGameState: GameState<any, any>,
-    newChildGameState: GameState<any, any>,
+    newChildGameState: GameState<any, any>
   ): void {
     // Wait 5 seconds when CombatGameState was completely fast-tracked to show the battle results via the CombatInfoComponent
     if (
@@ -629,7 +629,7 @@ export default class EntireGame extends GameState<
     ) {
       if (this.onCombatFastTracked) {
         const combat = this.getChildGameState(
-          CombatGameState,
+          CombatGameState
         ) as CombatGameState;
         this.onCombatFastTracked(combat.stats);
       }
@@ -645,7 +645,7 @@ export default class EntireGame extends GameState<
       // As we checked earlier that WildlingsAttackGameState is no longer part of the tree we now know that no other WildlingsAttack
       // child state was set which would have shown the revealed Wildling card to the clients.
       const wildlings = this.getChildGameState(
-        WildlingsAttackGameState,
+        WildlingsAttackGameState
       ) as WildlingsAttackGameState;
       if (
         wildlings.childGameState instanceof BiddingGameState ||
@@ -656,7 +656,7 @@ export default class EntireGame extends GameState<
             wildlings.wildlingCard.type,
             wildlings.biddingResults,
             wildlings._highestBidder,
-            wildlings._lowestBidder,
+            wildlings._lowestBidder
           );
         }
       }
@@ -715,19 +715,19 @@ export default class EntireGame extends GameState<
         .filter((p) => p != null)
         .map((p: Player) => ({
           house: p.house.name,
-          user: p.user,
+          user: p.user
         })) ?? [];
     const waitingFor = _waitingFor
       .map(
         (wf) =>
-          `${wf.house}${this.gameSettings.faceless ? "" : ` (${wf.user.name})`}`,
+          `${wf.house}${this.gameSettings.faceless ? "" : ` (${wf.user.name})`}`
       )
       .join(", ");
     const waitingForIds = _waitingFor.map((wf) => wf.user.id);
     let winner: string | undefined = undefined;
     if (this.ingameGameState?.leafState instanceof GameEndedGameState) {
       const user = this.ingameGameState.getControllerOfHouse(
-        this.ingameGameState.leafState.winner,
+        this.ingameGameState.leafState.winner
       ).user;
       winner = `${user.name} (${this.ingameGameState.leafState.winner.name})`;
     }
@@ -737,7 +737,7 @@ export default class EntireGame extends GameState<
         (v) =>
           v.state == VoteState.ONGOING &&
           (v.type instanceof ReplacePlayer ||
-            v.type instanceof ReplacePlayerByVassal),
+            v.type instanceof ReplacePlayerByVassal)
       ).length ?? -1) > 0 || undefined;
 
     const oldPlayerIds = this.ingameGameState?.oldPlayerIds ?? undefined;
@@ -765,7 +765,7 @@ export default class EntireGame extends GameState<
                   this.ingameGameState!.game.getTotalControlledLandRegions(h),
                 supplyLevel: h.supplyLevel,
                 ironThronePosition:
-                  this.ingameGameState!.game.ironThroneTrack.indexOf(h) + 1,
+                  this.ingameGameState!.game.ironThroneTrack.indexOf(h) + 1
               };
             }) ?? [])
         : [];
@@ -783,7 +783,7 @@ export default class EntireGame extends GameState<
       replacerIds,
       isPasswordProtected,
       victoryTrack,
-      publicChatRoomId: this.publicChatRoomId,
+      publicChatRoomId: this.publicChatRoomId
     };
   }
 
@@ -805,7 +805,7 @@ export default class EntireGame extends GameState<
 
         players.push({
           userId: user.id,
-          data: playerData,
+          data: playerData
         });
       });
     } else if (this.ingameGameState) {
@@ -829,8 +829,8 @@ export default class EntireGame extends GameState<
               this.ingameGameState!.childGameState instanceof GameEndedGameState
                 ? this.ingameGameState!.childGameState.winner == player.house
                 : false,
-            needed_for_vote: player.isNeededForVote,
-          },
+            needed_for_vote: player.isNeededForVote
+          }
         });
       });
     }
@@ -841,7 +841,7 @@ export default class EntireGame extends GameState<
   updateGameSettings(settings: GameSettings): void {
     this.sendMessageToServer({
       type: "change-game-settings",
-      settings: settings.serializeToClient(),
+      settings: settings.serializeToClient()
     });
   }
 
@@ -855,8 +855,8 @@ export default class EntireGame extends GameState<
             const otherUser = user == u1 ? u2 : u1;
 
             return { user: otherUser, roomId };
-          }),
-      ),
+          })
+      )
     );
   }
 
@@ -869,7 +869,7 @@ export default class EntireGame extends GameState<
       type: "hide-or-reveal-user-names",
       names: this.users.values
         .map((u) => u.serializeToClient(false, null))
-        .map((su) => [su.id, su.name]),
+        .map((su) => [su.id, su.name])
     });
   }
 
@@ -891,16 +891,16 @@ export default class EntireGame extends GameState<
       gameSettings: this.gameSettings.serializeToClient(),
       privateChatRoomIds: this.privateChatRoomsIds.map((u1, v) => [
         u1.id,
-        v.map((u2, rid) => [u2.id, rid]),
+        v.map((u2, rid) => [u2.id, rid])
       ]),
       leafStateId: this.leafStateId,
       multiAccountProtectionMap: admin
         ? this.multiAccountProtectionMap.entries.map(([uid, uix]) => [
             uid,
-            Array.from(uix),
+            Array.from(uix)
           ])
         : [],
-      childGameState: this.childGameState.serializeToClient(admin, user),
+      childGameState: this.childGameState.serializeToClient(admin, user)
     };
   }
 
@@ -910,36 +910,36 @@ export default class EntireGame extends GameState<
     entireGame.users = new BetterMap<string, User>(
       data.users.map((ur) => [
         ur.id,
-        User.deserializeFromServer(entireGame, ur),
-      ]),
+        User.deserializeFromServer(entireGame, ur)
+      ])
     );
     entireGame.ownerUserId = data.ownerUserId;
     entireGame.publicChatRoomId = data.publicChatRoomId;
     entireGame.gameSettings = GameSettings.deserializeFromServer(
-      data.gameSettings,
+      data.gameSettings
     );
     entireGame.privateChatRoomsIds = new BetterMap(
       data.privateChatRoomIds.map(([uid1, bm]) => [
         entireGame.users.get(uid1),
         new BetterMap(
-          bm.map(([uid2, roomId]) => [entireGame.users.get(uid2), roomId]),
-        ),
-      ]),
+          bm.map(([uid2, roomId]) => [entireGame.users.get(uid2), roomId])
+        )
+      ])
     );
 
     entireGame.leafStateId = data.leafStateId;
     entireGame.multiAccountProtectionMap = new BetterMap(
-      data.multiAccountProtectionMap.map(([uid, uix]) => [uid, new Set(uix)]),
+      data.multiAccountProtectionMap.map(([uid, uix]) => [uid, new Set(uix)])
     );
     entireGame.childGameState = entireGame.deserializeChildGameState(
-      data.childGameState,
+      data.childGameState
     );
 
     return entireGame;
   }
 
   deserializeChildGameState(
-    data: SerializedEntireGame["childGameState"],
+    data: SerializedEntireGame["childGameState"]
   ): this["childGameState"] {
     if (data.type == "lobby") {
       return LobbyGameState.deserializeFromServer(this, data);

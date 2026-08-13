@@ -11,7 +11,7 @@ import {
   OverlayTrigger,
   Card,
   Col,
-  Row,
+  Row
 } from "react-bootstrap";
 import { toast } from "react-toastify";
 import * as _ from "lodash";
@@ -23,7 +23,7 @@ import IngameGameState from "../common/ingame-game-state/IngameGameState";
 import MapComponent, { MAP_HEIGHT } from "./MapComponent";
 import MapControls, {
   OrderOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "./MapControls";
 import GameStateColumn from "./GameStateColumn";
 import HouseInfoColumn from "./HouseInfoColumn";
@@ -117,11 +117,11 @@ export default class IngameComponent extends Component<IngameComponentProps> {
 
   calcInfluenceTrackDetails(): InfluenceTrackDetails[] {
     const influenceTracks: (House | null)[][] = this.game.influenceTracks.map(
-      (track) => Array.from(track),
+      (track) => Array.from(track)
     );
     if (this.ingame.hasChildGameState(ClashOfKingsGameState)) {
       const cok = this.ingame.getChildGameState(
-        ClashOfKingsGameState,
+        ClashOfKingsGameState
       ) as ClashOfKingsGameState;
       for (let i = cok.currentTrackI; i < influenceTracks.length; i++) {
         influenceTracks[i] = this.clientGetFixedInfluenceTrack(
@@ -129,8 +129,8 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             (i == 0 && h == this.game.ironThroneHolder) ||
             h == this.game.targaryen
               ? h
-              : null,
-          ),
+              : null
+          )
         );
       }
     } else if (this.ingame.hasChildGameState(DraftHouseCardsGameState)) {
@@ -146,7 +146,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             this.game.targaryen;
         }
         influenceTracks[i] = this.clientGetFixedInfluenceTrack(
-          influenceTracks[i],
+          influenceTracks[i]
         );
       }
     }
@@ -155,20 +155,20 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         name: "Iron Throne",
         trackToShow: influenceTracks[0],
         realTrack: this.game.influenceTracks[0],
-        stars: false,
+        stars: false
       },
       {
         name: "Fiefdoms",
         trackToShow: influenceTracks[1],
         realTrack: this.game.influenceTracks[1],
-        stars: false,
+        stars: false
       },
       {
         name: "King's Court",
         trackToShow: influenceTracks[2],
         realTrack: this.game.influenceTracks[2],
-        stars: true,
-      },
+        stars: true
+      }
     ];
   }
 
@@ -224,7 +224,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
               position: "absolute",
               top: "20px",
               right: "20px",
-              zIndex: 1000,
+              zIndex: 1000
             }}
             onClick={() => {
               this.gameClient.logChatFullScreen = false;
@@ -244,7 +244,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         <Row
           className="justify-content-center"
           style={{
-            maxHeight: this.gameClient.isMapScrollbarSet ? "95vh" : "none",
+            maxHeight: this.gameClient.isMapScrollbarSet ? "95vh" : "none"
           }}
         >
           <Col
@@ -257,7 +257,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
               maxWidth: this.ingame.hasChildGameState(DraftHouseCardsGameState)
                 ? "1200px"
                 : "800px",
-              width: this.gameStateColumnWidth ?? undefined,
+              width: this.gameStateColumnWidth ?? undefined
             }}
           >
             <GameStateColumn
@@ -272,7 +272,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             <Col
               xs={{ span: "auto", order: columnOrder.mapColumn }}
               style={{
-                maxHeight: this.gameClient.isMapScrollbarSet ? "100%" : "none",
+                maxHeight: this.gameClient.isMapScrollbarSet ? "100%" : "none"
               }}
             >
               <div
@@ -281,7 +281,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
                   height: this.gameClient.isMapScrollbarSet ? "100%" : "auto",
                   overflowY: "auto",
                   overflowX: "hidden",
-                  maxHeight: MAP_HEIGHT,
+                  maxHeight: MAP_HEIGHT
                 }}
               >
                 <MapComponent
@@ -295,17 +295,17 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           <Col
             xs={{
               span: "auto",
-              order: columnOrder.housesInfosColumn,
+              order: columnOrder.housesInfosColumn
             }}
             style={{
               maxHeight: this.gameClient.isMapScrollbarSet ? "100%" : "none",
-              maxWidth: "600px",
+              maxWidth: "600px"
             }}
             className={classNames(this.columnSwapAnimationClassName, {
               "d-none d-xl-block":
                 !isMobile && this.gameSettings.playerCount < 8,
               "d-none d-xxl-block":
-                !isMobile && this.gameSettings.playerCount >= 8,
+                !isMobile && this.gameSettings.playerCount >= 8
             })}
           >
             <HouseInfoColumn
@@ -360,7 +360,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
               left: this.user?.settings.gameStateColumnRight ? "4px" : "auto",
               top: "45px",
               padding: "4px",
-              borderStyle: "none",
+              borderStyle: "none"
             }}
           >
             <img src={settingsKnobsImage} width={24} />
@@ -378,7 +378,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             paddingBottom: "4px",
             paddingTop: "4px",
             paddingLeft: "2px",
-            paddingRight: "4px",
+            paddingRight: "4px"
           }}
         >
           <OverlayTrigger
@@ -411,7 +411,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
     try {
       ironThroneHolder =
         _.first(
-          tracks[0].trackToShow.filter((h) => h == this.game.ironThroneHolder),
+          tracks[0].trackToShow.filter((h) => h == this.game.ironThroneHolder)
         ) ?? null;
     } catch {
       // Swallow possible exceptions thrown by getTokenHolder, e.g. during drafting. ironThroneHolder simply stays null then.
@@ -421,8 +421,8 @@ export default class IngameComponent extends Component<IngameComponentProps> {
       vsbHolder =
         _.first(
           tracks[1].trackToShow.filter(
-            (h) => h == this.game.valyrianSteelBladeHolder,
-          ),
+            (h) => h == this.game.valyrianSteelBladeHolder
+          )
         ) ?? null;
     } catch {
       // Swallow possible exceptions thrown by getTokenHolder, e.g. during drafting. vsbHolder simply stays null then.
@@ -431,7 +431,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
     try {
       ravenHolder =
         _.first(
-          tracks[2].trackToShow.filter((h) => h == this.game.ravenHolder),
+          tracks[2].trackToShow.filter((h) => h == this.game.ravenHolder)
         ) ?? null;
     } catch {
       // Swallow possible exceptions thrown by getTokenHolder, e.g. during drafting. ravenHolder simply stays null then.
@@ -471,7 +471,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           className={classNames("clickable btn btn-sm btn-secondary p-1", {
             "d-xl-none d-xxl-none":
               !isMobile && this.gameSettings.playerCount < 8,
-            "d-xxl-none": !isMobile && this.gameSettings.playerCount >= 8,
+            "d-xxl-none": !isMobile && this.gameSettings.playerCount >= 8
           })}
           onClick={() => {
             this.tracksPopoverVisible = !this.tracksPopoverVisible;
@@ -482,7 +482,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             left: this.user?.settings.gameStateColumnRight ? "4px" : "auto",
             top: "6px",
             padding: "4px",
-            borderStyle: "none",
+            borderStyle: "none"
           }}
         >
           <div className="d-flex flex-row flex-nowrap">
@@ -538,7 +538,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           style={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
           <h3 className="text-center" style={{ color: "red" }}>
@@ -580,7 +580,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           style={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "space-between",
+            justifyContent: "space-between"
           }}
         >
           <FormCheck
@@ -595,7 +595,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
               LocalStorageService.setWithExpiry<boolean>(
                 "dontShowScrollbarHintsAgain",
                 evt.target.checked,
-                30 * 24 * 60 * 60,
+                30 * 24 * 60 * 60
               );
             }}
           />
@@ -619,21 +619,21 @@ export default class IngameComponent extends Component<IngameComponentProps> {
   private renderGameControlsPopover(): OverlayChildren {
     const {
       result: canLaunchCancelGameVote,
-      reason: canLaunchCancelGameVoteReason,
+      reason: canLaunchCancelGameVoteReason
     } = this.ingame.canLaunchCancelGameVote(this.authenticatedPlayer);
     const { result: canLaunchEndGameVote, reason: canLaunchEndGameVoteReason } =
       this.ingame.canLaunchEndGameVote(this.authenticatedPlayer);
     const {
       result: canLaunchPauseGameVote,
-      reason: canLaunchPauseGameVoteReason,
+      reason: canLaunchPauseGameVoteReason
     } = this.ingame.canLaunchPauseGameVote(this.authenticatedPlayer);
     const {
       result: canLaunchResumeGameVote,
-      reason: canLaunchResumeGameVoteReason,
+      reason: canLaunchResumeGameVoteReason
     } = this.ingame.canLaunchResumeGameVote(this.authenticatedPlayer);
     const {
       result: canLaunchExtendPlayerClocksVote,
-      reason: canLaunchExtendPlayerClocksVoteReason,
+      reason: canLaunchExtendPlayerClocksVoteReason
     } = this.ingame.canLaunchExtendPlayerClocksVote(this.authenticatedPlayer);
 
     return (
@@ -893,7 +893,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         houseCard: houseCard,
         armyUnits: stat.armyUnits.map((ut) => unitTypes.get(ut)),
         woundedUnits: stat.woundedUnits.map((ut) => unitTypes.get(ut)),
-        tidesOfBattleCard: tidesOfBattleCard,
+        tidesOfBattleCard: tidesOfBattleCard
       };
     });
 
@@ -920,13 +920,13 @@ export default class IngameComponent extends Component<IngameComponentProps> {
     wildlingCard: WildlingCardType,
     biddings: [number, House[]][] | null,
     highestBidder: House | null,
-    lowestBidder: House | null,
+    lowestBidder: House | null
   ): React.ReactNode {
     const results = biddings
       ? _.flatMap(
           biddings.map(([bid, houses]) =>
-            houses.map((h) => [h, bid] as [House, number]),
-          ),
+            houses.map((h) => [h, bid] as [House, number])
+          )
         )
       : null;
 
@@ -964,10 +964,10 @@ export default class IngameComponent extends Component<IngameComponentProps> {
 
   componentDidMount(): void {
     this.mapControls.modifyOrdersOnMap.push(
-      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap()),
+      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap())
     );
     this.mapControls.modifyUnitsOnMap.push(
-      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap()),
+      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap())
     );
 
     // Measure and lock the column width after initial render
@@ -977,7 +977,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
     window.addEventListener("resize", this.handleResize);
 
     const dontShowAgainFromStorage = LocalStorageService.getWithExpiry<boolean>(
-      "dontShowScrollbarHintsAgain",
+      "dontShowScrollbarHintsAgain"
     );
 
     const dontShowAgain = isMobile || (dontShowAgainFromStorage ?? false);
@@ -1001,15 +1001,15 @@ export default class IngameComponent extends Component<IngameComponentProps> {
       wildlingCard,
       biddings,
       highestBidder,
-      lowestBidder,
+      lowestBidder
     ) => {
       toast(
         this.getWildlingsAttackFastTrackedComponent(
           wildlingCard,
           biddings,
           highestBidder,
-          lowestBidder,
-        ),
+          lowestBidder
+        )
       );
     };
 
@@ -1019,8 +1019,8 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           preemptiveRaid,
           biddings,
           highestBidder,
-          null,
-        ),
+          null
+        )
       );
     };
 
@@ -1046,8 +1046,8 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         {
           autoClose: 3000,
           toastId: "game-paused-toast",
-          theme: "light",
-        },
+          theme: "light"
+        }
       );
     };
 
@@ -1066,15 +1066,15 @@ export default class IngameComponent extends Component<IngameComponentProps> {
         {
           autoClose: 3000,
           toastId: "game-paused-toast",
-          theme: "light",
-        },
+          theme: "light"
+        }
       );
     };
   }
 
   hasVerticalScrollbar(): boolean {
     const gameContainer = document.getElementById(
-      "game-container",
+      "game-container"
     ) as HTMLElement;
     return gameContainer.scrollHeight > gameContainer.clientHeight;
   }

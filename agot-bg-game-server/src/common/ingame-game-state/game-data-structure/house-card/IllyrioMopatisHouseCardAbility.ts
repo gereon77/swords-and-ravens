@@ -24,7 +24,7 @@ export default class IllyrioMopatisHouseCardAbility extends HouseCardAbility {
     afterCombat.combatGameState.ingameGameState.log({
       type: "illyrio-mopatis-power-tokens-gained",
       house: house.id,
-      powerTokensGained: powerTokensGained,
+      powerTokensGained: powerTokensGained
     });
 
     // Due to HC evo, Illyrio may not be longer present in the players house card deck, so let's check this
@@ -33,22 +33,20 @@ export default class IllyrioMopatisHouseCardAbility extends HouseCardAbility {
       afterCombat.game.deletedHouseCards.set(houseCard.id, houseCard);
       afterCombat.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",
-        houseCards: afterCombat.game.deletedHouseCards.values.map(
-          (hc) => hc.id
-        ),
+        houseCards: afterCombat.game.deletedHouseCards.values.map((hc) => hc.id)
       });
 
       house.houseCards.delete(houseCard.id);
       afterCombat.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: house.id,
-        houseCards: house.houseCards.keys,
+        houseCards: house.houseCards.keys
       });
 
       afterCombat.combatGameState.ingameGameState.log({
         type: "house-card-removed-from-game",
         house: house.id,
-        houseCard: houseCard.id,
+        houseCard: houseCard.id
       });
     }
 

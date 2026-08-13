@@ -20,14 +20,14 @@ import EmojiPicker, {
   Categories,
   EmojiStyle,
   SuggestionMode,
-  Theme,
+  Theme
 } from "emoji-picker-react";
 import { isMobile } from "react-device-detect";
 import classNames from "classnames";
 import moment from "moment";
 import ConditionalWrap from "../utils/ConditionalWrap";
 import getElapsedSeconds, {
-  getTimeDeltaInSeconds,
+  getTimeDeltaInSeconds
 } from "../../utils/getElapsedSeconds";
 import houseIconImages from "../houseIconImages";
 import stoneThroneImage from "../../../public/images/icons/stone-throne.svg";
@@ -48,7 +48,7 @@ interface ChatComponentProps {
    */
   injectBetweenMessages: (
     previousMessage: Message | null,
-    nextMessage: Message | null,
+    nextMessage: Message | null
   ) => ReactNode;
 
   getUserDisplayName: (user: User) => ReactNode;
@@ -77,7 +77,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
 
   static defaultProps = {
     injectBetweenMessages: (): any => <></>,
-    getUserDisplayName: (u: User): any => <>{u.name}</>,
+    getUserDisplayName: (u: User): any => <>{u.name}</>
   };
 
   get chatClient(): ChatClient {
@@ -92,83 +92,83 @@ export default class ChatComponent extends Component<ChatComponentProps> {
     {
       id: ":baratheon:",
       names: ["Baratheon"],
-      imgUrl: houseIconImages.get("baratheon"),
+      imgUrl: houseIconImages.get("baratheon")
     },
     {
       id: ":lannister:",
       names: ["Lannister"],
-      imgUrl: houseIconImages.get("lannister"),
+      imgUrl: houseIconImages.get("lannister")
     },
     {
       id: ":stark:",
       names: ["Stark"],
-      imgUrl: houseIconImages.get("stark"),
+      imgUrl: houseIconImages.get("stark")
     },
     {
       id: ":bolton:",
       names: ["Bolton"],
-      imgUrl: houseIconImages.get("bolton"),
+      imgUrl: houseIconImages.get("bolton")
     },
     {
       id: ":martell:",
       names: ["Martell"],
-      imgUrl: houseIconImages.get("martell"),
+      imgUrl: houseIconImages.get("martell")
     },
     {
       id: ":greyjoy:",
       names: ["Greyjoy"],
-      imgUrl: houseIconImages.get("greyjoy"),
+      imgUrl: houseIconImages.get("greyjoy")
     },
     {
       id: ":tyrell:",
       names: ["Tyrell"],
-      imgUrl: houseIconImages.get("tyrell"),
+      imgUrl: houseIconImages.get("tyrell")
     },
     {
       id: ":arryn:",
       names: ["Arryn"],
-      imgUrl: houseIconImages.get("arryn"),
+      imgUrl: houseIconImages.get("arryn")
     },
     {
       id: ":targaryen:",
       names: ["Targaryen"],
-      imgUrl: houseIconImages.get("targaryen"),
+      imgUrl: houseIconImages.get("targaryen")
     },
     {
       id: ":throne:",
       names: ["Throne"],
-      imgUrl: stoneThroneImage,
+      imgUrl: stoneThroneImage
     },
     {
       id: ":vsb:",
       names: ["Valyrian Steel Blade", "VSB"],
-      imgUrl: diamondHiltImage,
+      imgUrl: diamondHiltImage
     },
     {
       id: ":raven:",
       names: ["Raven"],
-      imgUrl: ravenImage,
+      imgUrl: ravenImage
     },
     {
       id: ":wildlings:",
       names: ["Wildlings"],
-      imgUrl: mammothImage,
+      imgUrl: mammothImage
     },
     {
       id: ":dragon:",
       names: ["Dragon"],
-      imgUrl: spikedDragonHeadImage,
+      imgUrl: spikedDragonHeadImage
     },
     {
       id: ":supply:",
       names: ["Barrel", "Supply"],
-      imgUrl: barrelImage,
+      imgUrl: barrelImage
     },
     {
       id: ":crown:",
       names: ["Crown"],
-      imgUrl: crownImage,
-    },
+      imgUrl: crownImage
+    }
   ];
 
   // Create regex and map once for performance
@@ -176,11 +176,11 @@ export default class ChatComponent extends Component<ChatComponentProps> {
     ChatComponent.customEmojis
       .map((emoji) => emoji.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
       .join("|"),
-    "g",
+    "g"
   );
 
   static customEmojiMap = new Map(
-    ChatComponent.customEmojis.map((emoji) => [emoji.id, emoji]),
+    ChatComponent.customEmojis.map((emoji) => [emoji.id, emoji])
   );
 
   static unicodeEmojiRegex = new RegExp(
@@ -206,7 +206,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
       "|" +
       "[\\u{1f900}-\\u{1f9ff}\\u{2600}-\\u{26ff}\\u{2700}-\\u{27bf}]" + // Common emoji ranges
       ")+$",
-    "u",
+    "u"
   );
 
   render(): ReactNode {
@@ -271,7 +271,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                 <Row
                   key={m.id}
                   className={classNames("mb-1 mt-0 mx-0 p-0", {
-                    "align-items-center": onlyEmojis,
+                    "align-items-center": onlyEmojis
                   })}
                 >
                   {this.renderMessage(i, messages, m, onlyEmojis)}
@@ -280,7 +280,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                 <React.Fragment key={"injected-after-" + m.id}>
                   {this.props.injectBetweenMessages(
                     m,
-                    messages.length > i + 1 ? messages[i + 1] : null,
+                    messages.length > i + 1 ? messages[i + 1] : null
                   )}
                 </React.Fragment>
               </>
@@ -293,7 +293,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
               position: "absolute",
               right: 12,
               top: 0,
-              display: this.noMoreMessages ? "none" : "inline",
+              display: this.noMoreMessages ? "none" : "inline"
             }}
             onClick={(e: any) => {
               e.currentTarget.blur();
@@ -344,7 +344,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                       style={{
                         maxWidth: "100%",
                         maxHeight: "100%",
-                        borderStyle: "none",
+                        borderStyle: "none"
                       }}
                     >
                       <EmojiPicker
@@ -362,7 +362,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                           this.inputText = [
                             this.inputText.slice(0, position),
                             emoji.emoji,
-                            this.inputText.slice(position),
+                            this.inputText.slice(position)
                           ].join("");
                         }}
                         previewConfig={{ showPreview: false }}
@@ -370,7 +370,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                         categories={[
                           {
                             category: Categories.SUGGESTED,
-                            name: "Recently Used",
+                            name: "Recently Used"
                           },
                           {
                             category: Categories.CUSTOM,
@@ -385,7 +385,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                                   marginLeft: "-5px",
                                   filter:
                                     "brightness(0) saturate(100%) invert(56%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(91%) contrast(85%)",
-                                  transition: "filter 0.2s ease",
+                                  transition: "filter 0.2s ease"
                                 }}
                                 onMouseEnter={(e) => {
                                   e.currentTarget.style.filter =
@@ -396,32 +396,32 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                                     "brightness(0) saturate(100%) invert(56%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(91%) contrast(85%)";
                                 }}
                               />
-                            ),
+                            )
                           },
                           {
                             category: Categories.SMILEYS_PEOPLE,
-                            name: "Smileys & People",
+                            name: "Smileys & People"
                           },
                           {
                             category: Categories.ANIMALS_NATURE,
-                            name: "Animals & Nature",
+                            name: "Animals & Nature"
                           },
                           {
                             category: Categories.FOOD_DRINK,
-                            name: "Food & Drink",
+                            name: "Food & Drink"
                           },
                           {
                             category: Categories.TRAVEL_PLACES,
-                            name: "Travel & Places",
+                            name: "Travel & Places"
                           },
                           {
                             category: Categories.ACTIVITIES,
-                            name: "Activities",
+                            name: "Activities"
                           },
                           {
                             category: Categories.OBJECTS,
-                            name: "Objects",
-                          },
+                            name: "Objects"
+                          }
                         ]}
                       />
                     </Popover>
@@ -459,7 +459,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
     currentMsgIndex: number,
     messages: Message[],
     currentMessage: Message,
-    onlyEmojis: boolean,
+    onlyEmojis: boolean
   ): ReactNode {
     return (
       <>
@@ -473,8 +473,8 @@ export default class ChatComponent extends Component<ChatComponentProps> {
               messages[currentMsgIndex - 1].user == currentMessage.user &&
               getTimeDeltaInSeconds(
                 currentMessage.createdAt,
-                messages[currentMsgIndex - 1].createdAt,
-              ) <= 90,
+                messages[currentMsgIndex - 1].createdAt
+              ) <= 90
           })}
         >
           <div
@@ -485,7 +485,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
               "own-message":
                 this.props.gameClient.authenticatedUser == currentMessage.user,
               "foreign-message":
-                this.props.gameClient.authenticatedUser != currentMessage.user,
+                this.props.gameClient.authenticatedUser != currentMessage.user
             })}
           >
             {this.props.getUserDisplayName(currentMessage.user)}
@@ -509,7 +509,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
             xs="8"
             className={classNames("px-0", {
               "px-2":
-                this.props.gameClient.authenticatedUser == currentMessage.user,
+                this.props.gameClient.authenticatedUser == currentMessage.user
             })}
           >
             <div
@@ -523,8 +523,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
                   this.props.gameClient.authenticatedUser ==
                   currentMessage.user,
                 "foreign-message":
-                  this.props.gameClient.authenticatedUser !=
-                  currentMessage.user,
+                  this.props.gameClient.authenticatedUser != currentMessage.user
               })}
             >
               {this.renderTextWithCustomEmojis(currentMessage.text, onlyEmojis)}
@@ -537,7 +536,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
 
   private renderTextWithCustomEmojis(
     text: string,
-    onlyEmojis: boolean,
+    onlyEmojis: boolean
   ): ReactNode {
     // Find all matches and their positions
     const parts: ReactNode[] = [];
@@ -565,9 +564,9 @@ export default class ChatComponent extends Component<ChatComponentProps> {
               height: onlyEmojis ? "1.75em" : "1.5em",
               width: onlyEmojis ? "1.75em" : "1.5em",
               verticalAlign: "middle",
-              display: "inline-block",
+              display: "inline-block"
             }}
-          />,
+          />
         );
       }
 
@@ -648,7 +647,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
     // Remove all custom emojis from the string using the pre-created regex
     const withoutCustomEmojis = stringToTest.replace(
       ChatComponent.customEmojiRegex,
-      "",
+      ""
     );
 
     // If nothing is left, it was only custom emojis
@@ -703,7 +702,7 @@ export default class ChatComponent extends Component<ChatComponentProps> {
 
   componentDidUpdate(
     prevProps: Readonly<ChatComponentProps>,
-    _prevState: Readonly<Record<string, unknown>>,
+    _prevState: Readonly<Record<string, unknown>>
   ): void {
     if (this.props.currentlyViewed) {
       this.chatClient.markAsViewed(this.channel);

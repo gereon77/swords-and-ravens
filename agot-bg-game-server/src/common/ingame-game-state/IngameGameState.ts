@@ -7,29 +7,29 @@ import World from "./game-data-structure/World";
 import Player, { SerializedPlayer } from "./Player";
 import Region from "./game-data-structure/Region";
 import PlanningGameState, {
-  SerializedPlanningGameState,
+  SerializedPlanningGameState
 } from "./planning-game-state/PlanningGameState";
 import ActionGameState, {
-  SerializedActionGameState,
+  SerializedActionGameState
 } from "./action-game-state/ActionGameState";
 import Order from "./game-data-structure/Order";
 import Game, { SerializedGame } from "./game-data-structure/Game";
 import WesterosGameState, {
-  SerializedWesterosGameState,
+  SerializedWesterosGameState
 } from "./westeros-game-state/WesterosGameState";
 import createGame, {
-  applyCustomizationsOnCreatedGame,
+  applyCustomizationsOnCreatedGame
 } from "./game-data-structure/createGame";
 import BetterMap from "../../utils/BetterMap";
 import House from "./game-data-structure/House";
 import Unit from "./game-data-structure/Unit";
 import PlanningRestriction from "./game-data-structure/westeros-card/planning-restriction/PlanningRestriction";
 import GameLogManager, {
-  SerializedGameLogManager,
+  SerializedGameLogManager
 } from "./game-data-structure/GameLogManager";
 import { GameLogData } from "./game-data-structure/GameLog";
 import GameEndedGameState, {
-  SerializedGameEndedGameState,
+  SerializedGameEndedGameState
 } from "./game-ended-game-state/GameEndedGameState";
 import UnitType from "./game-data-structure/UnitType";
 import WesterosCard from "./game-data-structure/westeros-card/WesterosCard";
@@ -44,16 +44,16 @@ import VoteType, {
   ReplaceVassalByPlayer,
   ResumeGame,
   SwapHouses,
-  DeclareWinner,
+  DeclareWinner
 } from "./vote-system/VoteType";
 import { v4 } from "uuid";
 import CancelledGameState, {
-  SerializedCancelledGameState,
+  SerializedCancelledGameState
 } from "../cancelled-game-state/CancelledGameState";
 import { observable } from "mobx";
 import _ from "lodash";
 import DraftGameState, {
-  SerializedDraftGameState,
+  SerializedDraftGameState
 } from "./draft-game-state/DraftGameState";
 import CombatGameState from "./action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 import DeclareSupportGameState from "./action-game-state/resolve-march-order-game-state/combat-game-state/declare-support-game-state/DeclareSupportGameState";
@@ -62,11 +62,11 @@ import shuffleInPlace from "../../utils/shuffleInPlace";
 import popRandom from "../../utils/popRandom";
 import LoanCard from "./game-data-structure/loan-card/LoanCard";
 import PayDebtsGameState, {
-  SerializedPayDebtsGameState,
+  SerializedPayDebtsGameState
 } from "./pay-debts-game-state/PayDebtsGameState";
 import { objectiveCards } from "./game-data-structure/static-data-structure/objectiveCards";
 import ChooseInitialObjectivesGameState, {
-  SerializedChooseInitialObjectivesGameState,
+  SerializedChooseInitialObjectivesGameState
 } from "./choose-initial-objectives-game-state/ChooseInitialObjectivesGameState";
 import facelessMenNames from "../../../data/facelessMenNames.json";
 import WildlingCardEffectInTurnOrderGameState from "./westeros-game-state/wildlings-attack-game-state/WildlingCardEffectInTurnOrderGameState";
@@ -74,18 +74,18 @@ import getElapsedSeconds from "../../utils/getElapsedSeconds";
 import orders from "./game-data-structure/orders";
 import {
   OrderOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "../../client/MapControls";
 import {
   TakeOverPort,
   findOrphanedShipsAndDestroyThem,
-  isTakeControlOfEnemyPortRequired,
+  isTakeControlOfEnemyPortRequired
 } from "./port-helper/PortHelper";
 import { dragon } from "./game-data-structure/unitTypes";
 import IRegionSnapshot from "../../client/game-replay/IRegionSnapshot";
 import GameReplayManager from "../../client/game-replay/GameReplayManager";
 import ClaimVassalsGameState, {
-  SerializedClaimVassalsGameState,
+  SerializedClaimVassalsGameState
 } from "./planning-game-state/claim-vassals-game-state/ClaimVassalsGameState";
 import WesterosDeck4GameState from "./westeros-game-state/westeros-deck-4-game-state/WesterosDeck4GameState";
 
@@ -93,7 +93,7 @@ export const NOTE_MAX_LENGTH = 5000;
 
 export const enum ReplacementReason {
   VOTE,
-  CLOCK_TIMEOUT,
+  CLOCK_TIMEOUT
 }
 
 export interface UnitLossConsequence {
@@ -212,26 +212,26 @@ export default class IngameGameState extends GameState<
 
   beginGame(
     housesToCreate: string[],
-    futurePlayers: BetterMap<string, User>,
+    futurePlayers: BetterMap<string, User>
   ): void {
     this.entireGame.broadcastToClients({
-      type: "game-started",
+      type: "game-started"
     });
 
     this.game = createGame(this, housesToCreate, futurePlayers.keys);
     this.players = new BetterMap(
       futurePlayers.map((house, user) => [
         user,
-        new Player(user, this.game.houses.get(house)),
-      ]),
+        new Player(user, this.game.houses.get(house))
+      ])
     );
 
     if (this.fogOfWar) {
       this.players.values.forEach((p) =>
         this.visibleRegionsPerPlayer.set(
           p,
-          this.calculateVisibleRegionsForPlayer(p),
-        ),
+          this.calculateVisibleRegionsForPlayer(p)
+        )
       );
     }
 
@@ -244,8 +244,8 @@ export default class IngameGameState extends GameState<
             remainingSeconds:
               this.entireGame.gameSettings.initialLiveClock * 60,
             timerStartedAt: null,
-            serverTimer: null,
-          }),
+            serverTimer: null
+          })
       );
     }
 
@@ -256,7 +256,7 @@ export default class IngameGameState extends GameState<
     this.game.nonVassalHouses.forEach((h) => {
       h.supplyLevel = Math.min(
         this.game.supplyRestrictions.length - 1,
-        this.game.getControlledSupplyIcons(h),
+        this.game.getControlledSupplyIcons(h)
       );
     });
 
@@ -264,8 +264,8 @@ export default class IngameGameState extends GameState<
       type: "user-house-assignments",
       assignments: futurePlayers.map((house, user) => [house, user.id]) as [
         string,
-        string,
-      ][],
+        string
+      ][]
     });
 
     if (
@@ -276,7 +276,7 @@ export default class IngameGameState extends GameState<
         type: "orders-revealed",
         worldState: this.getWorldSnapshotWithOrdersOnBoard(),
         gameSnapshot: this.game.getSnapshot(),
-        onlySnapshot: true,
+        onlySnapshot: true
       });
       this.setChildGameState(new DraftGameState(this)).firstStart();
     } else {
@@ -290,7 +290,7 @@ export default class IngameGameState extends GameState<
       this.players.values.forEach(
         (p) =>
           (p.user.facelessName =
-            popRandom(facelessNames) ?? p.user.facelessName),
+            popRandom(facelessNames) ?? p.user.facelessName)
       );
       this.entireGame.hideOrRevealUserNames(false);
     }
@@ -298,7 +298,7 @@ export default class IngameGameState extends GameState<
 
   proceedWithChooseObjectives(): void {
     this.setChildGameState(
-      new ChooseInitialObjectivesGameState(this),
+      new ChooseInitialObjectivesGameState(this)
     ).firstStart();
   }
 
@@ -307,13 +307,13 @@ export default class IngameGameState extends GameState<
     this.players.values.forEach((p) => {
       const sortedCards = _.sortBy(
         p.house.houseCards.values,
-        (hc) => hc.combatStrength,
+        (hc) => hc.combatStrength
       );
       p.house.houseCards = new BetterMap(sortedCards.map((hc) => [hc.id, hc]));
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: p.house.id,
-        houseCards: p.house.houseCards.keys,
+        houseCards: p.house.houseCards.keys
       });
     });
 
@@ -322,7 +322,7 @@ export default class IngameGameState extends GameState<
 
       this.entireGame.broadcastToClients({
         type: "update-draft-pool",
-        houseCards: [],
+        houseCards: []
       });
     }
     if (this.entireGame.isFeastForCrows) {
@@ -351,7 +351,7 @@ export default class IngameGameState extends GameState<
     this.entireGame.broadcastToClients({
       type: "change-tracker",
       trackerI: i,
-      tracker: fixedTrack.map((h) => h.id),
+      tracker: fixedTrack.map((h) => h.id)
     });
 
     return fixedTrack;
@@ -375,14 +375,14 @@ export default class IngameGameState extends GameState<
 
   onWesterosGameStateFinish(
     planningRestrictions: PlanningRestriction[],
-    revealedWesterosCards: WesterosCard[],
+    revealedWesterosCards: WesterosCard[]
   ): void {
     this.proceedPlanningGameState(planningRestrictions, revealedWesterosCards);
   }
 
   proceedPlanningGameState(
     planningRestrictions: PlanningRestriction[] = [],
-    revealedWesterosCards: WesterosCard[] = [],
+    revealedWesterosCards: WesterosCard[] = []
   ): void {
     this.game.vassalRelations = new BetterMap();
     this.broadcastVassalRelations();
@@ -394,48 +394,48 @@ export default class IngameGameState extends GameState<
         worldState:
           this.getWorldSnapshotWithOrdersOnBoard(planningRestrictions),
         gameSnapshot: this.game.getSnapshot(),
-        onlySnapshot: true,
+        onlySnapshot: true
       });
     }
 
     this.setChildGameState(new PlanningGameState(this)).firstStart(
       planningRestrictions,
-      revealedWesterosCards,
+      revealedWesterosCards
     );
   }
 
   proceedToActionGameState(
     placedOrders: BetterMap<Region, Order>,
-    planningRestrictions: PlanningRestriction[],
+    planningRestrictions: PlanningRestriction[]
   ): void {
     this.ordersOnBoard = placedOrders;
     const mappedOrders = placedOrders.mapOver(
       (r) => r.id,
-      (o) => o.id,
+      (o) => o.id
     );
 
     if (!this.fogOfWar) {
       this.entireGame.broadcastToClients({
         type: "reveal-orders",
-        orders: mappedOrders,
+        orders: mappedOrders
       });
     } else {
       this.entireGame.users.values.forEach((u) => {
         const p = this.players.tryGet(u, null);
         const visibleRegionIds = this.getVisibleRegionsForPlayer(p).map(
-          (r) => r.id,
+          (r) => r.id
         );
         this.entireGame.sendMessageToClients([u], {
           type: "reveal-orders",
           orders: mappedOrders.filter(([rid, _oid]) =>
-            visibleRegionIds.includes(rid),
-          ),
+            visibleRegionIds.includes(rid)
+          )
         });
       });
     }
 
     this.setChildGameState(new ActionGameState(this)).firstStart(
-      planningRestrictions,
+      planningRestrictions
     );
   }
 
@@ -453,7 +453,7 @@ export default class IngameGameState extends GameState<
     if (this.ordersOnBoard.size > 0) {
       this.entireGame.broadcastToClients({
         type: "remove-orders",
-        regions: this.ordersOnBoard.keys.map((r) => r.id),
+        regions: this.ordersOnBoard.keys.map((r) => r.id)
       });
 
       this.ordersOnBoard.clear();
@@ -491,7 +491,7 @@ export default class IngameGameState extends GameState<
 
     // Unwound each units
     this.world.regions.forEach((r) =>
-      r.units.forEach((u) => (u.wounded = false)),
+      r.units.forEach((u) => (u.wounded = false))
     );
 
     for (let i = 0; i < this.game.winterIsComingHappened.length; i++) {
@@ -499,7 +499,7 @@ export default class IngameGameState extends GameState<
     }
 
     this.entireGame.broadcastToClients({
-      type: "new-turn",
+      type: "new-turn"
     });
 
     if (this.fogOfWar) {
@@ -513,7 +513,7 @@ export default class IngameGameState extends GameState<
             regionsToMakeVisible: [],
             ordersToMakeVisible: [],
             clear: true,
-            applyChangesNow: !this.players.has(u),
+            applyChangesNow: !this.players.has(u)
           });
         });
     }
@@ -524,7 +524,7 @@ export default class IngameGameState extends GameState<
         this.setChildGameState(new WesterosGameState(this)).firstStart();
       } else {
         this.setChildGameState(new PayDebtsGameState(this)).firstStart(
-          unpaidInterest,
+          unpaidInterest
         );
       }
     } else if (this.entireGame.isDanceWithMotherOfDragons) {
@@ -551,13 +551,13 @@ export default class IngameGameState extends GameState<
           this.entireGame.broadcastToClients({
             type: "loyalty-token-gained",
             newLoyaltyTokenCount: targaryen.victoryPoints,
-            region: r.id,
+            region: r.id
           });
 
           this.log({
             type: "loyalty-token-gained",
             count: r.loyaltyTokens,
-            region: r.id,
+            region: r.id
           });
 
           r.loyaltyTokens = 0;
@@ -568,7 +568,7 @@ export default class IngameGameState extends GameState<
   getFreeFacelessName(): string | null {
     const freeFacelessNames: string[] = _.difference(
       facelessMenNames,
-      this.players.values.map((p) => p.user.facelessName),
+      this.players.values.map((p) => p.user.facelessName)
     );
     return popRandom(freeFacelessNames);
   }
@@ -584,7 +584,7 @@ export default class IngameGameState extends GameState<
   onClientMessage(user: User, message: ClientMessage): boolean {
     if (message.type == "launch-replace-player-vote") {
       const player = this.players.get(
-        this.entireGame.users.get(message.player),
+        this.entireGame.users.get(message.player)
       );
 
       if (!this.canLaunchReplacePlayerVote(user).result) {
@@ -611,14 +611,14 @@ export default class IngameGameState extends GameState<
           (v) =>
             v.type instanceof ReplacePlayer &&
             v.state == VoteState.ONGOING &&
-            v.initiator.id == message.userId,
+            v.initiator.id == message.userId
         )
       ) {
         this.entireGame.onGetUser(message.userId).then((storedData) => {
           if (
             !storedData ||
             storedData.groups.some(
-              (g) => g.name == "Admin" || g.name == "High Member",
+              (g) => g.name == "Admin" || g.name == "High Member"
             )
           ) {
             return;
@@ -627,7 +627,7 @@ export default class IngameGameState extends GameState<
           this.bannedUsers.add(message.userId);
           this.entireGame.broadcastToClients({
             type: "user-banned",
-            userId: message.userId,
+            userId: message.userId
           });
 
           // Save game after async game-state update completes
@@ -639,7 +639,7 @@ export default class IngameGameState extends GameState<
         this.bannedUsers.delete(message.userId);
         this.entireGame.broadcastToClients({
           type: "user-unbanned",
-          userId: message.userId,
+          userId: message.userId
         });
       }
     } else if (this.players.has(user)) {
@@ -670,7 +670,7 @@ export default class IngameGameState extends GameState<
         type: "vote-done",
         vote: vote.id,
         voter: player.house.id,
-        choice: message.choice,
+        choice: message.choice
       });
 
       vote.checkVoteFinished();
@@ -682,7 +682,7 @@ export default class IngameGameState extends GameState<
       player.user.note = message.note.substring(0, NOTE_MAX_LENGTH);
     } else if (message.type == "launch-swap-houses-vote") {
       const swappingPlayer = this.players.get(
-        this.entireGame.users.get(message.swappingUser),
+        this.entireGame.users.get(message.swappingUser)
       );
       if (this.canLaunchSwapHousesVote(player.user, swappingPlayer).result) {
         this.createVote(
@@ -691,8 +691,8 @@ export default class IngameGameState extends GameState<
             player.user,
             swappingPlayer.user,
             player.house,
-            swappingPlayer.house,
-          ),
+            swappingPlayer.house
+          )
         );
       }
     } else if (message.type == "launch-cancel-game-vote") {
@@ -724,7 +724,7 @@ export default class IngameGameState extends GameState<
       }
     } else if (message.type == "launch-replace-player-by-vassal-vote") {
       const playerToReplace = this.players.get(
-        this.entireGame.users.get(message.player),
+        this.entireGame.users.get(message.player)
       );
 
       if (!this.canLaunchReplacePlayerVote(player.user, true).result) {
@@ -733,7 +733,7 @@ export default class IngameGameState extends GameState<
 
       this.createVote(
         player.user,
-        new ReplacePlayerByVassal(playerToReplace.user, playerToReplace.house),
+        new ReplacePlayerByVassal(playerToReplace.user, playerToReplace.house)
       );
     } else if (message.type == "gift-power-tokens") {
       if (!this.canGiftPowerTokens(player.house)) {
@@ -749,14 +749,14 @@ export default class IngameGameState extends GameState<
         message.powerTokens <= player.house.powerTokens
       ) {
         const delta = Math.abs(
-          this.changePowerTokens(toHouse, message.powerTokens),
+          this.changePowerTokens(toHouse, message.powerTokens)
         );
         this.changePowerTokens(player.house, -delta);
         this.log({
           type: "power-tokens-gifted",
           house: player.house.id,
           affectedHouse: toHouse.id,
-          powerTokens: delta,
+          powerTokens: delta
         });
       }
     } else if (message.type == "drop-power-tokens") {
@@ -825,7 +825,7 @@ export default class IngameGameState extends GameState<
       v4(),
       this.players.values.map((p) => p.house),
       initiator,
-      type,
+      type
     );
     vote.type.onVoteCreated(vote);
 
@@ -833,12 +833,12 @@ export default class IngameGameState extends GameState<
 
     this.entireGame.broadcastToClients({
       type: "vote-started",
-      vote: vote.serializeToClient(false, null),
+      vote: vote.serializeToClient(false, null)
     });
 
     this.entireGame.notifyUsers(
       _.without(this.players.keys, initiator),
-      NotificationType.NEW_VOTE_STARTED,
+      NotificationType.NEW_VOTE_STARTED
     );
 
     return vote;
@@ -864,7 +864,7 @@ export default class IngameGameState extends GameState<
 
       if (suzerainHouse == null) {
         throw new Error(
-          `getControllerOfHouse(${house.name}) failed as there is no suzerainHouse`,
+          `getControllerOfHouse(${house.name}) failed as there is no suzerainHouse`
         );
       }
 
@@ -874,7 +874,7 @@ export default class IngameGameState extends GameState<
 
       if (player == null) {
         throw new Error(
-          `getControllerOfHouse(${house.name}) failed due to a fatal error`,
+          `getControllerOfHouse(${house.name}) failed due to a fatal error`
         );
       }
 
@@ -920,7 +920,7 @@ export default class IngameGameState extends GameState<
           const controlledPowerIcons = _.sum(
             this.world.regions.values
               .filter((r) => r.crownIcons > 0 && r.getController() == house)
-              .map((r) => r.crownIcons),
+              .map((r) => r.crownIcons)
           );
           // Count number of controlled ports where the adjacent sea area is un-constested
           const powerTokensForShipsInPort = this.world.regions.values
@@ -928,16 +928,16 @@ export default class IngameGameState extends GameState<
               (r) =>
                 r.type.id == "port" &&
                 r.units.size > 0 &&
-                r.getController() == house,
+                r.getController() == house
             )
             .filter(
               (r) =>
                 this.world.getAdjacentSeaOfPort(r).getController() == null ||
-                this.world.getAdjacentSeaOfPort(r).getController() == house,
+                this.world.getAdjacentSeaOfPort(r).getController() == house
             ).length;
           return [house, controlledPowerIcons + powerTokensForShipsInPort];
         })
-        .filter(([_house, gain]) => gain > 0),
+        .filter(([_house, gain]) => gain > 0)
     );
   }
 
@@ -968,13 +968,13 @@ export default class IngameGameState extends GameState<
     house.powerTokens += delta;
     house.powerTokens = Math.max(
       0,
-      Math.min(house.powerTokens, maxPowerTokenCount),
+      Math.min(house.powerTokens, maxPowerTokenCount)
     );
 
     this.entireGame.broadcastToClients({
       type: "change-power-token",
       houseId: house.id,
-      powerTokenCount: house.powerTokens,
+      powerTokenCount: house.powerTokens
     });
 
     return house.powerTokens - originalValue;
@@ -989,7 +989,7 @@ export default class IngameGameState extends GameState<
       const newUnit = this.game.createUnit(
         unit.region,
         targetType,
-        unit.allegiance,
+        unit.allegiance
       );
       newUnit.region.units.set(newUnit.id, newUnit);
 
@@ -1014,7 +1014,7 @@ export default class IngameGameState extends GameState<
     if (this.game.areVictoryConditionsFulfilled()) {
       // Game is finished
       this.setChildGameState(new GameEndedGameState(this)).firstStart(
-        this.game.getPotentialWinner(),
+        this.game.getPotentialWinner()
       );
       return true;
     } else {
@@ -1028,7 +1028,7 @@ export default class IngameGameState extends GameState<
       if (this.entireGame.onCaptureSentryMessage) {
         this.entireGame.onCaptureSentryMessage(
           `onPlayerClockTimeout was called twice for user ${player.user.name} (${player.user.id}). LiveClockData.remainingSeconds: ${player.liveClockData?.remainingSeconds}`,
-          "warning",
+          "warning"
         );
       }
       return;
@@ -1085,7 +1085,7 @@ export default class IngameGameState extends GameState<
     this.entireGame.broadcastToClients({
       type: "stop-player-clock",
       remainingSeconds: 0,
-      userId: player.user.id,
+      userId: player.user.id
     });
   }
 
@@ -1102,7 +1102,7 @@ export default class IngameGameState extends GameState<
     // Cancel possible ResumeGame votes
     this.votes.values
       .filter(
-        (v) => v.type instanceof ResumeGame && v.state == VoteState.ONGOING,
+        (v) => v.type instanceof ResumeGame && v.state == VoteState.ONGOING
       )
       .forEach((v) => {
         v.cancelVote();
@@ -1111,10 +1111,10 @@ export default class IngameGameState extends GameState<
     this.log({
       type: "game-resumed",
       pauseTimeInSeconds: pauseTimeInSeconds,
-      autoResumed: !byVote,
+      autoResumed: !byVote
     });
     this.entireGame.broadcastToClients({
-      type: "game-resumed",
+      type: "game-resumed"
     });
 
     this.entireGame.doPlayerClocksHandling();
@@ -1123,7 +1123,7 @@ export default class IngameGameState extends GameState<
 
   applyAverageOfRemainingClocksToNewPlayer(
     newPlayer: Player,
-    oldPlayer: Player | null,
+    oldPlayer: Player | null
   ): void {
     if (!this.entireGame.gameSettings.onlyLive) {
       return;
@@ -1144,7 +1144,7 @@ export default class IngameGameState extends GameState<
     newPlayer.liveClockData = {
       remainingSeconds: avg,
       serverTimer: null,
-      timerStartedAt: null,
+      timerStartedAt: null
     };
   }
 
@@ -1158,7 +1158,7 @@ export default class IngameGameState extends GameState<
       (v) =>
         v.state == VoteState.ONGOING &&
         v.participatingHouses.includes(newVassalHouse) &&
-        !v.votes.has(newVassalHouse),
+        !v.votes.has(newVassalHouse)
     );
     missingVotes.forEach((v) => {
       v.votes.set(newVassalHouse, false);
@@ -1166,7 +1166,7 @@ export default class IngameGameState extends GameState<
         type: "vote-done",
         choice: false,
         vote: v.id,
-        voter: newVassalHouse.id,
+        voter: newVassalHouse.id
       });
 
       // We don't need to call v.checkVoteFinished() here as we vote with Reject and therefore never call executeAccepted()
@@ -1187,14 +1187,14 @@ export default class IngameGameState extends GameState<
     // Save the house cards, so vassalization can be undone and cards can be re-assigned to a new player
     this.game.oldPlayerHouseCards.set(
       newVassalHouse,
-      newVassalHouse.houseCards,
+      newVassalHouse.houseCards
     );
     this.entireGame.broadcastToClients({
       type: "update-old-player-house-cards",
       houseCards: this.game.oldPlayerHouseCards.entries.map(([h, hcs]) => [
         h.id,
-        hcs.values.map((hc) => hc.id),
-      ]),
+        hcs.values.map((hc) => hc.id)
+      ])
     });
 
     let forbiddenCommander: House | null = null;
@@ -1208,7 +1208,7 @@ export default class IngameGameState extends GameState<
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: newVassalHouse.id,
-        houseCards: [],
+        houseCards: []
       });
     } else {
       // If we are in combat we have to make sure the enemy doesn't claim this vassal
@@ -1223,7 +1223,7 @@ export default class IngameGameState extends GameState<
     // In case the new vassal should execute a wildlings effect, skip it
     if (this.hasChildGameState(WildlingCardEffectInTurnOrderGameState)) {
       const wildlingEffect = this.getChildGameState(
-        WildlingCardEffectInTurnOrderGameState,
+        WildlingCardEffectInTurnOrderGameState
       ) as WildlingCardEffectInTurnOrderGameState<GameState<any, any>>;
       const leaf = this.leafState as any;
       if (leaf.house && leaf.house == newVassalHouse) {
@@ -1236,12 +1236,12 @@ export default class IngameGameState extends GameState<
       this.hasChildGameState(WesterosDeck4GameState)
     ) {
       const wd4State = this.getChildGameState(
-        WesterosDeck4GameState,
+        WesterosDeck4GameState
       ) as WesterosDeck4GameState;
 
       this.log({
         type: "westeros-deck-4-skipped",
-        reason: "vassalized",
+        reason: "vassalized"
       });
       wd4State.parentGameState.onWesterosCardEnd();
     }
@@ -1250,7 +1250,7 @@ export default class IngameGameState extends GameState<
       type: "player-replaced",
       oldUser: player.user.id,
       house: newVassalHouse.id,
-      reason: reason,
+      reason: reason
     });
 
     // Delete the old player so the house is a vassal now
@@ -1262,12 +1262,12 @@ export default class IngameGameState extends GameState<
     this.entireGame.broadcastToClients({
       type: "player-replaced",
       oldUser: player.user.id,
-      timedOut: reason == ReplacementReason.CLOCK_TIMEOUT,
+      timedOut: reason == ReplacementReason.CLOCK_TIMEOUT
     });
   }
 
   proceedWithClaimVassals(
-    forbiddenRelation: [House | null, House] | null = null,
+    forbiddenRelation: [House | null, House] | null = null
   ): void {
     // Another players might get vassalized during ClaimVassalsGameState or vassals
     // may be replaced back to players. So we have to save the first child game state
@@ -1314,13 +1314,13 @@ export default class IngameGameState extends GameState<
 
     if (state.hasChildGameState(ClaimVassalsGameState)) {
       const claimVassals = state.getChildGameState(
-        ClaimVassalsGameState,
+        ClaimVassalsGameState
       ) as ClaimVassalsGameState;
 
       // Previous state then must be planning and we have to set back this to the child of ingame
       if (!(claimVassals.parentGameState instanceof PlanningGameState)) {
         throw new Error(
-          "if state.hasChildGameState(ClaimVassalsGameState), parent must be PlanningGameState",
+          "if state.hasChildGameState(ClaimVassalsGameState), parent must be PlanningGameState"
         );
       }
 
@@ -1344,7 +1344,7 @@ export default class IngameGameState extends GameState<
       for (const house of this.game.houses.values) {
         const noCastles =
           this.world.regions.values.filter(
-            (r) => r.castleLevel > 0 && r.getController() == house,
+            (r) => r.castleLevel > 0 && r.getController() == house
           ).length == 0;
 
         if (noCastles) {
@@ -1358,9 +1358,9 @@ export default class IngameGameState extends GameState<
                 type: "last-land-unit-transformed-to-dragon",
                 house: house.id,
                 transformedUnitType: unit.type.id,
-                region: unit.region.id,
+                region: unit.region.id
               },
-              true,
+              true
             );
             this.transformUnits(unit.region, [unit], dragon);
           }
@@ -1380,14 +1380,14 @@ export default class IngameGameState extends GameState<
           {
             type: "change-garrison",
             region: region.id,
-            newGarrison: region.garrison,
+            newGarrison: region.garrison
           },
-          region,
+          region
         );
         this.log({
           type: "garrison-returned",
           region: region.id,
-          strength: region.garrison,
+          strength: region.garrison
         });
       }
     });
@@ -1420,7 +1420,7 @@ export default class IngameGameState extends GameState<
   onServerMessage(message: ServerMessage): void {
     if (message.type == "supply-adjusted") {
       const supplies: [House, number][] = message.supplies.map(
-        ([houseId, supply]) => [this.game.houses.get(houseId), supply],
+        ([houseId, supply]) => [this.game.houses.get(houseId), supply]
       );
 
       supplies.forEach(([house, supply]) => (house.supplyLevel = supply));
@@ -1447,15 +1447,15 @@ export default class IngameGameState extends GameState<
           this.unitsToBeAnimated.set(u, {
             highlight: {
               active: true,
-              color: message.isTransform ? "yellow" : "green",
+              color: message.isTransform ? "yellow" : "green"
             },
             animateAttention: message.isTransform,
-            animateFadeIn: !message.isTransform,
-          }),
+            animateFadeIn: !message.isTransform
+          })
         );
         window.setTimeout(
           () => units.forEach((u) => this.unitsToBeAnimated.delete(u)),
-          4000,
+          4000
         );
       }
     } else if (message.type == "change-garrison") {
@@ -1470,8 +1470,8 @@ export default class IngameGameState extends GameState<
         units.forEach((u) =>
           this.unitsToBeAnimated.set(u, {
             highlight: { active: true, color: "red" },
-            animateFadeOut: true,
-          }),
+            animateFadeOut: true
+          })
         );
         window.setTimeout(
           () =>
@@ -1479,7 +1479,7 @@ export default class IngameGameState extends GameState<
               region.units.delete(unit.id);
               this.unitsToBeAnimated.delete(unit);
             }),
-          4000,
+          4000
         );
       } else {
         units.forEach((unit) => region.units.delete(unit.id));
@@ -1509,7 +1509,7 @@ export default class IngameGameState extends GameState<
             u.region = to;
           });
         },
-        message.isRetreat ? 4500 : 5000,
+        message.isRetreat ? 4500 : 5000
       );
     } else if (message.type == "units-wounded") {
       const region = this.world.regions.get(message.regionId);
@@ -1524,13 +1524,13 @@ export default class IngameGameState extends GameState<
       this.game.turn++;
       this.game.valyrianSteelBladeUsed = false;
       this.world.regions.forEach((r) =>
-        r.units.forEach((u) => (u.wounded = false)),
+        r.units.forEach((u) => (u.wounded = false))
       );
     } else if (message.type == "add-game-log") {
       this.gameLogManager.logs.push({
         data: message.data,
         time: new Date(message.time * 1000),
-        resolvedAutomatically: message.resolvedAutomatically,
+        resolvedAutomatically: message.resolvedAutomatically
       });
       if (this.onLogReceived) {
         this.onLogReceived(message.data);
@@ -1547,7 +1547,7 @@ export default class IngameGameState extends GameState<
       }
     } else if (message.type == "update-westeros-decks") {
       this.game.westerosDecks = message.westerosDecks.map((wd) =>
-        wd.map((wc) => WesterosCard.deserializeFromServer(wc)),
+        wd.map((wc) => WesterosCard.deserializeFromServer(wc))
       );
       this.game.winterIsComingHappened = message.winterIsComingHappened;
     } else if (message.type == "hide-top-wildling-card") {
@@ -1572,7 +1572,7 @@ export default class IngameGameState extends GameState<
       vote.votes.set(voter, message.choice);
     } else if (message.type == "player-replaced") {
       const oldPlayer = this.players.get(
-        this.entireGame.users.get(message.oldUser),
+        this.entireGame.users.get(message.oldUser)
       );
       const newUser = message.newUser
         ? this.entireGame.users.get(message.newUser)
@@ -1583,7 +1583,7 @@ export default class IngameGameState extends GameState<
         newPlayer.liveClockData = {
           remainingSeconds: message.liveClockRemainingSeconds,
           serverTimer: null,
-          timerStartedAt: null,
+          timerStartedAt: null
         };
       }
 
@@ -1610,7 +1610,7 @@ export default class IngameGameState extends GameState<
         newPlayer.liveClockData = {
           remainingSeconds: message.liveClockRemainingSeconds,
           serverTimer: null,
-          timerStartedAt: null,
+          timerStartedAt: null
         };
       }
 
@@ -1621,8 +1621,8 @@ export default class IngameGameState extends GameState<
       this.game.vassalRelations = new BetterMap(
         message.vassalRelations.map(([vId, cId]) => [
           this.game.houses.get(vId),
-          this.game.houses.get(cId),
-        ]),
+          this.game.houses.get(cId)
+        ])
       );
       this.forceRerender();
     } else if (message.type == "update-house-cards") {
@@ -1632,7 +1632,7 @@ export default class IngameGameState extends GameState<
         message.houseCards.map((hcid) => {
           const hc = allHouseCardsInGame.get(hcid);
           return [hcid, hc];
-        }),
+        })
       );
     } else if (message.type == "update-draft-pool") {
       const allHouseCardsInGame = this.game.getAllHouseCardsInGame();
@@ -1640,7 +1640,7 @@ export default class IngameGameState extends GameState<
         message.houseCards.map((hcid) => {
           const hc = allHouseCardsInGame.get(hcid);
           return [hcid, hc];
-        }),
+        })
       );
     } else if (message.type == "update-game-house-cards") {
       const allHouseCardsInGame = this.game.getAllHouseCardsInGame();
@@ -1651,7 +1651,7 @@ export default class IngameGameState extends GameState<
         hcids.map((hcid) => {
           const hc = allHouseCardsInGame.get(hcid);
           return [hcid, hc];
-        }),
+        })
       );
 
       oldHouseCards.forEach((hc) => {
@@ -1662,7 +1662,7 @@ export default class IngameGameState extends GameState<
         message.draftPool.map((hcid) => {
           const hc = allHouseCardsInGame.get(hcid);
           return [hcid, hc];
-        }),
+        })
       );
     } else if (message.type == "later-house-cards-applied") {
       const house = this.game.houses.get(message.house);
@@ -1683,7 +1683,7 @@ export default class IngameGameState extends GameState<
         message.houseCards.map((hcid) => {
           const hc = allHouseCardsInGame.get(hcid);
           return [hcid, hc];
-        }),
+        })
       );
     } else if (message.type == "update-old-player-house-cards") {
       const allHouseCardsInGame = this.game.getAllHouseCardsInGame();
@@ -1694,9 +1694,9 @@ export default class IngameGameState extends GameState<
             hcs.map((hcid) => {
               const hc = allHouseCardsInGame.get(hcid);
               return [hcid, hc];
-            }),
-          ),
-        ]),
+            })
+          )
+        ])
       );
     } else if (message.type == "update-max-turns") {
       this.game.maxTurns = message.maxTurns;
@@ -1714,13 +1714,13 @@ export default class IngameGameState extends GameState<
       this.game.removedDragonStrengthTokens.push(message.fromRound);
     } else if (message.type == "update-loan-cards") {
       this.game.theIronBank.loanCardDeck = message.loanCardDeck.map((lc) =>
-        LoanCard.deserializeFromServer(this.game, lc),
+        LoanCard.deserializeFromServer(this.game, lc)
       );
       this.game.theIronBank.purchasedLoans = message.purchasedLoans.map((lc) =>
-        LoanCard.deserializeFromServer(this.game, lc),
+        LoanCard.deserializeFromServer(this.game, lc)
       );
       this.game.theIronBank.loanSlots = message.loanSlots.map((lc) =>
-        lc ? LoanCard.deserializeFromServer(this.game, lc) : null,
+        lc ? LoanCard.deserializeFromServer(this.game, lc) : null
       );
     } else if (message.type == "update-region-modifiers") {
       const region = this.game.world.regions.get(message.region);
@@ -1737,7 +1737,7 @@ export default class IngameGameState extends GameState<
     } else if (message.type == "update-completed-objectives") {
       message.objectives.forEach(([hid, objectives]) => {
         this.game.houses.get(hid).completedObjectives = objectives.map((ocid) =>
-          objectiveCards.get(ocid),
+          objectiveCards.get(ocid)
         );
       });
 
@@ -1753,7 +1753,7 @@ export default class IngameGameState extends GameState<
         : null;
     } else if (message.type == "start-player-clock") {
       const player = this.players.get(
-        this.entireGame.users.get(message.userId),
+        this.entireGame.users.get(message.userId)
       );
 
       if (!player.liveClockData) {
@@ -1764,7 +1764,7 @@ export default class IngameGameState extends GameState<
       player.liveClockData.timerStartedAt = new Date(message.timerStartedAt);
     } else if (message.type == "stop-player-clock") {
       const player = this.players.get(
-        this.entireGame.users.get(message.userId),
+        this.entireGame.users.get(message.userId)
       );
 
       if (!player.liveClockData) {
@@ -1794,17 +1794,17 @@ export default class IngameGameState extends GameState<
         ([bid, hids]) =>
           [bid, hids.map((hid) => this.game.houses.get(hid))] as [
             number,
-            House[],
-          ],
+            House[]
+          ]
       );
       const highestBidder = this.game.houses.get(message.highestBidder);
       this.onPreemptiveRaidNewAttack(biddings, highestBidder);
     } else if (message.type == "houses-swapped") {
       const initiator = this.players.get(
-        this.entireGame.users.get(message.initiator),
+        this.entireGame.users.get(message.initiator)
       );
       const swappingPlayer = this.players.get(
-        this.entireGame.users.get(message.swappingUser),
+        this.entireGame.users.get(message.swappingUser)
       );
 
       const swappingHouse = swappingPlayer.house;
@@ -1823,7 +1823,7 @@ export default class IngameGameState extends GameState<
               const r = this.world.regions.get(rid);
               this.ordersToBeAnimated.delete(r);
               return [r, orders.get(oid)];
-            }),
+            })
           );
         }, 1200);
       } else {
@@ -1831,7 +1831,7 @@ export default class IngameGameState extends GameState<
           message.orders.map(([rid, oid]) => {
             const r = this.world.regions.get(rid);
             return [r, orders.get(oid)];
-          }),
+          })
         );
       }
     } else if (message.type == "remove-orders") {
@@ -1842,14 +1842,14 @@ export default class IngameGameState extends GameState<
         });
     } else if (message.type == "update-waited-for-data") {
       const player = this.players.get(
-        this.entireGame.users.get(message.userId),
+        this.entireGame.users.get(message.userId)
       );
       player.waitedForData = message.waitedForData
         ? {
             date: new Date(message.waitedForData.date),
             leafStateId: message.waitedForData.leafStateId,
             handled: message.waitedForData.handled,
-            hasBeenReactivated: message.waitedForData.hasBeenReactivated,
+            hasBeenReactivated: message.waitedForData.hasBeenReactivated
           }
         : null;
     } else if (message.type == "user-banned") {
@@ -1859,7 +1859,7 @@ export default class IngameGameState extends GameState<
     } else if (message.type == "update-visible-regions") {
       if (this.fogOfWar) {
         const toHide = message.regionsToHide.map((rid) =>
-          this.world.regions.get(rid),
+          this.world.regions.get(rid)
         );
 
         toHide.forEach((region) => {
@@ -1890,7 +1890,7 @@ export default class IngameGameState extends GameState<
         }
 
         const visibleRegions = message.regionsToMakeVisible.map((sr) =>
-          Region.deserializeFromServer(this.game, sr),
+          Region.deserializeFromServer(this.game, sr)
         );
 
         visibleRegions.forEach((vr) => {
@@ -1916,7 +1916,7 @@ export default class IngameGameState extends GameState<
 
         this.visibleRegionsPerPlayer.set(
           player,
-          _.difference(this.visibleRegionsPerPlayer.get(player), toHide),
+          _.difference(this.visibleRegionsPerPlayer.get(player), toHide)
         );
       }
     } else if (message.type == "update-public-visible-regions") {
@@ -1944,13 +1944,13 @@ export default class IngameGameState extends GameState<
       } else if (message.regionsToMakeVisible) {
         this.publicVisibleRegions.push(
           ...message.regionsToMakeVisible.map((sr) =>
-            this.world.regions.get(sr.id),
-          ),
+            this.world.regions.get(sr.id)
+          )
         );
 
         if (message.applyChangesNow) {
           const visibleRegions = message.regionsToMakeVisible.map((sr) =>
-            Region.deserializeFromServer(this.game, sr),
+            Region.deserializeFromServer(this.game, sr)
           );
 
           visibleRegions.forEach((vr) => {
@@ -1986,9 +1986,9 @@ export default class IngameGameState extends GameState<
         type: "add-units",
         regionId: region.id,
         units: units.map((u) => u.serializeToClient()),
-        isTransform: isTransform,
+        isTransform: isTransform
       },
-      region,
+      region
     );
   }
 
@@ -1998,9 +1998,9 @@ export default class IngameGameState extends GameState<
         type: "remove-units",
         regionId: region.id,
         unitIds: units.map((u) => u.id),
-        animate: animate && !this.fogOfWar,
+        animate: animate && !this.fogOfWar
       },
-      region,
+      region
     );
   }
 
@@ -2036,8 +2036,8 @@ export default class IngameGameState extends GameState<
         : _.uniq(
             _.concat(
               oldVisibleRegions,
-              this.calculateVisibleRegionsForPlayer(p),
-            ),
+              this.calculateVisibleRegionsForPlayer(p)
+            )
           );
 
       this.visibleRegionsPerPlayer.set(p, visibleRegions);
@@ -2049,19 +2049,19 @@ export default class IngameGameState extends GameState<
           type: "update-visible-regions",
           playerUserId: p.user.id,
           regionsToMakeVisible: makeVisible.map((r) =>
-            r.serializeToClient(true, p),
+            r.serializeToClient(true, p)
           ),
           regionsToHide: toHide.map((r) => r.id),
           ordersToMakeVisible: makeVisible
             .filter((r) => this.ordersOnBoard.has(r))
-            .map((r) => [r.id, this.ordersOnBoard.get(r).id]),
+            .map((r) => [r.id, this.ordersOnBoard.get(r).id])
         });
       }
     });
 
     const removedPlayers = _.difference(
       this.visibleRegionsPerPlayer.keys,
-      this.players.values,
+      this.players.values
     );
 
     removedPlayers.forEach((p) => {
@@ -2071,9 +2071,9 @@ export default class IngameGameState extends GameState<
         regionsToMakeVisible: [],
         regionsToHide: _.difference(
           this.world.regions.keys,
-          this.publicVisibleRegions.map((r) => r.id),
+          this.publicVisibleRegions.map((r) => r.id)
         ),
-        ordersToMakeVisible: [],
+        ordersToMakeVisible: []
       });
     });
 
@@ -2094,7 +2094,7 @@ export default class IngameGameState extends GameState<
 
   calculateVisibilityRangeForRegion(region: Region): number {
     const baseRange = Math.max(
-      ...region.units.values.map((u) => u.type.visibilityRange),
+      ...region.units.values.map((u) => u.type.visibilityRange)
     );
     return Math.max(0, baseRange + this.unitVisibilityRangeModifier);
   }
@@ -2110,7 +2110,7 @@ export default class IngameGameState extends GameState<
 
     const controlledHouses: (House | null)[] = [
       player.house,
-      ...this.getVassalsControlledByPlayer(player),
+      ...this.getVassalsControlledByPlayer(player)
     ];
     const allRegionsWithControllers = this.world.getAllRegionsWithControllers();
 
@@ -2118,7 +2118,7 @@ export default class IngameGameState extends GameState<
     const result: Set<Region> = new Set(
       allRegionsWithControllers
         .filter(([_r, h]) => controlledHouses.includes(h))
-        .map(([r, _h]) => r),
+        .map(([r, _h]) => r)
     );
     const regionsWithUnits = Array.from(result).filter((r) => r.units.size > 0);
     const checkedRegions = new Set<Region>();
@@ -2151,7 +2151,7 @@ export default class IngameGameState extends GameState<
 
     [
       ...this.calculateRequiredVisibleRegionsForPlayer(player),
-      ...this.publicVisibleRegions,
+      ...this.publicVisibleRegions
     ].forEach((r) => result.add(r));
 
     // Add ports of visible castles:
@@ -2179,7 +2179,7 @@ export default class IngameGameState extends GameState<
   addPublicVisibleRegions(...regions: Region[]): void {
     if (this.fogOfWar) {
       const addedRegions = regions.filter(
-        (r) => !this.publicVisibleRegions.includes(r),
+        (r) => !this.publicVisibleRegions.includes(r)
       );
       this.publicVisibleRegions.push(...addedRegions);
 
@@ -2189,12 +2189,12 @@ export default class IngameGameState extends GameState<
           this.entireGame.sendMessageToClients([u], {
             type: "update-public-visible-regions",
             regionsToMakeVisible: addedRegions.map((r) =>
-              r.serializeToClient(true, null),
+              r.serializeToClient(true, null)
             ),
             ordersToMakeVisible: addedRegions
               .filter((r) => this.ordersOnBoard.has(r))
               .map((r) => [r.id, this.ordersOnBoard.get(r).id]),
-            applyChangesNow: !this.players.has(u),
+            applyChangesNow: !this.players.has(u)
           });
         });
     }
@@ -2207,7 +2207,7 @@ export default class IngameGameState extends GameState<
   launchCancelGameVote(): void {
     if (window.confirm("Do you want to launch a vote to cancel the game?")) {
       this.entireGame.sendMessageToServer({
-        type: "launch-cancel-game-vote",
+        type: "launch-cancel-game-vote"
       });
     }
   }
@@ -2215,11 +2215,11 @@ export default class IngameGameState extends GameState<
   launchEndGameVote(): void {
     if (
       window.confirm(
-        "Do you want to launch a vote to end the game after the current round?",
+        "Do you want to launch a vote to end the game after the current round?"
       )
     ) {
       this.entireGame.sendMessageToServer({
-        type: "launch-end-game-vote",
+        type: "launch-end-game-vote"
       });
     }
   }
@@ -2227,7 +2227,7 @@ export default class IngameGameState extends GameState<
   launchPauseGameVote(): void {
     if (window.confirm("Do you want to launch a vote to pause the game?")) {
       this.entireGame.sendMessageToServer({
-        type: "launch-pause-game-vote",
+        type: "launch-pause-game-vote"
       });
     }
   }
@@ -2235,7 +2235,7 @@ export default class IngameGameState extends GameState<
   launchResumeGameVote(): void {
     if (window.confirm("Do you want to launch a vote to resume the game?")) {
       this.entireGame.sendMessageToServer({
-        type: "launch-resume-game-vote",
+        type: "launch-resume-game-vote"
       });
     }
   }
@@ -2243,11 +2243,11 @@ export default class IngameGameState extends GameState<
   launchExtendPlayerClocksVote(): void {
     if (
       window.confirm(
-        "Do you want to launch a vote to extend all player clocks by 15 minutes?",
+        "Do you want to launch a vote to extend all player clocks by 15 minutes?"
       )
     ) {
       this.entireGame.sendMessageToServer({
-        type: "launch-extend-player-clocks-vote",
+        type: "launch-extend-player-clocks-vote"
       });
     }
   }
@@ -2261,7 +2261,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof CancelGame,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof CancelGame
     );
 
     if (existingVotes.length > 0) {
@@ -2296,7 +2296,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof EndGame,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof EndGame
     );
 
     if (existingVotes.length > 0) {
@@ -2331,7 +2331,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof PauseGame,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof PauseGame
     );
 
     if (existingVotes.length > 0) {
@@ -2366,7 +2366,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof ResumeGame,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof ResumeGame
     );
 
     if (existingVotes.length > 0) {
@@ -2414,7 +2414,7 @@ export default class IngameGameState extends GameState<
 
     const existingVotes = this.votes.values.filter(
       (v) =>
-        v.state == VoteState.ONGOING && v.type instanceof ExtendPlayerClocks,
+        v.state == VoteState.ONGOING && v.type instanceof ExtendPlayerClocks
     );
 
     if (existingVotes.length > 0) {
@@ -2423,7 +2423,7 @@ export default class IngameGameState extends GameState<
 
     const acceptedVotes = this.votes.values.filter(
       (v) =>
-        v.state == VoteState.ACCEPTED && v.type instanceof ExtendPlayerClocks,
+        v.state == VoteState.ACCEPTED && v.type instanceof ExtendPlayerClocks
     );
 
     const allowedVotesCount = this.game.turn == this.game.maxTurns ? 2 : 1;
@@ -2433,7 +2433,7 @@ export default class IngameGameState extends GameState<
 
     const refusedVotes = this.votes.values.filter(
       (v) =>
-        v.state == VoteState.REFUSED && v.type instanceof ExtendPlayerClocks,
+        v.state == VoteState.REFUSED && v.type instanceof ExtendPlayerClocks
     );
     if (this.game.turn != this.game.maxTurns && refusedVotes.length > 2) {
       return { result: false, reason: "max-vote-count-reached" };
@@ -2457,7 +2457,7 @@ export default class IngameGameState extends GameState<
   canLaunchReplacePlayerVote(
     fromUser: User | null,
     replaceWithVassal = false,
-    forHouse: House | null = null,
+    forHouse: House | null = null
   ): { result: boolean; reason: string } {
     if (this.entireGame.gameSettings.tournamentMode && !replaceWithVassal) {
       return { result: false, reason: "forbidden-in-tournament-mode" };
@@ -2509,7 +2509,7 @@ export default class IngameGameState extends GameState<
 
   canLaunchSwapHousesVote(
     initiator: User | null,
-    swappingPlayer: Player,
+    swappingPlayer: Player
   ): { result: boolean; reason: string } {
     if (this.entireGame.gameSettings.tournamentMode) {
       return { result: false, reason: "forbidden-in-tournament-mode" };
@@ -2532,11 +2532,11 @@ export default class IngameGameState extends GameState<
 
       if (this.hasChildGameState(ChooseInitialObjectivesGameState)) {
         const chooseInitialObjectives = this.getChildGameState(
-          ChooseInitialObjectivesGameState,
+          ChooseInitialObjectivesGameState
         ) as ChooseInitialObjectivesGameState;
         if (
           chooseInitialObjectives.childGameState.readyHouses.keys.some(
-            (h) => player.house == h || swappingPlayer.house == h,
+            (h) => player.house == h || swappingPlayer.house == h
           )
         ) {
           return { result: false, reason: "secret-objectives-chosen" };
@@ -2545,7 +2545,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof SwapHouses,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof SwapHouses
     );
 
     if (existingVotes.length > 0) {
@@ -2576,7 +2576,7 @@ export default class IngameGameState extends GameState<
     }
 
     const existingVotes = this.votes.values.filter(
-      (v) => v.state == VoteState.ONGOING && v.type instanceof DeclareWinner,
+      (v) => v.state == VoteState.ONGOING && v.type instanceof DeclareWinner
     );
 
     if (existingVotes.length > 0) {
@@ -2596,7 +2596,7 @@ export default class IngameGameState extends GameState<
 
   canLaunchReplaceVassalVote(
     fromUser: User | null,
-    forHouse: House,
+    forHouse: House
   ): { result: boolean; reason: string } {
     if (this.entireGame.gameSettings.tournamentMode) {
       return { result: false, reason: "forbidden-in-tournament-mode" };
@@ -2647,7 +2647,7 @@ export default class IngameGameState extends GameState<
         (v.type instanceof ReplacePlayer ||
           v.type instanceof ReplacePlayerByVassal ||
           v.type instanceof ReplaceVassalByPlayer) &&
-        v != except,
+        v != except
     );
     votes.forEach((v) => v.cancelVote());
   }
@@ -2660,7 +2660,7 @@ export default class IngameGameState extends GameState<
     // A house is considered defeated when it has no castle areas and no land units anymore
     return (
       this.world.regions.values.filter(
-        (r) => r.castleLevel > 0 && r.getController() == house,
+        (r) => r.castleLevel > 0 && r.getController() == house
       ).length == 0 &&
       this.world.getUnitsOfHouse(house).filter((u) => u.type.id != "ship")
         .length == 0
@@ -2670,35 +2670,35 @@ export default class IngameGameState extends GameState<
   launchReplacePlayerVote(player: Player): void {
     this.entireGame.sendMessageToServer({
       type: "launch-replace-player-vote",
-      player: player.user.id,
+      player: player.user.id
     });
   }
 
   launchReplacePlayerByVassalVote(player: Player): void {
     this.entireGame.sendMessageToServer({
       type: "launch-replace-player-by-vassal-vote",
-      player: player.user.id,
+      player: player.user.id
     });
   }
 
   launchReplaceVassalByPlayerVote(house: House): void {
     this.entireGame.sendMessageToServer({
       type: "launch-replace-vassal-by-player-vote",
-      house: house.id,
+      house: house.id
     });
   }
 
   launchSwapHousesVote(player: Player): void {
     this.entireGame.sendMessageToServer({
       type: "launch-swap-houses-vote",
-      swappingUser: player.user.id,
+      swappingUser: player.user.id
     });
   }
 
   launchDeclareWinnerVote(winner: House): void {
     this.entireGame.sendMessageToServer({
       type: "launch-declare-winner-vote",
-      winner: winner.id,
+      winner: winner.id
     });
   }
 
@@ -2716,7 +2716,7 @@ export default class IngameGameState extends GameState<
 
   getVassalsControlledByPlayer(player: Player): House[] {
     return this.getVassalHouses().filter((h) =>
-      this.isVassalControlledByPlayer(h, player),
+      this.isVassalControlledByPlayer(h, player)
     );
   }
 
@@ -2728,7 +2728,7 @@ export default class IngameGameState extends GameState<
 
   getNonClaimedVassalHouses(): House[] {
     return this.getVassalHouses().filter(
-      (v) => !this.game.vassalRelations.has(v),
+      (v) => !this.game.vassalRelations.has(v)
     );
   }
 
@@ -2772,22 +2772,19 @@ export default class IngameGameState extends GameState<
       type: "update-completed-objectives",
       objectives: this.game.houses.values.map(
         (h) =>
-          [h.id, h.completedObjectives.map((oc) => oc.id)] as [
-            string,
-            string[],
-          ],
+          [h.id, h.completedObjectives.map((oc) => oc.id)] as [string, string[]]
       ),
       victoryPointCount: this.game.houses.values.map((h) => [
         h.id,
-        h.victoryPoints,
-      ]),
+        h.victoryPoints
+      ])
     });
 
     this.players.values.forEach((p) => {
       p.user.send({
         type: "update-secret-objectives",
         house: p.house.id,
-        objectives: p.house.secretObjectives.map((oc) => oc.id),
+        objectives: p.house.secretObjectives.map((oc) => oc.id)
       });
     });
   }
@@ -2796,8 +2793,8 @@ export default class IngameGameState extends GameState<
     this.entireGame.broadcastToClients({
       type: "vassal-relations",
       vassalRelations: this.game.vassalRelations.entries.map(
-        ([vassal, commander]) => [vassal.id, commander.id],
-      ),
+        ([vassal, commander]) => [vassal.id, commander.id]
+      )
     });
   }
 
@@ -2808,9 +2805,9 @@ export default class IngameGameState extends GameState<
         wd
           .slice(0, this.game.revealedWesterosCards)
           .concat(shuffleInPlace(wd.slice(this.game.revealedWesterosCards)))
-          .map((wc) => wc.serializeToClient()),
+          .map((wc) => wc.serializeToClient())
       ),
-      winterIsComingHappened: this.game.winterIsComingHappened,
+      winterIsComingHappened: this.game.winterIsComingHappened
     });
   }
 
@@ -2833,7 +2830,7 @@ export default class IngameGameState extends GameState<
   }
 
   getWorldSnapshotWithOrdersOnBoard(
-    planningRestrictions: PlanningRestriction[] = [],
+    planningRestrictions: PlanningRestriction[] = []
   ): IRegionSnapshot[] {
     const worldSnapshot = this.world.getSnapshot();
     worldSnapshot.forEach((r) => {
@@ -2851,7 +2848,7 @@ export default class IngameGameState extends GameState<
 
   serializeToClient(
     admin: boolean,
-    user: User | null,
+    user: User | null
   ): SerializedIngameGameState {
     // If user == null, then the game state needs to be serialized
     // in an "admin" version (i.e. containing all data).
@@ -2865,14 +2862,14 @@ export default class IngameGameState extends GameState<
 
     let ordersOnBoard = this.ordersOnBoard.mapOver(
       (r) => r.id,
-      (o) => o.id,
+      (o) => o.id
     );
     if (!admin && this.fogOfWar && player != null) {
       const visibleRegionIds = this.getVisibleRegionsForPlayer(player).map(
-        (r) => r.id,
+        (r) => r.id
       );
       ordersOnBoard = ordersOnBoard.filter(([rid, _oid]) =>
-        visibleRegionIds.includes(rid),
+        visibleRegionIds.includes(rid)
       );
     }
 
@@ -2882,7 +2879,7 @@ export default class IngameGameState extends GameState<
       visibleRegionsPerPlayer: admin
         ? this.visibleRegionsPerPlayer.entries.map(([p, regions]) => [
             p.user.id,
-            regions.map((r) => r.id),
+            regions.map((r) => r.id)
           ])
         : this.visibleRegionsPerPlayer.entries
             .filter(([p, _regions]) => p.user == user)
@@ -2909,39 +2906,39 @@ export default class IngameGameState extends GameState<
         .childGameStateBeforeVassalsModification
         ? this.childGameStateBeforeVassalsModification.serializeToClient(
             admin,
-            player,
+            player
           )
         : null,
       vassalizedHouses: this.vassalizedHouses.map((h) => h.id),
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
   static deserializeFromServer(
     entireGame: EntireGame,
-    data: SerializedIngameGameState,
+    data: SerializedIngameGameState
   ): IngameGameState {
     const ingameGameState = new IngameGameState(entireGame);
 
     ingameGameState.game = Game.deserializeFromServer(
       ingameGameState,
-      data.game,
+      data.game
     );
     ingameGameState.replayManager = new GameReplayManager(ingameGameState.game);
     ingameGameState.players = new BetterMap(
       data.players.map((p) => [
         entireGame.users.get(p.userId),
-        Player.deserializeFromServer(ingameGameState, p),
-      ]),
+        Player.deserializeFromServer(ingameGameState, p)
+      ])
     );
     ingameGameState.visibleRegionsPerPlayer = new BetterMap(
       data.visibleRegionsPerPlayer.map(([uid, rids]) => [
         ingameGameState.players.get(entireGame.users.get(uid)),
-        rids.map((rid) => ingameGameState.world.regions.get(rid)),
-      ]),
+        rids.map((rid) => ingameGameState.world.regions.get(rid))
+      ])
     );
     ingameGameState.publicVisibleRegions = data.publicVisibleRegions.map(
-      (rid) => ingameGameState.world.regions.get(rid),
+      (rid) => ingameGameState.world.regions.get(rid)
     );
     ingameGameState.unitVisibilityRangeModifier =
       data.unitVisibilityRangeModifier;
@@ -2949,23 +2946,23 @@ export default class IngameGameState extends GameState<
     ingameGameState.replacerIds = data.replacerIds;
     ingameGameState.timeoutPlayerIds = data.timeoutPlayerIds;
     ingameGameState.housesTimedOut = data.housesTimedOut.map((hid) =>
-      ingameGameState.game.houses.get(hid),
+      ingameGameState.game.houses.get(hid)
     );
     ingameGameState.votes = new BetterMap(
       data.votes.map((sv) => [
         sv.id,
-        Vote.deserializeFromServer(ingameGameState, sv),
-      ]),
+        Vote.deserializeFromServer(ingameGameState, sv)
+      ])
     );
     ingameGameState.ordersOnBoard = new BetterMap(
       data.ordersOnBoard.map(([regionId, orderId]) => [
         ingameGameState.world.regions.get(regionId),
-        orders.get(orderId),
-      ]),
+        orders.get(orderId)
+      ])
     );
     ingameGameState.gameLogManager = GameLogManager.deserializeFromServer(
       ingameGameState,
-      data.gameLogManager,
+      data.gameLogManager
     );
     ingameGameState.paused = data.paused ? new Date(data.paused) : null;
     ingameGameState.willBeAutoResumedAt = data.willBeAutoResumedAt
@@ -2975,27 +2972,27 @@ export default class IngameGameState extends GameState<
     ingameGameState.childGameStateBeforeCancellation =
       data.childGameStateBeforeCancellation
         ? ingameGameState.deserializeChildGameState(
-            data.childGameStateBeforeCancellation,
+            data.childGameStateBeforeCancellation
           )
         : null;
     ingameGameState.childGameStateBeforeVassalsModification =
       data.childGameStateBeforeVassalsModification
         ? ingameGameState.deserializeChildGameState(
-            data.childGameStateBeforeVassalsModification,
+            data.childGameStateBeforeVassalsModification
           )
         : null;
     ingameGameState.vassalizedHouses = data.vassalizedHouses.map((hid) =>
-      ingameGameState.game.houses.get(hid),
+      ingameGameState.game.houses.get(hid)
     );
     ingameGameState.childGameState = ingameGameState.deserializeChildGameState(
-      data.childGameState,
+      data.childGameState
     );
 
     return ingameGameState;
   }
 
   deserializeChildGameState(
-    data: SerializedIngameGameState["childGameState"],
+    data: SerializedIngameGameState["childGameState"]
   ): IngameGameState["childGameState"] {
     switch (data.type) {
       case "westeros":
@@ -3017,7 +3014,7 @@ export default class IngameGameState extends GameState<
       case "choose-initial-objectives":
         return ChooseInitialObjectivesGameState.deserializeFromServer(
           this,
-          data,
+          data
         );
     }
   }

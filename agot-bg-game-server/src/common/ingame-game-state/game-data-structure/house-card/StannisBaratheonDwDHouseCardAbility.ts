@@ -7,21 +7,45 @@ import RaidSupportOrderType from "../order-types/RaidSupportOrderType";
 import BetterMap from "../../../../utils/BetterMap";
 
 export default class StannisBaratheonDwDHouseCardAbility extends HouseCardAbility {
-    beforeCombatResolution(beforeCombatResolutionState: BeforeCombatHouseCardAbilitiesGameState, house: House, _houseCard: HouseCard): void {
-        const actionGameState = beforeCombatResolutionState.combatGameState.actionGameState;
-        const combatGameState = beforeCombatResolutionState.combatGameState;
-        const game = beforeCombatResolutionState.game
-        if (combatGameState.supporters.entries.every(([_supporter, supported]) => supported != house)) {
-            const regions = game.world.getNeighbouringRegions(combatGameState.defendingRegion)
-                                .filter(r => actionGameState.ordersOnBoard.has(r))
-                                .map(r => ({r, o: actionGameState.ordersOnBoard.get(r)}))
-                                .filter(({o}) => o.type instanceof SupportOrderType || o.type instanceof RaidSupportOrderType)
-                                .map(({r}) => r);
+  beforeCombatResolution(
+    beforeCombatResolutionState: BeforeCombatHouseCardAbilitiesGameState,
+    house: House,
+    _houseCard: HouseCard
+  ): void {
+    const actionGameState =
+      beforeCombatResolutionState.combatGameState.actionGameState;
+    const combatGameState = beforeCombatResolutionState.combatGameState;
+    const game = beforeCombatResolutionState.game;
+    if (
+      combatGameState.supporters.entries.every(
+        ([_supporter, supported]) => supported != house
+      )
+    ) {
+      const regions = game.world
+        .getNeighbouringRegions(combatGameState.defendingRegion)
+        .filter((r) => actionGameState.ordersOnBoard.has(r))
+        .map((r) => ({ r, o: actionGameState.ordersOnBoard.get(r) }))
+        .filter(
+          ({ o }) =>
+            o.type instanceof SupportOrderType ||
+            o.type instanceof RaidSupportOrderType
+        )
+        .map(({ r }) => r);
 
-            regions.forEach(r => beforeCombatResolutionState.combatGameState.actionGameState.removeOrderFromRegion(r, true, undefined, undefined, "red"));
-            combatGameState.supporters = new BetterMap();
-        }
-
-        beforeCombatResolutionState.childGameState.onHouseCardResolutionFinish(house);
+      regions.forEach((r) =>
+        beforeCombatResolutionState.combatGameState.actionGameState.removeOrderFromRegion(
+          r,
+          true,
+          undefined,
+          undefined,
+          "red"
+        )
+      );
+      combatGameState.supporters = new BetterMap();
     }
+
+    beforeCombatResolutionState.childGameState.onHouseCardResolutionFinish(
+      house
+    );
+  }
 }

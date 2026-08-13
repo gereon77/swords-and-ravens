@@ -7,12 +7,12 @@ import Order from "./Order";
 import * as _ from "lodash";
 import { observable } from "mobx";
 import WesterosCard, {
-  SerializedWesterosCard,
+  SerializedWesterosCard
 } from "./westeros-card/WesterosCard";
 import shuffleInPlace from "../../../utils/shuffleInPlace";
 import shuffle from "../../../utils/shuffle";
 import WildlingCard, {
-  SerializedWildlingCard,
+  SerializedWildlingCard
 } from "./wildling-card/WildlingCard";
 import BetterMap from "../../../utils/BetterMap";
 import HouseCard, { SerializedHouseCard } from "./house-card/HouseCard";
@@ -24,7 +24,7 @@ import {
   vassalHousesOrders,
   playerHousesOrders,
   seaOrders,
-  ironBankOrder,
+  ironBankOrder
 } from "./orders";
 import IronBank, { SerializedIronBank } from "./IronBank";
 import Player from "../Player";
@@ -169,7 +169,7 @@ export default class Game {
       result.push(
         wd
           .slice(0, this.revealedWesterosCards)
-          .map((card) => (card.discarded ? null : card.type)),
+          .map((card) => (card.discarded ? null : card.type))
       );
     });
 
@@ -187,7 +187,7 @@ export default class Game {
   updateWildlingStrength(value: number): number {
     this.wildlingStrength = Math.max(
       0,
-      Math.min(this.wildlingStrength + value, MAX_WILDLING_STRENGTH),
+      Math.min(this.wildlingStrength + value, MAX_WILDLING_STRENGTH)
     );
     return this.wildlingStrength;
   }
@@ -224,7 +224,7 @@ export default class Game {
     region: Region,
     order: Order,
     planningRestrictions: PlanningRestriction[],
-    ignoreRegionKind = false,
+    ignoreRegionKind = false
   ): boolean {
     const controller = region.getController();
     if (!controller) {
@@ -234,7 +234,7 @@ export default class Game {
 
     return (
       planningRestrictions.some((restriction) =>
-        restriction.restriction(order.type),
+        restriction.restriction(order.type)
       ) ||
       (this.getAllowedCountOfStarredOrders(controller) == 0 &&
         order.type.starred) ||
@@ -248,7 +248,7 @@ export default class Game {
   getRestrictedOrders(
     region: Region,
     planningRestrictions: PlanningRestriction[],
-    ignoreRegionKind: boolean,
+    ignoreRegionKind: boolean
   ): Order[] {
     const controller = region.getController();
     if (!controller) {
@@ -256,24 +256,24 @@ export default class Game {
     }
 
     return this.getOrdersListForHouse(controller).filter((o) =>
-      this.isOrderRestricted(region, o, planningRestrictions, ignoreRegionKind),
+      this.isOrderRestricted(region, o, planningRestrictions, ignoreRegionKind)
     );
   }
 
   getPlacedOrders(
     allPlacedOrders: BetterMap<Region, Order | null>,
-    house: House,
+    house: House
   ): BetterMap<Region, Order> {
     return new BetterMap(
       allPlacedOrders.entries.filter(
-        ([region, _order]) => region.getController() == house,
-      ) as [Region, Order][],
+        ([region, _order]) => region.getController() == house
+      ) as [Region, Order][]
     );
   }
 
   getAvailableOrders(
     allPlacedOrders: BetterMap<Region, Order | null>,
-    house: House,
+    house: House
   ): Order[] {
     const ordersList = this.getOrdersListForHouse(house);
     const placedOrders = this.getPlacedOrders(allPlacedOrders, house).values;
@@ -292,7 +292,7 @@ export default class Game {
         placedOrders.filter((o) => o && o.type.starred).length;
 
       leftOrders = leftOrders.filter(
-        (o) => !o.type.starred || (o.type.starred && starredOrderLeft > 0),
+        (o) => !o.type.starred || (o.type.starred && starredOrderLeft > 0)
       );
     }
 
@@ -313,7 +313,7 @@ export default class Game {
 
   areVictoryConditionsFulfilled(): boolean {
     const numberVictoryPointsPerHouse = this.nonVassalHouses.map(
-      (h) => [h, this.getVictoryPoints(h)] as [House, number],
+      (h) => [h, this.getVictoryPoints(h)] as [House, number]
     );
 
     return numberVictoryPointsPerHouse.some(([h, n]) => {
@@ -347,19 +347,19 @@ export default class Game {
           (h: House) => -this.getVictoryPoints(h),
           (h: House) => -this.getTotalControlledLandRegions(h),
           (h: House) => -h.supplyLevel,
-          (h: House) => this.ironThroneTrack.indexOf(h),
+          (h: House) => this.ironThroneTrack.indexOf(h)
         ]
       : !lastRound
         ? [
             (h: House) => (this.ingame.isVassalHouse(h) ? 1 : -1),
             (h: House) => -this.getVictoryPoints(h),
             (h: House) => -this.getTotalControlledLandRegions(h),
-            (h: House) => this.ironThroneTrack.indexOf(h),
+            (h: House) => this.ironThroneTrack.indexOf(h)
           ]
         : [
             (h: House) => (this.ingame.isVassalHouse(h) ? 1 : -1),
             (h: House) => -this.getVictoryPoints(h),
-            (h: House) => this.ironThroneTrack.indexOf(h),
+            (h: House) => this.ironThroneTrack.indexOf(h)
           ];
 
     return _.sortBy(this.houses.values, victoryConditions);
@@ -403,7 +403,7 @@ export default class Game {
     return _.sum(
       this.world.regions.values
         .filter((r) => r.getController() == house)
-        .map((r) => r.supplyIcons),
+        .map((r) => r.supplyIcons)
     );
   }
 
@@ -440,19 +440,19 @@ export default class Game {
   getArmySizes(
     house: House,
     addedUnits: BetterMap<Region, UnitType[]> = new BetterMap(),
-    removedUnits: BetterMap<Region, Unit[]> = new BetterMap(),
+    removedUnits: BetterMap<Region, Unit[]> = new BetterMap()
   ): number[] {
     // Create a map containing, for each region with an army, the size of this army
     const armySizes = new BetterMap(
       this.world.regions.values
         .filter((r) => r.getController() == house)
-        .map((r) => [r, r.units.size]),
+        .map((r) => [r, r.units.size])
     );
 
     removedUnits.entries.forEach(([region, units]) => {
       if (!armySizes.has(region)) {
         throw new Error(
-          `removedUnits contains region ${region.id} but it is not a region with a ${house.id} army in it`,
+          `removedUnits contains region ${region.id} but it is not a region with a ${house.id} army in it`
         );
       }
 
@@ -465,7 +465,7 @@ export default class Game {
 
     return _.sortBy(
       armySizes.values.filter((s) => s > 0),
-      (s) => -s,
+      (s) => -s
     );
   }
 
@@ -513,7 +513,7 @@ export default class Game {
     const oldValue = house.supplyLevel;
     house.supplyLevel = Math.max(
       0,
-      Math.min(house.supplyLevel + delta, this.supplyRestrictions.length - 1),
+      Math.min(house.supplyLevel + delta, this.supplyRestrictions.length - 1)
     );
     return house.supplyLevel - oldValue;
   }
@@ -522,14 +522,14 @@ export default class Game {
     const oldValue = house.victoryPoints;
     house.victoryPoints = Math.max(
       0,
-      Math.min(house.victoryPoints + delta, this.victoryPointsCountNeededToWin),
+      Math.min(house.victoryPoints + delta, this.victoryPointsCountNeededToWin)
     );
     return house.victoryPoints - oldValue;
   }
 
   getControlledStrongholdAndCastleCount(house: House): number {
     return this.world.regions.values.filter(
-      (r) => r.castleLevel > 0 && r.getController() == house,
+      (r) => r.castleLevel > 0 && r.getController() == house
     ).length;
   }
 
@@ -546,7 +546,7 @@ export default class Game {
 
   getTotalLoyaltyTokenCount(house: House): number {
     const superLoyaltyTokens = this.world.regions.values.filter(
-      (r) => r.superLoyaltyToken && r.getController() == house,
+      (r) => r.superLoyaltyToken && r.getController() == house
     ).length;
     return superLoyaltyTokens + house.victoryPoints;
   }
@@ -558,11 +558,11 @@ export default class Game {
   hasTooMuchArmies(
     house: House,
     addedUnits: BetterMap<Region, UnitType[]> = new BetterMap(),
-    removedUnits: BetterMap<Region, Unit[]> = new BetterMap(),
+    removedUnits: BetterMap<Region, Unit[]> = new BetterMap()
   ): boolean {
     const allowedArmySizes = this.getAllowedArmySizes(house);
     const armySizes = this.getArmySizes(house, addedUnits, removedUnits).filter(
-      (a) => a > 1,
+      (a) => a > 1
     );
 
     if (armySizes.length > allowedArmySizes.length) {
@@ -611,18 +611,18 @@ export default class Game {
     this.houses.values.forEach((h) => {
       h.supplyLevel = Math.min(
         this.supplyRestrictions.length - 1,
-        this.getControlledSupplyIcons(h),
+        this.getControlledSupplyIcons(h)
       );
     });
 
     this.ingame.log({
       type: "supply-adjusted",
-      supplies: this.houses.values.map((h) => [h.id, h.supplyLevel]),
+      supplies: this.houses.values.map((h) => [h.id, h.supplyLevel])
     });
 
     this.ingame.entireGame.broadcastToClients({
       type: "supply-adjusted",
-      supplies: this.houses.values.map((h) => [h.id, h.supplyLevel]),
+      supplies: this.houses.values.map((h) => [h.id, h.supplyLevel])
     });
   }
 
@@ -648,11 +648,11 @@ export default class Game {
           supply: h.supplyLevel,
           houseCards: _.orderBy(
             h.houseCards.values,
-            (hc) => hc.combatStrength,
+            (hc) => hc.combatStrength
           ).map((hc) => {
             return {
               id: hc.id,
-              state: hc.state,
+              state: hc.state
             };
           }),
           powerTokens: h.powerTokens,
@@ -660,10 +660,10 @@ export default class Game {
             ? this.ingame.isVassalHouse(h)
             : undefined,
           suzerainHouseId: this.ingame.game.vassalRelations.tryGet(h, undefined)
-            ?.id,
+            ?.id
         };
       }),
-      ironBank: this.ironBank?.getSnapshot(),
+      ironBank: this.ironBank?.getSnapshot()
     };
   }
 
@@ -673,7 +673,7 @@ export default class Game {
     return {
       lastUnitId: this.lastUnitId,
       houses: this.houses.values.map((h) =>
-        h.serializeToClient(admin, player, this),
+        h.serializeToClient(admin, player, this)
       ),
       world: this.world.serializeToClient(admin, player),
       turn: this.turn,
@@ -690,7 +690,7 @@ export default class Game {
             wd
               .slice(0, this.revealedWesterosCards)
               .concat(shuffleInPlace(wd.slice(this.revealedWesterosCards)))
-              .map((wc) => wc.serializeToClient()),
+              .map((wc) => wc.serializeToClient())
           ),
       winterIsComingHappened: this.winterIsComingHappened,
       // Same for the wildling deck
@@ -710,47 +710,47 @@ export default class Game {
       revealedWesterosCards: this.revealedWesterosCards,
       vassalRelations: this.vassalRelations.map((key, value) => [
         key.id,
-        value.id,
+        value.id
       ]),
       vassalHouseCards: this.vassalHouseCards.entries.map(([hcid, hc]) => [
         hcid,
-        hc.serializeToClient(),
+        hc.serializeToClient()
       ]),
       // The game state tree reveals already chosen cards by other houses during Thematic Draft.
       // But as the info is not super critical and as it's easier this was to reveal all cards once drafting is done,
       // hiding other player cards by the UI must be sufficient.
       draftPool: this.draftPool.entries.map(([hcid, hc]) => [
         hcid,
-        hc.serializeToClient(),
+        hc.serializeToClient()
       ]),
       deletedHouseCards: this.deletedHouseCards.entries.map(([hcid, hc]) => [
         hcid,
-        hc.serializeToClient(),
+        hc.serializeToClient()
       ]),
       oldPlayerHouseCards: this.oldPlayerHouseCards.entries.map(([h, hcs]) => [
         h.id,
-        hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()]),
+        hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
       ]),
       previousPlayerHouseCards: this.previousPlayerHouseCards.entries.map(
         ([h, hcs]) => [
           h.id,
-          hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()]),
-        ],
+          hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
+        ]
       ),
       draftMapRegionsPerHouse: this.draftMapRegionsPerHouse.entries.map(
-        ([h, regions]) => [h.id, regions.map((r) => r.id)],
+        ([h, regions]) => [h.id, regions.map((r) => r.id)]
       ),
       dragonStrengthTokens: this.dragonStrengthTokens,
       removedDragonStrengthTokens: this.removedDragonStrengthTokens,
       ironBank: this.ironBank ? this.ironBank.serializeToClient(admin) : null,
       objectiveDeck: admin ? this.objectiveDeck.map((oc) => oc.id) : [],
-      usurper: this.usurper ? this.usurper.id : null,
+      usurper: this.usurper ? this.usurper.id : null
     };
   }
 
   static deserializeFromServer(
     ingame: IngameGameState,
-    data: SerializedGame,
+    data: SerializedGame
   ): Game {
     const game = new Game(ingame);
 
@@ -758,30 +758,30 @@ export default class Game {
     game.vassalHouseCards = new BetterMap(
       data.vassalHouseCards.map(([hcid, hc]) => [
         hcid,
-        HouseCard.deserializeFromServer(hc),
-      ]),
+        HouseCard.deserializeFromServer(hc)
+      ])
     );
     game.houses = new BetterMap(
-      data.houses.map((h) => [h.id, House.deserializeFromServer(game, h)]),
+      data.houses.map((h) => [h.id, House.deserializeFromServer(game, h)])
     );
     game.world = World.deserializeFromServer(game, data.world);
     game.turn = data.turn;
     game.ironThroneTrack = data.ironThroneTrack.map((hid) =>
-      game.houses.get(hid),
+      game.houses.get(hid)
     );
     game.fiefdomsTrack = data.fiefdomsTrack.map((hid) => game.houses.get(hid));
     game.kingsCourtTrack = data.kingsCourtTrack.map((hid) =>
-      game.houses.get(hid),
+      game.houses.get(hid)
     );
     game.westerosDecks = data.westerosDecks.map((wd) =>
-      wd.map((wc) => WesterosCard.deserializeFromServer(wc)),
+      wd.map((wc) => WesterosCard.deserializeFromServer(wc))
     );
     game.winterIsComingHappened = data.winterIsComingHappened;
     game.wildlingStrength = data.wildlingStrength;
     game.supplyRestrictions = data.supplyRestrictions;
     game.valyrianSteelBladeUsed = data.valyrianSteelBladeUsed;
     game.wildlingDeck = data.wildlingDeck.map((c) =>
-      WildlingCard.deserializeFromServer(c),
+      WildlingCard.deserializeFromServer(c)
     );
     game.starredOrderRestrictions = data.starredOrderRestrictions;
     game.victoryPointsCountNeededToWin = data.victoryPointsCountNeededToWin;
@@ -792,42 +792,42 @@ export default class Game {
     game.vassalRelations = new BetterMap(
       data.vassalRelations.map(([vid, hid]) => [
         game.houses.get(vid),
-        game.houses.get(hid),
-      ]),
+        game.houses.get(hid)
+      ])
     );
     game.draftPool = new BetterMap(
       data.draftPool.map(([hcid, hc]) => [
         hcid,
-        HouseCard.deserializeFromServer(hc),
-      ]),
+        HouseCard.deserializeFromServer(hc)
+      ])
     );
     game.deletedHouseCards = new BetterMap(
       data.deletedHouseCards.map(([hcid, hc]) => [
         hcid,
-        HouseCard.deserializeFromServer(hc),
-      ]),
+        HouseCard.deserializeFromServer(hc)
+      ])
     );
     game.oldPlayerHouseCards = new BetterMap(
       data.oldPlayerHouseCards.map(([hid, hcs]) => [
         game.houses.get(hid),
         new BetterMap(
-          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)]),
-        ),
-      ]),
+          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)])
+        )
+      ])
     );
     game.previousPlayerHouseCards = new BetterMap(
       data.previousPlayerHouseCards.map(([hid, hcs]) => [
         game.houses.get(hid),
         new BetterMap(
-          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)]),
-        ),
-      ]),
+          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)])
+        )
+      ])
     );
     game.draftMapRegionsPerHouse = new BetterMap(
       data.draftMapRegionsPerHouse.map(([hid, rIds]) => [
         game.houses.get(hid),
-        rIds.map((rid) => game.world.regions.get(rid)),
-      ]),
+        rIds.map((rid) => game.world.regions.get(rid))
+      ])
     );
     game.dragonStrengthTokens = data.dragonStrengthTokens;
     game.removedDragonStrengthTokens = data.removedDragonStrengthTokens;
@@ -835,7 +835,7 @@ export default class Game {
       ? IronBank.deserializeFromServer(game, data.ironBank)
       : null;
     game.objectiveDeck = data.objectiveDeck.map((ocid) =>
-      objectiveCards.get(ocid),
+      objectiveCards.get(ocid)
     );
     game.usurper = data.usurper ? game.houses.get(data.usurper) : null;
 

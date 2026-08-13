@@ -4,25 +4,25 @@ import Player from "../../../../Player";
 import House from "../../../../game-data-structure/House";
 import * as _ from "lodash";
 import ChooseCasualtiesGameState, {
-  SerializedChooseCasualtiesGameState,
+  SerializedChooseCasualtiesGameState
 } from "./choose-casualties-game-state/ChooseCasualtiesGameState";
 import Game from "../../../../game-data-structure/Game";
 import World from "../../../../game-data-structure/World";
 import HouseCard, {
-  HouseCardState,
+  HouseCardState
 } from "../../../../game-data-structure/house-card/HouseCard";
 import Region from "../../../../game-data-structure/Region";
 import Unit from "../../../../game-data-structure/Unit";
 import { ClientMessage } from "../../../../../../messages/ClientMessage";
 import { ServerMessage } from "../../../../../../messages/ServerMessage";
 import AfterWinnerDeterminationGameState, {
-  SerializedAfterWinnerDeterminationGameState,
+  SerializedAfterWinnerDeterminationGameState
 } from "./after-winner-determination-game-state/AfterWinnerDeterminationGameState";
 import AfterCombatHouseCardAbilitiesGameState, {
-  SerializedAfterCombatHouseCardAbilitiesGameState,
+  SerializedAfterCombatHouseCardAbilitiesGameState
 } from "./after-combat-house-card-abilities-game-state/AfterCombatHouseCardAbilitiesGameState";
 import ResolveRetreatGameState, {
-  SerializedResolveRetreatGameState,
+  SerializedResolveRetreatGameState
 } from "./resolve-retreat-game-state/ResolveRetreatGameState";
 import BetterMap from "../../../../../../utils/BetterMap";
 import { TidesOfBattleCard } from "../../../../game-data-structure/static-data-structure/tidesOfBattleCards";
@@ -73,10 +73,10 @@ export default class PostCombatGameState extends GameState<
     // Final combat strength can't be negative but only attacker is able to generate a negative final combat strength
     const attackerTotalStrength = Math.max(
       this.combat.getTotalCombatStrength(this.attacker),
-      0,
+      0
     );
     const defenderTotalStrength = this.combat.getTotalCombatStrength(
-      this.defender,
+      this.defender
     );
 
     this.winner =
@@ -87,7 +87,7 @@ export default class PostCombatGameState extends GameState<
           : this.game.whoIsAheadInTrack(
               this.game.fiefdomsTrack,
               this.attacker,
-              this.defender,
+              this.defender
             );
     this.loser = this.winner == this.attacker ? this.defender : this.attacker;
 
@@ -121,19 +121,19 @@ export default class PostCombatGameState extends GameState<
               ? tidesOfBattleCard.id
               : null,
         total: Math.max(this.combat.getTotalCombatStrength(h), 0),
-        isWinner: this.winner == h,
+        isWinner: this.winner == h
       };
     });
 
     this.entireGame.broadcastToClients({
       type: "update-combat-stats",
-      stats: this.combat.stats,
+      stats: this.combat.stats
     });
 
     this.combat.ingameGameState.log({
       type: "combat-result",
       winner: this.winner.id,
-      stats: this.combat.stats,
+      stats: this.combat.stats
     });
 
     this.combat.houseCombatDatas.forEach(({ houseCard }, house) => {
@@ -147,7 +147,7 @@ export default class PostCombatGameState extends GameState<
     house: House,
     region: Region,
     selectedCasualties: Unit[],
-    resolvedAutomatically: boolean,
+    resolvedAutomatically: boolean
   ): void {
     // If there is just a garrison, the selectedCasualties might be an empty array here
     if (selectedCasualties.length > 0) {
@@ -155,9 +155,9 @@ export default class PostCombatGameState extends GameState<
         {
           type: "killed-after-combat",
           house: house.id,
-          killed: selectedCasualties.map((u) => u.type.id),
+          killed: selectedCasualties.map((u) => u.type.id)
         },
-        resolvedAutomatically,
+        resolvedAutomatically
       );
 
       // Remove the selected casualties
@@ -170,12 +170,12 @@ export default class PostCombatGameState extends GameState<
         type: "combat-change-army",
         region: region.id,
         house: house.id,
-        army: hcd.army.map((u) => u.id),
+        army: hcd.army.map((u) => u.id)
       });
 
       this.combat.ingameGameState.broadcastRemoveUnits(
         region,
-        selectedCasualties,
+        selectedCasualties
       );
     }
 
@@ -195,15 +195,15 @@ export default class PostCombatGameState extends GameState<
         {
           type: "change-garrison",
           region: this.combat.defendingRegion.id,
-          newGarrison: 0,
+          newGarrison: 0
         },
-        this.combat.defendingRegion,
+        this.combat.defendingRegion
       );
 
       this.parentGameState.ingameGameState.log({
         type: "garrison-removed",
         region: this.combat.defendingRegion.id,
-        strength: oldGarrisonStrength,
+        strength: oldGarrisonStrength
       });
     }
 
@@ -237,11 +237,11 @@ export default class PostCombatGameState extends GameState<
     const loserArmyLeft = this.loserCombatData.army;
     const maxLoserCasualtiesCount = Math.max(
       0,
-      winnerSwordIcons - loserTowerIcons,
+      winnerSwordIcons - loserTowerIcons
     );
     const loserCasualtiesCount = Math.min(
       maxLoserCasualtiesCount,
-      loserArmyLeft.length,
+      loserArmyLeft.length
     );
 
     if (loserCasualtiesCount > 0) {
@@ -249,7 +249,7 @@ export default class PostCombatGameState extends GameState<
       if (!this.combat.areCasualtiesPrevented(this.loser)) {
         if (loserCasualtiesCount < loserArmyLeft.length) {
           this.setChildGameState(
-            new ChooseCasualtiesGameState(this),
+            new ChooseCasualtiesGameState(this)
           ).firstStart(this.loser, loserArmyLeft, loserCasualtiesCount);
         } else {
           // If the count of casualties is bigger or equal than the remaining army, a ChooseCasualtiesGameState
@@ -258,7 +258,7 @@ export default class PostCombatGameState extends GameState<
             this.loser,
             locationLoserArmy,
             loserArmyLeft,
-            true,
+            true
           );
         }
         return;
@@ -268,7 +268,7 @@ export default class PostCombatGameState extends GameState<
           house: this.loser.id,
           houseCard: (
             this.combat.houseCombatDatas.get(this.loser).houseCard as HouseCard
-          ).id,
+          ).id
         });
       }
     }
@@ -280,7 +280,7 @@ export default class PostCombatGameState extends GameState<
     const loserArmy = this.loserCombatData.army;
     const locationLoserArmy = this.loserCombatData.region;
     const immediatelyKilledLoserUnits = loserArmy.filter(
-      (u) => u.wounded || !u.type.canRetreat,
+      (u) => u.wounded || !u.type.canRetreat
     );
 
     if (immediatelyKilledLoserUnits.length > 0) {
@@ -292,26 +292,26 @@ export default class PostCombatGameState extends GameState<
           .map((u) => u.type.id),
         killedBecauseCantRetreat: immediatelyKilledLoserUnits
           .filter((u) => !u.type.canRetreat)
-          .map((u) => u.type.id),
+          .map((u) => u.type.id)
       });
 
       this.loserCombatData.army = _.difference(
         this.loserCombatData.army,
-        immediatelyKilledLoserUnits,
+        immediatelyKilledLoserUnits
       );
       this.entireGame.broadcastToClients({
         type: "combat-change-army",
         house: this.loser.id,
         region: locationLoserArmy.id,
-        army: this.loserCombatData.army.map((u) => u.id),
+        army: this.loserCombatData.army.map((u) => u.id)
       });
 
       immediatelyKilledLoserUnits.forEach((u) =>
-        locationLoserArmy.units.delete(u.id),
+        locationLoserArmy.units.delete(u.id)
       );
       this.combat.ingameGameState.broadcastRemoveUnits(
         locationLoserArmy,
-        immediatelyKilledLoserUnits,
+        immediatelyKilledLoserUnits
       );
     }
   }
@@ -322,7 +322,7 @@ export default class PostCombatGameState extends GameState<
         ([h, hcd]) =>
           !this.resolvedSkullIcons.includes(h) &&
           hcd.tidesOfBattleCard &&
-          hcd.tidesOfBattleCard.skullIcons > 0,
+          hcd.tidesOfBattleCard.skullIcons > 0
       )
       .map(([h, _hcd]) => h);
 
@@ -339,7 +339,7 @@ export default class PostCombatGameState extends GameState<
       if (!this.combat.areCasualtiesPrevented(enemy, true)) {
         if (skullCount < enemyCombatData.army.length) {
           this.setChildGameState(
-            new ChooseCasualtiesGameState(this),
+            new ChooseCasualtiesGameState(this)
           ).firstStart(enemy, enemyCombatData.army, skullCount);
         } else {
           // If the count of casualties is bigger or equal than the remaining army, a ChooseCasualtiesGameState
@@ -348,7 +348,7 @@ export default class PostCombatGameState extends GameState<
             enemy,
             enemyCombatData.region,
             enemyCombatData.army,
-            true,
+            true
           );
         }
         return;
@@ -357,7 +357,7 @@ export default class PostCombatGameState extends GameState<
           this.combat.ingameGameState.log({
             type: "casualties-prevented",
             house: enemy.id,
-            houseCard: (enemyCombatData.houseCard as HouseCard).id,
+            houseCard: (enemyCombatData.houseCard as HouseCard).id
           });
         }
         this.proceedSkullIconHandling();
@@ -384,8 +384,8 @@ export default class PostCombatGameState extends GameState<
           this.entireGame.broadcastToClients({
             type: "update-old-player-house-cards",
             houseCards: this.game.oldPlayerHouseCards.entries.map(
-              ([h, hcs]) => [h.id, hcs.values.map((hc) => hc.id)],
-            ),
+              ([h, hcs]) => [h.id, hcs.values.map((hc) => hc.id)]
+            )
           });
         }
       } else {
@@ -394,7 +394,7 @@ export default class PostCombatGameState extends GameState<
     });
 
     this.setChildGameState(
-      new AfterCombatHouseCardAbilitiesGameState(this),
+      new AfterCombatHouseCardAbilitiesGameState(this)
     ).firstStart();
   }
 
@@ -407,14 +407,14 @@ export default class PostCombatGameState extends GameState<
       if (changed > 0) {
         ingame.log({
           type: "commander-power-token-gained",
-          house: commander.id,
+          house: commander.id
         });
       }
     }
 
     // Do abilities
     this.setChildGameState(
-      new AfterWinnerDeterminationGameState(this),
+      new AfterWinnerDeterminationGameState(this)
     ).firstStart();
   }
 
@@ -460,13 +460,13 @@ export default class PostCombatGameState extends GameState<
           this.combat.resolveMarchOrderGameState.moveUnits(
             this.combat.attackingRegion,
             this.combat.attackingArmy,
-            this.combat.defendingRegion,
+            this.combat.defendingRegion
           );
         } else {
           this.combat.ingameGameState.log({
             type: "arianne-martell-prevent-movement",
             house: this.combat.defender.id,
-            enemyHouse: this.combat.attacker.id,
+            enemyHouse: this.combat.attacker.id
           });
         }
       }
@@ -497,7 +497,7 @@ export default class PostCombatGameState extends GameState<
             houseCard.ability.doesPreventAttackingArmyFromMoving(
               this,
               h,
-              houseCard,
+              houseCard
             )
         : s;
     }, false);
@@ -516,7 +516,7 @@ export default class PostCombatGameState extends GameState<
             houseCard.ability.forcesRetreatOfVictoriousDefender(
               this,
               h,
-              houseCard,
+              houseCard
             )
         : s;
     }, false);
@@ -526,9 +526,9 @@ export default class PostCombatGameState extends GameState<
     // Notify combatans about end of combat
     this.combat.entireGame.notifyUsers(
       this.combat.houseCombatDatas.keys.map(
-        (h) => this.combat.ingameGameState.getControllerOfHouse(h).user,
+        (h) => this.combat.ingameGameState.getControllerOfHouse(h).user
       ),
-      NotificationType.BATTLE_RESULTS,
+      NotificationType.BATTLE_RESULTS
     );
 
     this.combat.houseCombatDatas.keys.forEach((house) => {
@@ -546,8 +546,8 @@ export default class PostCombatGameState extends GameState<
           this.entireGame.broadcastToClients({
             type: "update-old-player-house-cards",
             houseCards: this.game.oldPlayerHouseCards.entries.map(
-              ([h, hcs]) => [h.id, hcs.values.map((hc) => hc.id)],
-            ),
+              ([h, hcs]) => [h.id, hcs.values.map((hc) => hc.id)]
+            )
           });
         }
 
@@ -555,7 +555,7 @@ export default class PostCombatGameState extends GameState<
         this.entireGame.broadcastToClients({
           type: "update-house-cards",
           house: house.id,
-          houseCards: [],
+          houseCards: []
         });
       }
     });
@@ -571,13 +571,13 @@ export default class PostCombatGameState extends GameState<
             regionsToMakeVisible: [],
             ordersToMakeVisible: [],
             clear: true,
-            applyChangesNow: !this.combat.ingameGameState.players.has(u),
+            applyChangesNow: !this.combat.ingameGameState.players.has(u)
           });
         });
     }
 
     this.combat.resolveMarchOrderGameState.onResolveSingleMarchOrderGameStateFinish(
-      this.attacker,
+      this.attacker
     );
   }
 
@@ -592,7 +592,7 @@ export default class PostCombatGameState extends GameState<
         type: "change-state-house-card",
         houseId: house.id,
         cardIds: [houseCard.id],
-        state: HouseCardState.USED,
+        state: HouseCardState.USED
       });
     }
   }
@@ -605,14 +605,14 @@ export default class PostCombatGameState extends GameState<
         type: "change-state-house-card",
         houseId: house.id,
         cardIds: [houseCard.id],
-        state: HouseCardState.AVAILABLE,
+        state: HouseCardState.AVAILABLE
       });
     }
   }
 
   checkAndPerformHouseCardHandlingPerHouse(
     house: House,
-    houseCard: HouseCard | null,
+    houseCard: HouseCard | null
   ): void {
     // If all cards are used or discarded, put all used as available,
     // except the one that has been used.
@@ -637,20 +637,20 @@ export default class PostCombatGameState extends GameState<
       });
 
       house.laterHouseCards.entries.forEach(([hcid, hc]) =>
-        house.houseCards.set(hcid, hc),
+        house.houseCards.set(hcid, hc)
       );
       house.laterHouseCards = null;
 
       this.entireGame.broadcastToClients({
         type: "later-house-cards-applied",
-        house: house.id,
+        house: house.id
       });
 
       this.combat.ingameGameState.log({
         type: "house-cards-returned",
         house: house.id,
         houseCards: house.houseCards.keys,
-        houseCardDiscarded: undefined,
+        houseCardDiscarded: undefined
       });
     } else if (this.entireGame.gameSettings.perpetuumRandom) {
       // House receives new cards from the draft pool
@@ -660,7 +660,7 @@ export default class PostCombatGameState extends GameState<
         // Mark card as available again
         hc.state = HouseCardState.AVAILABLE;
         const availableCards = this.game.draftPool.values.filter(
-          (poolCard) => poolCard.combatStrength == hc.combatStrength,
+          (poolCard) => poolCard.combatStrength == hc.combatStrength
         );
         const houseCard = popRandom(availableCards) as HouseCard;
         house.houseCards.set(houseCard.id, houseCard);
@@ -674,49 +674,49 @@ export default class PostCombatGameState extends GameState<
         type: "change-state-house-card",
         cardIds: oldHouseCards.map((hc) => hc.id),
         state: HouseCardState.AVAILABLE,
-        houseId: house.id,
+        houseId: house.id
       });
 
       this.entireGame.broadcastToClients({
         type: "update-game-house-cards",
         draftPool: this.game.draftPool.keys,
-        houseCards: [house.id, house.houseCards.keys],
+        houseCards: [house.id, house.houseCards.keys]
       });
 
       this.combat.ingameGameState.log({
         type: "house-cards-returned",
         house: house.id,
         houseCards: house.houseCards.keys,
-        houseCardDiscarded: undefined,
+        houseCardDiscarded: undefined
       });
     } else {
       const houseCardsToMakeAvailable = house.houseCards.values.filter(
-        (hc) => hc != houseCard,
+        (hc) => hc != houseCard
       );
 
       houseCardsToMakeAvailable.forEach(
-        (hc) => (hc.state = HouseCardState.AVAILABLE),
+        (hc) => (hc.state = HouseCardState.AVAILABLE)
       );
 
       this.combat.ingameGameState.log({
         type: "house-cards-returned",
         house: house.id,
         houseCards: houseCardsToMakeAvailable.map((hc) => hc.id),
-        houseCardDiscarded: houseCard ? houseCard.id : undefined,
+        houseCardDiscarded: houseCard ? houseCard.id : undefined
       });
 
       this.entireGame.broadcastToClients({
         type: "change-state-house-card",
         houseId: house.id,
         cardIds: houseCardsToMakeAvailable.map((hc) => hc.id),
-        state: HouseCardState.AVAILABLE,
+        state: HouseCardState.AVAILABLE
       });
     }
   }
 
   serializeToClient(
     admin: boolean,
-    player: Player | null,
+    player: Player | null
   ): SerializedPostCombatGameState {
     return {
       type: "post-combat",
@@ -724,13 +724,13 @@ export default class PostCombatGameState extends GameState<
       loser: this.loser.id,
       originalLoser: this.originalLoser ? this.originalLoser.id : null,
       resolvedSkullIcons: this.resolvedSkullIcons.map((h) => h.id),
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
   static deserializeFromServer(
     combat: CombatGameState,
-    data: SerializedPostCombatGameState,
+    data: SerializedPostCombatGameState
   ): PostCombatGameState {
     const postCombat = new PostCombatGameState(combat);
 
@@ -740,17 +740,17 @@ export default class PostCombatGameState extends GameState<
       ? combat.game.houses.get(data.originalLoser)
       : null;
     postCombat.resolvedSkullIcons = data.resolvedSkullIcons.map((hid) =>
-      combat.game.houses.get(hid),
+      combat.game.houses.get(hid)
     );
     postCombat.childGameState = postCombat.deserializeChildGameState(
-      data.childGameState,
+      data.childGameState
     );
 
     return postCombat;
   }
 
   deserializeChildGameState(
-    data: SerializedPostCombatGameState["childGameState"],
+    data: SerializedPostCombatGameState["childGameState"]
   ): PostCombatGameState["childGameState"] {
     switch (data.type) {
       case "resolve-retreat":
@@ -760,12 +760,12 @@ export default class PostCombatGameState extends GameState<
       case "after-winner-determination":
         return AfterWinnerDeterminationGameState.deserializeFromServer(
           this,
-          data,
+          data
         );
       case "after-combat-house-card-abilities":
         return AfterCombatHouseCardAbilitiesGameState.deserializeFromServer(
           this,
-          data,
+          data
         );
     }
   }

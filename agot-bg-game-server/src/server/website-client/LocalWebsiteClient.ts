@@ -17,11 +17,11 @@ const user = {
     muted: true,
     musicVolume: 1,
     notificationsVolume: 1,
-    sfxVolume: 1,
+    sfxVolume: 1
   },
   connected: false,
   otherUsersFromSameNetwork: [],
-  note: "",
+  note: ""
 };
 
 export default class LocalWebsiteClient implements WebsiteClient {
@@ -44,7 +44,7 @@ export default class LocalWebsiteClient implements WebsiteClient {
       name: "Local Test Game",
       ownerId: "1",
       serializedGame: serializedGame,
-      version: version.toString(),
+      version: version.toString()
     };
   }
 
@@ -65,7 +65,7 @@ export default class LocalWebsiteClient implements WebsiteClient {
         ...user,
         id: `${i + 1}`,
         name: `Player ${i + 1}`,
-        facelessName: `Nobody ${i + 1}`,
+        facelessName: `Nobody ${i + 1}`
       };
       serializedGame.users.push(u);
     }
@@ -95,7 +95,7 @@ export default class LocalWebsiteClient implements WebsiteClient {
         houseId: houses[i],
         userId: `${i + 1}`,
         liveClockData: null,
-        waitedForData: null,
+        waitedForData: null
       };
       ingame.players.push(player);
     }
@@ -145,8 +145,8 @@ export default class LocalWebsiteClient implements WebsiteClient {
         muted: true,
         houseNamesForChat: true,
         mapScrollbar: true,
-        responsiveLayout: false,
-      },
+        responsiveLayout: false
+      }
     };
   }
 

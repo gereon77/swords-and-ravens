@@ -6,7 +6,7 @@ import {
   Spinner,
   Tab,
   Nav,
-  Dropdown,
+  Dropdown
 } from "react-bootstrap";
 // @ts-expect-error Somehow this module cannot be found while it is
 import ScrollToBottom from "react-scroll-to-bottom";
@@ -40,7 +40,7 @@ import {
   faComments,
   faEdit,
   faHistory,
-  faUniversity,
+  faUniversity
 } from "@fortawesome/free-solid-svg-icons";
 
 import cardRandomImage from "../../public/images/icons/card-random.svg";
@@ -90,7 +90,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
 
   private get publicChatRoom(): Channel {
     return this.gameClient.chatClient.channels.get(
-      this.ingame.entireGame.publicChatRoomId,
+      this.ingame.entireGame.publicChatRoomId
     );
   }
 
@@ -107,11 +107,11 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
         style={{
           height: height,
           maxHeight: height,
-          borderWidth: "3px",
+          borderWidth: "3px"
         }}
         className={classNames(
           { "flex-fill-remaining": this.gameClient.isMapScrollbarSet },
-          "text-large",
+          "text-large"
         )}
       >
         <Tab.Container
@@ -141,7 +141,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                 <div
                   className={classNames({
                     "orange-border": this.publicChatRoom.areThereUnreadMessages,
-                    disconnected: !this.publicChatRoom.connected,
+                    disconnected: !this.publicChatRoom.connected
                   })}
                 >
                   <Nav.Link eventKey="chat">
@@ -164,7 +164,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                   <div
                     className={classNames({
                       "orange-border":
-                        this.gameClient.authenticatedPlayer?.isNeededForVote,
+                        this.gameClient.authenticatedPlayer?.isNeededForVote
                     })}
                   >
                     <Nav.Link eventKey="votes">
@@ -298,7 +298,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                       "orange-border":
                         this.getPrivateChatRoomForPlayer(user)
                           .areThereUnreadMessages,
-                      disconnected: !this.publicChatRoom.connected,
+                      disconnected: !this.publicChatRoom.connected
                     })}
                   >
                     <Nav.Link eventKey={roomId}>
@@ -342,7 +342,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                     <b>
                       {getUserLinkOrLabel(
                         u,
-                        this.user?.settings.chatHouseNames,
+                        this.user?.settings.chatHouseNames
                       )}
                     </b>
                   )}
@@ -435,7 +435,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                       <b>
                         {getUserLinkOrLabel(
                           u,
-                          this.user?.settings.chatHouseNames,
+                          this.user?.settings.chatHouseNames
                         )}
                       </b>
                     )}
@@ -495,7 +495,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     ) {
       this.ingame.entireGame.sendMessageToServer({
         type: "create-private-chat-room",
-        otherUser: p.user.id,
+        otherUser: p.user.id
       });
     } else {
       this.currentOpenedTab = this.ingame.entireGame.privateChatRoomsIds
@@ -512,26 +512,26 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     const users = _.sortBy([this.user as User, u], (u) => u.id);
 
     return this.gameClient.chatClient.channels.get(
-      this.ingame.entireGame.privateChatRoomsIds.get(users[0]).get(users[1]),
+      this.ingame.entireGame.privateChatRoomsIds.get(users[0]).get(users[1])
     );
   }
 
   getOtherPlayers(): Player[] {
     return _.sortBy(this.ingame.players.values, (p) =>
-      this.user?.settings.chatHouseNames ? p.house.name : p.user.name,
+      this.user?.settings.chatHouseNames ? p.house.name : p.user.name
     ).filter((p) => p.user != this.user);
   }
 
   injectBetweenMessages(
     _previous: Message | null,
-    _next: Message | null,
+    _next: Message | null
   ): ReactNode {
     return null;
   }
 
   renderGameLogRoundsDropDownItems(): ReactNode {
     const gameRoundElements = document.querySelectorAll(
-      '*[id^="gamelog-round-"]',
+      '*[id^="gamelog-round-"]'
     );
 
     const result: JSX.Element[] = [];
@@ -547,12 +547,12 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
             const elemToScroll = document.getElementById(gameRoundElem.id);
             elemToScroll?.scrollIntoView({
               behavior: "smooth",
-              block: "center",
+              block: "center"
             });
           }}
         >
           Round {round}
-        </Dropdown.Item>,
+        </Dropdown.Item>
       );
     });
 
@@ -591,7 +591,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
   componentDidUpdate(
     _prevProps: Readonly<GameTabsComponentProps>,
     _prevState: Readonly<any>,
-    _snapshot?: any,
+    _snapshot?: any
   ): void {
     if (this.currentOpenedTab == "note") {
       this.unseenNotes = false;
@@ -616,7 +616,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     if (visibilityChangedCallback) {
       document.removeEventListener(
         "visibilitychange",
-        visibilityChangedCallback,
+        visibilityChangedCallback
       );
     }
   }
