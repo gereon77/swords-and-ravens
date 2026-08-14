@@ -11,7 +11,7 @@ import LobbyGameState from "../common/lobby-game-state/LobbyGameState";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import {
   allGameSetups,
-  getGameSetupContainer,
+  getGameSetupContainer
 } from "../common/ingame-game-state/game-data-structure/createGame";
 import IngameGameState from "../common/ingame-game-state/IngameGameState";
 import { isMobile } from "react-device-detect";
@@ -42,7 +42,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
 
   get selectedGameSetupName(): string {
     const name = allGameSetups.get(
-      this.props.entireGame.gameSettings.setupId,
+      this.props.entireGame.gameSettings.setupId
     ).name;
     return name.substring(0, name.indexOf(" ("));
   }
@@ -87,7 +87,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     onChange={(e) =>
                       this.changeGameSettings(
                         () =>
-                          (this.gameSettings.pbem = e.target.value == "PBEM"),
+                          (this.gameSettings.pbem = e.target.value == "PBEM")
                       )
                     }
                   >
@@ -124,7 +124,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     this.changeGameSettings(
                       () =>
                         (this.gameSettings.startWhenFull =
-                          !this.gameSettings.startWhenFull),
+                          !this.gameSettings.startWhenFull)
                     )
                   }
                 />
@@ -172,7 +172,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     this.changeGameSettings(
                       () =>
                         (this.gameSettings.onlyLive =
-                          !this.gameSettings.onlyLive),
+                          !this.gameSettings.onlyLive)
                     )
                   }
                 />
@@ -230,7 +230,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     this.changeGameSettings(
                       () =>
                         (this.gameSettings.fixedClock =
-                          !this.gameSettings.fixedClock),
+                          !this.gameSettings.fixedClock)
                     )
                   }
                 />
@@ -257,8 +257,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   onChange={() =>
                     this.changeGameSettings(
                       () =>
-                        (this.gameSettings.private =
-                          !this.gameSettings.private),
+                        (this.gameSettings.private = !this.gameSettings.private)
                     )
                   }
                 />
@@ -601,7 +600,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   this.changeGameSettings(
                     () =>
                       (this.gameSettings.addPortToTheEyrie =
-                        !this.gameSettings.addPortToTheEyrie),
+                        !this.gameSettings.addPortToTheEyrie)
                   )
                 }
               />
@@ -632,7 +631,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.adwdHouseCards =
-                      !this.gameSettings.adwdHouseCards),
+                      !this.gameSettings.adwdHouseCards)
                 )
               }
             />
@@ -661,7 +660,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.asosHouseCards =
-                      !this.gameSettings.asosHouseCards),
+                      !this.gameSettings.asosHouseCards)
                 )
               }
             />
@@ -691,7 +690,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.houseCardsEvolution =
-                      !this.gameSettings.houseCardsEvolution),
+                      !this.gameSettings.houseCardsEvolution)
                 )
               }
             />
@@ -739,7 +738,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
             )}
           </Col>
           {this.props.entireGame.isCustomBalancingOptionAvailable(
-            this.gameSettings,
+            this.gameSettings
           ) && (
             <Col xs="12">
               <FormCheck
@@ -785,7 +784,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   this.changeGameSettings(
                     () =>
                       (this.gameSettings.customBalancing =
-                        !this.gameSettings.customBalancing),
+                        !this.gameSettings.customBalancing)
                   )
                 }
               />
@@ -812,8 +811,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               checked={this.gameSettings.vassals}
               onChange={() =>
                 this.changeGameSettings(
-                  () =>
-                    (this.gameSettings.vassals = !this.gameSettings.vassals),
+                  () => (this.gameSettings.vassals = !this.gameSettings.vassals)
                 )
               }
             />
@@ -846,7 +844,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               onChange={() =>
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.ironBank = !this.gameSettings.ironBank),
+                    (this.gameSettings.ironBank = !this.gameSettings.ironBank)
                 )
               }
             />
@@ -874,7 +872,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.seaOrderTokens =
-                      !this.gameSettings.seaOrderTokens),
+                      !this.gameSettings.seaOrderTokens)
                 )
               }
             />
@@ -901,7 +899,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.allowGiftingPowerTokens =
-                      !this.gameSettings.allowGiftingPowerTokens),
+                      !this.gameSettings.allowGiftingPowerTokens)
                 )
               }
             />
@@ -928,7 +926,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.randomVassalAssignment =
-                      !this.gameSettings.randomVassalAssignment),
+                      !this.gameSettings.randomVassalAssignment)
                 )
               }
             />
@@ -956,8 +954,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               onChange={() =>
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.dragonWar =
-                      !this.gameSettings.dragonWar),
+                    (this.gameSettings.dragonWar = !this.gameSettings.dragonWar)
                 )
               }
             />
@@ -983,7 +980,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.dragonRevenge =
-                      !this.gameSettings.dragonRevenge),
+                      !this.gameSettings.dragonRevenge)
                 )
               }
             />
@@ -1061,7 +1058,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.tidesOfBattle =
-                      !this.gameSettings.tidesOfBattle),
+                      !this.gameSettings.tidesOfBattle)
                 )
               }
             />
@@ -1089,7 +1086,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.removeTob3 =
-                      !this.gameSettings.removeTob3),
+                      !this.gameSettings.removeTob3)
                 )
               }
             />
@@ -1117,7 +1114,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.removeTobSkulls =
-                      !this.gameSettings.removeTobSkulls),
+                      !this.gameSettings.removeTobSkulls)
                 )
               }
             />
@@ -1142,8 +1139,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               onChange={() =>
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.limitTob2 =
-                      !this.gameSettings.limitTob2),
+                    (this.gameSettings.limitTob2 = !this.gameSettings.limitTob2)
                 )
               }
             />
@@ -1177,7 +1173,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.mixedWesterosDeck1 =
-                      !this.gameSettings.mixedWesterosDeck1),
+                      !this.gameSettings.mixedWesterosDeck1)
                 )
               }
             />
@@ -1205,7 +1201,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.cokWesterosPhase =
-                      !this.gameSettings.cokWesterosPhase),
+                      !this.gameSettings.cokWesterosPhase)
                 )
               }
             />
@@ -1228,8 +1224,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               checked={this.gameSettings.endless}
               onChange={() =>
                 this.changeGameSettings(
-                  () =>
-                    (this.gameSettings.endless = !this.gameSettings.endless),
+                  () => (this.gameSettings.endless = !this.gameSettings.endless)
                 )
               }
             />
@@ -1251,12 +1246,25 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 </OverlayTrigger>
               }
               checked={this.gameSettings.faceless}
-              onChange={() =>
+              onChange={() => {
+                if (this.gameSettings.faceless) {
+                  return;
+                }
+
+                if (
+                  !window.confirm(
+                    "Enabling Faceless is permanent and cannot be undone.\n\n" +
+                      "Are you sure you want to enable Faceless?"
+                  )
+                ) {
+                  return;
+                }
+
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.faceless = !this.gameSettings.faceless),
-                )
-              }
+                    (this.gameSettings.faceless = !this.gameSettings.faceless)
+                );
+              }}
             />
           </Col>
           <Col xs="12">
@@ -1281,7 +1289,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               onChange={() =>
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.fogOfWar = !this.gameSettings.fogOfWar),
+                    (this.gameSettings.fogOfWar = !this.gameSettings.fogOfWar)
                 )
               }
             />
@@ -1308,7 +1316,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.noPrivateChats =
-                      !this.gameSettings.noPrivateChats),
+                      !this.gameSettings.noPrivateChats)
                 )
               }
             />
@@ -1338,7 +1346,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.precedingMustering =
-                      !this.gameSettings.precedingMustering),
+                      !this.gameSettings.precedingMustering)
                 )
               }
             />
@@ -1365,7 +1373,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.randomStartPositions =
-                      !this.gameSettings.randomStartPositions),
+                      !this.gameSettings.randomStartPositions)
                 )
               }
             />
@@ -1393,7 +1401,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.useVassalPositions =
-                      !this.gameSettings.useVassalPositions),
+                      !this.gameSettings.useVassalPositions)
                 )
               }
             />
@@ -1421,7 +1429,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.holdVictoryPointsUntilEndOfRound =
-                      !this.gameSettings.holdVictoryPointsUntilEndOfRound),
+                      !this.gameSettings.holdVictoryPointsUntilEndOfRound)
                 )
               }
             />
@@ -1452,7 +1460,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.tournamentMode =
-                      !this.gameSettings.tournamentMode),
+                      !this.gameSettings.tournamentMode)
                 )
               }
             />
@@ -1490,7 +1498,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.draftHouseCards =
-                      !this.gameSettings.draftHouseCards),
+                      !this.gameSettings.draftHouseCards)
                 )
               }
             />
@@ -1516,7 +1524,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.thematicDraft =
-                      !this.gameSettings.thematicDraft),
+                      !this.gameSettings.thematicDraft)
                 )
               }
             />
@@ -1542,7 +1550,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.randomDraft =
-                      !this.gameSettings.randomDraft),
+                      !this.gameSettings.randomDraft)
                 )
               }
             />
@@ -1588,7 +1596,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               onChange={() =>
                 this.changeGameSettings(
                   () =>
-                    (this.gameSettings.draftMap = !this.gameSettings.draftMap),
+                    (this.gameSettings.draftMap = !this.gameSettings.draftMap)
                 )
               }
             />
@@ -1629,7 +1637,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   this.changeGameSettings(
                     () =>
                       (this.gameSettings.draftTracks =
-                        !this.gameSettings.draftTracks),
+                        !this.gameSettings.draftTracks)
                   )
                 }
               />
@@ -1655,7 +1663,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   this.changeGameSettings(
                     () =>
                       (this.gameSettings.limitedDraft =
-                        !this.gameSettings.limitedDraft),
+                        !this.gameSettings.limitedDraft)
                   )
                 }
               />
@@ -1684,7 +1692,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                       this.changeGameSettings(
                         () =>
                           (this.gameSettings.blindDraft =
-                            !this.gameSettings.blindDraft),
+                            !this.gameSettings.blindDraft)
                       )
                     }
                   />
@@ -1712,7 +1720,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                       this.changeGameSettings(
                         () =>
                           (this.gameSettings.perpetuumRandom =
-                            !this.gameSettings.perpetuumRandom),
+                            !this.gameSettings.perpetuumRandom)
                       )
                     }
                   />
@@ -1822,7 +1830,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
       items.push(
         <option key={setupId} value={setupId}>
           {setupData.name}
-        </option>,
+        </option>
       );
     });
 
@@ -1833,14 +1841,14 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
     const items: JSX.Element[] = [];
 
     const playerSetups = getGameSetupContainer(
-      this.gameSettings.setupId,
+      this.gameSettings.setupId
     ).playerSetups;
 
     playerSetups.forEach((gameSetup) => {
       items.push(
         <option key={gameSetup.playerCount} value={gameSetup.playerCount}>
           {gameSetup.playerCount}
-        </option>,
+        </option>
       );
     });
 
@@ -1857,7 +1865,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
     // On setup change set player count to it's default value which should be the highest value (last element)
     const container = getGameSetupContainer(newVal);
     const playerCounts = container.playerSetups.map(
-      (playerSetup) => playerSetup.playerCount,
+      (playerSetup) => playerSetup.playerCount
     );
     const defaultPlayerCount = playerCounts[playerCounts.length - 1];
     this.gameSettings.playerCount = defaultPlayerCount;
@@ -1930,7 +1938,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
     this.changeGameSettings(
       () =>
         (this.entireGame.gameSettings.randomChosenHouses =
-          !this.entireGame.gameSettings.randomChosenHouses),
+          !this.entireGame.gameSettings.randomChosenHouses)
     );
   }
 
@@ -1945,7 +1953,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
     this.changeGameSettings(
       () =>
         (this.entireGame.gameSettings.randomHouses =
-          !this.entireGame.gameSettings.randomHouses),
+          !this.entireGame.gameSettings.randomHouses)
     );
   }
 
@@ -1965,7 +1973,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
 
   selectHouseCardDeck(
     e: React.ChangeEvent<HTMLInputElement>,
-    deck: HouseCardDecks,
+    deck: HouseCardDecks
   ): void {
     if (e.target.checked) {
       this.gameSettings.selectedDraftDecks |= deck;

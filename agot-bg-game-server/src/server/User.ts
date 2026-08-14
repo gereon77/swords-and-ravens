@@ -21,11 +21,11 @@ export default class User {
     () => {
       this.entireGame.sendMessageToServer({
         type: "change-settings",
-        settings: this.settings,
+        settings: this.settings
       });
     },
     500,
-    { trailing: true },
+    { trailing: true }
   );
 
   constructor(
@@ -35,7 +35,7 @@ export default class User {
     game: EntireGame,
     settings: UserSettings,
     connected = false,
-    otherUsersFromSameNetwork: string[] = [],
+    otherUsersFromSameNetwork: string[] = []
   ) {
     this.id = id;
     this.name = name;
@@ -50,8 +50,13 @@ export default class User {
     this.entireGame.sendMessageToClients([this], message);
   }
 
-  syncSettings(): void {
+  syncSettings(flush = false): void {
     this.debouncedSyncSettings();
+
+    // Bypasses the debounce delay so the change reaches the server before e.g. the tab closes
+    if (flush) {
+      this.debouncedSyncSettings.flush();
+    }
   }
 
   updateConnectionStatus(): void {
@@ -63,7 +68,7 @@ export default class User {
       this.entireGame.broadcastToClients({
         type: "update-connection-status",
         user: this.id,
-        status: this.connected,
+        status: this.connected
       });
 
       if (this.onConnectionStateChanged) {
@@ -81,12 +86,13 @@ export default class User {
       settings: admin || user == this ? this.settings : undefined,
       connected: this.connected,
       otherUsersFromSameNetwork: Array.from(this.otherUsersFromSameNetwork),
-      note: admin || user == this ? this.note : "",
+      note: admin || user == this ? this.note : ""
     };
   }
 
   static deserializeFromServer(game: EntireGame, data: SerializedUser): User {
     const emptySettings: UserSettings = {
+      closedChats: [],
       chatHouseNames: false,
       // Todo: Get rid of this as well and define two layouts for mobile and desktop
       mapScrollbar: false,
@@ -94,7 +100,7 @@ export default class User {
       gameStateColumnRight: false,
       musicVolume: 0,
       notificationsVolume: 0,
-      sfxVolume: 0,
+      sfxVolume: 0
     };
     const user = new User(
       data.id,
@@ -103,7 +109,7 @@ export default class User {
       game,
       data.settings ?? emptySettings,
       data.connected,
-      data.otherUsersFromSameNetwork,
+      data.otherUsersFromSameNetwork
     );
     user.note = data.note;
     return user;

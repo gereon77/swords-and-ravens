@@ -8,7 +8,7 @@ import { HouseCardState } from "../../common/ingame-game-state/game-data-structu
 import IngameGameState from "../../common/ingame-game-state/IngameGameState";
 import allKnownHouseCards from "../utils/houseCardHelper";
 import CombatSnapshotMigrator, {
-  CombatResultData,
+  CombatResultData
 } from "./CombatSnapshotMigrator";
 import { GameSettings } from "../../common/GameSettings";
 
@@ -25,7 +25,7 @@ export default class SnapshotMigrator {
     defenderRegion: string;
     attackerArmy: string[];
   } | null = null;
-  private combatResultData: CombatResultData | null = null;
+  combatResultData: CombatResultData | null = null;
 
   private get supplyRestrictions(): number[][] {
     return this.ingame.game.supplyRestrictions;
@@ -42,7 +42,7 @@ export default class SnapshotMigrator {
   applyLogEvent(
     snap: EntireGameSnapshot,
     log: GameLogData,
-    gameLogIndex: number,
+    gameLogIndex: number
   ): EntireGameSnapshot {
     switch (log.type) {
       case "turn-begin": {
@@ -76,7 +76,7 @@ export default class SnapshotMigrator {
         snap.gameSnapshot.wildlingStrength += log.addedWildlingStrength;
         snap.gameSnapshot.wildlingStrength = Math.min(
           snap.gameSnapshot.wildlingStrength,
-          MAX_WILDLING_STRENGTH,
+          MAX_WILDLING_STRENGTH
         );
         return snap;
 
@@ -142,7 +142,7 @@ export default class SnapshotMigrator {
         });
         if (log.trackerI == 0) {
           snap.gameSnapshot.ironThroneTrack = [
-            snap.gameSnapshot.ironThroneTrack[0],
+            snap.gameSnapshot.ironThroneTrack[0]
           ];
           snap.gameSnapshot.fiefdomsTrack = [];
           snap.gameSnapshot.kingsCourtTrack = [];
@@ -207,9 +207,9 @@ export default class SnapshotMigrator {
         const result = new EntireGameSnapshot(
           {
             worldSnapshot: log.worldState,
-            gameSnapshot: log.gameSnapshot,
+            gameSnapshot: log.gameSnapshot
           },
-          this.ingame,
+          this.ingame
         );
 
         if (
@@ -422,7 +422,7 @@ export default class SnapshotMigrator {
         const house = snap.getHouse(log.house);
         house.houseCards.push({
           id: log.houseCard,
-          state: HouseCardState.AVAILABLE,
+          state: HouseCardState.AVAILABLE
         });
         return snap;
       }
@@ -663,13 +663,13 @@ export default class SnapshotMigrator {
         const house = snap.getHouse(log.house);
         house.houseCards = log.houseCards.map((card) => ({
           id: card,
-          state: HouseCardState.AVAILABLE,
+          state: HouseCardState.AVAILABLE
         }));
 
         if (log.houseCardDiscarded) {
           house.houseCards.push({
             id: log.houseCardDiscarded,
-            state: HouseCardState.USED,
+            state: HouseCardState.USED
           });
         }
 
@@ -710,7 +710,7 @@ export default class SnapshotMigrator {
             defender: log.attacked,
             attackerRegion: log.attackingRegion,
             defenderRegion: log.attackedRegion,
-            attackerArmy: log.units,
+            attackerArmy: log.units
           };
         }
         return snap;
@@ -722,7 +722,7 @@ export default class SnapshotMigrator {
         const migrated = migrator.migrateCombatResultLog(
           log,
           gameLogIndex,
-          snap,
+          snap
         );
         return migrated;
       }
@@ -861,7 +861,7 @@ export default class SnapshotMigrator {
       case "jon-connington-used": {
         if (!snap.gameSnapshot)
           throw new Error(
-            "Jon Connington cannot be applied in games with world snapshot only",
+            "Jon Connington cannot be applied in games with world snapshot only"
           );
         // If Jon was used the region must be controlled by the vassal house
         snap.calculateControllersPerRegion();
@@ -1028,7 +1028,7 @@ export default class SnapshotMigrator {
         const crd = this.combatResultData;
         const houseIsAttacker = crd.attacker == log.house;
         const region = snap.getRegion(
-          houseIsAttacker ? crd.attackerRegion : crd.defenderRegion,
+          houseIsAttacker ? crd.attackerRegion : crd.defenderRegion
         );
         region.removeUnit(log.casualty, log.house);
         return snap;
@@ -1040,7 +1040,7 @@ export default class SnapshotMigrator {
         _.remove(house.houseCards, (card) => card.id === "robert-arryn");
         _.remove(
           affectedHouse.houseCards,
-          (card) => card.id === log.removedHouseCard,
+          (card) => card.id === log.removedHouseCard
         );
         return snap;
       }
@@ -1074,7 +1074,7 @@ export default class SnapshotMigrator {
 
   handleVassalReplacement(
     snap: EntireGameSnapshot,
-    log: GameLogData,
+    log: GameLogData
   ): EntireGameSnapshot {
     if (!snap.gameSnapshot) return snap;
     if (log.type == "player-replaced" && !log.newUser) {

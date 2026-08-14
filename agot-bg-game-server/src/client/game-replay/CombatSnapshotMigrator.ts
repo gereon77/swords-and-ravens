@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GameLogData } from "../../common/ingame-game-state/game-data-structure/GameLog";
+import {
+  GameLogData,
+  RetreatRegionChosen
+} from "../../common/ingame-game-state/game-data-structure/GameLog";
 import EntireGameSnapshot from "./EntireGameSnapshot";
 import IngameGameState from "../../common/ingame-game-state/IngameGameState";
 import ReplayConstants from "./replay-constants";
@@ -13,7 +16,7 @@ export interface CombatResultData {
   defenderArmy: string[];
   attackerRegion: string;
   defenderRegion: string;
-  retreatRegion: string | null;
+  retreatRegions: string[];
   winner: string;
   winnerArmy: string[];
   winnerRegion: string;
@@ -51,6 +54,9 @@ export default class CombatSnapshotMigrator {
     const crd = this.combatResultData;
     this.onCombatResultDataRetrieved(crd);
 
+    // Apply all post-combat logs to the snapshot
+    // i.e. logs like "killed-after-combat", "retreat-casualties-suffered", "immediatly-killed-after-combat"
+    // so killed units are removed from the snapshot now
     for (let i = 0; i < crd.postCombatLogs.length; i++) {
       const l = crd.postCombatLogs[i];
       snap = this.applyCombatResultEvent(snap, l);
@@ -58,13 +64,41 @@ export default class CombatSnapshotMigrator {
 
     const attackingRegion = snap.getRegion(crd.attackerRegion);
     const defendingRegion = snap.getRegion(crd.defenderRegion);
-    const retreatRegion = crd.retreatRegion
-      ? snap.getRegion(crd.retreatRegion)
-      : null;
+    const retreatRegions = crd.retreatRegions.map((regionId) =>
+      snap.getRegion(regionId)
+    );
 
-    // Perform move and retreat:
-    if (crd.attacker == crd.winner) {
-      if (retreatRegion) {
+    // Arianne Martell ASoS forced retreat of a victorious defender,
+    // so both, attacker and defender have to retreat
+    if (crd.retreatForced && retreatRegions.length == 2) {
+      // Attacker always retreats to attacking region
+      if (retreatRegions[0] != attackingRegion) {
+        throw new Error(`Attacker retreat region must be the attacking region`);
+      }
+
+      // Mark all attacking units as wounded
+      attackingRegion.markAllUnitsAsWounded();
+
+      // Now victorious defender has to retreat to the other region
+      const retreatRegion = retreatRegions[1];
+      while (crd.defenderArmy.length > 0) {
+        const unit = crd.defenderArmy.pop();
+        if (!unit) break;
+        defendingRegion.moveTo(
+          retreatRegion,
+          unit,
+          crd.defender,
+          undefined,
+          true
+        );
+      }
+
+      crd.winnerRegion = retreatRegion.id;
+    }
+    // Perform normal retreat and movement of attacking units after combat:
+    else if (crd.attacker == crd.winner) {
+      if (retreatRegions.length == 1) {
+        const retreatRegion = retreatRegions[0];
         // Retreat defending units
         while (crd.defenderArmy.length > 0) {
           const unit = crd.defenderArmy.pop();
@@ -79,8 +113,13 @@ export default class CombatSnapshotMigrator {
         }
 
         crd.loserRegion = retreatRegion.id;
+      } else if (retreatRegions.length > 1) {
+        throw new Error(
+          `Defender retreat region must be unique, but got ${retreatRegions.length} regions`
+        );
       }
-      // Attacker movement may be blocked
+
+      // If attacker movement isn't blocked, move attacking units to the defender's region
       if (!crd.movePrevented) {
         const to = snap.getRegion(crd.defenderRegion);
         for (let i = 0; i < crd.attackerArmy.length; i++) {
@@ -90,29 +129,14 @@ export default class CombatSnapshotMigrator {
 
         crd.attackerRegion = crd.defenderRegion;
       }
-    } else {
+    } else if (crd.defender == crd.winner) {
       // Attacking units usually retreat to where they came from
-      // Except Arianne Martell forces retreat of a victorious defender
-      if (crd.retreatForced && retreatRegion) {
-        for (let i = 0; i < crd.defenderArmy.length; i++) {
-          const unit = crd.defenderArmy[i];
-          defendingRegion.moveTo(
-            retreatRegion,
-            unit,
-            crd.defender,
-            undefined,
-            true
-          );
-        }
-
-        crd.defenderRegion = retreatRegion.id;
-      }
-      // or Robb Stark forces the attacker to retreat to a specific region
-      else if (retreatRegion) {
+      // except Robb Stark forces the attacker to retreat to a specific region
+      if (retreatRegions.length == 1) {
         for (let i = 0; i < crd.attackerArmy.length; i++) {
           const unit = crd.attackerArmy[i];
           attackingRegion.moveTo(
-            retreatRegion,
+            retreatRegions[0],
             unit,
             crd.attacker,
             undefined,
@@ -120,9 +144,9 @@ export default class CombatSnapshotMigrator {
           );
         }
 
-        crd.attackerRegion = retreatRegion.id;
+        crd.attackerRegion = retreatRegions[0].id;
       } else {
-        // just mark all units as wounded
+        // just mark all attacking units as wounded
         attackingRegion.markAllUnitsAsWounded();
       }
     }
@@ -157,7 +181,7 @@ export default class CombatSnapshotMigrator {
     }
     const {
       stats: [att, def],
-      winner,
+      winner
     } = log;
     const attacker = att.house;
     const defender = def.house;
@@ -170,10 +194,6 @@ export default class CombatSnapshotMigrator {
     const loser = winner === attacker ? defender : attacker;
     const loserArmy = winner === attacker ? defenderArmy : attackerArmy;
     const loserRegion = winner === attacker ? defenderRegion : attackerRegion;
-
-    // const winnerFacedSkullIcon =
-    //   (winner === attacker && defenderTob === "skull") ||
-    //   (winner === defender && attackerTob === "skull");
 
     const logsSlice = this.ingame.gameLogManager.logs.slice(logIndex + 1);
     const relatedCombatResultLogs = _.takeWhile(
@@ -196,18 +216,9 @@ export default class CombatSnapshotMigrator {
       (log) => log.data.type === "arianne-martell-force-retreat"
     );
 
-    if (retreatRegionChosen.length > 1) {
-      throw new Error("More than one retreat region chosen log found");
-    }
-
-    // only if a retreat region was chosen we set it, otherwise attacker retreats
-    let retreatRegion: string | null = null;
-    if (
-      retreatRegionChosen.length == 1 &&
-      retreatRegionChosen[0].data.type == "retreat-region-chosen"
-    ) {
-      retreatRegion = retreatRegionChosen[0].data.regionTo;
-    }
+    const retreatRegions = retreatRegionChosen.map(
+      (l) => (l.data as RetreatRegionChosen).regionTo
+    );
 
     return {
       attacker,
@@ -222,10 +233,10 @@ export default class CombatSnapshotMigrator {
       loser,
       loserArmy,
       loserRegion,
-      retreatRegion,
+      retreatRegions,
       movePrevented: arianneMartellMovementPrevented != null,
       retreatForced: arianneMartellForcedRetreat != null,
-      postCombatLogs: relatedCombatResultLogs.map((l) => l.data),
+      postCombatLogs: relatedCombatResultLogs.map((l) => l.data)
     };
   }
 

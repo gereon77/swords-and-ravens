@@ -316,7 +316,7 @@ export type ModifyingGameLog =
 export enum PlayerActionType {
   ORDERS_PLACED,
   BID_MADE,
-  HOUSE_CARD_CHOSEN,
+  HOUSE_CARD_CHOSEN
 }
 
 interface PlayerAction {
@@ -750,7 +750,7 @@ interface RobbStarkRetreatRegionOverriden {
   houseCard: string;
 }
 
-interface RetreatRegionChosen {
+export interface RetreatRegionChosen {
   type: "retreat-region-chosen";
   house: string;
   regionFrom: string;

@@ -22,7 +22,7 @@ export default class HouseCardAbility {
   cancel(
     cancelResolutionState: CancelHouseCardAbilitiesGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     cancelResolutionState.childGameState.onHouseCardResolutionFinish(house);
   }
@@ -30,17 +30,17 @@ export default class HouseCardAbility {
   immediatelyResolution(
     immediatelyResolutionState: ImmediatelyHouseCardAbilitiesResolutionGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     immediatelyResolutionState.childGameState.onHouseCardResolutionFinish(
-      house,
+      house
     );
   }
 
   beforeCombatResolution(
     beforeCombat: BeforeCombatHouseCardAbilitiesGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     beforeCombat.childGameState.onHouseCardResolutionFinish(house);
   }
@@ -48,7 +48,7 @@ export default class HouseCardAbility {
   afterWinnerDetermination(
     afterWinnerDetermination: AfterWinnerDeterminationGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     afterWinnerDetermination.childGameState.onHouseCardResolutionFinish(house);
   }
@@ -56,7 +56,7 @@ export default class HouseCardAbility {
   afterCombat(
     afterCombat: AfterCombatHouseCardAbilitiesGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     afterCombat.childGameState.onHouseCardResolutionFinish(house);
   }
@@ -65,7 +65,7 @@ export default class HouseCardAbility {
     _combat: CombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _affectedHouseCard: HouseCard,
+    _affectedHouseCard: HouseCard
   ): number {
     return 0;
   }
@@ -74,7 +74,7 @@ export default class HouseCardAbility {
     _combat: CombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _affectedHouseCard: HouseCard,
+    _affectedHouseCard: HouseCard
   ): number {
     return 0;
   }
@@ -83,7 +83,7 @@ export default class HouseCardAbility {
     _combat: CombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _affectedHouseCard: HouseCard,
+    _affectedHouseCard: HouseCard
   ): number {
     return 0;
   }
@@ -95,7 +95,7 @@ export default class HouseCardAbility {
     _houseSide: House,
     _affectedUnit: Unit,
     _support: boolean,
-    _currentStrength: number,
+    _currentStrength: number
   ): number {
     return 0;
   }
@@ -106,7 +106,7 @@ export default class HouseCardAbility {
     _houseCard: HouseCard,
     _houseSide: House,
     _defenseOrderType: DefenseOrderType,
-    _currentBonus: number,
+    _currentBonus: number
   ): number {
     return 0;
   }
@@ -114,7 +114,7 @@ export default class HouseCardAbility {
   doesPreventAttackingArmyFromMoving(
     _postCombat: PostCombatGameState,
     _house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): boolean {
     return false;
   }
@@ -123,7 +123,7 @@ export default class HouseCardAbility {
     _combat: CombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _isSkullCasualty: boolean,
+    _isSkullCasualty: boolean
   ): boolean {
     return false;
   }
@@ -131,7 +131,7 @@ export default class HouseCardAbility {
   doesPreventWounds(
     _combat: CombatGameState,
     _house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): boolean {
     return false;
   }
@@ -140,7 +140,7 @@ export default class HouseCardAbility {
     _postCombat: PostCombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _retreater: House,
+    _retreater: House
   ): House | null {
     return null;
   }
@@ -150,7 +150,7 @@ export default class HouseCardAbility {
     _house: House,
     _houseCard: HouseCard,
     _affectedHouseCard: HouseCard,
-    strength: number,
+    strength: number
   ): number {
     return strength;
   }
@@ -159,7 +159,7 @@ export default class HouseCardAbility {
     _combat: CombatGameState,
     _house: House,
     _houseCard: HouseCard,
-    _affectedHouseCard: HouseCard,
+    _affectedHouseCard: HouseCard
   ): boolean {
     return false;
   }
@@ -167,6 +167,7 @@ export default class HouseCardAbility {
   forcesValyrianSteelBladeDecision(
     _combat: CombatGameState,
     _valyrianSteelBladeHolder: House,
+    _houseCard: HouseCard
   ): boolean {
     return false;
   }
@@ -174,7 +175,7 @@ export default class HouseCardAbility {
   forcesRetreatOfVictoriousDefender(
     _postCombat: PostCombatGameState,
     _house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): boolean {
     return false;
   }

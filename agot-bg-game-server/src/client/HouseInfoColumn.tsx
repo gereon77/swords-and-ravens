@@ -6,7 +6,7 @@ import {
   ListGroup,
   ListGroupItem,
   OverlayTrigger,
-  Tooltip,
+  Tooltip
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
@@ -57,7 +57,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
     const bannedUsers = this.getBannedUsers();
     const connectedSpectators = _.difference(
       this.getConnectedSpectators(),
-      bannedUsers,
+      bannedUsers
     );
 
     return (
@@ -141,7 +141,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
                             {getUserLinkOrLabel(
                               u,
                               false,
-                              this.gameClient.canActAsOwner(),
+                              this.gameClient.canActAsOwner()
                             )}
                           </b>
                         </Col>
@@ -190,7 +190,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
   }
 
   private renderInfluenceTracks(
-    tracks: InfluenceTrackDetails[],
+    tracks: InfluenceTrackDetails[]
   ): React.ReactNode {
     return tracks.map(({ name, trackToShow, realTrack, stars }, i) => (
       <ListGroupItem
@@ -287,7 +287,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
   private getConnectedSpectators(): User[] {
     return _.difference(
       this.ingame.entireGame.users.values.filter((u) => u.connected),
-      this.ingame.players.keys,
+      this.ingame.players.keys
     );
   }
 
@@ -307,7 +307,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
 
       this.ingame.entireGame.sendMessageToServer({
         type: "unban-user",
-        userId: user.id,
+        userId: user.id
       });
     }
   }
@@ -341,7 +341,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
             <OverlayTrigger
               placement="auto"
               overlay={
-                <Tooltip id="mute-tooltip">
+                <Tooltip id="house-info-mute-tooltip">
                   {this.gameClient.muted ? "Unmute" : "Mute"}
                 </Tooltip>
               }

@@ -6,7 +6,7 @@ import {
   Spinner,
   Tab,
   Nav,
-  Dropdown,
+  Dropdown
 } from "react-bootstrap";
 // @ts-expect-error Somehow this module cannot be found while it is
 import ScrollToBottom from "react-scroll-to-bottom";
@@ -40,13 +40,14 @@ import {
   faComments,
   faEdit,
   faHistory,
-  faUniversity,
+  faUniversity
 } from "@fortawesome/free-solid-svg-icons";
 
 import cardRandomImage from "../../public/images/icons/card-random.svg";
 import expandImage from "../../public/images/icons/expand.svg";
 import ConditionalWrap from "./utils/ConditionalWrap";
 import getUserLinkOrLabel from "./utils/getIngameUserLinkOrLabel";
+import BetterMap from "../utils/BetterMap";
 
 interface GameTabsComponentProps {
   ingame: IngameGameState;
@@ -66,19 +67,11 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
   private ingame = this.props.ingame;
   private gameSettings = this.ingame.entireGame.gameSettings;
 
-  @observable currentOpenedTab = this.lastOpenedTab;
+  @observable currentOpenedTab = this.user?.settings.lastOpenedTab ?? "chat";
   @observable unseenNotes = false;
 
   @observable gameRoundElems: ReactNode | null = null;
-  private previousOpenedTab = this.lastOpenedTab;
-
-  get lastOpenedTab(): string {
-    return localStorage.getItem("lastOpenedTab") ?? "chat";
-  }
-
-  set lastOpenedTab(value: string) {
-    localStorage.setItem("lastOpenedTab", value);
-  }
+  private previousOpenedTab = this.currentOpenedTab;
 
   get logChatFullScreen(): boolean {
     return this.gameClient.logChatFullScreen;
@@ -90,7 +83,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
 
   private get publicChatRoom(): Channel {
     return this.gameClient.chatClient.channels.get(
-      this.ingame.entireGame.publicChatRoomId,
+      this.ingame.entireGame.publicChatRoomId
     );
   }
 
@@ -101,17 +94,19 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
         ? "auto"
         : "800px";
 
+    const privateChatRooms = this.getPrivateChatRooms();
+
     return (
       <Card
         border={this.props.border}
         style={{
           height: height,
           maxHeight: height,
-          borderWidth: "3px",
+          borderWidth: "3px"
         }}
         className={classNames(
           { "flex-fill-remaining": this.gameClient.isMapScrollbarSet },
-          "text-large",
+          "text-large"
         )}
       >
         <Tab.Container
@@ -141,7 +136,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                 <div
                   className={classNames({
                     "orange-border": this.publicChatRoom.areThereUnreadMessages,
-                    disconnected: !this.publicChatRoom.connected,
+                    disconnected: !this.publicChatRoom.connected
                   })}
                 >
                   <Nav.Link eventKey="chat">
@@ -163,8 +158,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                 <Nav.Item>
                   <div
                     className={classNames({
-                      "orange-border":
-                        this.gameClient.authenticatedPlayer?.isNeededForVote,
+                      "orange-border": this.player?.isNeededForVote
                     })}
                   >
                     <Nav.Link eventKey="votes">
@@ -259,54 +253,71 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
               </Nav.Item>
               {this.player && !this.gameSettings.noPrivateChats && (
                 <Nav.Item>
-                  <Dropdown>
-                    <Dropdown.Toggle
-                      id="private-chat-room-dropdown"
-                      variant="link"
-                    >
-                      <OverlayTrigger
-                        overlay={
-                          <Tooltip id="private-chat-tooltip">
-                            Private Chat
-                          </Tooltip>
-                        }
-                        placement="top"
-                      >
-                        <FontAwesomeIcon
-                          style={{ color: "white" }}
-                          icon={faComment}
-                        />
-                      </OverlayTrigger>
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      {this.getOtherPlayers().map((p) => (
-                        <Dropdown.Item
-                          onClick={() => this.onNewPrivateChatRoomClick(p)}
-                          key={`new-chat_${p.user.id}`}
-                        >
-                          {this.getUserDisplayNameLabel(p.user)}
-                        </Dropdown.Item>
-                      ))}
-                    </Dropdown.Menu>
-                  </Dropdown>
-                </Nav.Item>
-              )}
-              {this.getPrivateChatRooms().map(({ user, roomId }) => (
-                <Nav.Item key={roomId}>
                   <div
                     className={classNames({
                       "orange-border":
-                        this.getPrivateChatRoomForPlayer(user)
-                          .areThereUnreadMessages,
-                      disconnected: !this.publicChatRoom.connected,
+                        this.hasAnyClosedChatUnreadMessages(privateChatRooms)
                     })}
                   >
-                    <Nav.Link eventKey={roomId}>
-                      {this.getUserDisplayNameLabel(user)}
-                    </Nav.Link>
+                    <Dropdown>
+                      <Dropdown.Toggle
+                        id="private-chat-room-dropdown"
+                        variant="link"
+                      >
+                        <OverlayTrigger
+                          overlay={
+                            <Tooltip id="private-chat-tooltip">
+                              Private Chat
+                            </Tooltip>
+                          }
+                          placement="top"
+                        >
+                          <FontAwesomeIcon
+                            style={{ color: "white" }}
+                            icon={faComment}
+                          />
+                        </OverlayTrigger>
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu>
+                        {this.getOtherPlayers().map((p) => (
+                          <div
+                            key={`new-chat_${p.user.id}`}
+                            className={classNames({
+                              "orange-border": this.getPrivateChatRoomForPlayer(
+                                p.user
+                              )?.areThereUnreadMessages
+                            })}
+                          >
+                            <Dropdown.Item
+                              onClick={() => this.onNewPrivateChatRoomClick(p)}
+                            >
+                              {this.getUserDisplayNameLabel(p.user)}
+                            </Dropdown.Item>
+                          </div>
+                        ))}
+                      </Dropdown.Menu>
+                    </Dropdown>
                   </div>
                 </Nav.Item>
-              ))}
+              )}
+              {privateChatRooms
+                .filter(({ isClosed }) => !isClosed)
+                .map(({ user, roomId }) => (
+                  <Nav.Item key={roomId}>
+                    <div
+                      className={classNames({
+                        "orange-border":
+                          this.getPrivateChatRoomForPlayer(user)
+                            ?.areThereUnreadMessages,
+                        disconnected: !this.publicChatRoom.connected
+                      })}
+                    >
+                      <Nav.Link eventKey={roomId}>
+                        {this.getUserDisplayNameLabel(user)}
+                      </Nav.Link>
+                    </div>
+                  </Nav.Item>
+                ))}
               {this.currentOpenedTab == "game-logs" && (
                 <Dropdown className="ml-auto mt-1">
                   <Dropdown.Toggle variant="secondary" size="sm">
@@ -342,7 +353,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                     <b>
                       {getUserLinkOrLabel(
                         u,
-                        this.user?.settings.chatHouseNames,
+                        this.user?.settings.chatHouseNames
                       )}
                     </b>
                   )}
@@ -420,28 +431,30 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
                   ingame={this.ingame}
                 />
               </Tab.Pane>
-              {this.getPrivateChatRooms().map(({ roomId }) => (
-                <Tab.Pane
-                  eventKey={roomId}
-                  key={`chat_${roomId}`}
-                  className="h-100"
-                >
-                  <ChatComponent
-                    gameClient={this.gameClient}
-                    entireGame={this.ingame.entireGame}
-                    roomId={roomId}
-                    currentlyViewed={this.currentOpenedTab == roomId}
-                    getUserDisplayName={(u) => (
-                      <b>
-                        {getUserLinkOrLabel(
-                          u,
-                          this.user?.settings.chatHouseNames,
-                        )}
-                      </b>
-                    )}
-                  />
-                </Tab.Pane>
-              ))}
+              {privateChatRooms
+                .filter(({ isClosed }) => !isClosed)
+                .map(({ roomId }) => (
+                  <Tab.Pane
+                    eventKey={roomId}
+                    key={`chat_${roomId}`}
+                    className="h-100"
+                  >
+                    <ChatComponent
+                      gameClient={this.gameClient}
+                      entireGame={this.ingame.entireGame}
+                      roomId={roomId}
+                      currentlyViewed={this.currentOpenedTab == roomId}
+                      getUserDisplayName={(u) => (
+                        <b>
+                          {getUserLinkOrLabel(
+                            u,
+                            this.user?.settings.chatHouseNames
+                          )}
+                        </b>
+                      )}
+                    />
+                  </Tab.Pane>
+                ))}
             </Tab.Content>
           </Card.Body>
         </Tab.Container>
@@ -495,43 +508,78 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     ) {
       this.ingame.entireGame.sendMessageToServer({
         type: "create-private-chat-room",
-        otherUser: p.user.id,
+        otherUser: p.user.id
       });
     } else {
-      this.currentOpenedTab = this.ingame.entireGame.privateChatRoomsIds
+      const privateRoomId = this.ingame.entireGame.privateChatRoomsIds
         .get(users[0])
         .get(users[1]);
+
+      // If the private chat room was previously closed, remove it from the closedChats to re-open it
+      const removed = _.remove(
+        (this.user as User).settings.closedChats,
+        (id) => id == privateRoomId
+      );
+
+      if (removed.length > 0) {
+        (this.user as User).syncSettings();
+      }
+
+      this.currentOpenedTab = privateRoomId;
+      this.gameClient.chatClient.markAsViewed(
+        this.gameClient.chatClient.channels.get(privateRoomId)
+      );
     }
   }
 
-  getPrivateChatRooms(): { user: User; roomId: string }[] {
-    return this.ingame.entireGame.getPrivateChatRoomsOf(this.user as User);
+  getPrivateChatRooms(): { user: User; roomId: string; isClosed: boolean }[] {
+    const rooms = this.ingame.entireGame.getPrivateChatRoomsOf(
+      this.user as User
+    );
+    const closedChats = new Set((this.user as User).settings.closedChats);
+    return rooms.map(({ user, roomId }) => ({
+      user,
+      roomId,
+      isClosed: closedChats.has(roomId)
+    }));
   }
 
-  getPrivateChatRoomForPlayer(u: User): Channel {
+  getPrivateChatRoomForPlayer(u: User): Channel | null {
     const users = _.sortBy([this.user as User, u], (u) => u.id);
 
-    return this.gameClient.chatClient.channels.get(
-      this.ingame.entireGame.privateChatRoomsIds.get(users[0]).get(users[1]),
+    return this.gameClient.chatClient.channels.tryGet(
+      this.ingame.entireGame.privateChatRoomsIds
+        .tryGet(users[0], new BetterMap<User, string>())
+        ?.tryGet(users[1], ""),
+      null
     );
+  }
+
+  hasAnyClosedChatUnreadMessages(
+    privateChatRooms: { user: User; roomId: string; isClosed: boolean }[]
+  ): boolean {
+    return privateChatRooms.some(({ roomId, isClosed }) => {
+      const channel = this.gameClient.chatClient.channels.tryGet(roomId, null);
+      return isClosed && channel?.areThereUnreadMessages;
+    });
   }
 
   getOtherPlayers(): Player[] {
     return _.sortBy(this.ingame.players.values, (p) =>
-      this.user?.settings.chatHouseNames ? p.house.name : p.user.name,
+      this.user?.settings.chatHouseNames ? p.house.name : p.user.name
     ).filter((p) => p.user != this.user);
   }
 
   injectBetweenMessages(
     _previous: Message | null,
-    _next: Message | null,
+    _next: Message | null
   ): ReactNode {
     return null;
   }
 
   renderGameLogRoundsDropDownItems(): ReactNode {
     const gameRoundElements = document.querySelectorAll(
-      '*[id^="gamelog-round-"]',
+      '*[id^="gamelog-round-"]'
     );
 
     const result: JSX.Element[] = [];
@@ -547,12 +595,12 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
             const elemToScroll = document.getElementById(gameRoundElem.id);
             elemToScroll?.scrollIntoView({
               behavior: "smooth",
-              block: "center",
+              block: "center"
             });
           }}
         >
           Round {round}
-        </Dropdown.Item>,
+        </Dropdown.Item>
       );
     });
 
@@ -564,8 +612,10 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
       return;
     }
 
-    if (this.currentOpenedTab != this.lastOpenedTab) {
-      this.lastOpenedTab = this.currentOpenedTab;
+    if (this.currentOpenedTab != this.user.settings.lastOpenedTab) {
+      this.user.settings.lastOpenedTab = this.currentOpenedTab;
+      // The tab may be closing, so send immediately instead of waiting for the debounce
+      this.user.syncSettings(true);
     }
   }
 
@@ -581,7 +631,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     this.ingame.entireGame.onNewPrivateChatRoomCreated = (roomId: string) =>
       this.onNewPrivateChatRoomCreated(roomId);
 
-    if (this.gameClient.authenticatedUser?.note.length ?? 0 > 0) {
+    if ((this.user as User)?.note.length ?? 0 > 0) {
       this.unseenNotes = true;
     }
 
@@ -591,7 +641,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
   componentDidUpdate(
     _prevProps: Readonly<GameTabsComponentProps>,
     _prevState: Readonly<any>,
-    _snapshot?: any,
+    _snapshot?: any
   ): void {
     if (this.currentOpenedTab == "note") {
       this.unseenNotes = false;
@@ -616,7 +666,7 @@ export default class GameTabsComponent extends Component<GameTabsComponentProps>
     if (visibilityChangedCallback) {
       document.removeEventListener(
         "visibilitychange",
-        visibilityChangedCallback,
+        visibilityChangedCallback
       );
     }
   }

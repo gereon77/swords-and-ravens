@@ -130,29 +130,29 @@
                     {{ game.players_count }}{% if game.players_count != game.view_of_game.maxPlayerCount %}/{{ game.view_of_game.maxPlayerCount }}{% endif %}
                 </td>
                 <td class="text-right">
-                    {%if not on_probation or game.player_in_game.0 %}
-                    <a
-                        target="_blank"
-                        href="/play/{{ game.id }}"
-                        class="btn btn-primary btn-sm"
-                        {% if not user.is_authenticated %}
-                            title="You must be logged in to join or spectate a game"
-                        {% endif %}
-                    >
-                        {% if game.state == "IN_LOBBY" %}
-                            {% if not game.player_in_game.0 %}
-                                Join
-                            {% else %}
-                                Rejoin
+                    {% if game.state == "ONGOING" or not on_probation or game.player_in_game.0 %}
+                        <a
+                            target="_blank"
+                            href="/play/{{ game.id }}"
+                            class="btn btn-primary btn-sm"
+                            {% if not user.is_authenticated %}
+                                title="You must be logged in to join or spectate a game"
                             {% endif %}
-                        {% else %}
-                            {% if not game.player_in_game.0 %}
-                                Spectate
-                            {% else %}
-                                Rejoin
+                        >
+                            {% if game.state == "IN_LOBBY" %}
+                                {% if not game.player_in_game.0 %}
+                                    Join
+                                {% else %}
+                                    Rejoin
+                                {% endif %}
+                            {% elif game.state == "ONGOING" %}
+                                {% if not game.player_in_game.0 %}
+                                    Spectate
+                                {% else %}
+                                    Rejoin
+                                {% endif %}
                             {% endif %}
-                        {% endif %}
-                    </a>
+                        </a>
                     {% endif %}
                     {% if show_join_as_waited and game.inactive_user_id and perms.agotboardgame_main.can_play_as_another_player %}
                         <a class="btn btn-primary btn-sm"

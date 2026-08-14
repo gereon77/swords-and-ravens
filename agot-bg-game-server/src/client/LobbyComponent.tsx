@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
 import { Component, ReactNode } from "react";
 import LobbyGameState, {
-  LobbyHouse,
+  LobbyHouse
 } from "../common/lobby-game-state/LobbyGameState";
 import GameClient from "./GameClient";
 import * as React from "react";
@@ -94,13 +94,13 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                     style={{
                       minHeight: "50px",
                       paddingTop: "6px",
-                      paddingBottom: "6px",
+                      paddingBottom: "6px"
                     }}
                   >
                     <Row
                       className="align-items-center"
                       style={{
-                        opacity: this.isHouseAvailable(h) ? 1 : 0.3,
+                        opacity: this.isHouseAvailable(h) ? 1 : 0.3
                       }}
                     >
                       {!this.randomHouses && (
@@ -113,7 +113,7 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                       </Col>
                       <Col
                         className={classNames({
-                          invisible: !this.lobby.players.has(h),
+                          invisible: !this.lobby.players.has(h)
                         })}
                       >
                         {this.lobby.players.has(h) && (
@@ -280,7 +280,7 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                     >
                       <OverlayTrigger
                         overlay={
-                          <Tooltip id="mute-tooltip">
+                          <Tooltip id="lobby-mute-tooltip">
                             {this.props.gameClient.muted ? "Unmute" : "Mute"}
                           </Tooltip>
                         }
@@ -329,7 +329,7 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
             name="Notifications"
             onVolumeChange={(val) =>
               this.props.gameClient.sfxManager.notificationVolumeChanged(
-                val / 100,
+                val / 100
               )
             }
           />
@@ -388,7 +388,7 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
   getConnectedSpectators(): User[] {
     return _.difference(
       this.entireGame.users.values.filter((u) => u.connected),
-      this.lobby.players.values,
+      this.lobby.players.values
     );
   }
 

@@ -154,7 +154,7 @@ interface ChooseTopWildlingCardAction {
 
 export enum SeeTopWildlingCardAction {
   LEAVE_AT_THE_TOP,
-  PUT_AT_BOTTOM,
+  PUT_AT_BOTTOM
 }
 
 interface SkipReplaceOrder {
@@ -238,6 +238,8 @@ interface ChangeSettings {
 export interface UserSettings {
   mapScrollbar: boolean;
   chatHouseNames: boolean;
+  lastOpenedTab?: string;
+  closedChats: string[];
   gameStateColumnRight: boolean;
   muted: boolean;
   notificationsVolume: number;

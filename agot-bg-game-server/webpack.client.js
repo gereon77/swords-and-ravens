@@ -13,7 +13,8 @@ module.exports = (env, argv) => {
         },
         entry: "./src/client/client.tsx",
         target: "web",
-        devtool: "source-map",
+        // No source maps in production so original TS/TSX source isn't exposed via browser devtools.
+        devtool: false,
         module: {
             rules: [
                 {
@@ -71,7 +72,7 @@ module.exports = (env, argv) => {
                 new TerserPlugin({
                     terserOptions: {
                         output: {
-                            //comments: false
+                            comments: false
                         }
                     }
                 })
