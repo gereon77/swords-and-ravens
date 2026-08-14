@@ -7,7 +7,7 @@ import { SerializedHouse } from "../common/ingame-game-state/game-data-structure
 import {
   HouseCardState,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  SerializedHouseCard,
+  SerializedHouseCard
 } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import { vassalHouseCards } from "../common/ingame-game-state/game-data-structure/static-data-structure/vassalHouseCards";
 import { DraftStep } from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
@@ -24,7 +24,7 @@ import { SerializedGameLogEntry } from "../common/ingame-game-state/game-data-st
 function replaceHouseCard(
   deck: [string, any][],
   idToRemove: string,
-  cardToAdd: [string, any],
+  cardToAdd: [string, any]
 ): [string, any][] {
   const result = deck.filter(([id, _shc]) => id != idToRemove);
   result.push(cardToAdd);
@@ -56,7 +56,7 @@ const serializedGameMigrations: {
           ["mustering", 0],
           ["winter-is-coming", 0],
           ["a-throne-of-blades", 0],
-          ["supply", 0],
+          ["supply", 0]
         ]);
         // The goal is to find a deckI for each card referenced
         // in "(westeros-card-exe)cuted". Anyone will do, as long
@@ -74,7 +74,7 @@ const serializedGameMigrations: {
       serializedGame.gameSettings.setupId = "base-game";
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "3",
@@ -115,7 +115,7 @@ const serializedGameMigrations: {
             // It might result in the pre-fix behavior if the Doran Martell was used as one of the cards in the child game state.
             serializedResolveMarchOrderGameState.currentTurnOrderIndex =
               serializedIngameGameState.game.ironThroneTrack.indexOf(
-                lastSelectedId,
+                lastSelectedId
               );
           }
         }
@@ -140,7 +140,7 @@ const serializedGameMigrations: {
           .filter(
             (log: any) =>
               log.data.type == "retreat-region-chosen" &&
-              log.data.regionTo == null,
+              log.data.regionTo == null
           )
           .forEach((log: any) => {
             // Convert to a retreat-failed message
@@ -155,7 +155,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "4",
@@ -171,18 +171,18 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
 
         const unitTypeNameToIdMappings = new BetterMap(
-          unitTypes.entries.map(([utid, ut]) => [ut.name, utid]),
+          unitTypes.entries.map(([utid, ut]) => [ut.name, utid])
         );
         const houseNameToIdMappings = new BetterMap(
-          ingame.game.houses.map((h: any) => [h.name, h.id]),
+          ingame.game.houses.map((h: any) => [h.name, h.id])
         );
         const regionNameToIdMappings = new BetterMap(
-          staticWorld.staticRegions.entries.map(([rid, r]) => [r.name, rid]),
+          staticWorld.staticRegions.entries.map(([rid, r]) => [r.name, rid])
         );
 
         ingame.gameLogManager.logs
           .filter(
-            (log: any) => log.data.type == "immediatly-killed-after-combat",
+            (log: any) => log.data.type == "immediatly-killed-after-combat"
           )
           .forEach((log: any) => {
             const woundedNames: string[] = log.data.killedBecauseWounded;
@@ -191,10 +191,10 @@ const serializedGameMigrations: {
             const houseName = log.data.house;
             log.data.house = houseNameToIdMappings.get(houseName);
             log.data.killedBecauseWounded = woundedNames.map((name) =>
-              unitTypeNameToIdMappings.get(name),
+              unitTypeNameToIdMappings.get(name)
             );
             log.data.killedBecauseCantRetreat = cannotRetreatNames.map((name) =>
-              unitTypeNameToIdMappings.get(name),
+              unitTypeNameToIdMappings.get(name)
             );
           });
 
@@ -205,13 +205,13 @@ const serializedGameMigrations: {
             const houseName = log.data.house;
             log.data.house = houseNameToIdMappings.get(houseName);
             log.data.killed = killedNames.map((name) =>
-              unitTypeNameToIdMappings.get(name),
+              unitTypeNameToIdMappings.get(name)
             );
           });
 
         ingame.gameLogManager.logs
           .filter(
-            (log: any) => log.data.type == "ships-destroyed-by-empty-castle",
+            (log: any) => log.data.type == "ships-destroyed-by-empty-castle"
           )
           .forEach((log: any) => {
             const houseName = log.data.house;
@@ -253,7 +253,7 @@ const serializedGameMigrations: {
             const unitNames: string[] = log.data.units;
             log.data.house = houseNameToIdMappings.get(houseName);
             log.data.units = unitNames.map((name) =>
-              unitTypeNameToIdMappings.get(name),
+              unitTypeNameToIdMappings.get(name)
             );
           });
 
@@ -268,7 +268,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "5",
@@ -283,7 +283,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "6",
@@ -301,18 +301,18 @@ const serializedGameMigrations: {
           const playersToHouse = new BetterMap(
             ingame.players.map((serializedPlayer: any) => [
               serializedPlayer.userId,
-              serializedPlayer.houseId,
-            ]),
+              serializedPlayer.houseId
+            ])
           );
 
           planning.readyHouses = planning.readyPlayers.map((playerId: string) =>
-            playersToHouse.get(playerId),
+            playersToHouse.get(playerId)
           );
         }
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "7",
@@ -347,7 +347,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "8",
@@ -374,7 +374,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "9",
@@ -386,7 +386,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "10",
@@ -409,7 +409,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "11",
@@ -453,7 +453,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "12",
@@ -473,7 +473,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "13",
@@ -522,7 +522,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "14",
@@ -556,7 +556,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "15",
@@ -576,7 +576,7 @@ const serializedGameMigrations: {
             type: "place-orders",
             readyHouses: planning.readyHouses,
             placedOrders: planning.placedOrders,
-            forVassals: false,
+            forVassals: false
           };
         }
 
@@ -597,8 +597,8 @@ const serializedGameMigrations: {
                 const houses = new BetterMap(
                   (ingame.game.houses as SerializedHouse[]).map((h) => [
                     h.id,
-                    h,
-                  ]),
+                    h
+                  ])
                 );
                 const combatData = combat.houseCombatDatas as [
                   string,
@@ -606,7 +606,7 @@ const serializedGameMigrations: {
                     houseCardId: string | null;
                     army: number[];
                     regionId: string;
-                  },
+                  }
                 ][];
                 const combatHouses = combatData.map(([h, _hcd]) => h);
                 chooseHouseCard.choosableHouseCards = combatHouses.map(
@@ -615,10 +615,10 @@ const serializedGameMigrations: {
                     houses
                       .get(hid)
                       .houseCards.filter(
-                        ([_hcid, hc]) => hc.state == HouseCardState.AVAILABLE,
+                        ([_hcid, hc]) => hc.state == HouseCardState.AVAILABLE
                       )
-                      .map(([hcid, _hc]) => hcid),
-                  ],
+                      .map(([hcid, _hc]) => hcid)
+                  ]
                 );
               }
             }
@@ -627,7 +627,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "16",
@@ -647,7 +647,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "17",
@@ -684,7 +684,7 @@ const serializedGameMigrations: {
                   aeronDwdAbility.childGameState = {
                     type: "bidding",
                     participatingHouses: [house],
-                    bids: [],
+                    bids: []
                   };
                 }
               }
@@ -694,7 +694,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "18",
@@ -715,7 +715,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "19",
@@ -726,12 +726,12 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
         ingame.game.vassalHouseCards = vassalHouseCards.map((hc) => [
           hc.id,
-          hc.serializeToClient(),
+          hc.serializeToClient()
         ]);
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "20",
@@ -747,13 +747,13 @@ const serializedGameMigrations: {
               .keys as string[];
             const nonVassalHouses = _.difference(
               ingame.game.houses.map((sh: SerializedHouse) => sh.id),
-              vassalHouses,
+              vassalHouses
             );
             placeOrders.readyHouses = placeOrders.readyHouses.filter(
               (h: string) =>
                 placeOrders.forVassals
                   ? vassalHouses.includes(h)
-                  : nonVassalHouses.includes(h),
+                  : nonVassalHouses.includes(h)
             );
           }
         }
@@ -779,14 +779,14 @@ const serializedGameMigrations: {
 
             houseCardResolution.childGameState = {
               type: "aeron-damphair-dwd-ability",
-              house: oldAeronState.childGameState.participatingHouses[0],
+              house: oldAeronState.childGameState.participatingHouses[0]
             };
           }
         }
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "21",
@@ -809,9 +809,9 @@ const serializedGameMigrations: {
                 childGameState: {
                   type: "use-raven",
                   childGameState: {
-                    type: "replace-order",
-                  },
-                },
+                    type: "replace-order"
+                  }
+                }
               };
             }
           }
@@ -819,7 +819,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "22",
@@ -835,20 +835,20 @@ const serializedGameMigrations: {
           if (
             vote.type.type == "replace-player-by-vassal" &&
             !vote.participatingPlayers.some(
-              (sp: any) => sp.userId == vote.type.replaced,
+              (sp: any) => sp.userId == vote.type.replaced
             )
           ) {
             vote.participatingPlayers.push({
               houseId: vote.type.forHouse,
               userId: vote.type.replaced,
-              note: "",
+              note: ""
             });
           }
         }
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "23",
@@ -868,7 +868,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "24",
@@ -888,7 +888,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "25",
@@ -900,14 +900,14 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "26",
     migrate: (serializedGame: any) => {
       // This was a weird migration which is not necessary anymore
       return serializedGame;
-    },
+    }
   },
   {
     version: "27",
@@ -917,12 +917,12 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
         ingame.game.houses.forEach((h: SerializedHouse) => {
           h.unitLimits = h.unitLimits.filter(
-            ([utid, _limit]) => utid != "dragon",
+            ([utid, _limit]) => utid != "dragon"
           );
         });
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "28",
@@ -933,7 +933,7 @@ const serializedGameMigrations: {
         ingame.game.world.gameSetupId = serializedGame.gameSettings.setupId;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "29",
@@ -965,7 +965,7 @@ const serializedGameMigrations: {
                 army: number[];
                 regionId: string;
                 tidesOfBattleCardId: string | null | undefined;
-              },
+              }
             ][]
           ).forEach(([_houseId, hcd]) => (hcd.tidesOfBattleCardId = null));
 
@@ -979,7 +979,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "30",
@@ -1003,7 +1003,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "31",
@@ -1031,7 +1031,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "32",
@@ -1043,7 +1043,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "33",
@@ -1068,7 +1068,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "34",
@@ -1080,7 +1080,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "35",
@@ -1090,7 +1090,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "36",
@@ -1100,7 +1100,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "37",
@@ -1115,7 +1115,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "38",
@@ -1158,7 +1158,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "39",
@@ -1167,13 +1167,13 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
         ingame.votes.forEach((v: any) => {
           v.participatingHouses = v.participatingPlayers.map(
-            (p: any) => p.houseId,
+            (p: any) => p.houseId
           );
         });
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "40",
@@ -1199,7 +1199,7 @@ const serializedGameMigrations: {
       });
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "41",
@@ -1207,7 +1207,7 @@ const serializedGameMigrations: {
       if (serializedGame.childGameState.type == "ingame") {
         const ingame = serializedGame.childGameState;
         const baratheon = ingame.game.houses.find(
-          (h: any) => h.id == "baratheon",
+          (h: any) => h.id == "baratheon"
         );
         if (baratheon !== undefined) {
           baratheon.color = "#e6d228";
@@ -1215,7 +1215,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "42",
@@ -1228,7 +1228,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "43",
@@ -1239,13 +1239,13 @@ const serializedGameMigrations: {
 
         ingame.game.world.playerCount = ingame.game.houses.length;
         ingame.game.world.regions.forEach(
-          (region: any) => (region.loyaltyTokens = 0),
+          (region: any) => (region.loyaltyTokens = 0)
         );
         ingame.game.houses.forEach((h: any) => (h.gainedLoyaltyTokens = 0));
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "44",
@@ -1258,7 +1258,7 @@ const serializedGameMigrations: {
 
         if (ingame.game.houses.length == 8) {
           let lastId = Math.max(
-            ..._.flatten(ingame.game.westerosDecks).map((wc: any) => wc.id),
+            ..._.flatten(ingame.game.westerosDecks).map((wc: any) => wc.id)
           );
 
           const wd4_ids = [
@@ -1271,12 +1271,12 @@ const serializedGameMigrations: {
             "strongholds-of-resistance",
             "the-long-plan",
             "watering-the-seed",
-            "word-spreads-quickly",
+            "word-spreads-quickly"
           ];
           const deck = wd4_ids.map((wd4id) => ({
             id: ++lastId,
             typeId: wd4id,
-            discarded: false,
+            discarded: false
           }));
 
           shuffleInPlace(deck);
@@ -1297,7 +1297,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "45",
@@ -1321,16 +1321,16 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "46",
     migrate: (serializedGame: any) => {
       serializedGame.users.forEach(
-        (u: any) => (u.settings.responsiveLayout = false),
+        (u: any) => (u.settings.responsiveLayout = false)
       );
       return serializedGame;
-    },
+    }
   },
   {
     version: "47",
@@ -1354,7 +1354,7 @@ const serializedGameMigrations: {
             moveLoyaltyTokens.previousMovement = {
               house: moveLoyaltyTokens.resolveOrder[0],
               from: moveLoyaltyTokens.regionFrom,
-              to: moveLoyaltyTokens.regionTo,
+              to: moveLoyaltyTokens.regionTo
             };
           } else {
             moveLoyaltyTokens.previousMovement = null;
@@ -1369,7 +1369,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "48",
@@ -1397,7 +1397,7 @@ const serializedGameMigrations: {
           // Set the new child game state to resolve a CP*
           resolveConsolidatePower.childGameState = {
             type: "resolve-single-consolidate-power",
-            house: house,
+            house: house
           };
         }
 
@@ -1431,7 +1431,7 @@ const serializedGameMigrations: {
           "siege-engineers",
           "spymaster",
           "the-faceless-men",
-          "vanguard-cavalry",
+          "vanguard-cavalry"
         ];
 
         const loanDeck = shuffleInPlace(
@@ -1439,8 +1439,8 @@ const serializedGameMigrations: {
             id: i,
             type: id,
             purchasedBy: null,
-            discarded: false,
-          })),
+            discarded: false
+          }))
         );
         const loanSlots = [];
 
@@ -1460,12 +1460,12 @@ const serializedGameMigrations: {
         ingame.game.ironBank = {
           loanCardDeck: loanDeck,
           loanSlots: loanSlots,
-          purchasedLoans: [],
+          purchasedLoans: []
         };
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "49",
@@ -1484,7 +1484,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "50",
@@ -1497,14 +1497,14 @@ const serializedGameMigrations: {
             l.data.units = oldUnits.map(([regionId, unitTypeIds]) => ({
               houseId: undefined,
               regionId: regionId,
-              unitTypeId: unitTypeIds[0],
+              unitTypeId: unitTypeIds[0]
             }));
           }
         });
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "51",
@@ -1524,12 +1524,12 @@ const serializedGameMigrations: {
         ingame.gameLogManager.logs.push({
           time: lastLog.time,
           data: { type: "winner-declared", winner: gameEnded.winner },
-          resolvedAutomatically: false,
+          resolvedAutomatically: false
         });
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "52",
@@ -1540,7 +1540,7 @@ const serializedGameMigrations: {
         ingame.gameLogManager.logs
           .filter((log: any) => log.data.type == "combat-result")
           .forEach((log: any) =>
-            log.data.stats.forEach((s: any) => (s.woundedUnits = [])),
+            log.data.stats.forEach((s: any) => (s.woundedUnits = []))
           );
 
         if (
@@ -1554,16 +1554,16 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "53",
     migrate: (serializedGame: any) => {
       serializedGame.users.forEach(
-        (u: any) => (u.otherUsersFromSameNetwork = []),
+        (u: any) => (u.otherUsersFromSameNetwork = [])
       );
       return serializedGame;
-    },
+    }
   },
   {
     version: "54",
@@ -1572,14 +1572,14 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
 
         ingame.game.houses.forEach(
-          (h: any) => (h.hasBeenReplacedByVassal = false),
+          (h: any) => (h.hasBeenReplacedByVassal = false)
         );
 
         ingame.game.oldPlayerHouseCards = [];
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "55",
@@ -1599,7 +1599,7 @@ const serializedGameMigrations: {
         ingame.game.objectiveDeck = [];
 
         ingame.game.world.regions.forEach(
-          (r: any) => (r.overwrittenSuperControlPowerToken = null),
+          (r: any) => (r.overwrittenSuperControlPowerToken = null)
         );
 
         if (
@@ -1612,7 +1612,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "56",
@@ -1633,7 +1633,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "57",
@@ -1650,7 +1650,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "58",
@@ -1658,12 +1658,12 @@ const serializedGameMigrations: {
       if (serializedGame.childGameState.type == "ingame") {
         const ingame = serializedGame.childGameState;
         ingame.gameLogManager.logs = ingame.gameLogManager.logs.filter(
-          (l: any) => l.data.type != "march-order-removed",
+          (l: any) => l.data.type != "march-order-removed"
         );
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "59",
@@ -1681,7 +1681,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "60",
@@ -1696,7 +1696,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "61",
@@ -1742,7 +1742,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "62",
@@ -1751,14 +1751,14 @@ const serializedGameMigrations: {
       if (serializedGame.childGameState.type == "ingame") {
         const ingame = serializedGame.childGameState;
         const targaryen = ingame.game.houses.find(
-          (h: any) => h.id == "targaryen",
+          (h: any) => h.id == "targaryen"
         );
         if (targaryen !== undefined) {
           targaryen.unitLimits.push(["dragon", 3]);
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "63",
@@ -1769,7 +1769,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "64",
@@ -1787,7 +1787,7 @@ const serializedGameMigrations: {
           const participatingHouses =
             scoreOtherObjectives.childGameState.selectableCardsPerHouse.map(
               ([hid, _ocids]: any) =>
-                ingame.game.houses.find((sh: any) => sh.id == hid),
+                ingame.game.houses.find((sh: any) => sh.id == hid)
             );
           scoreOtherObjectives.victoryPointsAtBeginning =
             participatingHouses.map((sh: any) => [sh.id, sh.victoryPoints]);
@@ -1795,13 +1795,13 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "65",
     migrate: (serializedGame: any) => {
       serializedGame.users.forEach(
-        (u: any, i: number) => (u.facelessName = `Faceless Man ${i + 1}`),
+        (u: any, i: number) => (u.facelessName = `Faceless Man ${i + 1}`)
       );
 
       if (
@@ -1812,27 +1812,27 @@ const serializedGameMigrations: {
         const usersOfPlayers = ingame.players
           .map((p: any) => p.userId)
           .map((uid: any) =>
-            serializedGame.users.find((u: any) => u.id == uid),
+            serializedGame.users.find((u: any) => u.id == uid)
           );
         const facelessNames: string[] = [...facelessMenNames];
         usersOfPlayers.forEach(
           (u: any) =>
-            (u.facelessName = popRandom(facelessNames) ?? u.facelessName),
+            (u.facelessName = popRandom(facelessNames) ?? u.facelessName)
         );
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "66",
     migrate: (serializedGame: any) => {
       serializedGame.users.forEach(
         (u: any) =>
-          (u.facelessName = u.facelessName.replace("Faceless Man", "Nobody")),
+          (u.facelessName = u.facelessName.replace("Faceless Man", "Nobody"))
       );
       return serializedGame;
-    },
+    }
   },
   {
     version: "67",
@@ -1841,7 +1841,7 @@ const serializedGameMigrations: {
         serializedGame.childGameState.gameLogManager.lastSeenLogTimes = [];
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "68",
@@ -1850,7 +1850,7 @@ const serializedGameMigrations: {
         serializedGame.gameSettings.allowGiftingPowerTokens = false;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "69",
@@ -1872,8 +1872,8 @@ const serializedGameMigrations: {
                 type: "leave-power-token-choice",
                 house: l.data.house,
                 region: l.data.startingRegion,
-                leftPowerToken: l.data.leftPowerToken,
-              },
+                leftPowerToken: l.data.leftPowerToken
+              }
             });
 
             // Remove the leftPowerToken info from the march-resolved log
@@ -1887,13 +1887,13 @@ const serializedGameMigrations: {
         newLogs.forEach((log) => {
           ingame.gameLogManager.logs.splice(log.index, 0, {
             time: log.time,
-            data: log.data,
+            data: log.data
           });
         });
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "70",
@@ -1908,7 +1908,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "71",
@@ -1923,7 +1923,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "72",
@@ -1944,7 +1944,7 @@ const serializedGameMigrations: {
         });
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "73",
@@ -1968,7 +1968,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "74",
@@ -2023,8 +2023,7 @@ const serializedGameMigrations: {
             combat.childGameState.childGameState.childGameState.type ==
               "aeron-damphair-ability"
           ) {
-            combat.childGameState.childGameState.childGameState.reduceCombatStrengthOfNewHouseCard =
-              false;
+            combat.childGameState.childGameState.childGameState.reduceCombatStrengthOfNewHouseCard = false;
           }
 
           // Align the handling of optional house cards with the other house cards
@@ -2053,7 +2052,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "75",
@@ -2066,16 +2065,16 @@ const serializedGameMigrations: {
           [];
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "76",
     migrate: (serializedGame: any) => {
       serializedGame.users.forEach(
-        (u: any) => (u.settings.chatHouseNames = false),
+        (u: any) => (u.settings.chatHouseNames = false)
       );
       return serializedGame;
-    },
+    }
   },
   {
     version: "77",
@@ -2083,11 +2082,11 @@ const serializedGameMigrations: {
       if (serializedGame.childGameState.type == "ingame") {
         const ingame = serializedGame.childGameState;
         ingame.game.dragonStrengthTokens = [2, 4, 6, 8, 10].filter(
-          (token) => token != ingame.game.removedDragonStrengthToken,
+          (token) => token != ingame.game.removedDragonStrengthToken
         );
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "78",
@@ -2097,7 +2096,7 @@ const serializedGameMigrations: {
         ingame.game.houses.forEach((sh: any) => (sh.laterHouseCards = null));
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "79",
@@ -2107,7 +2106,7 @@ const serializedGameMigrations: {
         ingame.players.forEach((p: any) => (p.liveClockData = null));
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "80",
@@ -2116,7 +2115,7 @@ const serializedGameMigrations: {
         serializedGame.childGameState.game.paused = null;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "81",
@@ -2130,7 +2129,7 @@ const serializedGameMigrations: {
         });
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "82",
@@ -2152,7 +2151,7 @@ const serializedGameMigrations: {
         ingame.game.willBeAutoResumedAt = undefined;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "83",
@@ -2163,7 +2162,7 @@ const serializedGameMigrations: {
         lobby.readyUsers = null;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "84",
@@ -2176,7 +2175,7 @@ const serializedGameMigrations: {
         ingame.players.forEach((p: any) => (p.waitedForData = null));
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "85",
@@ -2197,7 +2196,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "86",
@@ -2210,7 +2209,7 @@ const serializedGameMigrations: {
         ingame.timeoutPlayerIds = [];
 
         const replacedLogs = ingame.gameLogManager.logs.filter(
-          (l: any) => l.data.type == "player-replaced",
+          (l: any) => l.data.type == "player-replaced"
         );
         replacedLogs.forEach((l: any) => {
           ingame.oldPlayerIds.push(l.data.oldUser);
@@ -2223,7 +2222,7 @@ const serializedGameMigrations: {
         ingame.replacerIds = _.uniq(ingame.replacerIds);
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "87",
@@ -2238,13 +2237,13 @@ const serializedGameMigrations: {
           if (!p.liveClockData) {
             p.liveClockData = {
               remainingSeconds: 60 * 60,
-              timerStartedAt: null,
+              timerStartedAt: null
             };
           }
         });
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "88",
@@ -2258,7 +2257,7 @@ const serializedGameMigrations: {
         ingame.game.removedDragonStrengthToken = 0;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "89",
@@ -2277,7 +2276,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "90",
@@ -2287,7 +2286,7 @@ const serializedGameMigrations: {
         serializedGame.gameSettings.adwdHouseCards
       ) {
         const boltons = serializedGame.childGameState.game.houses.find(
-          (h: any) => h.id == "stark",
+          (h: any) => h.id == "stark"
         );
         if (boltons) {
           boltons.name = "Bolton";
@@ -2295,7 +2294,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "91",
@@ -2304,11 +2303,11 @@ const serializedGameMigrations: {
         const game = serializedGame.childGameState.game;
         game.winterIsComingHappened = [];
         game.westerosDecks.forEach((_wd: any) =>
-          game.winterIsComingHappened.push(false),
+          game.winterIsComingHappened.push(false)
         );
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "92",
@@ -2328,7 +2327,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "93",
@@ -2343,7 +2342,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "94",
@@ -2355,7 +2354,7 @@ const serializedGameMigrations: {
         });
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "95",
@@ -2370,7 +2369,7 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "96",
@@ -2381,7 +2380,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "97",
@@ -2391,7 +2390,7 @@ const serializedGameMigrations: {
         ? true
         : false;
       return serializedGame;
-    },
+    }
   },
   {
     version: "98",
@@ -2400,31 +2399,31 @@ const serializedGameMigrations: {
         const game = serializedGame.childGameState.game;
         const allHouseCards = _.flatMap(
           game.houses.map((h: any) =>
-            h.houseCards.map(([_hcid, shc]: any) => shc),
-          ),
+            h.houseCards.map(([_hcid, shc]: any) => shc)
+          )
         );
 
         allHouseCards.push(
-          ...game.houseCardsForDrafting.map(([_hcid, shc]: any) => shc),
+          ...game.houseCardsForDrafting.map(([_hcid, shc]: any) => shc)
         );
         allHouseCards.push(
-          ...game.deletedHouseCards.map(([_hcid, shc]: any) => shc),
+          ...game.deletedHouseCards.map(([_hcid, shc]: any) => shc)
         );
 
         const oldPlayerHouseCards = _.flatMap(
-          game.oldPlayerHouseCards.map(([_hid, hcs]: any) => hcs),
+          game.oldPlayerHouseCards.map(([_hid, hcs]: any) => hcs)
         ).map(([_hcid, shc]) => shc);
         allHouseCards.push(...oldPlayerHouseCards);
 
         const walderFrey = allHouseCards.find(
-          (shc: any) => shc.id == "walder-frey",
+          (shc: any) => shc.id == "walder-frey"
         ) as any;
         if (walderFrey) {
           walderFrey.name = "Walder Frey";
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "99",
@@ -2433,7 +2432,7 @@ const serializedGameMigrations: {
         serializedGame.childGameState.housesTimedOut = [];
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "100",
@@ -2450,7 +2449,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "101",
@@ -2463,7 +2462,7 @@ const serializedGameMigrations: {
         const objectiveScoredLogs = ingame.gameLogManager.logs.filter(
           (l: any) =>
             l.data.type == "objective-scored" ||
-            l.data.type == "special-objective-scored",
+            l.data.type == "special-objective-scored"
         );
 
         objectiveScoredLogs.forEach((l: any) => {
@@ -2472,7 +2471,7 @@ const serializedGameMigrations: {
             l.data.type == "special-objective-scored"
           ) {
             const house = ingame.game.houses.find(
-              (h: any) => h.id == l.data.house,
+              (h: any) => h.id == l.data.house
             );
             if (house && l.data.newTotal > house.victoryPoints) {
               house.victoryPoints = l.data.newTotal;
@@ -2482,7 +2481,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "102",
@@ -2494,7 +2493,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "103",
@@ -2505,7 +2504,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "104",
@@ -2517,7 +2516,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "105",
@@ -2537,7 +2536,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "106",
@@ -2560,7 +2559,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "107",
@@ -2570,7 +2569,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "108",
@@ -2583,7 +2582,7 @@ const serializedGameMigrations: {
       });
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "109",
@@ -2598,7 +2597,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "110",
@@ -2611,7 +2610,7 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "111",
@@ -2620,7 +2619,7 @@ const serializedGameMigrations: {
         serializedGame.gameSettings.blindDraft;
       serializedGame.gameSettings.blindDraft = false;
       return serializedGame;
-    },
+    }
   },
   {
     version: "112",
@@ -2634,7 +2633,7 @@ const serializedGameMigrations: {
         u.settings.musicVolume = u.settings.muted ? 0 : 1;
       });
       return serializedGame;
-    },
+    }
   },
   {
     version: "113",
@@ -2647,14 +2646,14 @@ const serializedGameMigrations: {
         u.settings.sfxVolume = u.settings.muted ? 0 : 1;
       });
       return serializedGame;
-    },
+    }
   },
   {
     version: "114",
     migrate: (serializedGame: any) => {
       serializedGame.gameSettings.selectedDraftDecks = 7; // Currently All: Base + Dwd / FfC + ASoS
       return serializedGame;
-    },
+    }
   },
   {
     version: "115",
@@ -2663,12 +2662,12 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
 
         const jaqenLogs = ingame.gameLogManager.logs.filter(
-          (l: any) => l.data.type == "jaqen-h-ghar-house-card-replaced",
+          (l: any) => l.data.type == "jaqen-h-ghar-house-card-replaced"
         );
         jaqenLogs.forEach((l: any) => (l.data.usedById = "jaqen-h-ghar"));
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "116",
@@ -2680,7 +2679,7 @@ const serializedGameMigrations: {
 
         if (ingame.game.removedDragonStrengthToken > 0) {
           ingame.game.removedDragonStrengthTokens = [
-            ingame.game.removedDragonStrengthToken,
+            ingame.game.removedDragonStrengthToken
           ];
         }
 
@@ -2696,19 +2695,19 @@ const serializedGameMigrations: {
           ingame.game.houses.forEach((h: any) => {
             const balon = h.houseCards.find(
               ([id, shc]: any) =>
-                id == "balon-greyjoy" && shc.id == "balon-greyjoy-nerved",
+                id == "balon-greyjoy" && shc.id == "balon-greyjoy-nerved"
             );
             const aeron = h.houseCards.find(
               ([id, shc]: any) =>
                 id == "aeron-damphair-dwd" &&
-                shc.id == "aeron-damphair-dwd-nerved",
+                shc.id == "aeron-damphair-dwd-nerved"
             );
 
             if (balon) {
               h.houseCards = replaceHouseCard(
                 h.houseCards,
                 "balon-greyjoy",
-                balon,
+                balon
               );
             }
 
@@ -2716,14 +2715,14 @@ const serializedGameMigrations: {
               h.houseCards = replaceHouseCard(
                 h.houseCards,
                 "aeron-damphair-dwd",
-                aeron,
+                aeron
               );
             }
           });
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "117",
@@ -2736,7 +2735,7 @@ const serializedGameMigrations: {
         });
 
         ingame.game.draftableHouseCards = applyMigrations(
-          ingame.game.draftableHouseCards,
+          ingame.game.draftableHouseCards
         );
 
         traverseAndFixNerfedTypo(ingame.gameLogManager.logs);
@@ -2746,14 +2745,14 @@ const serializedGameMigrations: {
       function applyMigrations(houseCards: [string, any][]): [string, any][] {
         let result = [...houseCards];
         const aeronDwdNerfed = result.find(
-          ([id, _shc]: any) => id == "aeron-damphair-dwd-nerved",
+          ([id, _shc]: any) => id == "aeron-damphair-dwd-nerved"
         );
         if (aeronDwdNerfed) {
           aeronDwdNerfed[1].abilityId = "quentyn-martell";
           result = replaceHouseCard(
             result,
             "aeron-damphair-dwd-nerved",
-            aeronDwdNerfed,
+            aeronDwdNerfed
           );
         }
 
@@ -2794,7 +2793,7 @@ const serializedGameMigrations: {
           }
         }
       }
-    },
+    }
   },
   {
     version: "118",
@@ -2809,12 +2808,12 @@ const serializedGameMigrations: {
         ) {
           ingame.childGameState = {
             type: "draft",
-            childGameState: ingame.childGameState,
+            childGameState: ingame.childGameState
           };
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "119",
@@ -2827,7 +2826,7 @@ const serializedGameMigrations: {
         });
 
         ingame.game.draftableHouseCards = applyMigrations(
-          ingame.game.draftableHouseCards,
+          ingame.game.draftableHouseCards
         );
       }
       return serializedGame;
@@ -2835,7 +2834,7 @@ const serializedGameMigrations: {
       function applyMigrations(houseCards: [string, any][]): [string, any][] {
         let result = [...houseCards];
         const found = result.find(
-          ([id, _shc]) => id == "aeron-damphair-dwd-nerfed",
+          ([id, _shc]) => id == "aeron-damphair-dwd-nerfed"
         );
         if (found) {
           found[1].abilityId = "aeron-damphair-dwd";
@@ -2844,7 +2843,7 @@ const serializedGameMigrations: {
 
         return result;
       }
-    },
+    }
   },
   {
     version: "120",
@@ -2865,14 +2864,14 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "121",
     migrate: (serializedGame: any) => {
       serializedGame.gameSettings.houseCardsEvolutionRound = 5;
       return serializedGame;
-    },
+    }
   },
   {
     version: "122",
@@ -2886,14 +2885,14 @@ const serializedGameMigrations: {
         }
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "123",
     migrate: (serializedGame: any) => {
       serializedGame.multiAccountProtectionMap = [];
       return serializedGame;
-    },
+    }
   },
   {
     version: "124",
@@ -2908,7 +2907,7 @@ const serializedGameMigrations: {
             musicVolume: 1,
             notificationsVolume: 1,
             sfxVolume: 1,
-            muted: false,
+            muted: false
           };
         }
         u.settings.gameStateColumnRight = u.settings.responsiveLayout;
@@ -2918,7 +2917,7 @@ const serializedGameMigrations: {
       });
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "125",
@@ -2931,11 +2930,10 @@ const serializedGameMigrations: {
         serializedGame.childGameState.childGameState.childGameState
           .childGameState.type == "combat"
       ) {
-        serializedGame.childGameState.childGameState.childGameState.childGameState.dontSkipVsbQuestion =
-          false;
+        serializedGame.childGameState.childGameState.childGameState.childGameState.dontSkipVsbQuestion = false;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "126",
@@ -2944,7 +2942,7 @@ const serializedGameMigrations: {
         serializedGame.childGameState.vassalizedHouses = [];
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "127",
@@ -2954,7 +2952,7 @@ const serializedGameMigrations: {
           serializedGame.childGameState.game.draftableHouseCards;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "128",
@@ -2970,7 +2968,7 @@ const serializedGameMigrations: {
           nonCorruptSettings.holdVictoryPointsUntilEndOfRound;
       }
       return serializedGame;
-    },
+    }
   },
   {
     version: "129",
@@ -2978,7 +2976,7 @@ const serializedGameMigrations: {
       // This was a buggy migration for perpetuum random games.
       // If applied in some PBEM games, I will fix them manually.
       return serializedGame;
-    },
+    }
   },
   {
     version: "130",
@@ -2989,14 +2987,14 @@ const serializedGameMigrations: {
           // Make removed power tokens positive for easier log replay
           if (log.data.type === "skinchanger-scout-wildling-victory") {
             log.data.powerTokensLost = log.data.powerTokensLost.map(
-              ([house, tokens]: any) => [house, Math.abs(tokens)],
+              ([house, tokens]: any) => [house, Math.abs(tokens)]
             );
           }
         });
       }
 
       return serializedGame;
-    },
+    }
   },
   {
     version: "131",
@@ -3020,7 +3018,7 @@ const serializedGameMigrations: {
             const house = ingame.game.houses.find((h: any) => h.id == hid);
             if (!house) {
               throw new Error(
-                `House with id ${hid} not found for draft map migration`,
+                `House with id ${hid} not found for draft map migration`
               );
             }
             return [house.id, house.supplyLevel];
@@ -3029,8 +3027,22 @@ const serializedGameMigrations: {
       }
 
       return serializedGame;
-    },
+    }
   },
+  {
+    version: "132",
+    migrate: (serializedGame: any) => {
+      serializedGame.users.forEach((u: any) => {
+        if (!u.settings) {
+          return;
+        }
+
+        u.settings.closedChats ??= [];
+      });
+
+      return serializedGame;
+    }
+  }
 ];
 
 export default serializedGameMigrations;
