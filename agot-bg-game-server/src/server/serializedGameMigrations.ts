@@ -3028,6 +3028,20 @@ const serializedGameMigrations: {
 
       return serializedGame;
     }
+  },
+  {
+    version: "132",
+    migrate: (serializedGame: any) => {
+      serializedGame.users.forEach((u: any) => {
+        if (!u.settings) {
+          return;
+        }
+
+        u.settings.closedChats ??= [];
+      });
+
+      return serializedGame;
+    }
   }
 ];
 
