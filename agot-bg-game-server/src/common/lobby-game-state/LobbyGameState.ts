@@ -402,13 +402,10 @@ export default class LobbyGameState extends GameState<EntireGame> {
         settings.tidesOfBattle = true;
       }
 
-      // Faceless requires Random
-      if (
-        settings.faceless &&
-        !settings.randomHouses &&
-        !settings.randomChosenHouses
-      ) {
-        settings.randomHouses = true;
+      // Once Faceless is set, it becomes locked to allow house selection
+      // instead of limiting gameplay to randomHouses only.
+      if (this.settings.faceless && !settings.faceless) {
+        settings.faceless = true;
       }
 
       if (!settings.vassals) {

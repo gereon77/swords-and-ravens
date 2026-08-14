@@ -1246,12 +1246,25 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 </OverlayTrigger>
               }
               checked={this.gameSettings.faceless}
-              onChange={() =>
+              onChange={() => {
+                if (this.gameSettings.faceless) {
+                  return;
+                }
+
+                if (
+                  !window.confirm(
+                    "Enabling Faceless is permanent and cannot be undone.\n\n" +
+                      "Are you sure you want to enable Faceless?"
+                  )
+                ) {
+                  return;
+                }
+
                 this.changeGameSettings(
                   () =>
                     (this.gameSettings.faceless = !this.gameSettings.faceless)
-                )
-              }
+                );
+              }}
             />
           </Col>
           <Col xs="12">
