@@ -416,7 +416,7 @@ def games(request):
     elif request.method == "POST":
         name = request.POST.get("name", "")
 
-        if not request.user.has_perm("agotboardgame_main.add_game") or len(name) > 200:
+        if request.user.is_in_group("On probation") or not request.user.has_perm("agotboardgame_main.add_game") or len(name) > 200:
             return HttpResponseRedirect("/games")
 
         game = Game()
@@ -452,8 +452,9 @@ def play(request, game_id, user_id=None):
         logout(request)
         return HttpResponseRedirect("/games")
 
-    if request.user.is_in_group("On probation") and game.players.filter(user=request.user).count() == 0:
-        # Members on probation only can join their current running games
+    if request.user.is_in_group("On probation") and game.state == IN_LOBBY and game.players.filter(user=request.user).count() == 0:
+        # Members on probation can't join new lobby games, but can rejoin ones they're already in
+        # and spectate ongoing/finished/cancelled games
         return HttpResponseRedirect("/games")
 
     # Specifying a user_id allows users to impersonate other players in a game
