@@ -25,7 +25,7 @@ export default class SnapshotMigrator {
     defenderRegion: string;
     attackerArmy: string[];
   } | null = null;
-  private combatResultData: CombatResultData | null = null;
+  combatResultData: CombatResultData | null = null;
 
   private get supplyRestrictions(): number[][] {
     return this.ingame.game.supplyRestrictions;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import _ from "lodash";
 import GameLog, {
-  GameLogData,
+  GameLogData
 } from "../../common/ingame-game-state/game-data-structure/GameLog";
 import EntireGameSnapshot from "./EntireGameSnapshot";
 import GameLogManager from "../../common/ingame-game-state/game-data-structure/GameLogManager";
@@ -41,7 +41,7 @@ export default class GameReplayManager {
   private seenSnapshots: BetterMap<number, EntireGameSnapshot> =
     new BetterMap();
   private entireGame: EntireGame;
-  private migrator: SnapshotMigrator;
+  migrator: SnapshotMigrator;
 
   @computed
   get isReplayMode(): boolean {
@@ -249,7 +249,7 @@ export default class GameReplayManager {
     ) {
       return {
         snap: this.seenSnapshots.get(nearestSeenSnapshotIndex),
-        originalIndex: nearestSeenSnapshotIndex,
+        originalIndex: nearestSeenSnapshotIndex
       };
     }
 
@@ -278,11 +278,11 @@ export default class GameReplayManager {
         snap: new EntireGameSnapshot(
           {
             worldSnapshot: l.worldState,
-            gameSnapshot: l.gameSnapshot,
+            gameSnapshot: l.gameSnapshot
           },
           ingame
         ),
-        originalIndex: originalIndex,
+        originalIndex: originalIndex
       };
     }
   }

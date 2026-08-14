@@ -67,8 +67,8 @@ export default class SnapshotHighlighter {
             log.startingRegion,
             {
               to: region,
-              color: markerColor,
-            },
+              color: markerColor
+            }
           ]);
         }
 
@@ -248,8 +248,8 @@ export default class SnapshotHighlighter {
             log.regionFrom,
             {
               to: log.regionTo,
-              color: log.house != "greyjoy" ? "black" : "white",
-            },
+              color: log.house != "greyjoy" ? "black" : "white"
+            }
           ]);
         }
         break;
@@ -329,19 +329,58 @@ export default class SnapshotHighlighter {
           log.attackingRegion,
           {
             to: log.attackedRegion,
-            color: "red",
-          },
+            color: snap.getHouse(log.attacker).color
+          }
         ]);
         break;
       }
       case "combat-result": {
-        const ctrl1 = snap.getController(log.stats[0].region);
-        const ctrl2 = snap.getController(log.stats[1].region);
+        const attackingRegion = snap.getRegion(log.stats[0].region);
+        const defendingRegion = snap.getRegion(log.stats[1].region);
+        const attacker = snap.getHouse(log.stats[0].house);
+        const defender = snap.getHouse(log.stats[1].house);
 
-        if (ctrl1)
-          this.regionsToHighlight.set(log.stats[0].region, ctrl1.color);
-        if (ctrl2)
-          this.regionsToHighlight.set(log.stats[1].region, ctrl2.color);
+        if (attacker)
+          this.regionsToHighlight.set(log.stats[0].region, attacker.color);
+        if (defender)
+          this.regionsToHighlight.set(log.stats[1].region, defender.color);
+        // Get combat result data from migrator:
+        const crd = this.replayManager.migrator.combatResultData;
+        if (!crd) {
+          break;
+        }
+
+        if (crd.attacker == crd.winner && !crd.movePrevented) {
+          this.marchMarkers.push([
+            attackingRegion.id,
+            {
+              to: defendingRegion.id,
+              color: snap.getHouse(crd.attacker).color
+            }
+          ]);
+        }
+
+        // Handle Arianne Martell ASoS forced retreat of victorious defender:
+        if (crd.retreatForced && crd.retreatRegions.length == 2) {
+          this.marchMarkers.push([
+            defendingRegion.id,
+            {
+              to: crd.retreatRegions[1],
+              color: defender.color
+            }
+          ]);
+        }
+
+        // Handle normal retreat:
+        if (crd.loser == defender.id && crd.retreatRegions.length == 1) {
+          this.marchMarkers.push([
+            defendingRegion.id,
+            {
+              to: crd.retreatRegions[0],
+              color: defender.color
+            }
+          ]);
+        }
         break;
       }
 
