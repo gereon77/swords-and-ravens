@@ -50,8 +50,13 @@ export default class User {
     this.entireGame.sendMessageToClients([this], message);
   }
 
-  syncSettings(): void {
+  syncSettings(flush = false): void {
     this.debouncedSyncSettings();
+
+    // Bypasses the debounce delay so the change reaches the server before e.g. the tab closes
+    if (flush) {
+      this.debouncedSyncSettings.flush();
+    }
   }
 
   updateConnectionStatus(): void {
@@ -87,6 +92,7 @@ export default class User {
 
   static deserializeFromServer(game: EntireGame, data: SerializedUser): User {
     const emptySettings: UserSettings = {
+      closedChats: [],
       chatHouseNames: false,
       // Todo: Get rid of this as well and define two layouts for mobile and desktop
       mapScrollbar: false,

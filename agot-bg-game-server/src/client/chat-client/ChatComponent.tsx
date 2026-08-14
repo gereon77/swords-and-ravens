@@ -15,7 +15,11 @@ import { Alert, OverlayTrigger, Popover, Tooltip } from "react-bootstrap";
 import User from "../../server/User";
 import { preventOverflow } from "@popperjs/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFaceSmile, faSyncAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFaceSmile,
+  faSyncAlt,
+  faTimes
+} from "@fortawesome/free-solid-svg-icons";
 import EmojiPicker, {
   Categories,
   EmojiStyle,
@@ -86,6 +90,10 @@ export default class ChatComponent extends Component<ChatComponentProps> {
 
   get channel(): Channel {
     return this.chatClient.channels.get(this.props.roomId);
+  }
+
+  get isPrivateChannel(): boolean {
+    return this.props.roomId != this.props.entireGame.publicChatRoomId;
   }
 
   static customEmojis = [
@@ -286,35 +294,60 @@ export default class ChatComponent extends Component<ChatComponentProps> {
               </>
             );
           })}
-          <button
-            type="button"
-            className="close"
+          <div
             style={{
               position: "absolute",
               right: 12,
-              top: 0,
-              display: this.noMoreMessages ? "none" : "inline"
-            }}
-            onClick={(e: any) => {
-              e.currentTarget.blur();
-              this.loadMoreMessages();
-              e.preventDefault();
+              top: 0
             }}
           >
-            <OverlayTrigger
-              overlay={
-                <Tooltip id="mute-tooltip">
-                  {this.noMoreMessages ? (
-                    <>There are no more messages</>
-                  ) : (
-                    <>Load more messages</>
-                  )}
-                </Tooltip>
-              }
-            >
-              <FontAwesomeIcon icon={faSyncAlt} size="2xs" />
-            </OverlayTrigger>
-          </button>
+            {this.isPrivateChannel && (
+              <button
+                type="button"
+                className="close mx-1"
+                onClick={(e: any) => {
+                  e.currentTarget.blur();
+                  this.closeChat();
+                  e.preventDefault();
+                }}
+              >
+                <OverlayTrigger
+                  overlay={
+                    <Tooltip id="close-chat-tooltip">
+                      <>Close chat</>
+                    </Tooltip>
+                  }
+                >
+                  <FontAwesomeIcon icon={faTimes} size="xs" />
+                </OverlayTrigger>
+              </button>
+            )}
+            {!this.noMoreMessages && (
+              <button
+                type="button"
+                className="close"
+                onClick={(e: any) => {
+                  e.currentTarget.blur();
+                  this.loadMoreMessages();
+                  e.preventDefault();
+                }}
+              >
+                <OverlayTrigger
+                  overlay={
+                    <Tooltip id="load-more-tooltip">
+                      {this.noMoreMessages ? (
+                        <>There are no more messages</>
+                      ) : (
+                        <>Load more messages</>
+                      )}
+                    </Tooltip>
+                  }
+                >
+                  <FontAwesomeIcon icon={faSyncAlt} size="2xs" />
+                </OverlayTrigger>
+              </button>
+            )}
+          </div>
         </ScrollToBottom>
         {!this.channel.connected ? (
           <div className="flex-nowrap justify-content-center">
@@ -453,6 +486,13 @@ export default class ChatComponent extends Component<ChatComponentProps> {
         )}
       </div>
     );
+  }
+
+  closeChat(): void {
+    this.props.gameClient.authenticatedUser?.settings.closedChats.push(
+      this.props.roomId
+    );
+    this.props.gameClient.authenticatedUser?.syncSettings();
   }
 
   private renderMessage(

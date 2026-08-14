@@ -280,7 +280,7 @@ export default class LobbyComponent extends Component<LobbyComponentProps> {
                     >
                       <OverlayTrigger
                         overlay={
-                          <Tooltip id="mute-tooltip">
+                          <Tooltip id="lobby-mute-tooltip">
                             {this.props.gameClient.muted ? "Unmute" : "Mute"}
                           </Tooltip>
                         }

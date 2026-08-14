@@ -341,7 +341,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
             <OverlayTrigger
               placement="auto"
               overlay={
-                <Tooltip id="mute-tooltip">
+                <Tooltip id="house-info-mute-tooltip">
                   {this.gameClient.muted ? "Unmute" : "Mute"}
                 </Tooltip>
               }

@@ -11,13 +11,14 @@ const user = {
   name: "",
   facelessName: "",
   settings: {
+    closedChats: [],
     chatHouseNames: false,
     mapScrollbar: true,
     gameStateColumnRight: false,
     muted: true,
-    musicVolume: 1,
-    notificationsVolume: 1,
-    sfxVolume: 1
+    musicVolume: 0,
+    notificationsVolume: 0,
+    sfxVolume: 0
   },
   connected: false,
   otherUsersFromSameNetwork: [],

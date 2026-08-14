@@ -372,6 +372,7 @@ export default class EntireGame extends GameState<
       `Nobody ${this.users.size + 1}`,
       this,
       {
+        closedChats: [],
         chatHouseNames: profileSettings.houseNamesForChat,
         mapScrollbar: profileSettings.mapScrollbar,
         gameStateColumnRight: profileSettings.responsiveLayout,
@@ -404,6 +405,9 @@ export default class EntireGame extends GameState<
     let updateLastActive = false;
     if (message.type == "change-settings") {
       user.settings = message.settings;
+
+      // Ensure user never closes the public game chat
+      _.pull(user.settings.closedChats, this.publicChatRoomId);
 
       this.broadcastToClients({
         type: "settings-changed",

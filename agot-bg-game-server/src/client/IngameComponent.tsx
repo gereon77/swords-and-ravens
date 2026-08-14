@@ -384,7 +384,7 @@ export default class IngameComponent extends Component<IngameComponentProps> {
           <OverlayTrigger
             placement="auto"
             overlay={
-              <Tooltip id="mute-tooltip">
+              <Tooltip id="ingame-mute-tooltip">
                 {this.gameClient.muted ? "Unmute" : "Mute"}
               </Tooltip>
             }
