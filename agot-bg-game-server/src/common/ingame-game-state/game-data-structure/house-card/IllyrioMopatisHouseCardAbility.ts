@@ -55,7 +55,8 @@ export default class IllyrioMopatisHouseCardAbility extends HouseCardAbility {
 
   forcesValyrianSteelBladeDecision(
     _combat: CombatGameState,
-    _valyrianSteelBladeHolder: House
+    _valyrianSteelBladeHolder: House,
+    _houseCard: HouseCard
   ): boolean {
     return true;
   }

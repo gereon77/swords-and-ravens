@@ -36,7 +36,7 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
 
     if (
       !forNewTidesOfBattleCard &&
-      this.canBeSkipped(house) &&
+      this.canBeSkipped(house).canBeSkipped &&
       !this.combatGameState.dontSkipVsbQuestion
     ) {
       // Using VSB would make no sense as battle is already won or VSB doesn't help to win it.
@@ -45,7 +45,10 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
     }
   }
 
-  canBeSkipped(house: House): boolean {
+  canBeSkipped(house: House): {
+    forcedByHouseCard: boolean;
+    canBeSkipped: boolean;
+  } {
     // Check if we can fast-track this state by checking that no involved house card forces the VSB decision
     // and that VSB holders current battle strength is one less than his opponent
     const forcedByHouseCard = this.combatGameState.houseCombatDatas.values.some(
@@ -54,12 +57,13 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
         hcd.houseCard.ability != null &&
         hcd.houseCard.ability.forcesValyrianSteelBladeDecision(
           this.combatGameState,
-          house
+          house,
+          hcd.houseCard
         )
     );
 
     if (forcedByHouseCard) {
-      return false;
+      return { forcedByHouseCard: true, canBeSkipped: false };
     }
 
     const vsbBattleStrength =
@@ -70,9 +74,15 @@ export default class UseValyrianSteelBladeGameState extends GameState<CombatGame
 
     // Due to vassals the VSB holder not necessarily must be in front of fief
     if (this.game.isAheadInTrack(this.game.fiefdomsTrack, house, enemy)) {
-      return enemyBattleStrength - vsbBattleStrength != 1;
+      return {
+        forcedByHouseCard: false,
+        canBeSkipped: enemyBattleStrength - vsbBattleStrength != 1
+      };
     } else {
-      return enemyBattleStrength - vsbBattleStrength != 0;
+      return {
+        forcedByHouseCard: false,
+        canBeSkipped: enemyBattleStrength - vsbBattleStrength != 0
+      };
     }
   }
 

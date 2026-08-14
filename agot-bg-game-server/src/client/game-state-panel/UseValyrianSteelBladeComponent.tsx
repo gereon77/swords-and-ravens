@@ -27,7 +27,7 @@ export default class UseValyrianSteelBladeComponent extends Component<
     // The other may be null here, e.g. due to Tyrion Lannister's ability.
     const houseCardsAreRevealed =
       this.gameState.combatGameState.houseCombatDatas.entries.some(
-        ([_, hcd]) => hcd.houseCard != null,
+        ([_, hcd]) => hcd.houseCard != null
       );
     return this.gameState.combatGameState.stats.length > 0 ? (
       <></>
@@ -48,22 +48,41 @@ export default class UseValyrianSteelBladeComponent extends Component<
                 // but it actually could be skipped as the +1 bonus won't
                 // change the outcome of the battle, we show a warning.
                 houseCardsAreRevealed &&
+                !this.gameState.forNewTidesOfBattleCard &&
+                this.gameState.canBeSkipped(this.house).canBeSkipped ? (
+                  <Row className="justify-content-center">
+                    <Col xs="auto">
+                      <Alert
+                        variant="warning"
+                        className="text-center pl-2 pt-1 pr-2 pb-2"
+                      >
+                        <small>
+                          <b>Warning:</b> Using the Valyrian Steel Blade
+                          won&apos;t change the outcome of the battle.
+                        </small>
+                      </Alert>
+                    </Col>
+                  </Row>
+                ) : houseCardsAreRevealed &&
                   !this.gameState.forNewTidesOfBattleCard &&
-                  this.gameState.canBeSkipped(this.house) && (
-                    <Row className="justify-content-center">
-                      <Col xs="auto">
-                        <Alert
-                          variant="danger"
-                          className="text-center pl-2 pt-1 pr-2 pb-2"
-                        >
-                          <small>
-                            <b>Warning:</b> Using the Valyrian Steel Blade
-                            won&apos;t change the outcome of the battle.
-                          </small>
-                        </Alert>
-                      </Col>
-                    </Row>
-                  )
+                  this.gameState.canBeSkipped(this.house).forcedByHouseCard ? (
+                  <Row className="justify-content-center">
+                    <Col xs="auto">
+                      <Alert
+                        variant="warning"
+                        className="text-center pl-2 pt-1 pr-2 pb-2"
+                      >
+                        <small>
+                          <b>Warning:</b> The Valyrian Steel Blade decision is
+                          forced by a house card effect.
+                          <br />
+                          The +1 bonus may not be enough to win the battle this
+                          time.
+                        </small>
+                      </Alert>
+                    </Col>
+                  </Row>
+                ) : null
               }
               <Row className="justify-content-center">
                 <Col xs="auto">

@@ -166,7 +166,8 @@ export default class HouseCardAbility {
 
   forcesValyrianSteelBladeDecision(
     _combat: CombatGameState,
-    _valyrianSteelBladeHolder: House
+    _valyrianSteelBladeHolder: House,
+    _houseCard: HouseCard
   ): boolean {
     return false;
   }
