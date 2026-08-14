@@ -654,9 +654,12 @@ export default class PostCombatGameState extends GameState<
       });
     } else if (this.entireGame.gameSettings.perpetuumRandom) {
       // House receives new cards from the draft pool
-      const oldHouseCards = house.houseCards.values;
-      house.houseCards.clear();
+      const oldHouseCards = house.houseCards.values.filter(
+        (hc) => hc != houseCard
+      );
+
       oldHouseCards.forEach((hc) => {
+        house.houseCards.delete(hc.id);
         // Mark card as available again
         hc.state = HouseCardState.AVAILABLE;
         const availableCards = this.game.draftPool.values.filter(
@@ -668,6 +671,13 @@ export default class PostCombatGameState extends GameState<
         // Put card back to the draft pool
         this.game.draftPool.set(hc.id, hc);
       });
+
+      // order houseCards by combat strength
+      house.houseCards = new BetterMap(
+        _.sortBy(house.houseCards.values, (hc) => hc.combatStrength).map(
+          (hc) => [hc.id, hc]
+        )
+      );
 
       // Notify clients about the new cards
       this.entireGame.broadcastToClients({
@@ -686,8 +696,8 @@ export default class PostCombatGameState extends GameState<
       this.combat.ingameGameState.log({
         type: "house-cards-returned",
         house: house.id,
-        houseCards: house.houseCards.keys,
-        houseCardDiscarded: undefined
+        houseCards: house.houseCards.keys.filter((hc) => hc != houseCard?.id),
+        houseCardDiscarded: houseCard ? houseCard.id : undefined
       });
     } else {
       const houseCardsToMakeAvailable = house.houseCards.values.filter(
