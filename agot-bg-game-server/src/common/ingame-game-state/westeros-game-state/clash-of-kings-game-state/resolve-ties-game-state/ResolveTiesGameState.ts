@@ -35,7 +35,7 @@ export default class ResolveTiesGameState extends GameState<ClashOfKingsGameStat
 
   onPlayerMessage(player: Player, message: ClientMessage): void {
     if (message.type == "resolve-ties") {
-      if (player.house != this.decider) {
+      if (this.game.ingame.getControllerOfHouse(this.decider) != player) {
         return;
       }
 
