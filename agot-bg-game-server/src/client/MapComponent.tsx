@@ -8,7 +8,7 @@ import PlanningGameState from "../common/ingame-game-state/planning-game-state/P
 import MapControls, {
   OrderOnMapProperties,
   RegionOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "./MapControls";
 import { observer } from "mobx-react";
 import ActionGameState from "../common/ingame-game-state/action-game-state/ActionGameState";
@@ -33,7 +33,7 @@ import _ from "lodash";
 import PartialRecursive from "../utils/PartialRecursive";
 import {
   land,
-  sea,
+  sea
 } from "../common/ingame-game-state/game-data-structure/regionTypes";
 import PlaceOrdersGameState from "../common/ingame-game-state/planning-game-state/place-orders-game-state/PlaceOrdersGameState";
 import PlaceOrdersForVassalsGameState from "../common/ingame-game-state/planning-game-state/place-orders-for-vassals-game-state/PlaceOrdersForVassalsGameState";
@@ -99,8 +99,8 @@ export default class MapComponent extends Component<MapComponentProps> {
     const visibleRegions = _.union(
       this.ingame.publicVisibleRegions,
       this.ingame.getVisibleRegionsForPlayer(
-        this.props.gameClient.authenticatedPlayer,
-      ),
+        this.props.gameClient.authenticatedPlayer
+      )
     );
 
     for (const region of this.ingame.world.regions.values) {
@@ -132,7 +132,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     >(
       this.ingame.world.regions.values,
       this.props.mapControls.modifyRegionsOnMap,
-      { highlight: { active: false, color: "white" } },
+      { highlight: { active: false, color: "white" } }
     );
 
     // If the user is to select a region, we disable the pointer events for units to forward the click event to the region.
@@ -143,7 +143,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         .getWaitedUsers()
         .includes(this.props.gameClient.authenticatedUser) &&
       propertiesForRegions.values.some(
-        (p) => p.onClick != undefined || p.wrap != undefined,
+        (p) => p.onClick != undefined || p.wrap != undefined
       );
 
     const propertiesForUnits = this.getModifiedPropertiesForEntities<
@@ -152,7 +152,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     >(
       _.flatMap(this.ingame.world.regions.values.map((r) => r.allUnits)),
       this.props.mapControls.modifyUnitsOnMap,
-      {},
+      {}
     );
 
     return (
@@ -161,7 +161,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         style={{
           backgroundImage: `url(${this.backgroundImage})`,
           backgroundSize: "cover",
-          borderRadius: "0.25rem",
+          borderRadius: "0.25rem"
         }}
       >
         <div style={{ position: "relative" }}>
@@ -182,7 +182,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                           ? `url(${castleUpgradeImage})`
                           : `url(${castleDegradeImage})`,
                       left: r.castleSlot.x,
-                      top: r.castleSlot.y,
+                      top: r.castleSlot.y
                     }}
                   />
                 </OverlayTrigger>
@@ -217,7 +217,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                     style={{
                       left: r.powerTokenSlot.x,
                       top: r.powerTokenSlot.y,
-                      backgroundImage: `url(${housePowerTokensImages.get(r.overwrittenSuperControlPowerToken.id)})`,
+                      backgroundImage: `url(${housePowerTokensImages.get(r.overwrittenSuperControlPowerToken.id)})`
                     }}
                   ></div>
                 </OverlayTrigger>
@@ -250,7 +250,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                     style={{
                       left: r.powerTokenSlot.x,
                       top: r.powerTokenSlot.y,
-                      backgroundImage: `url(${housePowerTokensImages.get(r.controlPowerToken.id)})`,
+                      backgroundImage: `url(${housePowerTokensImages.get(r.controlPowerToken.id)})`
                     }}
                   ></div>
                 </OverlayTrigger>
@@ -260,7 +260,7 @@ export default class MapComponent extends Component<MapComponentProps> {
           {this.renderUnits(
             propertiesForUnits,
             garrisons,
-            disablePointerEventsForUnits,
+            disablePointerEventsForUnits
           )}
           {this.renderOrders(visibleRegions)}
           {this.renderRegionTexts(propertiesForRegions)}
@@ -277,14 +277,14 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   renderMarchMarkers(
-    propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
+    propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>
   ): ReactNode[] {
     const markers = _.unionBy(
       propertiesForUnits.entries
         .filter(([_u, uprop]) => uprop.targetRegion != undefined)
         .map(([u, uprop]) => [u, uprop.targetRegion] as [Unit, Region]),
       this.ingame.marchMarkers.entries,
-      ([u, _r]) => u.id,
+      ([u, _r]) => u.id
     ).filter(([u, r]) => u.region != r);
 
     return markers.map(([unit, to]) => (
@@ -308,7 +308,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   private renderLoanCardSlots(
-    ironBankView: StaticIronBankView | null,
+    ironBankView: StaticIronBankView | null
   ): ReactNode {
     return (
       ironBankView &&
@@ -322,7 +322,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               style={{
                 backgroundImage: lc
                   ? `url(${loanCardImages.get(lc.type.id)})`
-                  : "none",
+                  : "none"
               }}
             />
           }
@@ -334,7 +334,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             className="order-container"
             style={{
               left: ironBankView.loanSlots[i].point.x,
-              top: ironBankView.loanSlots[i].point.y,
+              top: ironBankView.loanSlots[i].point.y
             }}
           >
             <div
@@ -344,7 +344,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   ? `url(${loanCardImages.get(lc.type.id)})`
                   : "none",
                 width: ironBankView.loanSlots[i].width,
-                height: ironBankView.loanSlots[i].height,
+                height: ironBankView.loanSlots[i].height
               }}
             />
           </div>
@@ -354,7 +354,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   private renderLoanCardDeck(
-    ironBankView: StaticIronBankView | null,
+    ironBankView: StaticIronBankView | null
   ): ReactNode {
     return (
       ironBankView && (
@@ -369,7 +369,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             className="order-container clickable"
             style={{
               left: ironBankView.deckSlot.point.x,
-              top: ironBankView.deckSlot.point.y,
+              top: ironBankView.deckSlot.point.y
             }}
           >
             <div
@@ -377,7 +377,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               style={{
                 backgroundImage: `url(${loanCardImages.get("back")})`,
                 width: ironBankView.deckSlot.width,
-                height: ironBankView.deckSlot.height,
+                height: ironBankView.deckSlot.height
               }}
             />
           </div>
@@ -387,7 +387,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   private renderIronBankInfos(
-    ironBankView: StaticIronBankView | null,
+    ironBankView: StaticIronBankView | null
   ): ReactNode {
     return (
       ironBankView && (
@@ -398,7 +398,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             left: ironBankView.infoComponentSlot.point.x,
             top: ironBankView.infoComponentSlot.point.y,
             height: ironBankView.infoComponentSlot.height,
-            width: ironBankView.infoComponentSlot.width,
+            width: ironBankView.infoComponentSlot.width
           }}
         >
           <IronBankInfosComponent
@@ -412,7 +412,7 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderRegions(
     propertiesForRegions: BetterMap<Region, RegionOnMapProperties>,
-    visibleRegions: Region[],
+    visibleRegions: Region[]
   ): ReactNode {
     return propertiesForRegions.entries.map(([region, properties]) => {
       const wrap = properties.wrap;
@@ -453,15 +453,15 @@ export default class MapComponent extends Component<MapComponentProps> {
               {
                 clickable:
                   properties.onClick != undefined ||
-                  properties.wrap != undefined,
+                  properties.wrap != undefined
               },
               properties.highlight.active && {
                 // Whatever the strength of the highlight defined, show the same
                 // highlightness
                 "highlighted-region-area": true,
                 "highlighted-region-area-light": properties.highlight.light,
-                "highlighted-region-area-strong": properties.highlight.strong,
-              },
+                "highlighted-region-area-strong": properties.highlight.strong
+              }
             )}
             onClick={properties.onClick}
           />
@@ -471,7 +471,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   renderRegionTexts(
-    propertiesForRegions: BetterMap<Region, RegionOnMapProperties>,
+    propertiesForRegions: BetterMap<Region, RegionOnMapProperties>
   ): ReactNode {
     return propertiesForRegions.entries
       .filter(([_region, properties]) => properties.highlight.text)
@@ -488,7 +488,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               fontWeight: "bold",
               fontFamily: "serif",
               fontSize: "4rem",
-              color: invertColor(properties.highlight.color),
+              color: invertColor(properties.highlight.color)
             }}
           >
             {properties.highlight.text ?? ""}
@@ -500,13 +500,13 @@ export default class MapComponent extends Component<MapComponentProps> {
   renderUnits(
     propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
     garrisons: BetterMap<string, string | null>,
-    disablePointerEvents: boolean,
+    disablePointerEvents: boolean
   ): ReactNode {
     const garrisonControllers = new BetterMap(
       garrisons.keys.map((rid) => [
         rid,
-        this.ingame.world.regions.get(rid).getController(),
-      ]),
+        this.ingame.world.regions.get(rid).getController()
+      ])
     );
 
     return this.ingame.world.regions.values.map((r) => {
@@ -525,13 +525,13 @@ export default class MapComponent extends Component<MapComponentProps> {
         <div
           key={`map-units_${r.id}`}
           className={classNames("units-container", {
-            "disable-pointer-events": disablePointerEventsForCurrentRegion,
+            "disable-pointer-events": disablePointerEventsForCurrentRegion
           })}
           style={{
             left: r.unitSlot.point.x,
             top: r.unitSlot.point.y,
             width: r.unitSlot.width,
-            flexWrap: r.type == land ? "wrap-reverse" : "wrap",
+            flexWrap: r.type == land ? "wrap-reverse" : "wrap"
           }}
         >
           {r.allUnits.map((u) => {
@@ -630,14 +630,14 @@ export default class MapComponent extends Component<MapComponentProps> {
                         disablePointerEventsForCurrentRegion,
                       "pulsate-bck": property.animateAttention,
                       "pulsate-bck_fade-in": property.animateFadeIn,
-                      "pulsate-bck_fade-out": property.animateFadeOut,
+                      "pulsate-bck_fade-out": property.animateFadeOut
                     },
-                    getClassNameForDragonStrength(u.type.id, dragonStrength),
+                    getClassNameForDragonStrength(u.type.id, dragonStrength)
                   )}
                   style={{
                     backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.upgradedType ? u.upgradedType.id : u.type.id)})`,
                     opacity: opacity,
-                    transform: transform,
+                    transform: transform
                   }}
                 >
                   <div
@@ -684,7 +684,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                 style={{
                   backgroundImage: `url(${garrisons.get(r.id)})`,
                   left: r.unitSlot.point.x,
-                  top: r.unitSlot.point.y,
+                  top: r.unitSlot.point.y
                 }}
               ></div>
             </OverlayTrigger>
@@ -717,7 +717,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   fontWeight: "bold",
                   fontFamily: "serif",
                   fontSize: "1.5rem",
-                  color: "white",
+                  color: "white"
                 }}
               >
                 {r.loyaltyTokens > 1 ? r.loyaltyTokens : ""}
@@ -742,7 +742,7 @@ export default class MapComponent extends Component<MapComponentProps> {
           left: region.improvementSlot.point.x,
           top: region.improvementSlot.point.y,
           width: region.improvementSlot.width,
-          flexWrap: "wrap",
+          flexWrap: "wrap"
         }}
       >
         {_.range(0, region.barrelModifier).map((_, i) => {
@@ -757,7 +757,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               <div
                 className="unit-icon medium"
                 style={{
-                  backgroundImage: `url(${barrelImage})`,
+                  backgroundImage: `url(${barrelImage})`
                 }}
               />
             </OverlayTrigger>
@@ -775,7 +775,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               <div
                 className="unit-icon medium"
                 style={{
-                  backgroundImage: `url(${crownImage})`,
+                  backgroundImage: `url(${crownImage})`
                 }}
               />
             </OverlayTrigger>
@@ -792,7 +792,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     >(
       _.flatMap(this.ingame.world.regions.values),
       this.props.mapControls.modifyOrdersOnMap,
-      {},
+      {}
     );
 
     return propertiesForOrders.map((region, properties) => {
@@ -849,7 +849,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   getModifiedPropertiesForEntities<Entity, Property>(
     entities: Entity[],
     modifyPropertiesFunctions: (() => [Entity, PartialRecursive<Property>][])[],
-    defaultProperties: Property,
+    defaultProperties: Property
   ): BetterMap<Entity, Property> {
     // Create a Map of properties for all regions that will be shown
     const propertiesForEntities = new BetterMap<Entity, Property>();
@@ -864,7 +864,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         if (propertiesForEntities.has(entity)) {
           propertiesForEntities.set(
             entity,
-            _.merge(propertiesForEntities.get(entity), modifiedProperties),
+            _.merge(propertiesForEntities.get(entity), modifiedProperties)
           );
         }
       });
@@ -877,7 +877,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     region: Region,
     order: Order | null,
     backgroundUrl: string,
-    properties: OrderOnMapProperties,
+    properties: OrderOnMapProperties
   ): ReactNode {
     let planningOrAction =
       this.ingame.childGameState instanceof PlanningGameState ||
@@ -968,9 +968,9 @@ export default class MapComponent extends Component<MapComponentProps> {
               this.ingame.game.isOrderRestricted(
                 region,
                 order,
-                planningOrAction.planningRestrictions,
+                planningOrAction.planningRestrictions
               ),
-            clickable: clickable,
+            clickable: clickable
           })}
           style={{ left: region.orderSlot.x, top: region.orderSlot.y }}
           onClick={properties.onClick}
@@ -980,13 +980,13 @@ export default class MapComponent extends Component<MapComponentProps> {
           <div
             style={{
               backgroundImage: `url(${backgroundUrl})`,
-              borderColor: color,
+              borderColor: color
             }}
             className={classNames(`order-icon ${placeAnimation}`, {
               "order-border": drawBorder,
               "pulsate-bck": properties.animateAttention,
               "pulsate-bck_fade-out": properties.animateFadeOut,
-              "flip-vertical-right": properties.animateFlip,
+              "flip-vertical-right": properties.animateFlip
             })}
           />
         </div>
@@ -996,7 +996,7 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   private renderOrderTooltip(
     order: Order | null,
-    region: Region,
+    region: Region
   ): OverlayChildren {
     return (
       <Tooltip id={"order-info"} className="tooltip-w-100">

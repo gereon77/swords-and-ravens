@@ -58,7 +58,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
 
   firstStart(
     house: House,
-    supportersPerRegion: BetterMap<Region, House[]> | null = null,
+    supportersPerRegion: BetterMap<Region, House[]> | null = null
   ): void {
     this.house = house;
     this.supportersAgainstNeutralForce = supportersPerRegion;
@@ -76,8 +76,8 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
         ([regionId, unitIds]) =>
           [
             this.world.regions.get(regionId),
-            unitIds.map((uid) => startingRegion.units.get(uid)),
-          ] as [Region, Unit[]],
+            unitIds.map((uid) => startingRegion.units.get(uid))
+          ] as [Region, Unit[]]
       );
 
       // Check that there is indeed a march order there
@@ -101,14 +101,14 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
 
       const movesThatDontTriggerAttack = _.difference(
         moves,
-        movesThatTriggerAttack,
+        movesThatTriggerAttack
       );
 
       // Check if the player was capable of placing a power token
       let leftPowerToken: boolean | null = null;
       const canLeavePowerToken = this.canLeavePowerToken(
         startingRegion,
-        new BetterMap(moves),
+        new BetterMap(moves)
       ).success;
       const isVassal = this.ingame.isVassalHouse(this.house);
 
@@ -123,7 +123,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           this.entireGame.broadcastToClients({
             type: "change-power-token",
             houseId: this.house.id,
-            powerTokenCount: this.house.powerTokens,
+            powerTokenCount: this.house.powerTokens
           });
         }
 
@@ -131,9 +131,9 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           {
             type: "change-control-power-token",
             regionId: startingRegion.id,
-            houseId: this.house.id,
+            houseId: this.house.id
           },
-          startingRegion,
+          startingRegion
         );
 
         leftPowerToken = true;
@@ -154,11 +154,11 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           startingRegion: startingRegion.id,
           moves: movesThatDontTriggerAttack.map(([r, us]) => [
             r.id,
-            us.map((u) => u.type.id),
+            us.map((u) => u.type.id)
           ]),
           orderType: this.actionGameState.ordersOnBoard.has(startingRegion)
             ? this.actionGameState.ordersOnBoard.get(startingRegion).type.id
-            : undefined,
+            : undefined
         });
       }
 
@@ -167,7 +167,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
         this.resolveMarchOrderGameState.moveUnits(
           startingRegion,
           units,
-          region,
+          region
         );
       });
 
@@ -184,7 +184,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
       // So there is no other way as checking this situations explicity now:
       this.destroyPossibleShipsInAdjacentPortIfNecessary(
         startingRegion,
-        movesThatTriggerAttack,
+        movesThatTriggerAttack
       );
 
       // If there was a move that trigger a fight, do special processing
@@ -206,7 +206,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             units: army.map((u) => u.type.id),
             orderType: this.actionGameState.ordersOnBoard.has(startingRegion)
               ? this.actionGameState.ordersOnBoard.get(startingRegion).type.id
-              : undefined,
+              : undefined
           });
 
           if (leftPowerToken != null) {
@@ -214,7 +214,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
               type: "leave-power-token-choice",
               house: this.house.id,
               region: startingRegion.id,
-              leftPowerToken: leftPowerToken,
+              leftPowerToken: leftPowerToken
             });
           }
 
@@ -224,7 +224,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             this.house,
             enemy,
             army,
-            this.actionGameState.ordersOnBoard.get(startingRegion),
+            this.actionGameState.ordersOnBoard.get(startingRegion)
           );
           return;
         } else {
@@ -240,7 +240,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             units: army.map((u) => u.type.id),
             orderType: this.actionGameState.ordersOnBoard.has(startingRegion)
               ? this.actionGameState.ordersOnBoard.get(startingRegion).type.id
-              : undefined,
+              : undefined
           });
 
           const oldGarrisonStrength = region.garrison;
@@ -248,22 +248,22 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           this.resolveMarchOrderGameState.moveUnits(
             startingRegion,
             army,
-            region,
+            region
           );
 
           this.ingame.sendMessageToUsersWhoCanSeeRegion(
             {
               type: "change-garrison",
               region: region.id,
-              newGarrison: region.garrison,
+              newGarrison: region.garrison
             },
-            region,
+            region
           );
 
           this.ingame.log({
             type: "garrison-removed",
             region: region.id,
-            strength: oldGarrisonStrength,
+            strength: oldGarrisonStrength
           });
         }
       }
@@ -273,7 +273,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           type: "leave-power-token-choice",
           house: this.house.id,
           region: startingRegion.id,
-          leftPowerToken: leftPowerToken,
+          leftPowerToken: leftPowerToken
         });
       }
 
@@ -283,17 +283,17 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
         false,
         this.house,
         false,
-        "yellow",
+        "yellow"
       );
       this.resolveMarchOrderGameState.onResolveSingleMarchOrderGameStateFinish(
-        this.house,
+        this.house
       );
     }
   }
 
   private destroyPossibleShipsInAdjacentPortIfNecessary(
     startingRegion: Region,
-    movesThatTriggerAttack: [Region, Unit[]][],
+    movesThatTriggerAttack: [Region, Unit[]][]
   ): void {
     // Check if user left a simple castle empty
     // If so, destroy all existing ships in possible adjacent port
@@ -343,7 +343,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
     const destroyedShipCount = destroyAllShipsInPort(
       portOfStartingRegion,
       this.ingame,
-      this.parentGameState.actionGameState,
+      this.parentGameState.actionGameState
     );
 
     this.parentGameState.ingameGameState.log({
@@ -351,7 +351,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
       castle: startingRegion.id,
       house: this.house.id,
       port: portOfStartingRegion.id,
-      shipCount: destroyedShipCount,
+      shipCount: destroyedShipCount
     });
   }
 
@@ -376,8 +376,8 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
       this.getValidTargetRegions(
         startingRegion,
         moves.slice(0, i),
-        army,
-      ).includes(regionToward),
+        army
+      ).includes(regionToward)
     );
   }
 
@@ -399,12 +399,12 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
   getValidTargetRegions(
     startingRegion: Region,
     moves: [Region, Unit[]][],
-    movingArmy: Unit[],
+    movingArmy: Unit[]
   ): Region[] {
     const movesThatTriggerAttack = this.getMovesThatTriggerAttack(moves);
     const movesThatDontTriggerAttack = _.difference(
       moves,
-      movesThatTriggerAttack,
+      movesThatTriggerAttack
     );
     const attackMoveAlreadyPresent = movesThatTriggerAttack.length > 0;
 
@@ -415,14 +415,14 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
         .filter((r) => !moves.map(([r, _a]) => r).includes(r))
         // Check that this new move doesn't trigger another attack
         .filter((r) =>
-          attackMoveAlreadyPresent ? !this.doesMoveTriggerAttack(r) : true,
+          attackMoveAlreadyPresent ? !this.doesMoveTriggerAttack(r) : true
         )
         // Check that if the destination a port, the adjacent land area must
         // be controlled by the resolver
         .filter((r) =>
           r.type == port
             ? this.world.getAdjacentLandOfPort(r).getController() == this.house
-            : true,
+            : true
         )
         // Check that the non-combat moves doesn't exceed supply limits
         .filter(
@@ -430,9 +430,9 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             !this.doesMoveExceedSupply(
               startingRegion,
               new BetterMap(
-                movesThatDontTriggerAttack.concat([[r, movingArmy]]),
-              ),
-            ),
+                movesThatDontTriggerAttack.concat([[r, movingArmy]])
+              )
+            )
         )
         // If the move is an attack on a neutral force, then there must be sufficient combat strength
         // to overcome the neutral force
@@ -442,7 +442,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
               startingRegion,
               movingArmy,
               r,
-              movesThatDontTriggerAttack,
+              movesThatDontTriggerAttack
             );
           }
 
@@ -454,11 +454,11 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           (r) =>
             !this.ingame
               .getOtherVassalFamilyHouses(this.house)
-              .includes(r.getController()),
+              .includes(r.getController())
         )
         // Vassals cannot march into ports
         .filter((r) =>
-          r.type == port ? !this.ingame.isVassalHouse(this.house) : true,
+          r.type == port ? !this.ingame.isVassalHouse(this.house) : true
         )
     );
   }
@@ -467,18 +467,18 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
   getUsedButStillValidTargetRegions(
     startingRegion: Region,
     moves: BetterMap<Region, Unit[]>,
-    movingArmy: Unit[],
+    movingArmy: Unit[]
   ): Region[] {
     return moves.keys.filter((region) => {
       const oldArmy = moves.get(region);
       const movesWithoutOldArmy = moves.entries.filter(
-        ([r, _u]) => r != region,
+        ([r, _u]) => r != region
       );
       // If valid target regions still include the region, the selected units can march into it
       return this.getValidTargetRegions(
         startingRegion,
         movesWithoutOldArmy,
-        _.concat(oldArmy, movingArmy),
+        _.concat(oldArmy, movingArmy)
       ).includes(region);
     });
   }
@@ -494,12 +494,12 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           this.world.getReachableRegions(
             startingRegion,
             this.house,
-            startingRegion.units.values,
-          ),
-        ),
+            startingRegion.units.values
+          )
+        )
       // Neutral forces have a garrison but no controller
     ).filter(
-      (r) => r.garrison > 0 && !r.isBlocked && r.getController() == null,
+      (r) => r.garrison > 0 && !r.isBlocked && r.getController() == null
     );
   }
 
@@ -522,10 +522,10 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             region.getController() != this.house &&
             !this.ingame
               .getOtherVassalFamilyHouses(this.house)
-              .includes(region.getController()),
+              .includes(region.getController())
         );
       const houses = _.uniq(
-        supportingRegions.map(({ region }) => region.getController() as House),
+        supportingRegions.map(({ region }) => region.getController() as House)
       );
 
       if (houses.length > 0) {
@@ -540,7 +540,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
     // Moves that trigger an attack are those that go into ennemy territory
     // or a neutral force.
     return moves.filter(([region, _army]) =>
-      this.doesMoveTriggerAttack(region),
+      this.doesMoveTriggerAttack(region)
     );
   }
 
@@ -567,7 +567,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
     startingRegion: Region,
     army: Unit[],
     targetRegion: Region,
-    movesThatDontTriggerAttack: [Region, Unit[]][],
+    movesThatDontTriggerAttack: [Region, Unit[]][]
   ): boolean {
     const marchOrder = this.actionGameState.ordersOnBoard.get(startingRegion);
 
@@ -578,11 +578,11 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
     return (
       this.getCombatStrengthOfArmyAgainstNeutralForce(
         army,
-        targetRegion.hasStructure,
+        targetRegion.hasStructure
       ) +
         this.getSupportCombatStrengthAgainstNeutralForce(
           targetRegion,
-          movesThatDontTriggerAttack,
+          movesThatDontTriggerAttack
         ) +
         this.getForeignSupportCombatStrengthAgainstNeutralForce(targetRegion) +
         marchOrder.type.attackModifier >=
@@ -593,7 +593,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
   private getCombatStrengthOfArmyAgainstNeutralForce(
     army: Unit[],
     attackingAStructure: boolean,
-    additionalSupportingUnits: Unit[] | null = null,
+    additionalSupportingUnits: Unit[] | null = null
   ): number {
     let strength = army
       .map((u) => u.getCombatStrength(attackingAStructure))
@@ -610,10 +610,10 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
 
   private getSupportCombatStrengthAgainstNeutralForce(
     attackedRegion: Region,
-    movesThatDontTriggerAttack: [Region, Unit[]][],
+    movesThatDontTriggerAttack: [Region, Unit[]][]
   ): number {
     const movesThatDontTriggerAttackMap = new BetterMap(
-      movesThatDontTriggerAttack,
+      movesThatDontTriggerAttack
     );
     return this.actionGameState
       .getPossibleSupportingRegions(attackedRegion)
@@ -622,21 +622,21 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           region.getController() == this.house ||
           this.ingame
             .getOtherVassalFamilyHouses(this.house)
-            .includes(region.getController()),
+            .includes(region.getController())
       )
       .map(
         ({ region, support }) =>
           this.getCombatStrengthOfArmyAgainstNeutralForce(
             region.units.values,
             attackedRegion.hasStructure,
-            movesThatDontTriggerAttackMap.tryGet(region, null),
-          ) + support.supportModifier,
+            movesThatDontTriggerAttackMap.tryGet(region, null)
+          ) + support.supportModifier
       )
       .reduce(_.add, 0);
   }
 
   private getForeignSupportCombatStrengthAgainstNeutralForce(
-    attackedRegion: Region,
+    attackedRegion: Region
   ): number {
     if (
       !this.supportersAgainstNeutralForce ||
@@ -649,14 +649,14 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
     return this.actionGameState
       .getPossibleSupportingRegions(attackedRegion)
       .filter(({ region }) =>
-        supporters.includes(region.getController() as House),
+        supporters.includes(region.getController() as House)
       )
       .map(
         ({ region, support }) =>
           this.getCombatStrengthOfArmyAgainstNeutralForce(
             region.units.values,
-            attackedRegion.hasStructure,
-          ) + support.supportModifier,
+            attackedRegion.hasStructure
+          ) + support.supportModifier
       )
       .reduce(_.add, 0);
   }
@@ -664,38 +664,38 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
   sendMoves(
     startingRegion: Region,
     moves: BetterMap<Region, Unit[]>,
-    leavePowerToken: boolean,
+    leavePowerToken: boolean
   ): void {
     this.entireGame.sendMessageToServer({
       type: "resolve-march-order",
       moves: moves.entries.map(([region, units]) => [
         region.id,
-        units.map((u) => u.id),
+        units.map((u) => u.id)
       ]),
       startingRegionId: startingRegion.id,
-      leavePowerToken: leavePowerToken,
+      leavePowerToken: leavePowerToken
     });
   }
 
   doesMoveExceedSupply(
     startingRegion: Region,
-    moves: BetterMap<Region, Unit[]>,
+    moves: BetterMap<Region, Unit[]>
   ): boolean {
     return this.game.hasTooMuchArmies(
       this.house,
       new BetterMap(
         moves.entries.map(([region, units]) => [
           region,
-          units.map((u) => u.type),
-        ]),
+          units.map((u) => u.type)
+        ])
       ),
-      new BetterMap([[startingRegion, ([] as Unit[]).concat(...moves.values)]]),
+      new BetterMap([[startingRegion, ([] as Unit[]).concat(...moves.values)]])
     );
   }
 
   canLeavePowerToken(
     startingRegion: Region,
-    moves: BetterMap<Region, Unit[]>,
+    moves: BetterMap<Region, Unit[]>
   ): { success: boolean; reason: string } {
     if (startingRegion.superControlPowerToken == this.house) {
       return { success: false, reason: "already-capital" };
@@ -727,7 +727,7 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
 
   haveAllUnitsLeft(
     startingRegion: Region,
-    moves: BetterMap<Region, Unit[]>,
+    moves: BetterMap<Region, Unit[]>
   ): boolean {
     return (
       _.sum(moves.values.map((us) => us.length)) == startingRegion.units.size
@@ -736,13 +736,13 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
 
   callForSupportAgainstNeutralForces(): void {
     this.entireGame.sendMessageToServer({
-      type: "call-for-support-against-neutral-force",
+      type: "call-for-support-against-neutral-force"
     });
   }
 
   serializeToClient(
     _admin: boolean,
-    _player: Player | null,
+    _player: Player | null
   ): SerializedResolveSingleMarchOrderGameState {
     return {
       type: "resolve-single-march",
@@ -750,15 +750,15 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
       supportersAgainstNeutralForce: this.supportersAgainstNeutralForce
         ? this.supportersAgainstNeutralForce.entries.map(([r, houses]) => [
             r.id,
-            houses.map((h) => h.id),
+            houses.map((h) => h.id)
           ])
-        : null,
+        : null
     };
   }
 
   static deserializeFromServer(
     resolveMarchOrderGameState: ResolveMarchOrderGameState,
-    data: SerializedResolveSingleMarchOrderGameState,
+    data: SerializedResolveSingleMarchOrderGameState
   ): ResolveSingleMarchOrderGameState {
     const resolveSingleMarchOrderGameState =
       new ResolveSingleMarchOrderGameState(resolveMarchOrderGameState);
@@ -770,10 +770,8 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
         ? new BetterMap(
             data.supportersAgainstNeutralForce.map(([rid, hids]) => [
               resolveMarchOrderGameState.world.regions.get(rid),
-              hids.map((hid) =>
-                resolveMarchOrderGameState.game.houses.get(hid),
-              ),
-            ]),
+              hids.map((hid) => resolveMarchOrderGameState.game.houses.get(hid))
+            ])
           )
         : null;
 

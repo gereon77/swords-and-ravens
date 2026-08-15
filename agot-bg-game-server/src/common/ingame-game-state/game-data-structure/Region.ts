@@ -167,7 +167,7 @@ export default class Region {
 
   getSnapshot(): IRegionSnapshot {
     const result: IRegionSnapshot = {
-      id: this.id,
+      id: this.id
     };
 
     if (this.units.size != 0) {
@@ -233,7 +233,7 @@ export default class Region {
       crownModifier: visible ? this.crownModifier : 0,
       overwrittenSuperControlPowerToken: this.overwrittenSuperControlPowerToken
         ? this.overwrittenSuperControlPowerToken.id
-        : null,
+        : null
     };
   }
 

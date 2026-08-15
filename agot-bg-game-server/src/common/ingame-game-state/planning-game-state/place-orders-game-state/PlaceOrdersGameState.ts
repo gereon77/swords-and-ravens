@@ -51,7 +51,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
   firstStart(): void {
     this.ingame.log({
       type: "planning-phase-began",
-      forVassals: false,
+      forVassals: false
     });
 
     // Automatically set ready for houses which can't place orders
@@ -81,14 +81,14 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
       {
         type: "player-action",
         house: player.house.id,
-        action: PlayerActionType.ORDERS_PLACED,
+        action: PlayerActionType.ORDERS_PLACED
       },
       resolvedAutomatically
     );
 
     this.entireGame.broadcastToClients({
       type: "player-ready",
-      userId: player.user.id,
+      userId: player.user.id
     });
 
     // Check if all players are ready
@@ -121,7 +121,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
 
     this.entireGame.broadcastToClients({
       type: "player-unready",
-      userId: player.user.id,
+      userId: player.user.id
     });
   }
 
@@ -183,14 +183,14 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
         player.user.send({
           type: "order-placed",
           order: order.id,
-          region: region.id,
+          region: region.id
         });
 
         this.ingame.sendMessageToUsersWhoCanSeeRegion(
           {
             type: "order-placed",
             region: region.id,
-            order: null,
+            order: null
           },
           region,
           player.user
@@ -200,7 +200,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
         this.ingame.sendMessageToUsersWhoCanSeeRegion(
           {
             type: "remove-placed-order",
-            regionId: region.id,
+            regionId: region.id
           },
           region
         );
@@ -240,7 +240,7 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
   ): SerializedPlaceOrdersGameState {
     return {
       type: "place-orders",
-      readyHouses: this.readyHouses.map((h) => h.id),
+      readyHouses: this.readyHouses.map((h) => h.id)
     };
   }
 
@@ -297,19 +297,19 @@ export default class PlaceOrdersGameState extends GameState<PlanningGameState> {
     this.entireGame.sendMessageToServer({
       type: "place-order",
       regionId: region.id,
-      orderId: order ? order.id : null,
+      orderId: order ? order.id : null
     });
   }
 
   ready(): void {
     this.entireGame.sendMessageToServer({
-      type: "ready",
+      type: "ready"
     });
   }
 
   unready(): void {
     this.entireGame.sendMessageToServer({
-      type: "unready",
+      type: "unready"
     });
   }
 

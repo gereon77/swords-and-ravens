@@ -5,10 +5,10 @@ import Game from "../../../../game-data-structure/Game";
 import ExecuteLoanGameState from "../ExecuteLoanGameState";
 import IngameGameState from "../../../../IngameGameState";
 import SelectRegionGameState, {
-  SerializedSelectRegionGameState,
+  SerializedSelectRegionGameState
 } from "../../../../select-region-game-state/SelectRegionGameState";
 import SimpleChoiceGameState, {
-  SerializedSimpleChoiceGameState,
+  SerializedSimpleChoiceGameState
 } from "../../../../simple-choice-game-state/SimpleChoiceGameState";
 import { ServerMessage } from "../../../../../../messages/ServerMessage";
 import { ClientMessage } from "../../../../../../messages/ClientMessage";
@@ -50,7 +50,7 @@ export default class PyromancerGameState extends GameState<
       {
         type: "update-region-modifiers",
         region: this.chosenRegion.id,
-        castleModifier: this.chosenRegion.castleModifier,
+        castleModifier: this.chosenRegion.castleModifier
       },
       this.chosenRegion
     );
@@ -78,7 +78,7 @@ export default class PyromancerGameState extends GameState<
         type: "update-region-modifiers",
         region: this.chosenRegion.id,
         barrelModifier: this.chosenRegion.barrelModifier,
-        crownModifier: this.chosenRegion.crownModifier,
+        crownModifier: this.chosenRegion.crownModifier
       },
       this.chosenRegion
     );
@@ -87,7 +87,7 @@ export default class PyromancerGameState extends GameState<
       type: "pyromancer-executed",
       house: this.childGameState.house.id,
       region: this.chosenRegion.id,
-      upgradeType: choice == 0 ? "Barrel" : "Crown",
+      upgradeType: choice == 0 ? "Barrel" : "Crown"
     });
 
     this.executeLoanGameState.onExecuteLoanFinish(this.childGameState.house);
@@ -108,7 +108,7 @@ export default class PyromancerGameState extends GameState<
     return {
       type: "pyromancer",
       chosenRegion: this.chosenRegion?.id ?? null,
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 

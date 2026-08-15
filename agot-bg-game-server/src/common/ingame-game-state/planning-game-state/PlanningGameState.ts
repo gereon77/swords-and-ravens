@@ -11,19 +11,19 @@ import BetterMap from "../../../utils/BetterMap";
 import Game from "../game-data-structure/Game";
 import PlanningRestriction from "../game-data-structure/westeros-card/planning-restriction/PlanningRestriction";
 import PlaceOrdersGameState, {
-  SerializedPlaceOrdersGameState,
+  SerializedPlaceOrdersGameState
 } from "./place-orders-game-state/PlaceOrdersGameState";
 import ClaimVassalsGameState, {
-  SerializedClaimVassalsGameState,
+  SerializedClaimVassalsGameState
 } from "./claim-vassals-game-state/ClaimVassalsGameState";
 import planningRestrictions from "../game-data-structure/westeros-card/planning-restriction/planningRestrictions";
 import MusteringGameState, {
-  SerializedMusteringGameState,
+  SerializedMusteringGameState
 } from "../westeros-game-state/mustering-game-state/MusteringGameState";
 import WesterosCard from "../game-data-structure/westeros-card/WesterosCard";
 import getById from "../../../utils/getById";
 import PlaceOrdersForVassalsGameState, {
-  SerializedPlaceOrdersForVassalsGameState,
+  SerializedPlaceOrdersForVassalsGameState
 } from "./place-orders-for-vassals-game-state/PlaceOrdersForVassalsGameState";
 import { observable } from "mobx";
 import orders from "../game-data-structure/orders";
@@ -63,7 +63,7 @@ export default class PlanningGameState extends GameState<
 
   firstStart(
     planningRestrictions: PlanningRestriction[],
-    revealedWesterosCards: WesterosCard[],
+    revealedWesterosCards: WesterosCard[]
   ): void {
     this.planningRestrictions = planningRestrictions;
     this.revealedWesterosCards = revealedWesterosCards;
@@ -86,7 +86,7 @@ export default class PlanningGameState extends GameState<
       this.ingame.log({
         type: "westeros-card-executed",
         westerosCardType: "mustering",
-        westerosDeckI: 0,
+        westerosDeckI: 0
       });
       this.setChildGameState(new MusteringGameState(this)).firstStart();
     } else {
@@ -96,14 +96,14 @@ export default class PlanningGameState extends GameState<
 
   onPlaceOrderFinish(): void {
     this.setChildGameState(
-      new PlaceOrdersForVassalsGameState(this),
+      new PlaceOrdersForVassalsGameState(this)
     ).firstStart();
   }
 
   onPlaceOrderForVassalsFinish(): void {
     this.ingame.proceedToActionGameState(
       this.placedOrders as BetterMap<Region, Order>,
-      this.planningRestrictions,
+      this.planningRestrictions
     );
   }
 
@@ -113,7 +113,7 @@ export default class PlanningGameState extends GameState<
 
   serializeToClient(
     admin: boolean,
-    player: Player | null,
+    player: Player | null
   ): SerializedPlanningGameState {
     let placedOrders = this.placedOrders.mapOver(
       (r) => r.id,
@@ -132,7 +132,7 @@ export default class PlanningGameState extends GameState<
           return o ? o.id : null;
         }
         return null;
-      },
+      }
     );
 
     if (this.entireGame.gameSettings.fogOfWar && !admin && player != null) {
@@ -140,7 +140,7 @@ export default class PlanningGameState extends GameState<
         .getVisibleRegionsForPlayer(player)
         .map((r) => r.id);
       placedOrders = placedOrders.filter(([rid, _oid]) =>
-        visibleRegionIds.includes(rid),
+        visibleRegionIds.includes(rid)
       );
     }
 
@@ -149,27 +149,27 @@ export default class PlanningGameState extends GameState<
       placedOrders: placedOrders,
       planningRestrictions: this.planningRestrictions.map((pr) => pr.id),
       revealedWesterosCardIds: this.revealedWesterosCards.map((wc) => wc.id),
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
   static deserializeFromServer(
     ingameGameState: IngameGameState,
-    data: SerializedPlanningGameState,
+    data: SerializedPlanningGameState
   ): PlanningGameState {
     const planningGameState = new PlanningGameState(ingameGameState);
 
     planningGameState.planningRestrictions = data.planningRestrictions.map(
-      (prid) => planningRestrictions.get(prid),
+      (prid) => planningRestrictions.get(prid)
     );
     planningGameState.revealedWesterosCards = data.revealedWesterosCardIds.map(
-      (cid, i) => getById(ingameGameState.game.westerosDecks[i], cid),
+      (cid, i) => getById(ingameGameState.game.westerosDecks[i], cid)
     );
     planningGameState.placedOrders = new BetterMap(
       data.placedOrders.map(([regionId, orderId]) => [
         ingameGameState.world.regions.get(regionId),
-        orderId ? orders.get(orderId) : null,
-      ]),
+        orderId ? orders.get(orderId) : null
+      ])
     );
     planningGameState.childGameState =
       planningGameState.deserializeChildGameState(data.childGameState);
@@ -178,7 +178,7 @@ export default class PlanningGameState extends GameState<
   }
 
   deserializeChildGameState(
-    data: SerializedPlanningGameState["childGameState"],
+    data: SerializedPlanningGameState["childGameState"]
   ): PlanningGameState["childGameState"] {
     switch (data.type) {
       case "place-orders":

@@ -2,7 +2,7 @@ import GameState from "../../../GameState";
 import ActionGameState from "../ActionGameState";
 import IngameGameState from "../../IngameGameState";
 import ResolveSingleMarchOrderGameState, {
-  SerializedResolveSingleMarchOrderGameState,
+  SerializedResolveSingleMarchOrderGameState
 } from "./resolve-single-march-order-game-state/ResolveSingleMarchOrderGameState";
 import House from "../../game-data-structure/House";
 import EntireGame from "../../../EntireGame";
@@ -11,18 +11,18 @@ import Player from "../../Player";
 import { ClientMessage } from "../../../../messages/ClientMessage";
 import { ServerMessage } from "../../../../messages/ServerMessage";
 import CombatGameState, {
-  SerializedCombatGameState,
+  SerializedCombatGameState
 } from "./combat-game-state/CombatGameState";
 import Region from "../../game-data-structure/Region";
 import Unit from "../../game-data-structure/Unit";
 import Game from "../../game-data-structure/Game";
 import Order from "../../game-data-structure/Order";
 import TakeControlOfEnemyPortGameState, {
-  SerializedTakeControlOfEnemyPortGameState,
+  SerializedTakeControlOfEnemyPortGameState
 } from "../../take-control-of-enemy-port-game-state/TakeControlOfEnemyPortGameState";
 import BetterMap from "../../../../utils/BetterMap";
 import CallForSupportAgainstNeutralForceGameState, {
-  SerializedCallForSupportAgainstNeutralForceGameState,
+  SerializedCallForSupportAgainstNeutralForceGameState
 } from "./call-for-support-against-neutral-force-game-state/CallForSupportAgainstNeutralForceGameState";
 
 export default class ResolveMarchOrderGameState extends GameState<
@@ -66,7 +66,7 @@ export default class ResolveMarchOrderGameState extends GameState<
     this.currentTurnOrderIndex = -1;
 
     this.ingameGameState.log({
-      type: "action-phase-resolve-march-began",
+      type: "action-phase-resolve-march-began"
     });
 
     this.proceedNextResolveSingleMarchOrder();
@@ -96,8 +96,8 @@ export default class ResolveMarchOrderGameState extends GameState<
         type: "manipulate-combat-house-card",
         manipulatedHouseCards: manipulatedHouseCards.map((hc) => [
           hc.id,
-          hc.serializeToClient(),
-        ]),
+          hc.serializeToClient()
+        ])
       });
     }
 
@@ -111,11 +111,11 @@ export default class ResolveMarchOrderGameState extends GameState<
       return;
     } else if (consequence.takeOverPort) {
       this.setChildGameState(
-        new TakeControlOfEnemyPortGameState(this),
+        new TakeControlOfEnemyPortGameState(this)
       ).firstStart(
         consequence.takeOverPort.port,
         consequence.takeOverPort.newController,
-        house,
+        house
       );
       return;
     }
@@ -134,10 +134,10 @@ export default class ResolveMarchOrderGameState extends GameState<
 
   onCallForSupportAgainstNeutralForceGameStateEnd(
     houseThatResolvesMarchOrder: House,
-    supportersAgainstNeutralForce: BetterMap<Region, House[]>,
+    supportersAgainstNeutralForce: BetterMap<Region, House[]>
   ): void {
     this.setChildGameState(
-      new ResolveSingleMarchOrderGameState(this),
+      new ResolveSingleMarchOrderGameState(this)
     ).firstStart(houseThatResolvesMarchOrder, supportersAgainstNeutralForce);
   }
 
@@ -152,7 +152,7 @@ export default class ResolveMarchOrderGameState extends GameState<
     }
 
     this.setChildGameState(
-      new ResolveSingleMarchOrderGameState(this),
+      new ResolveSingleMarchOrderGameState(this)
     ).firstStart(houseToResolve);
   }
 
@@ -162,7 +162,7 @@ export default class ResolveMarchOrderGameState extends GameState<
     attacker: House,
     defender: House,
     army: Unit[],
-    order: Order,
+    order: Order
   ): void {
     this.setChildGameState(new CombatGameState(this)).firstStart(
       attackerComingFrom,
@@ -170,7 +170,7 @@ export default class ResolveMarchOrderGameState extends GameState<
       attacker,
       defender,
       army,
-      order,
+      order
     );
   }
 
@@ -187,7 +187,7 @@ export default class ResolveMarchOrderGameState extends GameState<
 
       const regions =
         this.actionGameState.getRegionsWithMarchOrderOfHouse(
-          currentHouseToCheck,
+          currentHouseToCheck
         );
       if (regions.length > 0) {
         return currentHouseToCheck;
@@ -210,7 +210,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         this.ingameGameState.log({
           type: "control-power-token-removed",
           regionId: to.id,
-          houseId: to.controlPowerToken.id,
+          houseId: to.controlPowerToken.id
         });
 
         to.controlPowerToken = null;
@@ -219,9 +219,9 @@ export default class ResolveMarchOrderGameState extends GameState<
           {
             type: "change-control-power-token",
             regionId: to.id,
-            houseId: null,
+            houseId: null
           },
-          to,
+          to
         );
       }
     }
@@ -237,7 +237,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         type: "move-units",
         from: from.id,
         to: to.id,
-        units: units.map((u) => u.id),
+        units: units.map((u) => u.id)
       });
     } else {
       const userVisibilityList = this.entireGame.users.values.map((u) => {
@@ -246,7 +246,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         return {
           user: u,
           seesFrom: visibleRegions.includes(from),
-          seesTo: visibleRegions.includes(to),
+          seesTo: visibleRegions.includes(to)
         };
       });
 
@@ -257,7 +257,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         type: "move-units",
         from: from.id,
         to: to.id,
-        units: units.map((u) => u.id),
+        units: units.map((u) => u.id)
       });
 
       const userWhoOnlySeeFrom = userVisibilityList
@@ -267,7 +267,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         type: "remove-units",
         regionId: from.id,
         unitIds: units.map((u) => u.id),
-        animate: false,
+        animate: false
       });
 
       const userWhoOnlySeeTo = userVisibilityList
@@ -276,7 +276,7 @@ export default class ResolveMarchOrderGameState extends GameState<
       this.entireGame.sendMessageToClients(userWhoOnlySeeTo, {
         type: "add-units",
         regionId: to.id,
-        units: units.map((u) => u.serializeToClient()),
+        units: units.map((u) => u.serializeToClient())
       });
     }
   }
@@ -305,7 +305,7 @@ export default class ResolveMarchOrderGameState extends GameState<
         return;
       }
       this.setChildGameState(
-        new CallForSupportAgainstNeutralForceGameState(this),
+        new CallForSupportAgainstNeutralForceGameState(this)
       ).firstStart(resolveSingleMarch.house, possipleSupporters);
     } else {
       this.childGameState.onPlayerMessage(player, message);
@@ -318,21 +318,21 @@ export default class ResolveMarchOrderGameState extends GameState<
 
   serializeToClient(
     admin: boolean,
-    player: Player | null,
+    player: Player | null
   ): SerializedResolveMarchOrderGameState {
     return {
       type: "resolve-march-order",
       childGameState: this.childGameState.serializeToClient(admin, player),
-      currentTurnOrderIndex: this.currentTurnOrderIndex,
+      currentTurnOrderIndex: this.currentTurnOrderIndex
     };
   }
 
   static deserializeFromServer(
     actionGameState: ActionGameState,
-    data: SerializedResolveMarchOrderGameState,
+    data: SerializedResolveMarchOrderGameState
   ): ResolveMarchOrderGameState {
     const resolveMarchOrderGameState = new ResolveMarchOrderGameState(
-      actionGameState,
+      actionGameState
     );
     resolveMarchOrderGameState.currentTurnOrderIndex =
       data.currentTurnOrderIndex;
@@ -344,7 +344,7 @@ export default class ResolveMarchOrderGameState extends GameState<
   }
 
   deserializeChildGameState(
-    data: SerializedResolveMarchOrderGameState["childGameState"],
+    data: SerializedResolveMarchOrderGameState["childGameState"]
   ): ResolveMarchOrderGameState["childGameState"] {
     if (data.type == "resolve-single-march") {
       return ResolveSingleMarchOrderGameState.deserializeFromServer(this, data);
@@ -355,7 +355,7 @@ export default class ResolveMarchOrderGameState extends GameState<
     } else if (data.type == "call-for-support-against-neutral-force") {
       return CallForSupportAgainstNeutralForceGameState.deserializeFromServer(
         this,
-        data,
+        data
       );
     } else {
       throw new Error();

@@ -6,7 +6,7 @@ import VoteType, {
   ReplaceVassalByPlayer,
   ResumeGame,
   SerializedVoteType,
-  SwapHouses,
+  SwapHouses
 } from "./VoteType";
 import IngameGameState from "../IngameGameState";
 import { observable } from "mobx";
@@ -21,7 +21,7 @@ export enum VoteState {
   ONGOING,
   ACCEPTED,
   REFUSED,
-  CANCELLED,
+  CANCELLED
 }
 
 export default class Vote {
@@ -88,7 +88,7 @@ export default class Vote {
       const swapHousesVoteType = this.type;
       if (this.ingame.hasChildGameState(PlanningGameState)) {
         const planning = this.ingame.getChildGameState(
-          PlanningGameState,
+          PlanningGameState
         ) as PlanningGameState;
         if (
           planning.placedOrders.keys.some((r) => {
@@ -123,7 +123,7 @@ export default class Vote {
     type: VoteType,
     votes: BetterMap<House, boolean> = new BetterMap(),
     createdAt = new Date(),
-    cancelled = false,
+    cancelled = false
   ) {
     this.ingame = ingame;
     this.id = id;
@@ -147,7 +147,7 @@ export default class Vote {
 
     this.ingame.entireGame.broadcastToClients({
       type: "vote-cancelled",
-      vote: this.id,
+      vote: this.id
     });
   }
 
@@ -155,7 +155,7 @@ export default class Vote {
     this.ingame.entireGame.sendMessageToServer({
       type: "vote",
       vote: this.id,
-      choice: choice,
+      choice: choice
     });
   }
 
@@ -167,13 +167,13 @@ export default class Vote {
       createdAt: this.createdAt.getTime(),
       votes: this.votes.entries.map(([h, v]) => [h.id, v]),
       cancelled: this.cancelled,
-      participatingHouses: this.participatingHouses.map((h) => h.id),
+      participatingHouses: this.participatingHouses.map((h) => h.id)
     };
   }
 
   static deserializeFromServer(
     ingame: IngameGameState,
-    data: SerializedVote,
+    data: SerializedVote
   ): Vote {
     const initiator = ingame.entireGame.users.get(data.initiator);
 
@@ -182,7 +182,7 @@ export default class Vote {
       data.votes.map(([hid, vote]) => {
         const house = ingame.game.houses.get(hid);
         return [house, vote];
-      }),
+      })
     );
 
     return new Vote(
@@ -193,7 +193,7 @@ export default class Vote {
       type,
       votes,
       new Date(data.createdAt),
-      data.cancelled,
+      data.cancelled
     );
   }
 }

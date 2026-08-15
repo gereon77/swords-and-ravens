@@ -4,7 +4,7 @@ import { SerializedUnit } from "../common/ingame-game-state/game-data-structure/
 import { SerializedUser } from "../server/User";
 import {
   HouseCardState,
-  SerializedHouseCard,
+  SerializedHouseCard
 } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import { GameLogData } from "../common/ingame-game-state/game-data-structure/GameLog";
 import { UserSettings } from "./ClientMessage";
