@@ -127,14 +127,11 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
           });
         }
 
-        this.ingame.sendMessageToUsersWhoCanSeeRegion(
-          {
-            type: "change-control-power-token",
-            regionId: startingRegion.id,
-            houseId: this.house.id
-          },
-          startingRegion
-        );
+        this.entireGame.broadcastToClients({
+          type: "change-control-power-token",
+          regionId: startingRegion.id,
+          houseId: this.house.id
+        });
 
         leftPowerToken = true;
       }
@@ -251,14 +248,11 @@ export default class ResolveSingleMarchOrderGameState extends GameState<ResolveM
             region
           );
 
-          this.ingame.sendMessageToUsersWhoCanSeeRegion(
-            {
-              type: "change-garrison",
-              region: region.id,
-              newGarrison: region.garrison
-            },
-            region
-          );
+          this.entireGame.broadcastToClients({
+            type: "change-garrison",
+            region: region.id,
+            newGarrison: region.garrison
+          });
 
           this.ingame.log({
             type: "garrison-removed",

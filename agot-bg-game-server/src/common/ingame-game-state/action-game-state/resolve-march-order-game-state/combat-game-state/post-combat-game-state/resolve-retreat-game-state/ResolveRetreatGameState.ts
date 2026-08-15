@@ -25,6 +25,7 @@ export default class ResolveRetreatGameState extends GameState<
   | SelectRegionGameState<ResolveRetreatGameState>
   | SelectUnitsGameState<ResolveRetreatGameState>
 > {
+  possibleRetreatRegions: Region[] = [];
   retreatRegion: Region | null = null;
 
   get combat(): CombatGameState {
@@ -217,14 +218,11 @@ export default class ResolveRetreatGameState extends GameState<
         // Mark those as wounded
         armyLeft.forEach((u) => (u.wounded = true));
 
-        this.ingame.sendMessageToUsersWhoCanSeeRegion(
-          {
-            type: "units-wounded",
-            regionId: this.postCombat.loserCombatData.region.id,
-            unitIds: armyLeft.map((u) => u.id)
-          },
-          this.postCombat.loserCombatData.region
-        );
+        this.entireGame.broadcastToClients({
+          type: "units-wounded",
+          regionId: this.postCombat.loserCombatData.region.id,
+          unitIds: armyLeft.map((u) => u.id)
+        });
       }
 
       // Retreat those unit to this location
@@ -235,13 +233,6 @@ export default class ResolveRetreatGameState extends GameState<
       });
 
       const from = this.postCombat.loserCombatData.region;
-
-      // As the army units are necessary in the world
-      // to deserialize combat state properly,
-      // we add the chosen retreat region to public visible regions
-      // and clear this list afer combat.
-      this.ingame.addPublicVisibleRegions(this.retreatRegion);
-      this.ingame.updateVisibleRegions();
 
       this.entireGame.broadcastToClients({
         type: "move-units",
@@ -405,12 +396,17 @@ export default class ResolveRetreatGameState extends GameState<
     }
   }
 
+  getRequiredVisibleRegionsForPlayer(_player: Player): Region[] {
+    return this.possibleRetreatRegions;
+  }
+
   serializeToClient(
     admin: boolean,
     player: Player | null
   ): SerializedResolveRetreatGameState {
     return {
       type: "resolve-retreat",
+      possibleRetreatRegions: this.possibleRetreatRegions.map((r) => r.id),
       retreatRegion: this.retreatRegion ? this.retreatRegion.id : null,
       childGameState: this.childGameState.serializeToClient(admin, player)
     };
@@ -422,6 +418,9 @@ export default class ResolveRetreatGameState extends GameState<
   ): ResolveRetreatGameState {
     const resolveRetreat = new ResolveRetreatGameState(postCombat);
 
+    resolveRetreat.possibleRetreatRegions = data.possibleRetreatRegions.map(
+      (id) => postCombat.game.world.regions.get(id)
+    );
     resolveRetreat.retreatRegion = data.retreatRegion
       ? postCombat.game.world.regions.get(data.retreatRegion)
       : null;
@@ -446,6 +445,7 @@ export default class ResolveRetreatGameState extends GameState<
 
 export interface SerializedResolveRetreatGameState {
   type: "resolve-retreat";
+  possibleRetreatRegions: string[];
   retreatRegion: string | null;
   childGameState:
     | SerializedSelectRegionGameState

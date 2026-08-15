@@ -614,7 +614,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
     return { success: true, reason: "ok" };
   }
 
-  onServerMessage(message: ServerMessage): void {
+  onServerMessage(message: ServerMessage, _: any): void {
     if (message.type == "house-chosen") {
       this.players = new BetterMap(
         message.players.map(([hid, uid]) => [

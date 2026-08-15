@@ -41,14 +41,11 @@ export default class ExpertArtificerGameState extends GameState<
 
   onSelectRegionFinish(house: House, region: Region): void {
     region.crownModifier += 1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: region.id,
-        crownModifier: region.crownModifier
-      },
-      region
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: region.id,
+      crownModifier: region.crownModifier
+    });
 
     const gained = this.ingame.changePowerTokens(house, 8);
 

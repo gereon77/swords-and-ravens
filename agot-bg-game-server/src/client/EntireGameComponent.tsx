@@ -460,7 +460,7 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
             </OverlayTrigger>
           </Col>
         )}
-        {this.settings.fogOfWar && (
+        {false && (
           <Col xs="auto">
             <h4>
               <Badge variant="warning">BETA</Badge>

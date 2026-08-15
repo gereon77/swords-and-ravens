@@ -91,22 +91,29 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   render(): ReactNode {
+    const isFog = this.ingame.fogOfWar;
     const garrisons = new BetterMap<string, string | null>();
     const castleModifiers = new BetterMap<string, number>();
     const barrelModifiers = new BetterMap<string, number>();
     const crownModifiers = new BetterMap<string, number>();
 
-    const visibleRegions = _.union(
-      this.ingame.publicVisibleRegions,
-      this.ingame.getVisibleRegionsForPlayer(
-        this.props.gameClient.authenticatedPlayer
-      )
-    );
+    const visibleRegions = isFog
+      ? this.ingame.calculateVisibleRegionsForPlayer(
+          this.props.gameClient.authenticatedPlayer
+        )
+      : [];
+    const visibleRegionsSet = new Set<Region>(visibleRegions);
 
-    for (const region of this.ingame.world.regions.values) {
-      if (!visibleRegions.includes(region)) {
+    const isVisible = (region: Region): boolean =>
+      (!isFog || visibleRegionsSet.has(region)) ?? false;
+
+    const allRegions = this.ingame.world.regions.values;
+
+    for (const region of allRegions) {
+      if (!isVisible(region)) {
         continue;
       }
+
       if (region.garrison > 0 && !region.isBlocked) {
         garrisons.set(region.id, getGarrisonToken(region.garrison));
       }
@@ -126,14 +133,14 @@ export default class MapComponent extends Component<MapComponentProps> {
 
     const ironBankView = this.ingame.world.ironBankView;
 
+    const regions = isFog ? visibleRegions : allRegions;
+
     const propertiesForRegions = this.getModifiedPropertiesForEntities<
       Region,
       RegionOnMapProperties
-    >(
-      this.ingame.world.regions.values,
-      this.props.mapControls.modifyRegionsOnMap,
-      { highlight: { active: false, color: "white" } }
-    );
+    >(allRegions, this.props.mapControls.modifyRegionsOnMap, {
+      highlight: { active: false, color: "white" }
+    });
 
     // If the user is to select a region, we disable the pointer events for units to forward the click event to the region.
     // This makes it easier to hit the ports!
@@ -150,7 +157,7 @@ export default class MapComponent extends Component<MapComponentProps> {
       Unit,
       UnitOnMapProperties
     >(
-      _.flatMap(this.ingame.world.regions.values.map((r) => r.allUnits)),
+      _.flatMap(regions.map((r) => r.allUnits)),
       this.props.mapControls.modifyUnitsOnMap,
       {}
     );
@@ -165,11 +172,11 @@ export default class MapComponent extends Component<MapComponentProps> {
         }}
       >
         <div style={{ position: "relative" }}>
-          {this.ingame.world.regions.values.map((r) => (
+          {allRegions.map((r) => (
             <div key={`map_${r.id}`}>
               {castleModifiers.has(r.id) && (
                 <OverlayTrigger
-                  overlay={renderRegionTooltip(r)}
+                  overlay={renderRegionTooltip(r, isVisible(r))}
                   delay={{ show: 750, hide: 100 }}
                   placement="auto"
                   popperConfig={{ modifiers: [preventOverflow] }}
@@ -188,7 +195,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                 </OverlayTrigger>
               )}
               {(barrelModifiers.has(r.id) || crownModifiers.has(r.id)) &&
-                this.renderImprovements(r)}
+                this.renderImprovements(r, isVisible(r))}
               {r.overwrittenSuperControlPowerToken && (
                 <OverlayTrigger
                   overlay={
@@ -222,7 +229,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   ></div>
                 </OverlayTrigger>
               )}
-              {r.controlPowerToken && (
+              {r.controlPowerToken && isVisible(r) && (
                 <OverlayTrigger
                   overlay={
                     <Tooltip id={"power-token-" + r.id}>
@@ -258,34 +265,41 @@ export default class MapComponent extends Component<MapComponentProps> {
             </div>
           ))}
           {this.renderUnits(
+            regions,
             propertiesForUnits,
             garrisons,
             disablePointerEventsForUnits
           )}
-          {this.renderOrders(visibleRegions)}
-          {this.renderRegionTexts(propertiesForRegions)}
+          {this.renderOrders(regions)}
+          {this.renderRegionTexts(propertiesForRegions, isVisible)}
           {this.renderIronBankInfos(ironBankView)}
           {this.renderLoanCardDeck(ironBankView)}
           {this.renderLoanCardSlots(ironBankView)}
-          {this.renderMarchMarkers(propertiesForUnits)}
+          {this.renderMarchMarkers(propertiesForUnits, isFog, isVisible)}
         </div>
         <svg style={{ width: `${this.mapWidth}px`, height: `${MAP_HEIGHT}px` }}>
-          {this.renderRegions(propertiesForRegions, visibleRegions)}
+          {this.renderRegions(propertiesForRegions, isVisible)}
         </svg>
       </div>
     );
   }
 
   renderMarchMarkers(
-    propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>
+    propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
+    isFog: boolean,
+    isVisible: (region: Region) => boolean
   ): ReactNode[] {
-    const markers = _.unionBy(
+    let markers = _.unionBy(
       propertiesForUnits.entries
         .filter(([_u, uprop]) => uprop.targetRegion != undefined)
         .map(([u, uprop]) => [u, uprop.targetRegion] as [Unit, Region]),
       this.ingame.marchMarkers.entries,
       ([u, _r]) => u.id
     ).filter(([u, r]) => u.region != r);
+
+    markers = isFog
+      ? markers.filter(([u, r]) => isVisible(u.region) && isVisible(r))
+      : markers;
 
     return markers.map(([unit, to]) => (
       <Xarrow
@@ -412,15 +426,15 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderRegions(
     propertiesForRegions: BetterMap<Region, RegionOnMapProperties>,
-    visibleRegions: Region[]
+    isVisible: (region: Region) => boolean
   ): ReactNode {
     return propertiesForRegions.entries.map(([region, properties]) => {
       const wrap = properties.wrap;
+      const visible = isVisible(region);
 
-      const isFoggedRegion = !visibleRegions.includes(region);
       const fillColor = region.isBlocked
         ? "black"
-        : isFoggedRegion
+        : !visible
           ? "#3d3d3d"
           : properties.highlight.color;
 
@@ -433,7 +447,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               ? wrap
               : (child) => (
                   <OverlayTrigger
-                    overlay={renderRegionTooltip(region)}
+                    overlay={renderRegionTooltip(region, visible)}
                     delay={{ show: 750, hide: 100 }}
                     placement="auto"
                     popperConfig={{ modifiers: [preventOverflow] }}
@@ -449,7 +463,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             fillRule="evenodd"
             className={classNames(
               region.isBlocked ? "blocked-region" : "region-area",
-              isFoggedRegion ? "region-area-fogged" : "",
+              !visible ? "region-area-fogged" : "",
               {
                 clickable:
                   properties.onClick != undefined ||
@@ -471,10 +485,13 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   renderRegionTexts(
-    propertiesForRegions: BetterMap<Region, RegionOnMapProperties>
+    propertiesForRegions: BetterMap<Region, RegionOnMapProperties>,
+    isVisible: (region: Region) => boolean
   ): ReactNode {
     return propertiesForRegions.entries
-      .filter(([_region, properties]) => properties.highlight.text)
+      .filter(
+        ([region, properties]) => properties.highlight.text && isVisible(region)
+      )
       .map(([region, properties]) => {
         const nameSlot = region.staticRegion.nameSlot;
         return (
@@ -498,6 +515,7 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   renderUnits(
+    visibleRegions: Region[],
     propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
     garrisons: BetterMap<string, string | null>,
     disablePointerEvents: boolean
@@ -509,7 +527,23 @@ export default class MapComponent extends Component<MapComponentProps> {
       ])
     );
 
-    return this.ingame.world.regions.values.map((r) => {
+    const getDragonPrefix = (dragonStrength: number): ReactNode => {
+      return dragonStrength <= -1 ? (
+        <></>
+      ) : dragonStrength <= 1 ? (
+        <>Baby </>
+      ) : dragonStrength <= 3 ? (
+        <></>
+      ) : dragonStrength <= 5 ? (
+        <>Monster </>
+      ) : (
+        <></>
+      );
+    };
+
+    const currentDragonStrength = this.ingame.game.currentDragonStrength;
+
+    return visibleRegions.map((r) => {
       let disablePointerEventsForCurrentRegion = disablePointerEvents;
       // If there is a clickable unit (e.g. during mustering), don't disable pointer events!
       if (
@@ -552,24 +586,8 @@ export default class MapComponent extends Component<MapComponentProps> {
             }
 
             const clickable = property.onClick != undefined;
-            const dragonStrength = this.ingame.game.currentDragonStrength;
-
-            const dragonPrefix =
-              u.type.id == "dragon" ? (
-                dragonStrength <= -1 ? (
-                  <></>
-                ) : dragonStrength <= 1 ? (
-                  <>Baby </>
-                ) : dragonStrength <= 3 ? (
-                  <></>
-                ) : dragonStrength <= 5 ? (
-                  <>Monster </>
-                ) : (
-                  <></>
-                )
-              ) : (
-                <></>
-              );
+            const dragonStrength =
+              u.type.id == "dragon" ? currentDragonStrength : -1;
 
             return (
               <OverlayTrigger
@@ -580,7 +598,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   >
                     <div className="text-center">
                       <b>
-                        {dragonPrefix}
+                        {getDragonPrefix(dragonStrength)}
                         {u.type.name}
                       </b>
                       <small>
@@ -733,7 +751,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     });
   }
 
-  renderImprovements(region: Region): ReactNode {
+  renderImprovements(region: Region, isVisible: boolean): ReactNode {
     return (
       <div
         id={`improvement-${region.id}`}
@@ -749,7 +767,7 @@ export default class MapComponent extends Component<MapComponentProps> {
           return (
             <OverlayTrigger
               key={`map-barrel-${region.id}-${i}`}
-              overlay={renderRegionTooltip(region)}
+              overlay={renderRegionTooltip(region, isVisible)}
               delay={{ show: 750, hide: 100 }}
               placement="auto"
               popperConfig={{ modifiers: [preventOverflow] }}
@@ -767,7 +785,7 @@ export default class MapComponent extends Component<MapComponentProps> {
           return (
             <OverlayTrigger
               key={`map-crown-${region.id}-${i}`}
-              overlay={renderRegionTooltip(region)}
+              overlay={renderRegionTooltip(region, isVisible)}
               delay={{ show: 750, hide: 100 }}
               placement="auto"
               popperConfig={{ modifiers: [preventOverflow] }}
@@ -785,21 +803,13 @@ export default class MapComponent extends Component<MapComponentProps> {
     );
   }
 
-  renderOrders(visibleRegions: Region[]): ReactNode {
+  renderOrders(regions: Region[]): ReactNode {
     const propertiesForOrders = this.getModifiedPropertiesForEntities<
       Region,
       OrderOnMapProperties
-    >(
-      _.flatMap(this.ingame.world.regions.values),
-      this.props.mapControls.modifyOrdersOnMap,
-      {}
-    );
+    >(regions, this.props.mapControls.modifyOrdersOnMap, {});
 
     return propertiesForOrders.map((region, properties) => {
-      if (!visibleRegions.includes(region)) {
-        return null;
-      }
-
       let order: Order | null = null;
       let orderPresent = false;
       if (this.ingame.childGameState instanceof PlanningGameState) {

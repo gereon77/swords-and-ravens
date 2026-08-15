@@ -43,14 +43,11 @@ export default class MasterAtArmsGameState extends GameState<
 
   onSelectRegionFinish(house: House, region: Region): void {
     region.castleModifier = 1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: region.id,
-        castleModifier: region.castleModifier
-      },
-      region
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: region.id,
+      castleModifier: region.castleModifier
+    });
 
     this.selectedRegions.push(region);
 

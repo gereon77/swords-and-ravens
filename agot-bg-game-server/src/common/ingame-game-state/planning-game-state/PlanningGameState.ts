@@ -115,38 +115,27 @@ export default class PlanningGameState extends GameState<
     admin: boolean,
     player: Player | null
   ): SerializedPlanningGameState {
-    let placedOrders = this.placedOrders.mapOver(
-      (r) => r.id,
-      (o, r) => {
-        // Hide orders that doesn't belong to the player
-        // If admin, send all orders.
-        const controller = r.getController();
-        if (
-          admin ||
-          (player &&
-            controller != null &&
-            (controller == player.house ||
-              (this.ingame.isVassalHouse(controller) &&
-                this.ingame.isVassalControlledByPlayer(controller, player))))
-        ) {
-          return o ? o.id : null;
-        }
-        return null;
-      }
-    );
-
-    if (this.entireGame.gameSettings.fogOfWar && !admin && player != null) {
-      const visibleRegionIds = this.ingame
-        .getVisibleRegionsForPlayer(player)
-        .map((r) => r.id);
-      placedOrders = placedOrders.filter(([rid, _oid]) =>
-        visibleRegionIds.includes(rid)
-      );
-    }
-
     return {
       type: "planning",
-      placedOrders: placedOrders,
+      placedOrders: this.placedOrders.mapOver(
+        (r) => r.id,
+        (o, r) => {
+          // Hide orders that doesn't belong to the player
+          // If admin, send all orders.
+          const controller = r.getController();
+          if (
+            admin ||
+            (player &&
+              controller != null &&
+              (controller == player.house ||
+                (this.ingame.isVassalHouse(controller) &&
+                  this.ingame.isVassalControlledByPlayer(controller, player))))
+          ) {
+            return o ? o.id : null;
+          }
+          return null;
+        }
+      ),
       planningRestrictions: this.planningRestrictions.map((pr) => pr.id),
       revealedWesterosCardIds: this.revealedWesterosCards.map((wc) => wc.id),
       childGameState: this.childGameState.serializeToClient(admin, player)

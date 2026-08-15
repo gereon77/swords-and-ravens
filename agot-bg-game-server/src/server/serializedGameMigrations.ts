@@ -3042,6 +3042,18 @@ const serializedGameMigrations: {
 
       return serializedGame;
     }
+  },
+  {
+    version: "133",
+    migrate: (serializedGame: any) => {
+      if (serializedGame.childGameState.type == "ingame") {
+        const ingame = serializedGame.childGameState;
+        ingame.publicVisibleRegions = undefined;
+        ingame.visibleRegionsPerPlayer = undefined;
+      }
+
+      return serializedGame;
+    }
   }
 ];
 

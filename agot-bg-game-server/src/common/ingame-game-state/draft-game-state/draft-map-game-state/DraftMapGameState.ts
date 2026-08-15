@@ -263,14 +263,11 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       });
 
       region.controlPowerToken = house;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-control-power-token",
-          regionId: region.id,
-          houseId: house.id
-        },
-        region
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-control-power-token",
+        regionId: region.id,
+        houseId: house.id
+      });
 
       if (region.supplyIcons > 0 && oldController != house) {
         this.updateSupply(house);
@@ -283,14 +280,11 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       if (!this.canRemovePowerToken(house, region)) return;
 
       region.controlPowerToken = null;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-control-power-token",
-          regionId: region.id,
-          houseId: null
-        },
-        region
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-control-power-token",
+        regionId: region.id,
+        houseId: null
+      });
 
       const newController = region.getController();
       if (region.supplyIcons > 0 && newController != house) {
@@ -310,14 +304,11 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
         userId: player.user.id
       });
 
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-garrison",
-          newGarrison: message.garrison,
-          region: region.id
-        },
-        region
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-garrison",
+        newGarrison: message.garrison,
+        region: region.id
+      });
     } else if (message.type == "remove-garrison") {
       const region = this.world.regions.get(message.region);
       const house = player.house;
@@ -335,14 +326,11 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       });
 
       region.garrison = 0;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-garrison",
-          newGarrison: 0,
-          region: region.id
-        },
-        region
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-garrison",
+        newGarrison: 0,
+        region: region.id
+      });
     } else if (message.type == "muster") {
       const house = player.house;
       if (!this.parentGameState.participatingHouses.includes(house)) return;

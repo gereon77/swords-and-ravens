@@ -49,7 +49,7 @@ export default class CancelledGameState extends GameState<
     _user: User | Player | null
   ): SerializedCancelledGameState {
     return {
-      type: "cancelled",
+      type: "cancelled"
     };
   }
 

@@ -46,14 +46,11 @@ export default class PyromancerGameState extends GameState<
   onSelectRegionFinish(house: House, region: Region): void {
     this.chosenRegion = region;
     this.chosenRegion.castleModifier = -1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: this.chosenRegion.id,
-        castleModifier: this.chosenRegion.castleModifier
-      },
-      this.chosenRegion
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: this.chosenRegion.id,
+      castleModifier: this.chosenRegion.castleModifier
+    });
 
     this.setChildGameState(new SimpleChoiceGameState(this)).firstStart(
       house,
@@ -73,15 +70,12 @@ export default class PyromancerGameState extends GameState<
       this.chosenRegion.crownModifier += 1;
     }
 
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: this.chosenRegion.id,
-        barrelModifier: this.chosenRegion.barrelModifier,
-        crownModifier: this.chosenRegion.crownModifier
-      },
-      this.chosenRegion
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: this.chosenRegion.id,
+      barrelModifier: this.chosenRegion.barrelModifier,
+      crownModifier: this.chosenRegion.crownModifier
+    });
 
     this.ingame.log({
       type: "pyromancer-executed",

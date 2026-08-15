@@ -138,7 +138,6 @@ export default class Vote {
   checkVoteFinished(): void {
     if (this.state == VoteState.ACCEPTED) {
       this.type.executeAccepted(this);
-      this.ingame.updateVisibleRegions(true);
     }
   }
 

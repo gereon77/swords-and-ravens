@@ -41,14 +41,11 @@ export default class SavvyStewardGameState extends GameState<
 
   onSelectRegionFinish(house: House, region: Region): void {
     region.barrelModifier += 1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: region.id,
-        barrelModifier: region.barrelModifier
-      },
-      region
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: region.id,
+      barrelModifier: region.barrelModifier
+    });
 
     this.game.changeSupply(house, 1);
     this.entireGame.broadcastToClients({

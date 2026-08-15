@@ -122,24 +122,20 @@ export default class ResolveSinglePlaceOrdersForVassalsGameState extends GameSta
           region: region.id
         });
 
-        this.ingame.sendMessageToUsersWhoCanSeeRegion(
+        this.entireGame.broadcastToClients(
           {
             type: "order-placed",
             region: region.id,
             order: null
           },
-          region,
           player.user
         );
       } else if (this.placedOrders.has(region)) {
         this.placedOrders.delete(region);
-        this.ingame.sendMessageToUsersWhoCanSeeRegion(
-          {
-            type: "remove-placed-order",
-            regionId: region.id
-          },
-          region
-        );
+        this.entireGame.broadcastToClients({
+          type: "remove-placed-order",
+          regionId: region.id
+        });
       }
     } else if (message.type == "ready") {
       if (this.ingame.getControllerOfHouse(this.house) != player) {

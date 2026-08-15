@@ -42,6 +42,7 @@ import getElapsedSeconds from "../utils/getElapsedSeconds";
 import WildlingCardType from "./ingame-game-state/game-data-structure/wildling-card/WildlingCardType";
 import House from "./ingame-game-state/game-data-structure/House";
 import { GameSettings, SerializedGameSettings } from "./GameSettings";
+import GameClient from "../client/GameClient";
 
 export enum NotificationType {
   READY_TO_START,
@@ -208,9 +209,6 @@ export default class EntireGame extends GameState<
       // console.log("===GAME STATE CHANGED===");
       // The GameState tree has been changed, broadcast a message to transmit to them
       // the new game state.
-      if (this.ingameGameState) {
-        this.ingameGameState.updateVisibleRegions();
-      }
       this.broadcastCustomToClients((u) => {
         // To serialize the specific game state that has changed, the code serializes the entire
         // game state tree and pick the appropriate serializedGameState.
@@ -266,9 +264,6 @@ export default class EntireGame extends GameState<
           p.resetWaitedFor();
         });
 
-      if (this.ingameGameState) {
-        this.ingameGameState.updateVisibleRegions(true);
-      }
       this.notifyWaitedUsers();
       return true;
     }
@@ -575,7 +570,7 @@ export default class EntireGame extends GameState<
     });
   }
 
-  onServerMessage(message: ServerMessage): void {
+  onServerMessage(message: ServerMessage, gameClient: GameClient): void {
     if (message.type == "game-state-change") {
       // Get the GameState for whose the childGameState must change
       const parentGameState = this.getGameStateNthLevelDown(message.level - 1);
@@ -615,7 +610,7 @@ export default class EntireGame extends GameState<
         this.onGameStarted();
       }
     } else {
-      this.childGameState.onServerMessage(message);
+      this.childGameState.onServerMessage(message, gameClient);
     }
   }
 

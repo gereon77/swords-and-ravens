@@ -411,7 +411,7 @@ export default class GameClient {
         return;
       }
 
-      this.entireGame.onServerMessage(message);
+      this.entireGame.onServerMessage(message, this);
     }
   }
 

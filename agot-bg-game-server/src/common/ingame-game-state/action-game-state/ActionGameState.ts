@@ -134,15 +134,12 @@ export default class ActionGameState extends GameState<
     if (this.ordersOnBoard.has(region)) {
       const order = this.ordersOnBoard.get(region);
       this.ordersOnBoard.delete(region);
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "action-phase-change-order",
-          region: region.id,
-          order: null,
-          animate: animate
-        },
-        region
-      );
+      this.entireGame.broadcastToClients({
+        type: "action-phase-change-order",
+        region: region.id,
+        order: null,
+        animate: animate
+      });
 
       if (log) {
         this.ingame.log(

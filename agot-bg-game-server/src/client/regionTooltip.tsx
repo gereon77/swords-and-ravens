@@ -9,7 +9,47 @@ import crownImage from "../../public/images/region-modifications/Crown.png";
 import housePowerTokensImages from "./housePowerTokensImages";
 import loyaltyTokenImage from "../../public/images/power-tokens/Loyalty.png";
 
-export function renderRegionTooltip(region: Region): OverlayChildren {
+export function renderRegionTooltip(
+  region: Region,
+  forceNormalToolTip = false
+): OverlayChildren {
+  if (region.game.ingame.fogOfWar && !forceNormalToolTip) {
+    // This tooltip only shows static data about the region,
+    // and not the dynamic data (like units, garrison, etc.) that is hidden by fog of war.
+    return (
+      <Tooltip id={`region-${region.id}-details`} className="tooltip-w-100">
+        <div className="text-center">
+          <b>{region.name}</b>
+          {region.staticRegion.castleLevel > 0 && (
+            <>
+              <br />
+              {region.staticRegion.castleLevel == 1 ? "Castle" : "Stronghold"}
+            </>
+          )}
+          <div className="d-flex flex-row justify-content-center mt-2">
+            {_.range(0, region.staticRegion.supplyIcons).map((_, i) => {
+              return (
+                <div
+                  key={`barrel-icon-${region.id}-${i}`}
+                  className="unit-icon medium mr-1"
+                  style={{ backgroundImage: `url(${barrelImage})` }}
+                />
+              );
+            })}
+            {_.range(0, region.staticRegion.crownIcons).map((_, i) => {
+              return (
+                <div
+                  key={`crown-icon-${region.id}-${i}`}
+                  className="unit-icon medium mr-1"
+                  style={{ backgroundImage: `url(${crownImage})` }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </Tooltip>
+    );
+  }
   const controller = region.getController();
   const loyaltyTokenCount =
     region.loyaltyTokens > 0

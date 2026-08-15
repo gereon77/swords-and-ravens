@@ -9,6 +9,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
+    "strictPropertyInitialization": false,
     "lib": ["es2016", "DOM"],
     "module": "commonjs",
     "target": "es2016",

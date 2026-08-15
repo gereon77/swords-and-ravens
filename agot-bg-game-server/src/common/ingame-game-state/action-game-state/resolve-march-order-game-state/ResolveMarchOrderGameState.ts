@@ -215,14 +215,11 @@ export default class ResolveMarchOrderGameState extends GameState<
 
         to.controlPowerToken = null;
 
-        this.ingame.sendMessageToUsersWhoCanSeeRegion(
-          {
-            type: "change-control-power-token",
-            regionId: to.id,
-            houseId: null
-          },
-          to
-        );
+        this.entireGame.broadcastToClients({
+          type: "change-control-power-token",
+          regionId: to.id,
+          houseId: null
+        });
       }
     }
 
@@ -232,53 +229,12 @@ export default class ResolveMarchOrderGameState extends GameState<
       u.region = to;
     });
 
-    if (!this.ingame.fogOfWar) {
-      this.entireGame.broadcastToClients({
-        type: "move-units",
-        from: from.id,
-        to: to.id,
-        units: units.map((u) => u.id)
-      });
-    } else {
-      const userVisibilityList = this.entireGame.users.values.map((u) => {
-        const p = this.ingame.players.tryGet(u, null);
-        const visibleRegions = this.ingame.getVisibleRegionsForPlayer(p);
-        return {
-          user: u,
-          seesFrom: visibleRegions.includes(from),
-          seesTo: visibleRegions.includes(to)
-        };
-      });
-
-      const usersWhoSeeFromAndTo = userVisibilityList
-        .filter((item) => item.seesFrom && item.seesTo)
-        .map((item) => item.user);
-      this.entireGame.sendMessageToClients(usersWhoSeeFromAndTo, {
-        type: "move-units",
-        from: from.id,
-        to: to.id,
-        units: units.map((u) => u.id)
-      });
-
-      const userWhoOnlySeeFrom = userVisibilityList
-        .filter((dict) => dict.seesFrom && !dict.seesTo)
-        .map((dict) => dict.user);
-      this.entireGame.sendMessageToClients(userWhoOnlySeeFrom, {
-        type: "remove-units",
-        regionId: from.id,
-        unitIds: units.map((u) => u.id),
-        animate: false
-      });
-
-      const userWhoOnlySeeTo = userVisibilityList
-        .filter((dict) => !dict.seesFrom && dict.seesTo)
-        .map((dict) => dict.user);
-      this.entireGame.sendMessageToClients(userWhoOnlySeeTo, {
-        type: "add-units",
-        regionId: to.id,
-        units: units.map((u) => u.serializeToClient())
-      });
-    }
+    this.entireGame.broadcastToClients({
+      type: "move-units",
+      from: from.id,
+      to: to.id,
+      units: units.map((u) => u.id)
+    });
   }
 
   onPlayerMessage(player: Player, message: ClientMessage): void {
