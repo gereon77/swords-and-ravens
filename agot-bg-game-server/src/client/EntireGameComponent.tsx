@@ -25,7 +25,7 @@ import HouseIconComponent from "./game-state-panel/utils/HouseIconComponent";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLock,
-  faTriangleExclamation,
+  faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
 import GameEndedGameState from "../common/ingame-game-state/game-ended-game-state/GameEndedGameState";
 import CombatGameState from "../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
@@ -39,7 +39,7 @@ import classNames from "classnames";
 
 const yourTurnToastAnimation = cssTransition({
   enter: "slide-in-elliptic-top-fwd",
-  exit: "slide-out-elliptic-top-bck",
+  exit: "slide-out-elliptic-top-bck"
 });
 
 interface EntireGameComponentProps {
@@ -110,7 +110,7 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
         >
           <Row
             className={classNames("justify-content-center align-items-center", {
-              "flex-nowrap": !isMobile && this.entireGame.name.length > 90,
+              "flex-nowrap": !isMobile && this.entireGame.name.length > 90
             })}
           >
             {this.entireGame.ingameGameState?.replayManager.isReplayMode ? (
@@ -460,7 +460,7 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
             </OverlayTrigger>
           </Col>
         )}
-        {this.settings.fogOfWar && (
+        {false && (
           <Col xs="auto">
             <h4>
               <Badge variant="warning">BETA</Badge>
@@ -587,8 +587,8 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
             toastId: "your-turn-toast",
             pauseOnHover: false,
             theme: "light",
-            transition: yourTurnToastAnimation,
-          },
+            transition: yourTurnToastAnimation
+          }
         );
       }
     } else {

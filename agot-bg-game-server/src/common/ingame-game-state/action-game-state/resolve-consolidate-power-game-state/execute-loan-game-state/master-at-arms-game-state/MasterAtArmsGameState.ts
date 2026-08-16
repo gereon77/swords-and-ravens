@@ -5,7 +5,7 @@ import Game from "../../../../game-data-structure/Game";
 import ExecuteLoanGameState from "../ExecuteLoanGameState";
 import IngameGameState from "../../../../IngameGameState";
 import SelectRegionGameState, {
-  SerializedSelectRegionGameState,
+  SerializedSelectRegionGameState
 } from "../../../../select-region-game-state/SelectRegionGameState";
 import { ServerMessage } from "../../../../../../messages/ServerMessage";
 import { ClientMessage } from "../../../../../../messages/ClientMessage";
@@ -43,14 +43,11 @@ export default class MasterAtArmsGameState extends GameState<
 
   onSelectRegionFinish(house: House, region: Region): void {
     region.castleModifier = 1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: region.id,
-        castleModifier: region.castleModifier,
-      },
-      region
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: region.id,
+      castleModifier: region.castleModifier
+    });
 
     this.selectedRegions.push(region);
 
@@ -58,7 +55,7 @@ export default class MasterAtArmsGameState extends GameState<
       this.ingame.log({
         type: "master-at-arms-executed",
         house: house.id,
-        regions: this.selectedRegions.map((r) => r.id),
+        regions: this.selectedRegions.map((r) => r.id)
       });
 
       this.executeLoanGameState.onExecuteLoanFinish(this.childGameState.house);
@@ -85,7 +82,7 @@ export default class MasterAtArmsGameState extends GameState<
     return {
       type: "master-at-arms",
       selectedRegions: this.selectedRegions.map((r) => r.id),
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 

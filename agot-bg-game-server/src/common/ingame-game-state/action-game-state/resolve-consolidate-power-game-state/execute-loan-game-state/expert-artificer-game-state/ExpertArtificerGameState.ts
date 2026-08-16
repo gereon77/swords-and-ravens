@@ -5,7 +5,7 @@ import Game from "../../../../game-data-structure/Game";
 import ExecuteLoanGameState from "../ExecuteLoanGameState";
 import IngameGameState from "../../../../IngameGameState";
 import SelectRegionGameState, {
-  SerializedSelectRegionGameState,
+  SerializedSelectRegionGameState
 } from "../../../../select-region-game-state/SelectRegionGameState";
 import { ServerMessage } from "../../../../../../messages/ServerMessage";
 import { ClientMessage } from "../../../../../../messages/ClientMessage";
@@ -41,14 +41,11 @@ export default class ExpertArtificerGameState extends GameState<
 
   onSelectRegionFinish(house: House, region: Region): void {
     region.crownModifier += 1;
-    this.ingame.sendMessageToUsersWhoCanSeeRegion(
-      {
-        type: "update-region-modifiers",
-        region: region.id,
-        crownModifier: region.crownModifier,
-      },
-      region
-    );
+    this.entireGame.broadcastToClients({
+      type: "update-region-modifiers",
+      region: region.id,
+      crownModifier: region.crownModifier
+    });
 
     const gained = this.ingame.changePowerTokens(house, 8);
 
@@ -56,7 +53,7 @@ export default class ExpertArtificerGameState extends GameState<
       type: "expert-artificer-executed",
       house: house.id,
       region: region.id,
-      gainedPowerTokens: gained,
+      gainedPowerTokens: gained
     });
 
     this.executeLoanGameState.onExecuteLoanFinish(this.childGameState.house);
@@ -76,7 +73,7 @@ export default class ExpertArtificerGameState extends GameState<
   ): SerializedExpertArtificerGameState {
     return {
       type: "expert-artificer",
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 

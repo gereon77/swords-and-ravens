@@ -4,7 +4,7 @@ import { SerializedUnit } from "../common/ingame-game-state/game-data-structure/
 import { SerializedUser } from "../server/User";
 import {
   HouseCardState,
-  SerializedHouseCard,
+  SerializedHouseCard
 } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import { GameLogData } from "../common/ingame-game-state/game-data-structure/GameLog";
 import { UserSettings } from "./ClientMessage";
@@ -16,7 +16,6 @@ import { CombatStats } from "../common/ingame-game-state/action-game-state/resol
 import { DraftStep } from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
 import { SerializedLoanCard } from "../common/ingame-game-state/game-data-structure/loan-card/LoanCard";
 import { SerializedWaitedForData } from "../common/ingame-game-state/Player";
-import { SerializedRegion } from "../common/ingame-game-state/game-data-structure/Region";
 
 export type ServerMessage =
   | NewUser
@@ -111,9 +110,7 @@ export type ServerMessage =
   | UpdateWaitedForData
   | UserBanned
   | UserUnbanned
-  | BannedResponse
-  | UpdateVisibleRegions
-  | UpdatePublicVisibleRegionsForSpectators;
+  | BannedResponse;
 
 interface AuthenticationResponse {
   type: "authenticate-response";
@@ -637,22 +634,6 @@ interface UserUnbanned {
 
 interface BannedResponse {
   type: "banned-response";
-}
-
-interface UpdateVisibleRegions {
-  type: "update-visible-regions";
-  playerUserId: string;
-  regionsToMakeVisible: SerializedRegion[];
-  regionsToHide: string[];
-  ordersToMakeVisible: [string, number][];
-}
-
-interface UpdatePublicVisibleRegionsForSpectators {
-  type: "update-public-visible-regions";
-  regionsToMakeVisible?: SerializedRegion[];
-  ordersToMakeVisible?: [string, number][];
-  clear?: boolean;
-  applyChangesNow?: boolean;
 }
 
 interface NextHouse {

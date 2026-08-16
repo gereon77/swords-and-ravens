@@ -4,7 +4,7 @@ import Region from "../game-data-structure/Region";
 import Order from "../game-data-structure/Order";
 import EntireGame from "../../EntireGame";
 import ResolveMarchOrderGameState, {
-  SerializedResolveMarchOrderGameState,
+  SerializedResolveMarchOrderGameState
 } from "./resolve-march-order-game-state/ResolveMarchOrderGameState";
 import orders from "../game-data-structure/orders";
 import Player from "../Player";
@@ -14,22 +14,22 @@ import House from "../game-data-structure/House";
 import MarchOrderType from "../game-data-structure/order-types/MarchOrderType";
 import RaidOrderType from "../game-data-structure/order-types/RaidOrderType";
 import UseRavenGameState, {
-  SerializedUseRavenGameState,
+  SerializedUseRavenGameState
 } from "./use-raven-game-state/UseRavenGameState";
 import ResolveRaidOrderGameState, {
-  SerializedResolveRaidOrderGameState,
+  SerializedResolveRaidOrderGameState
 } from "./resolve-raid-order-game-state/ResolveRaidOrderGameState";
 import BetterMap from "../../../utils/BetterMap";
 import Game from "../game-data-structure/Game";
 import ResolveConsolidatePowerGameState, {
-  SerializedResolveConsolidatePowerGameState,
+  SerializedResolveConsolidatePowerGameState
 } from "./resolve-consolidate-power-game-state/ResolveConsolidatePowerGameState";
 import ConsolidatePowerOrderType from "../game-data-structure/order-types/ConsolidatePowerOrderType";
 import SupportOrderType from "../game-data-structure/order-types/SupportOrderType";
 import { port, sea, land } from "../game-data-structure/regionTypes";
 import PlanningRestriction from "../game-data-structure/westeros-card/planning-restriction/PlanningRestriction";
 import planningRestrictions, {
-  noSupportOrder,
+  noSupportOrder
 } from "../game-data-structure/westeros-card/planning-restriction/planningRestrictions";
 import RaidSupportOrderType from "../game-data-structure/order-types/RaidSupportOrderType";
 import Unit from "../game-data-structure/Unit";
@@ -38,11 +38,11 @@ import DefenseMusterOrderType from "../game-data-structure/order-types/DefenseMu
 import { raidSupportPlusOne } from "../game-data-structure/order-types/orderTypes";
 import IronBankOrderType from "../game-data-structure/order-types/IronBankOrderType";
 import ReconcileArmiesGameState, {
-  SerializedReconcileArmiesGameState,
+  SerializedReconcileArmiesGameState
 } from "../westeros-game-state/reconcile-armies-game-state/ReconcileArmiesGameState";
 import popRandom from "../../../utils/popRandom";
 import ScoreObjectivesGameState, {
-  SerializedScoreObjectivesGameState,
+  SerializedScoreObjectivesGameState
 } from "./score-objectives-game-state/ScoreObjectivesGameState";
 import houseCardAbilities from "../game-data-structure/house-card/houseCardAbilities";
 
@@ -81,14 +81,14 @@ export default class ActionGameState extends GameState<
     this.planningRestrictions = planningRestrictions;
 
     this.ingame.log({
-      type: "action-phase-began",
+      type: "action-phase-began"
     });
 
     this.ingame.log({
       type: "orders-revealed",
       worldState:
         this.ingame.getWorldSnapshotWithOrdersOnBoard(planningRestrictions),
-      gameSnapshot: this.game.getSnapshot(),
+      gameSnapshot: this.game.getSnapshot()
     });
 
     this.setChildGameState(new UseRavenGameState(this)).firstStart();
@@ -96,7 +96,7 @@ export default class ActionGameState extends GameState<
 
   onResolveMarchOrderGameStateFinish(): void {
     this.setChildGameState(
-      new ResolveConsolidatePowerGameState(this),
+      new ResolveConsolidatePowerGameState(this)
     ).firstStart();
   }
 
@@ -116,7 +116,7 @@ export default class ActionGameState extends GameState<
 
   findOrphanedOrdersAndRemoveThem(): void {
     const orphanedOrders = this.ordersOnBoard.entries.filter(
-      ([region, _]) => region.units.size == 0,
+      ([region, _]) => region.units.size == 0
     );
 
     orphanedOrders.forEach(([region, _]) => {
@@ -129,20 +129,17 @@ export default class ActionGameState extends GameState<
     log = false,
     house: House | undefined = undefined,
     resolvedAutomatically = false,
-    animate: "yellow" | "red" | undefined = undefined,
+    animate: "yellow" | "red" | undefined = undefined
   ): Order | null {
     if (this.ordersOnBoard.has(region)) {
       const order = this.ordersOnBoard.get(region);
       this.ordersOnBoard.delete(region);
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "action-phase-change-order",
-          region: region.id,
-          order: null,
-          animate: animate,
-        },
-        region,
-      );
+      this.entireGame.broadcastToClients({
+        type: "action-phase-change-order",
+        region: region.id,
+        order: null,
+        animate: animate
+      });
 
       if (log) {
         this.ingame.log(
@@ -150,9 +147,9 @@ export default class ActionGameState extends GameState<
             type: "order-removed",
             region: region.id,
             house: house?.id,
-            order: order.type.id,
+            order: order.type.id
           },
-          resolvedAutomatically,
+          resolvedAutomatically
         );
       }
 
@@ -203,12 +200,12 @@ export default class ActionGameState extends GameState<
           h.secretObjectives.push(newCard);
           this.ingame.log({
             type: "new-objective-card-drawn",
-            house: h.id,
+            house: h.id
           });
         } else {
           this.ingame.log({
             type: "objective-deck-empty",
-            house: h.id,
+            house: h.id
           });
         }
       }
@@ -253,7 +250,7 @@ export default class ActionGameState extends GameState<
         if (message.animate && !this.ingame.fogOfWar) {
           this.ingame.ordersToBeAnimated.set(region, {
             highlight: { active: true, color: message.animate },
-            animateAttention: true,
+            animateAttention: true
           });
           window.setTimeout(() => {
             this.ingame.ordersToBeAnimated.delete(region);
@@ -264,7 +261,7 @@ export default class ActionGameState extends GameState<
           if (message.animate && !this.ingame.fogOfWar) {
             this.ingame.ordersToBeAnimated.set(region, {
               highlight: { active: true, color: message.animate },
-              animateFadeOut: true,
+              animateFadeOut: true
             });
             window.setTimeout(() => {
               this.ingame.ordersToBeAnimated.delete(region);
@@ -282,7 +279,7 @@ export default class ActionGameState extends GameState<
 
   getOrdersOfHouse(house: House): [Region, Order][] {
     return this.ordersOnBoard.entries.filter(
-      ([region, _order]) => region.getController() == house,
+      ([region, _order]) => region.getController() == house
     );
   }
 
@@ -302,18 +299,18 @@ export default class ActionGameState extends GameState<
   }
 
   getRegionsWithRaidOrderOfHouse(
-    house: House,
+    house: House
   ): [Region, RaidOrderType | RaidSupportOrderType][] {
     return this.ordersOnBoard.entries
       .filter(
         ([region, order]) =>
           (order.type instanceof RaidOrderType ||
             order.type instanceof RaidSupportOrderType) &&
-          region.getController() == house,
+          region.getController() == house
       )
       .map(([region, order]) => [
         region,
-        order.type as RaidOrderType | RaidSupportOrderType,
+        order.type as RaidOrderType | RaidSupportOrderType
       ]);
   }
 
@@ -322,31 +319,31 @@ export default class ActionGameState extends GameState<
       .filter(
         ([region, order]) =>
           order.type instanceof MarchOrderType &&
-          region.getController() == house,
+          region.getController() == house
       )
       .map(([region, _order]) => region);
   }
 
   getRegionsWithConsolidatePowerOrderOfHouse(
-    house: House,
+    house: House
   ): [Region, ConsolidatePowerOrderType][] {
     return this.ordersOnBoard.entries
       .filter(
         ([region, order]) =>
           order.type instanceof ConsolidatePowerOrderType &&
-          region.getController() == house,
+          region.getController() == house
       )
       .map(([region, order]) => [region, order.type]);
   }
 
   getRegionsWithIronBankOrderOfHouse(
-    house: House,
+    house: House
   ): [Region, IronBankOrderType][] {
     return this.ordersOnBoard.entries
       .filter(
         ([region, order]) =>
           order.type instanceof IronBankOrderType &&
-          region.getController() == house,
+          region.getController() == house
       )
       .map(([region, order]) => [region, order.type]);
   }
@@ -358,19 +355,19 @@ export default class ActionGameState extends GameState<
   }
 
   getRegionsWithDefenseMusterOrderOfHouse(
-    house: House,
+    house: House
   ): [Region, DefenseMusterOrderType][] {
     return this.ordersOnBoard.entries
       .filter(
         ([region, order]) =>
           order.type instanceof DefenseMusterOrderType &&
-          region.getController() == house,
+          region.getController() == house
       )
       .map(([region, order]) => [region, order.type as DefenseMusterOrderType]);
   }
 
   getPossibleSupportingRegions(
-    attackedRegion: Region,
+    attackedRegion: Region
   ): { region: Region; support: SupportOrderType }[] {
     return (
       this.game.world
@@ -379,7 +376,7 @@ export default class ActionGameState extends GameState<
         .filter(
           (r) =>
             this.ordersOnBoard.get(r).type instanceof SupportOrderType ||
-            this.ordersOnBoard.get(r).type instanceof RaidSupportOrderType,
+            this.ordersOnBoard.get(r).type instanceof RaidSupportOrderType
         )
         // A port can't support the adjacent land region
         .filter(
@@ -387,31 +384,31 @@ export default class ActionGameState extends GameState<
             !(
               r.type == port &&
               this.game.world.getAdjacentLandOfPort(r) == attackedRegion
-            ),
+            )
         )
         // A sea battle can't be supported by land units
         .filter((r) => !(attackedRegion.type == sea && r.type == land))
         .map((region) => ({
           region,
-          support: this.ordersOnBoard.get(region).type as SupportOrderType,
+          support: this.ordersOnBoard.get(region).type as SupportOrderType
         }))
     );
   }
 
   serializeToClient(
     admin: boolean,
-    player: Player | null,
+    player: Player | null
   ): SerializedActionGameState {
     return {
       type: "action",
       planningRestrictions: this.planningRestrictions.map((r) => r.id),
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
   static deserializeFromServer(
     ingameGameState: IngameGameState,
-    data: SerializedActionGameState,
+    data: SerializedActionGameState
   ): ActionGameState {
     const actionGameState = new ActionGameState(ingameGameState);
 
@@ -419,14 +416,14 @@ export default class ActionGameState extends GameState<
       ? data.planningRestrictions.map((id) => planningRestrictions.get(id))
       : [];
     actionGameState.childGameState = actionGameState.deserializeChildGameState(
-      data.childGameState,
+      data.childGameState
     );
 
     return actionGameState;
   }
 
   deserializeChildGameState(
-    data: SerializedActionGameState["childGameState"],
+    data: SerializedActionGameState["childGameState"]
   ): ActionGameState["childGameState"] {
     switch (data.type) {
       case "use-raven":
@@ -438,7 +435,7 @@ export default class ActionGameState extends GameState<
       case "resolve-consolidate-power":
         return ResolveConsolidatePowerGameState.deserializeFromServer(
           this,
-          data,
+          data
         );
       case "reconcile-armies":
         return ReconcileArmiesGameState.deserializeFromServer(this, data);

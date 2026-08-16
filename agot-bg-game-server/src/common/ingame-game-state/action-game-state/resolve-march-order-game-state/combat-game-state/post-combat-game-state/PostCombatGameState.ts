@@ -191,14 +191,11 @@ export default class PostCombatGameState extends GameState<
       const oldGarrisonStrength = this.combat.defendingRegion.garrison;
       this.combat.defendingRegion.garrison = 0;
 
-      this.combat.ingameGameState.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-garrison",
-          region: this.combat.defendingRegion.id,
-          newGarrison: 0
-        },
-        this.combat.defendingRegion
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-garrison",
+        region: this.combat.defendingRegion.id,
+        newGarrison: 0
+      });
 
       this.parentGameState.ingameGameState.log({
         type: "garrison-removed",
@@ -559,22 +556,6 @@ export default class PostCombatGameState extends GameState<
         });
       }
     });
-
-    if (this.combat.ingameGameState.fogOfWar) {
-      // Hide combat areas after combat
-      this.combat.ingameGameState.publicVisibleRegions = [];
-      this.entireGame.users.values
-        .filter((u) => u.connected)
-        .forEach((u) => {
-          this.entireGame.sendMessageToClients([u], {
-            type: "update-public-visible-regions",
-            regionsToMakeVisible: [],
-            ordersToMakeVisible: [],
-            clear: true,
-            applyChangesNow: !this.combat.ingameGameState.players.has(u)
-          });
-        });
-    }
 
     this.combat.resolveMarchOrderGameState.onResolveSingleMarchOrderGameStateFinish(
       this.attacker

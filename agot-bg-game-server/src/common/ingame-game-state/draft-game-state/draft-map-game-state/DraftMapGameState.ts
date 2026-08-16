@@ -56,7 +56,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
   getNotReadyPlayers(): Player[] {
     return _.without(
       this.parentGameState.participatingHouses,
-      ...this.readyHouses,
+      ...this.readyHouses
     ).map((h) => this.ingame.getControllerOfHouse(h));
   }
 
@@ -80,7 +80,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
 
   isLegalUnitAdd(house: House, unitType: UnitType, region: Region): boolean {
     const addedUnits = new BetterMap<Region, UnitType[]>([
-      [region, [unitType]],
+      [region, [unitType]]
     ]);
     return (
       this.getAvailableUnitsOfType(house, unitType) > 0 &&
@@ -103,7 +103,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
 
     const newSupply = Math.min(
       this.ingame.game.supplyRestrictions.length - 1,
-      this.ingame.game.getControlledSupplyIcons(house) - region.supplyIcons,
+      this.ingame.game.getControlledSupplyIcons(house) - region.supplyIcons
     );
 
     const allowedArmySizes = this.ingame.game.supplyRestrictions[newSupply];
@@ -143,7 +143,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
 
     const newSupply = Math.min(
       this.ingame.game.supplyRestrictions.length - 1,
-      this.ingame.game.getControlledSupplyIcons(house) - region.supplyIcons,
+      this.ingame.game.getControlledSupplyIcons(house) - region.supplyIcons
     );
 
     const allowedArmySizes = this.ingame.game.supplyRestrictions[newSupply];
@@ -179,12 +179,12 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
   updateSupply(house: House): void {
     house.supplyLevel = Math.min(
       this.ingame.game.supplyRestrictions.length - 1,
-      this.ingame.game.getControlledSupplyIcons(house),
+      this.ingame.game.getControlledSupplyIcons(house)
     );
 
     this.ingame.entireGame.broadcastToClients({
       type: "supply-adjusted",
-      supplies: [[house.id, house.supplyLevel]],
+      supplies: [[house.id, house.supplyLevel]]
     });
   }
 
@@ -196,14 +196,14 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
 
       this.entireGame.broadcastToClients({
         type: "player-ready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
       if (this.getNotReadyPlayers().length == 0) {
         // All players are ready
         // Check if we have to update supplies
         const shouldUpdateSupplies = this.initialSupplies.entries.some(
-          ([house, initialSupply]) => house.supplyLevel != initialSupply,
+          ([house, initialSupply]) => house.supplyLevel != initialSupply
         );
 
         if (shouldUpdateSupplies) {
@@ -213,7 +213,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
         // Then proceed to the next game state
         this.parentGameState
           .setChildGameState(
-            new AgreeOnGameStartGameState(this.parentGameState),
+            new AgreeOnGameStartGameState(this.parentGameState)
           )
           .firstStart();
       }
@@ -221,7 +221,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, player.house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
     } else if (message.type == "select-units") {
       const house = player.house;
@@ -233,7 +233,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
       const unitId = unitIds[0];
@@ -259,18 +259,15 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
       region.controlPowerToken = house;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-control-power-token",
-          regionId: region.id,
-          houseId: house.id,
-        },
-        region,
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-control-power-token",
+        regionId: region.id,
+        houseId: house.id
+      });
 
       if (region.supplyIcons > 0 && oldController != house) {
         this.updateSupply(house);
@@ -283,14 +280,11 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       if (!this.canRemovePowerToken(house, region)) return;
 
       region.controlPowerToken = null;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-control-power-token",
-          regionId: region.id,
-          houseId: null,
-        },
-        region,
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-control-power-token",
+        regionId: region.id,
+        houseId: null
+      });
 
       const newController = region.getController();
       if (region.supplyIcons > 0 && newController != house) {
@@ -307,17 +301,14 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-garrison",
-          newGarrison: message.garrison,
-          region: region.id,
-        },
-        region,
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-garrison",
+        newGarrison: message.garrison,
+        region: region.id
+      });
     } else if (message.type == "remove-garrison") {
       const region = this.world.regions.get(message.region);
       const house = player.house;
@@ -331,18 +322,15 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
       region.garrison = 0;
-      this.ingame.sendMessageToUsersWhoCanSeeRegion(
-        {
-          type: "change-garrison",
-          newGarrison: 0,
-          region: region.id,
-        },
-        region,
-      );
+      this.entireGame.broadcastToClients({
+        type: "change-garrison",
+        newGarrison: 0,
+        region: region.id
+      });
     } else if (message.type == "muster") {
       const house = player.house;
       if (!this.parentGameState.participatingHouses.includes(house)) return;
@@ -357,14 +345,14 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
               return {
                 from: from ? musteringRegion.units.get(from) : null,
                 region: musteringRegion,
-                to: unitTypes.get(to),
+                to: unitTypes.get(to)
               };
-            }),
+            })
           ] as [
             Region,
-            { from: UnitType | null; to: UnitType; region: Region }[],
+            { from: UnitType | null; to: UnitType; region: Region }[]
           ];
-        }),
+        })
       );
 
       if (musterings.size != 1 || musterings.values[0].length != 1) return;
@@ -376,7 +364,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       _.pull(this.readyHouses, house);
       this.entireGame.broadcastToClients({
         type: "player-unready",
-        userId: player.user.id,
+        userId: player.user.id
       });
 
       const oldController = newUnitType.region.getController();
@@ -384,7 +372,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
       const newUnit = this.game.createUnit(
         newUnitType.region,
         newUnitType.to,
-        house,
+        house
       );
       newUnit.region.units.set(newUnit.id, newUnit);
 
@@ -400,7 +388,7 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
   addUnit(type: UnitType, region: Region): void {
     this.entireGame.sendMessageToServer({
       type: "muster",
-      units: [[region.id, [{ from: null, to: type.id, region: region.id }]]],
+      units: [[region.id, [{ from: null, to: type.id, region: region.id }]]]
     });
   }
 
@@ -408,61 +396,61 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
     this.entireGame.sendMessageToServer({
       type: "add-garrison",
       region: region.id,
-      garrison: strength,
+      garrison: strength
     });
   }
 
   removeGarrison(region: Region): void {
     this.entireGame.sendMessageToServer({
       type: "remove-garrison",
-      region: region.id,
+      region: region.id
     });
   }
 
   addPowerToken(region: Region): void {
     this.entireGame.sendMessageToServer({
       type: "add-power-token",
-      region: region.id,
+      region: region.id
     });
   }
 
   removePowerToken(region: Region): void {
     this.entireGame.sendMessageToServer({
       type: "remove-power-token",
-      region: region.id,
+      region: region.id
     });
   }
 
   removeUnit(unit: Unit): void {
     this.entireGame.sendMessageToServer({
       type: "select-units",
-      units: [[unit.region.id, [unit.id]]],
+      units: [[unit.region.id, [unit.id]]]
     });
   }
 
   setUnready(): void {
     this.entireGame.sendMessageToServer({
-      type: "unready",
+      type: "unready"
     });
   }
 
   setReady(): void {
     this.entireGame.sendMessageToServer({
-      type: "ready",
+      type: "ready"
     });
   }
 
   onServerMessage(message: ServerMessage): void {
     if (message.type == "player-ready") {
       const player = this.ingame.players.get(
-        this.entireGame.users.get(message.userId),
+        this.entireGame.users.get(message.userId)
       );
       if (!this.readyHouses.includes(player.house)) {
         this.readyHouses.push(player.house);
       }
     } else if (message.type == "player-unready") {
       const player = this.ingame.players.get(
-        this.entireGame.users.get(message.userId),
+        this.entireGame.users.get(message.userId)
       );
       _.pull(this.readyHouses, player.house);
     }
@@ -470,31 +458,31 @@ export default class DraftMapGameState extends GameState<DraftGameState> {
 
   serializeToClient(
     _admin: boolean,
-    _player: Player | null,
+    _player: Player | null
   ): SerializedDraftMapGameState {
     return {
       type: "draft-map",
       readyHouses: this.readyHouses.map((h) => h.id),
       initialSupplies: this.initialSupplies.entries.map(([h, supply]) => [
         h.id,
-        supply,
-      ]),
+        supply
+      ])
     };
   }
 
   static deserializeFromServer(
     draft: DraftGameState,
-    data: SerializedDraftMapGameState,
+    data: SerializedDraftMapGameState
   ): DraftMapGameState {
     const draftMapGameState = new DraftMapGameState(draft);
     draftMapGameState.readyHouses = data.readyHouses.map((hid) =>
-      draft.ingame.game.houses.get(hid),
+      draft.ingame.game.houses.get(hid)
     );
     draftMapGameState.initialSupplies = new BetterMap(
       data.initialSupplies.map(([hid, supply]) => [
         draft.ingame.game.houses.get(hid),
-        supply,
-      ]),
+        supply
+      ])
     );
     return draftMapGameState;
   }

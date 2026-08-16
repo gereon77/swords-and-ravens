@@ -1280,9 +1280,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     </Tooltip>
                   }
                 >
-                  <label htmlFor="fog-of-war-setting">
-                    Fog of War <i>(BETA!)</i>
-                  </label>
+                  <label htmlFor="fog-of-war-setting">Fog of War</label>
                 </OverlayTrigger>
               }
               checked={this.gameSettings.fogOfWar}

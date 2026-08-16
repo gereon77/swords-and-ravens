@@ -244,11 +244,6 @@ export default class CombatGameState extends GameState<
     if (!this.proceedNextSupportDeclaration(true)) {
       this.proceedToChooseGeneral();
     }
-
-    this.ingameGameState.addPublicVisibleRegions(
-      attackerComingFrom,
-      combatRegion
-    );
   }
 
   declareSupport(
@@ -1083,12 +1078,12 @@ export default class CombatGameState extends GameState<
     return combatGameState;
   }
 
-  getRequiredVisibleRegionsForPlayer(player: Player): Region[] {
-    if (this.isCommandingHouseInCombat(player.house)) {
-      return this.world.getNeighbouringRegions(this.defendingRegion);
-    }
-
-    return [];
+  getRequiredVisibleRegionsForPlayer(_player: Player): Region[] {
+    return [
+      this.attackingRegion,
+      this.defendingRegion,
+      ...this.getPossibleSupportingRegions().map(({ region }) => region)
+    ];
   }
 
   deserializeChildGameState(

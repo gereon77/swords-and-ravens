@@ -25,7 +25,7 @@ export enum ConnectionState {
   AUTHENTICATING,
   SYNCED,
   CLOSED,
-  BANNED,
+  BANNED
 }
 
 export default class GameClient {
@@ -56,7 +56,7 @@ export default class GameClient {
     return {
       notifications: this.authenticatedUser.settings.notificationsVolume,
       music: this.authenticatedUser.settings.musicVolume,
-      sfx: this.authenticatedUser.settings.sfxVolume,
+      sfx: this.authenticatedUser.settings.sfxVolume
     };
   }
 
@@ -91,7 +91,7 @@ export default class GameClient {
     if (value == true) {
       sessionStorage.setItem(
         "oldVolumes",
-        JSON.stringify(this.currentVolumeSettings),
+        JSON.stringify(this.currentVolumeSettings)
       );
 
       this.currentVolumeSettings = { notifications: 0, music: 0, sfx: 0 };
@@ -99,7 +99,7 @@ export default class GameClient {
       this.sfxManager.muteAll();
     } else {
       const oldVolumesFromStorage = JSON.parse(
-        sessionStorage.getItem("oldVolumes") || "{}",
+        sessionStorage.getItem("oldVolumes") || "{}"
       );
       this.currentVolumeSettings = oldVolumesFromStorage;
 
@@ -111,7 +111,7 @@ export default class GameClient {
 
     localStorage.setItem(
       "volumeSettings",
-      JSON.stringify(this.currentVolumeSettings),
+      JSON.stringify(this.currentVolumeSettings)
     );
     this.authenticatedUser.syncSettings();
   }
@@ -213,7 +213,7 @@ export default class GameClient {
 
     localStorage.setItem(
       "volumeSettings",
-      JSON.stringify(this.currentVolumeSettings),
+      JSON.stringify(this.currentVolumeSettings)
     );
   }
 
@@ -237,7 +237,7 @@ export default class GameClient {
       // To prevent this, the client sends a ping regurarly
       this.pingInterval = window.setInterval(
         () => this.send({ type: "ping" }),
-        30 * 1000,
+        30 * 1000
       );
       this.onOpen();
     };
@@ -317,7 +317,7 @@ export default class GameClient {
     // Authenticate
     this.send({
       type: "authenticate",
-      authData: this.authData,
+      authData: this.authData
     });
 
     this.connectionState = ConnectionState.AUTHENTICATING;
@@ -406,12 +406,12 @@ export default class GameClient {
     } else {
       if (!this.entireGame) {
         console.error(
-          'Message other than "authenticate-response" received but entireGame == null',
+          'Message other than "authenticate-response" received but entireGame == null'
         );
         return;
       }
 
-      this.entireGame.onServerMessage(message);
+      this.entireGame.onServerMessage(message, this);
     }
   }
 

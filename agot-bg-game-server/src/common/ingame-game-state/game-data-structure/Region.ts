@@ -167,7 +167,7 @@ export default class Region {
 
   getSnapshot(): IRegionSnapshot {
     const result: IRegionSnapshot = {
-      id: this.id,
+      id: this.id
     };
 
     if (this.units.size != 0) {
@@ -206,34 +206,21 @@ export default class Region {
     return result;
   }
 
-  serializeToClient(admin: boolean, player: Player | null): SerializedRegion {
-    const visible =
-      admin ||
-      this.game.ingame.publicVisibleRegions.includes(this) ||
-      this.game.ingame.getVisibleRegionsForPlayer(player).includes(this);
-
-    const playerControlsTargaryen =
-      this.game.targaryen != null &&
-      player != null &&
-      player.house == this.game.targaryen;
-
+  serializeToClient(_admin: boolean, _player: Player | null): SerializedRegion {
     return {
       id: this.id,
-      units: visible ? this.units.values.map((u) => u.serializeToClient()) : [],
-      garrison: visible ? this.garrison : 0,
-      controlPowerToken: visible
-        ? this.controlPowerToken
-          ? this.controlPowerToken.id
-          : null
+      units: this.units.values.map((u) => u.serializeToClient()),
+      garrison: this.garrison,
+      controlPowerToken: this.controlPowerToken
+        ? this.controlPowerToken.id
         : null,
-      loyaltyTokens:
-        visible || playerControlsTargaryen ? this.loyaltyTokens : 0,
-      castleModifier: visible ? this.castleModifier : 0,
-      barrelModifier: visible ? this.barrelModifier : 0,
-      crownModifier: visible ? this.crownModifier : 0,
+      loyaltyTokens: this.loyaltyTokens,
+      castleModifier: this.castleModifier,
+      barrelModifier: this.barrelModifier,
+      crownModifier: this.crownModifier,
       overwrittenSuperControlPowerToken: this.overwrittenSuperControlPowerToken
         ? this.overwrittenSuperControlPowerToken.id
-        : null,
+        : null
     };
   }
 
