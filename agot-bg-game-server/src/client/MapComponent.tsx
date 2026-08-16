@@ -52,6 +52,7 @@ import ImagePopover from "./utils/ImagePopover";
 import renderLoanCardsToolTip from "./loanCardsTooltip";
 import Xarrow from "react-xarrows";
 import { getClassNameForDragonStrength } from "./WorldSnapshotComponent";
+import House from "../common/ingame-game-state/game-data-structure/House";
 
 export const MAP_HEIGHT = 1378;
 export const MAP_WIDTH = 741;
@@ -92,10 +93,10 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   render(): ReactNode {
     const isFog = this.ingame.fogOfWar;
-    const garrisons = new BetterMap<string, string | null>();
-    const castleModifiers = new BetterMap<string, number>();
-    const barrelModifiers = new BetterMap<string, number>();
-    const crownModifiers = new BetterMap<string, number>();
+    const garrisons = new BetterMap<Region, string | null>();
+    const castleModifiers = new BetterMap<Region, number>();
+    const barrelModifiers = new BetterMap<Region, number>();
+    const crownModifiers = new BetterMap<Region, number>();
 
     const visibleRegions = isFog
       ? this.ingame.calculateVisibleRegionsForPlayer(
@@ -109,25 +110,28 @@ export default class MapComponent extends Component<MapComponentProps> {
 
     const allRegions = this.ingame.world.regions.values;
 
+    const controllersPerRegion = new BetterMap<Region, House | null>();
+
     for (const region of allRegions) {
+      controllersPerRegion.set(region, region.getController());
       if (!isVisible(region)) {
         continue;
       }
 
       if (region.garrison > 0 && !region.isBlocked) {
-        garrisons.set(region.id, getGarrisonToken(region.garrison));
+        garrisons.set(region, getGarrisonToken(region.garrison));
       }
 
       if (region.castleModifier != 0) {
-        castleModifiers.set(region.id, region.castleModifier);
+        castleModifiers.set(region, region.castleModifier);
       }
 
       if (region.barrelModifier != 0) {
-        barrelModifiers.set(region.id, region.barrelModifier);
+        barrelModifiers.set(region, region.barrelModifier);
       }
 
       if (region.crownModifier != 0) {
-        crownModifiers.set(region.id, region.crownModifier);
+        crownModifiers.set(region, region.crownModifier);
       }
     }
 
@@ -157,7 +161,7 @@ export default class MapComponent extends Component<MapComponentProps> {
       Unit,
       UnitOnMapProperties
     >(
-      _.flatMap(regions.map((r) => r.allUnits)),
+      _.flatMap(allRegions.map((r) => r.allUnits)),
       this.props.mapControls.modifyUnitsOnMap,
       {}
     );
@@ -174,7 +178,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         <div style={{ position: "relative" }}>
           {allRegions.map((r) => (
             <div key={`map_${r.id}`}>
-              {castleModifiers.has(r.id) && (
+              {castleModifiers.has(r) && (
                 <OverlayTrigger
                   overlay={renderRegionTooltip(r, isVisible(r))}
                   delay={{ show: 750, hide: 100 }}
@@ -185,7 +189,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                     className="castle-modification"
                     style={{
                       backgroundImage:
-                        castleModifiers.get(r.id) > 0
+                        castleModifiers.get(r) > 0
                           ? `url(${castleUpgradeImage})`
                           : `url(${castleDegradeImage})`,
                       left: r.castleSlot.x,
@@ -194,7 +198,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   />
                 </OverlayTrigger>
               )}
-              {(barrelModifiers.has(r.id) || crownModifiers.has(r.id)) &&
+              {(barrelModifiers.has(r) || crownModifiers.has(r)) &&
                 this.renderImprovements(r, isVisible(r))}
               {r.overwrittenSuperControlPowerToken && (
                 <OverlayTrigger
@@ -265,12 +269,15 @@ export default class MapComponent extends Component<MapComponentProps> {
             </div>
           ))}
           {this.renderUnits(
-            regions,
+            allRegions,
             propertiesForUnits,
             garrisons,
+            controllersPerRegion,
+            isFog,
+            isVisible,
             disablePointerEventsForUnits
           )}
-          {this.renderOrders(regions)}
+          {this.renderOrders(regions, controllersPerRegion)}
           {this.renderRegionTexts(propertiesForRegions, isVisible)}
           {this.renderIronBankInfos(ironBankView)}
           {this.renderLoanCardDeck(ironBankView)}
@@ -308,15 +315,15 @@ export default class MapComponent extends Component<MapComponentProps> {
         end={`centered-units-container-div-for-march-markers-${to.id}`}
         color={unit.allegiance.getHighlightColor()}
         strokeWidth={5}
-        curveness={0.3}
-        dashness={{ animation: 2 }}
+        curveness={0.7}
+        dashness={{ animation: 3 }}
         path="smooth"
         showHead={true}
         showTail={true}
         headShape="arrow1"
-        tailShape={"circle"}
-        headSize={5}
-        tailSize={3}
+        tailShape="circle"
+        headSize={4}
+        tailSize={2}
       />
     ));
   }
@@ -515,18 +522,14 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   renderUnits(
-    visibleRegions: Region[],
+    allRegions: Region[],
     propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
-    garrisons: BetterMap<string, string | null>,
+    garrisons: BetterMap<Region, string | null>,
+    controllersPerRegion: BetterMap<Region, House | null>,
+    isFog: boolean,
+    isVisible: (region: Region) => boolean,
     disablePointerEvents: boolean
   ): ReactNode {
-    const garrisonControllers = new BetterMap(
-      garrisons.keys.map((rid) => [
-        rid,
-        this.ingame.world.regions.get(rid).getController()
-      ])
-    );
-
     const getDragonPrefix = (dragonStrength: number): ReactNode => {
       return dragonStrength <= -1 ? (
         <></>
@@ -543,7 +546,12 @@ export default class MapComponent extends Component<MapComponentProps> {
 
     const currentDragonStrength = this.ingame.game.currentDragonStrength;
 
-    return visibleRegions.map((r) => {
+    const isTargaryenPlayer =
+      isFog && this.ingame.game.targaryen
+        ? this.props.gameClient.doesControlHouse(this.ingame.game.targaryen)
+        : false;
+
+    return allRegions.map((r) => {
       let disablePointerEventsForCurrentRegion = disablePointerEvents;
       // If there is a clickable unit (e.g. during mustering), don't disable pointer events!
       if (
@@ -554,7 +562,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         disablePointerEventsForCurrentRegion = false;
       }
 
-      const controller = r.getController();
+      const controller = controllersPerRegion.get(r);
       return (
         <div
           key={`map-units_${r.id}`}
@@ -568,110 +576,111 @@ export default class MapComponent extends Component<MapComponentProps> {
             flexWrap: r.type == land ? "wrap-reverse" : "wrap"
           }}
         >
-          {r.allUnits.map((u) => {
-            const property = propertiesForUnits.get(u);
-            let opacity: number;
-            // css transform
-            let transform: string;
+          {isVisible(r) &&
+            r.allUnits.map((u) => {
+              const property = propertiesForUnits.get(u);
+              let opacity: number;
+              // css transform
+              let transform: string;
 
-            if (!u.wounded) {
-              opacity = 1;
-              transform = `none`;
-            } else if (u.type == ship) {
-              opacity = 0.5;
-              transform = `rotate(-38deg)`;
-            } else {
-              opacity = 0.7;
-              transform = `rotate(90deg)`;
-            }
+              if (!u.wounded) {
+                opacity = 1;
+                transform = `none`;
+              } else if (u.type == ship) {
+                opacity = 0.5;
+                transform = `rotate(-38deg)`;
+              } else {
+                opacity = 0.7;
+                transform = `rotate(90deg)`;
+              }
 
-            const clickable = property.onClick != undefined;
-            const dragonStrength =
-              u.type.id == "dragon" ? currentDragonStrength : -1;
+              const clickable = property.onClick != undefined;
+              const dragonStrength =
+                u.type.id == "dragon" ? currentDragonStrength : -1;
 
-            return (
-              <OverlayTrigger
-                overlay={
-                  <Tooltip
-                    id={"unit-tooltip-" + u.id}
-                    className="tooltip-w-100"
-                  >
-                    <div className="text-center">
-                      <b>
-                        {getDragonPrefix(dragonStrength)}
-                        {u.type.name}
-                      </b>
-                      <small>
-                        {" "}
-                        of <b>{controller?.name ?? "Unknown"}</b>
-                        <br />
-                        <b>{r.name}</b>
-                      </small>
-                    </div>
-                  </Tooltip>
-                }
-                key={`map-unit-_${controller?.id ?? "must-be-controlled"}_${u.id}`}
-                delay={{ show: 500, hide: 100 }}
-                placement="auto"
-                popperConfig={{ modifiers: [preventOverflow] }}
-              >
-                <div
-                  onClick={property.onClick ? property.onClick : undefined}
-                  className={classNames(
-                    "unit-icon",
-                    {
-                      "hover-weak-outline": !property.highlight?.active,
-                      "clickable hover-strong-outline": clickable,
-                      "medium-outline": property.highlight?.active,
-                      "highlight-red":
-                        property.highlight?.active &&
-                        property.highlight.color == "red",
-                      "highlight-yellow":
-                        property.highlight?.active &&
-                        property.highlight.color == "yellow",
-                      "highlight-green":
-                        property.highlight?.active &&
-                        property.highlight.color == "green",
-                      "hover-strong-outline-red":
-                        property.highlight?.active &&
-                        property.highlight.color == "red" &&
-                        clickable,
-                      "hover-strong-outline-yellow":
-                        property.highlight?.active &&
-                        property.highlight.color == "yellow" &&
-                        clickable,
-                      "hover-strong-outline-green":
-                        property.highlight?.active &&
-                        property.highlight.color == "green" &&
-                        clickable,
-                      "disable-pointer-events":
-                        disablePointerEventsForCurrentRegion,
-                      "pulsate-bck": property.animateAttention,
-                      "pulsate-bck_fade-in": property.animateFadeIn,
-                      "pulsate-bck_fade-out": property.animateFadeOut
-                    },
-                    getClassNameForDragonStrength(u.type.id, dragonStrength)
-                  )}
-                  style={{
-                    backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.upgradedType ? u.upgradedType.id : u.type.id)})`,
-                    opacity: opacity,
-                    transform: transform
-                  }}
+              return (
+                <OverlayTrigger
+                  overlay={
+                    <Tooltip
+                      id={"unit-tooltip-" + u.id}
+                      className="tooltip-w-100"
+                    >
+                      <div className="text-center">
+                        <b>
+                          {getDragonPrefix(dragonStrength)}
+                          {u.type.name}
+                        </b>
+                        <small>
+                          {" "}
+                          of <b>{controller?.name ?? "Unknown"}</b>
+                          <br />
+                          <b>{r.name}</b>
+                        </small>
+                      </div>
+                    </Tooltip>
+                  }
+                  key={`map-unit-_${controller?.id ?? "must-be-controlled"}_${u.id}`}
+                  delay={{ show: 500, hide: 100 }}
+                  placement="auto"
+                  popperConfig={{ modifiers: [preventOverflow] }}
                 >
                   <div
-                    id={`centered-unit-div-for-march-markers-${u.id}`}
-                    className="center-relative-to-parent disable-pointer-events v-hidden"
-                  />
-                </div>
-              </OverlayTrigger>
-            );
-          })}
-          {garrisons.has(r.id) && (
+                    onClick={property.onClick ? property.onClick : undefined}
+                    className={classNames(
+                      "unit-icon",
+                      {
+                        "hover-weak-outline": !property.highlight?.active,
+                        "clickable hover-strong-outline": clickable,
+                        "medium-outline": property.highlight?.active,
+                        "highlight-red":
+                          property.highlight?.active &&
+                          property.highlight.color == "red",
+                        "highlight-yellow":
+                          property.highlight?.active &&
+                          property.highlight.color == "yellow",
+                        "highlight-green":
+                          property.highlight?.active &&
+                          property.highlight.color == "green",
+                        "hover-strong-outline-red":
+                          property.highlight?.active &&
+                          property.highlight.color == "red" &&
+                          clickable,
+                        "hover-strong-outline-yellow":
+                          property.highlight?.active &&
+                          property.highlight.color == "yellow" &&
+                          clickable,
+                        "hover-strong-outline-green":
+                          property.highlight?.active &&
+                          property.highlight.color == "green" &&
+                          clickable,
+                        "disable-pointer-events":
+                          disablePointerEventsForCurrentRegion,
+                        "pulsate-bck": property.animateAttention,
+                        "pulsate-bck_fade-in": property.animateFadeIn,
+                        "pulsate-bck_fade-out": property.animateFadeOut
+                      },
+                      getClassNameForDragonStrength(u.type.id, dragonStrength)
+                    )}
+                    style={{
+                      backgroundImage: `url(${unitImages.get(u.allegiance.id).get(u.upgradedType ? u.upgradedType.id : u.type.id)})`,
+                      opacity: opacity,
+                      transform: transform
+                    }}
+                  >
+                    <div
+                      id={`centered-unit-div-for-march-markers-${u.id}`}
+                      className="center-relative-to-parent disable-pointer-events v-hidden"
+                    />
+                  </div>
+                </OverlayTrigger>
+              );
+            })}
+          {garrisons.has(r) && (
             <OverlayTrigger
               overlay={
                 <Tooltip id={"garrison-tooltip-" + r.id}>
                   <div className="text-center">
-                    {garrisonControllers.get(r.id) == null ? (
+                    {controllersPerRegion.get(r) == null ? (
                       <b>Neutral Force token</b>
                     ) : (
                       <>
@@ -680,7 +689,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                           {" "}
                           of{" "}
                           <b>
-                            {garrisonControllers.get(r.id)?.name ?? "Unknown"}
+                            {controllersPerRegion.get(r)?.name ?? "Unknown"}
                           </b>
                         </small>
                       </>
@@ -700,14 +709,14 @@ export default class MapComponent extends Component<MapComponentProps> {
               <div
                 className="garrison-icon hover-weak-outline"
                 style={{
-                  backgroundImage: `url(${garrisons.get(r.id)})`,
+                  backgroundImage: `url(${garrisons.get(r)})`,
                   left: r.unitSlot.point.x,
                   top: r.unitSlot.point.y
                 }}
               ></div>
             </OverlayTrigger>
           )}
-          {r.loyaltyTokens > 0 && (
+          {(isVisible(r) || isTargaryenPlayer) && r.loyaltyTokens > 0 && (
             <OverlayTrigger
               overlay={
                 <Tooltip id={"loyalty-tooltip-" + r.id}>
@@ -803,7 +812,10 @@ export default class MapComponent extends Component<MapComponentProps> {
     );
   }
 
-  renderOrders(regions: Region[]): ReactNode {
+  renderOrders(
+    regions: Region[],
+    controllersPerRegion: BetterMap<Region, House | null>
+  ): ReactNode {
     const propertiesForOrders = this.getModifiedPropertiesForEntities<
       Region,
       OrderOnMapProperties
@@ -834,14 +846,20 @@ export default class MapComponent extends Component<MapComponentProps> {
         if (order != null) {
           backgroundUrl = orderImages.get(order.type.id);
         } else {
-          const controller = region.getController();
+          const controller = controllersPerRegion.get(region);
           if (controller) {
             backgroundUrl = houseOrderImages.get(controller.id);
           }
         }
 
         if (backgroundUrl) {
-          return this.renderOrder(region, order, backgroundUrl, properties);
+          return this.renderOrder(
+            region,
+            controllersPerRegion,
+            order,
+            backgroundUrl,
+            properties
+          );
         }
       }
 
@@ -885,6 +903,7 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderOrder(
     region: Region,
+    controllersPerRegion: BetterMap<Region, House | null>,
     order: Order | null,
     backgroundUrl: string,
     properties: OrderOnMapProperties
@@ -909,7 +928,7 @@ export default class MapComponent extends Component<MapComponentProps> {
       this.ingame.hasChildGameState(PlaceOrdersGameState) ||
       this.ingame.hasChildGameState(PlaceOrdersForVassalsGameState);
     const controller =
-      drawBorder || hasPlaceOrders ? region.getController() : null;
+      drawBorder || hasPlaceOrders ? controllersPerRegion.get(region) : null;
     const color =
       drawBorder && controller ? controller.getHighlightColor() : undefined;
 
@@ -948,7 +967,11 @@ export default class MapComponent extends Component<MapComponentProps> {
             ? wrap
             : (child) => (
                 <OverlayTrigger
-                  overlay={this.renderOrderTooltip(order, region)}
+                  overlay={this.renderOrderTooltip(
+                    order,
+                    region,
+                    controllersPerRegion.get(region)
+                  )}
                   delay={{ show: 500, hide: 100 }}
                   placement="auto"
                   popperConfig={{ modifiers: [preventOverflow] }}
@@ -1006,7 +1029,8 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   private renderOrderTooltip(
     order: Order | null,
-    region: Region
+    region: Region,
+    controller: House | null
   ): OverlayChildren {
     return (
       <Tooltip id={"order-info"} className="tooltip-w-100">
@@ -1016,7 +1040,7 @@ export default class MapComponent extends Component<MapComponentProps> {
             {" "}
             of{" "}
             <b>
-              {region.getController()?.name ?? "Unknown"}
+              {controller?.name ?? "Unknown"}
               <br />
               {region.name}
             </b>
