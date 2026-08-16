@@ -1,7 +1,6 @@
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
-const WebpackObfuscator = require("webpack-obfuscator");
 
 const ASSET_PATH = process.env.ASSET_PATH || '/static/';
 
@@ -66,15 +65,7 @@ module.exports = (env, argv) => {
             }),
             new webpack.ProvidePlugin({
                 process: 'process/browser',
-            }),
-            // Obfuscates variable/class/function/parameter names so the bundle isn't trivially readable.
-            new WebpackObfuscator({
-                rotateStringArray: true,
-                stringArray: true,
-                stringArrayEncoding: ["base64"],
-                identifierNamesGenerator: "hexadecimal",
-                renameGlobals: false
-            }, [])
+            })
         ],
         optimization: {
             minimizer: [
