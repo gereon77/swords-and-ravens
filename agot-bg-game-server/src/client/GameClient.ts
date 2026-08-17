@@ -1,9 +1,10 @@
 import { ServerMessage } from "../messages/ServerMessage";
 import { ClientMessage } from "../messages/ClientMessage";
 import EntireGame from "../common/EntireGame";
-import { observable } from "mobx";
+import { computed, observable } from "mobx";
 import User from "../server/User";
 import IngameGameState from "../common/ingame-game-state/IngameGameState";
+import Region from "../common/ingame-game-state/game-data-structure/Region";
 import Player from "../common/ingame-game-state/Player";
 import House from "../common/ingame-game-state/game-data-structure/House";
 import ChatClient from "./chat-client/ChatClient";
@@ -190,6 +191,46 @@ export default class GameClient {
     } else {
       return null;
     }
+  }
+
+  // Cached so every consumer shares the same calculation instead of recomputing it per render
+  @computed get allRegionsWithControllers(): [Region, House | null][] {
+    return (
+      this.entireGame?.ingameGameState?.world.regions.values.map((r) => [
+        r,
+        r.getController()
+      ]) ?? []
+    );
+  }
+
+  @computed get allRegionsWithControllersMap(): BetterMap<
+    Region,
+    House | null
+  > {
+    return new BetterMap(this.allRegionsWithControllers);
+  }
+
+  @computed get visibleRegionsSet(): Set<Region> | null {
+    if (
+      !this.entireGame ||
+      !(this.entireGame.childGameState instanceof IngameGameState)
+    ) {
+      return null;
+    }
+
+    const ingame = this.entireGame.childGameState;
+
+    return ingame.fogOfWar
+      ? ingame.calculateVisibleRegionsForPlayer(
+          this.authenticatedPlayer,
+          this.allRegionsWithControllers
+        )
+      : null;
+  }
+
+  @computed get visibleRegions(): Region[] | null {
+    const set = this.visibleRegionsSet;
+    return set ? Array.from(set) : null;
   }
 
   get isMapScrollbarSet(): boolean {

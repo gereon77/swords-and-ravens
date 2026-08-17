@@ -533,12 +533,21 @@ export default class GameStateColumn extends Component<GameStateColumnProps> {
   }
 
   highlightRegionsOfHouses(): void {
-    const regions = new BetterMap(
-      this.ingame.world.getAllRegionsWithControllers()
+    const regionsWithControllers = new BetterMap(
+      this.props.gameClient.allRegionsWithControllers
     );
+
+    if (this.props.ingame.fogOfWar) {
+      regionsWithControllers.keys.forEach((r) => {
+        if (!this.props.gameClient.visibleRegionsSet?.has(r)) {
+          regionsWithControllers.delete(r);
+        }
+      });
+    }
+
     this.highlightedRegions.clear();
 
-    regions.entries.forEach(([r, controller]) => {
+    regionsWithControllers.entries.forEach(([r, controller]) => {
       this.highlightedRegions.set(r, {
         highlight: {
           active: controller != null ? true : false,

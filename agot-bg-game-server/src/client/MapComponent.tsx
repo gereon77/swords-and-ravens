@@ -73,6 +73,10 @@ export default class MapComponent extends Component<MapComponentProps> {
     return this.props.ingameGameState;
   }
 
+  get allRegionsWithControllers(): BetterMap<Region, House | null> {
+    return this.props.gameClient.allRegionsWithControllersMap;
+  }
+
   constructor(props: MapComponentProps) {
     super(props);
     const settings = this.ingame.entireGame.gameSettings;
@@ -92,28 +96,19 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   render(): ReactNode {
-    const isFog = this.ingame.fogOfWar;
+    const ironBankView = this.ingame.world.ironBankView;
+    const fogOfWarActive = this.ingame.fogOfWar;
     const garrisons = new BetterMap<Region, string | null>();
     const castleModifiers = new BetterMap<Region, number>();
     const barrelModifiers = new BetterMap<Region, number>();
     const crownModifiers = new BetterMap<Region, number>();
-
-    const visibleRegions = isFog
-      ? this.ingame.calculateVisibleRegionsForPlayer(
-          this.props.gameClient.authenticatedPlayer
-        )
-      : [];
-    const visibleRegionsSet = new Set<Region>(visibleRegions);
+    const allRegions = this.ingame.world.regions.values;
+    const visibleRegionsSet = this.props.gameClient.visibleRegionsSet;
 
     const isVisible = (region: Region): boolean =>
-      (!isFog || visibleRegionsSet.has(region)) ?? false;
-
-    const allRegions = this.ingame.world.regions.values;
-
-    const controllersPerRegion = new BetterMap<Region, House | null>();
+      (!fogOfWarActive || visibleRegionsSet?.has(region)) ?? false;
 
     for (const region of allRegions) {
-      controllersPerRegion.set(region, region.getController());
       if (!isVisible(region)) {
         continue;
       }
@@ -134,10 +129,6 @@ export default class MapComponent extends Component<MapComponentProps> {
         crownModifiers.set(region, region.crownModifier);
       }
     }
-
-    const ironBankView = this.ingame.world.ironBankView;
-
-    const regions = isFog ? visibleRegions : allRegions;
 
     const propertiesForRegions = this.getModifiedPropertiesForEntities<
       Region,
@@ -272,17 +263,20 @@ export default class MapComponent extends Component<MapComponentProps> {
             allRegions,
             propertiesForUnits,
             garrisons,
-            controllersPerRegion,
-            isFog,
+            fogOfWarActive,
             isVisible,
             disablePointerEventsForUnits
           )}
-          {this.renderOrders(regions, controllersPerRegion)}
+          {this.renderOrders(allRegions, isVisible)}
           {this.renderRegionTexts(propertiesForRegions, isVisible)}
           {this.renderIronBankInfos(ironBankView)}
           {this.renderLoanCardDeck(ironBankView)}
           {this.renderLoanCardSlots(ironBankView)}
-          {this.renderMarchMarkers(propertiesForUnits, isFog, isVisible)}
+          {this.renderMarchMarkers(
+            propertiesForUnits,
+            fogOfWarActive,
+            isVisible
+          )}
         </div>
         <svg style={{ width: `${this.mapWidth}px`, height: `${MAP_HEIGHT}px` }}>
           {this.renderRegions(propertiesForRegions, isVisible)}
@@ -293,7 +287,7 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderMarchMarkers(
     propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
-    isFog: boolean,
+    fogOfWarActive: boolean,
     isVisible: (region: Region) => boolean
   ): ReactNode[] {
     let markers = _.unionBy(
@@ -304,7 +298,7 @@ export default class MapComponent extends Component<MapComponentProps> {
       ([u, _r]) => u.id
     ).filter(([u, r]) => u.region != r);
 
-    markers = isFog
+    markers = fogOfWarActive
       ? markers.filter(([u, r]) => isVisible(u.region) && isVisible(r))
       : markers;
 
@@ -525,8 +519,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     allRegions: Region[],
     propertiesForUnits: BetterMap<Unit, UnitOnMapProperties>,
     garrisons: BetterMap<Region, string | null>,
-    controllersPerRegion: BetterMap<Region, House | null>,
-    isFog: boolean,
+    fogOfWarActive: boolean,
     isVisible: (region: Region) => boolean,
     disablePointerEvents: boolean
   ): ReactNode {
@@ -547,7 +540,7 @@ export default class MapComponent extends Component<MapComponentProps> {
     const currentDragonStrength = this.ingame.game.currentDragonStrength;
 
     const isTargaryenPlayer =
-      isFog && this.ingame.game.targaryen
+      fogOfWarActive && this.ingame.game.targaryen
         ? this.props.gameClient.doesControlHouse(this.ingame.game.targaryen)
         : false;
 
@@ -562,7 +555,7 @@ export default class MapComponent extends Component<MapComponentProps> {
         disablePointerEventsForCurrentRegion = false;
       }
 
-      const controller = controllersPerRegion.get(r);
+      const controller = this.allRegionsWithControllers.get(r);
       return (
         <div
           key={`map-units_${r.id}`}
@@ -680,7 +673,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               overlay={
                 <Tooltip id={"garrison-tooltip-" + r.id}>
                   <div className="text-center">
-                    {controllersPerRegion.get(r) == null ? (
+                    {this.allRegionsWithControllers.get(r) == null ? (
                       <b>Neutral Force token</b>
                     ) : (
                       <>
@@ -689,7 +682,8 @@ export default class MapComponent extends Component<MapComponentProps> {
                           {" "}
                           of{" "}
                           <b>
-                            {controllersPerRegion.get(r)?.name ?? "Unknown"}
+                            {this.allRegionsWithControllers.get(r)?.name ??
+                              "Unknown"}
                           </b>
                         </small>
                       </>
@@ -814,7 +808,7 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderOrders(
     regions: Region[],
-    controllersPerRegion: BetterMap<Region, House | null>
+    isVisible: (region: Region) => boolean
   ): ReactNode {
     const propertiesForOrders = this.getModifiedPropertiesForEntities<
       Region,
@@ -822,6 +816,9 @@ export default class MapComponent extends Component<MapComponentProps> {
     >(regions, this.props.mapControls.modifyOrdersOnMap, {});
 
     return propertiesForOrders.map((region, properties) => {
+      if (!isVisible(region)) {
+        return null;
+      }
       let order: Order | null = null;
       let orderPresent = false;
       if (this.ingame.childGameState instanceof PlanningGameState) {
@@ -846,20 +843,14 @@ export default class MapComponent extends Component<MapComponentProps> {
         if (order != null) {
           backgroundUrl = orderImages.get(order.type.id);
         } else {
-          const controller = controllersPerRegion.get(region);
+          const controller = this.allRegionsWithControllers.get(region);
           if (controller) {
             backgroundUrl = houseOrderImages.get(controller.id);
           }
         }
 
         if (backgroundUrl) {
-          return this.renderOrder(
-            region,
-            controllersPerRegion,
-            order,
-            backgroundUrl,
-            properties
-          );
+          return this.renderOrder(region, order, backgroundUrl, properties);
         }
       }
 
@@ -903,7 +894,6 @@ export default class MapComponent extends Component<MapComponentProps> {
 
   renderOrder(
     region: Region,
-    controllersPerRegion: BetterMap<Region, House | null>,
     order: Order | null,
     backgroundUrl: string,
     properties: OrderOnMapProperties
@@ -928,7 +918,9 @@ export default class MapComponent extends Component<MapComponentProps> {
       this.ingame.hasChildGameState(PlaceOrdersGameState) ||
       this.ingame.hasChildGameState(PlaceOrdersForVassalsGameState);
     const controller =
-      drawBorder || hasPlaceOrders ? controllersPerRegion.get(region) : null;
+      drawBorder || hasPlaceOrders
+        ? this.allRegionsWithControllers.get(region)
+        : null;
     const color =
       drawBorder && controller ? controller.getHighlightColor() : undefined;
 
@@ -970,7 +962,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   overlay={this.renderOrderTooltip(
                     order,
                     region,
-                    controllersPerRegion.get(region)
+                    this.allRegionsWithControllers.get(region)
                   )}
                   delay={{ show: 500, hide: 100 }}
                   placement="auto"

@@ -223,10 +223,6 @@ export default class World {
     return this.regions.values.filter((r) => r.getController() == house);
   }
 
-  getAllRegionsWithControllers(): [Region, House | null][] {
-    return this.regions.values.map((r) => [r, r.getController()]);
-  }
-
   getValidRetreatRegions(
     startingRegion: Region,
     house: House,

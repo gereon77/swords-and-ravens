@@ -92,6 +92,40 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
     return this.game.vassalRelations.tryGet(this.house, null);
   }
 
+  getControlledStrongholdAndCastleCount(): number {
+    if (!this.ingame.fogOfWar) {
+      return this.game.getControlledStrongholdAndCastleCount(this.house);
+    }
+
+    return (
+      this.props.gameClient.visibleRegions?.filter(
+        (r) => r.castleLevel > 0 && r.getController() == this.house
+      ).length ?? 0
+    );
+  }
+
+  countPowerTokensOnBoard(): number {
+    if (!this.ingame.fogOfWar) {
+      return this.game.countPowerTokensOnBoard(this.house);
+    }
+    return (
+      this.props.gameClient.visibleRegions?.filter(
+        (r) => r.controlPowerToken == this.house
+      ).length ?? 0
+    );
+  }
+
+  getTotalControlledLandRegions(): number {
+    if (!this.ingame.fogOfWar) {
+      return this.game.getTotalControlledLandRegions(this.house);
+    }
+    return (
+      this.props.gameClient.visibleRegions
+        ?.filter((r) => r.type.id == "land")
+        .filter((r) => r.getController() == this.house).length ?? 0
+    );
+  }
+
   render(): ReactNode {
     const isVassal = this.ingame.isVassalHouse(this.house);
     const gameRunning = !this.ingame.isEndedOrCancelled;
@@ -101,7 +135,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
       ? this.game.getVictoryPoints(this.house)
       : this.house == this.game.targaryen
         ? this.game.getTotalLoyaltyTokenCount(this.house)
-        : this.game.getControlledStrongholdAndCastleCount(this.house);
+        : this.getControlledStrongholdAndCastleCount();
 
     let victoryPointsWarning = false;
     let victoryPointsCritical = false;
@@ -144,7 +178,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
         : castleImage;
 
     const availablePower = this.house.powerTokens;
-    const powerTokensOnBoard = this.game.countPowerTokensOnBoard(this.house);
+    const powerTokensOnBoard = this.countPowerTokensOnBoard();
     const powerInPool =
       this.house.maxPowerTokens - availablePower - powerTokensOnBoard;
 
@@ -320,7 +354,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
             </Col>
             {!isVassal && (
               <OverlayTrigger
-                overlay={this.renderVictoryTrackTooltip(this.house)}
+                overlay={this.renderVictoryTrackTooltip()}
                 delay={{ show: 250, hide: 100 }}
                 placement="auto"
               >
@@ -656,11 +690,20 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
   }
 
   setHighlightedRegions(filter = ""): void {
+    const controlledRegions =
+      this.props.gameClient.allRegionsWithControllers.filter(
+        ([region, controller]) =>
+          controller == this.house &&
+          (!this.ingame.fogOfWar ||
+            this.props.gameClient.visibleRegionsSet?.has(region))
+      );
+
     const regions = new BetterMap(
-      this.ingame.world
-        .getControlledRegions(this.house)
-        .map((r) => [r, undefined] as [Region, string | undefined])
+      controlledRegions.map(
+        ([r, _]) => [r, undefined] as [Region, string | undefined]
+      )
     );
+
     if (filter == "with-castles-only") {
       if (!this.props.ingame.entireGame.isFeastForCrows) {
         regions.keys
@@ -720,17 +763,25 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
     );
   }
 
-  private renderVictoryTrackTooltip(house: House): OverlayChildren {
+  private renderVictoryTrackTooltip(): OverlayChildren {
     const loyaltyTokensOnBoardCount =
-      house == this.game.targaryen ? this.game.loyaltyTokensOnBoardCount : 0;
+      this.house == this.game.targaryen
+        ? this.game.loyaltyTokensOnBoardCount
+        : 0;
     const regions = this.ingame.entireGame.isFeastForCrows
-      ? this.ingame.world.regions.values
+      ? this.ingame.fogOfWar
+        ? (this.props.gameClient.visibleRegions ?? [])
+        : this.ingame.world.regions.values
       : [];
+
     return (
-      <Tooltip id={house.id + "-victory-tooltip"} className="tooltip-w-100">
+      <Tooltip
+        id={this.house.id + "-victory-tooltip"}
+        className="tooltip-w-100"
+      >
         <h5 className="text-center mx-2">Total Land Areas</h5>
         <h4 className="text-center">
-          <b>{this.game.getTotalControlledLandRegions(house)}</b>
+          <b>{this.getTotalControlledLandRegions()}</b>
         </h4>
         {this.ingame.entireGame.isFeastForCrows && (
           <>
@@ -748,7 +799,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
               <b>
                 {
                   regions.filter(
-                    (r) => r.castleLevel == 1 && r.getController() == house
+                    (r) => r.castleLevel == 1 && r.getController() == this.house
                   ).length
                 }
               </b>
@@ -758,7 +809,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
               <b>
                 {
                   regions.filter(
-                    (r) => r.castleLevel == 2 && r.getController() == house
+                    (r) => r.castleLevel == 2 && r.getController() == this.house
                   ).length
                 }
               </b>
@@ -768,7 +819,7 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
               <b>
                 {
                   regions.filter(
-                    (r) => r.type == sea && r.getController() == house
+                    (r) => r.type == sea && r.getController() == this.house
                   ).length
                 }
               </b>
@@ -778,14 +829,14 @@ export default class HouseRowComponent extends Component<HouseRowComponentProps>
               <b>
                 {
                   regions.filter(
-                    (r) => r.type == port && r.getController() == house
+                    (r) => r.type == port && r.getController() == this.house
                   ).length
                 }
               </b>
             </h5>
           </>
         )}
-        {house == this.game.targaryen && (
+        {this.house == this.game.targaryen && (
           <div className="text-center">
             <br />
             <h5>Loyalty tokens</h5>
