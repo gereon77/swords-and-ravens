@@ -1078,12 +1078,39 @@ export default class CombatGameState extends GameState<
     return combatGameState;
   }
 
-  getRequiredVisibleRegionsForPlayer(_player: Player): Region[] {
-    return [
-      this.attackingRegion,
-      this.defendingRegion,
-      ...this.getPossibleSupportingRegions().map(({ region }) => region)
-    ];
+  getRequiredVisibleRegionsForPlayer(player: Player): Region[] {
+    const visibleRegions = [this.attackingRegion, this.defendingRegion];
+
+    const isCommandingAttacker =
+      this.ingameGameState.getControllerOfHouse(this.attacker) == player;
+
+    // If player is commanding the attacker, we don't physically move the units to the defending region
+    // but they should be there and extend attackers visibilty, so we have to handle this here
+    if (isCommandingAttacker) {
+      const visibilityRange =
+        this.ingameGameState.calculateVisibilityRangeForUnits(
+          this.attackingArmy
+        );
+
+      const checkedRegions = new Set<Region>();
+      let border = [this.defendingRegion];
+      for (let step = 0; step < visibilityRange; step++) {
+        const nextBorder = new Set<Region>();
+        for (const region of border) {
+          if (checkedRegions.has(region)) {
+            continue;
+          }
+          checkedRegions.add(region);
+
+          this.world.getNeighbouringRegions(region).forEach((neighbour) => {
+            nextBorder.add(neighbour);
+            visibleRegions.push(neighbour);
+          });
+        }
+        border = Array.from(nextBorder);
+      }
+    }
+    return visibleRegions;
   }
 
   deserializeChildGameState(

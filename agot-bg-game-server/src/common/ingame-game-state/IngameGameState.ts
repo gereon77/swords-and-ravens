@@ -1447,13 +1447,7 @@ export default class IngameGameState extends GameState<
       const to = this.world.regions.get(message.to);
       const units = message.units.map((uid) => from.units.get(uid));
 
-      const visibleRegions = this.fogOfWar
-        ? new Set(
-            this.calculateVisibleRegionsForPlayer(
-              gameClient.authenticatedPlayer
-            )
-          )
-        : null;
+      const visibleRegions = gameClient.visibleRegionsSet;
 
       const moveAction = (): void => {
         units.forEach((u) => {
@@ -1847,26 +1841,30 @@ export default class IngameGameState extends GameState<
   }
 
   calculateVisibilityRangeForRegion(region: Region): number {
-    const baseRange = Math.max(
-      ...region.units.values.map((u) => u.type.visibilityRange)
-    );
+    return this.calculateVisibilityRangeForUnits(region.units.values);
+  }
+
+  calculateVisibilityRangeForUnits(units: Unit[]): number {
+    const baseRange = Math.max(...units.map((u) => u.type.visibilityRange));
     return Math.max(0, baseRange + this.unitVisibilityRangeModifier);
   }
 
-  calculateVisibleRegionsForPlayer(player: Player | null): Region[] {
-    if (this.isEndedOrCancelled || !this.fogOfWar) {
-      return this.world.regions.values;
+  calculateVisibleRegionsForPlayer(
+    player: Player | null,
+    allRegionsWithControllers: [Region, House | null][]
+  ): Set<Region> {
+    if (!this.fogOfWar || this.isEndedOrCancelled) {
+      return new Set(this.world.regions.values);
     }
 
     if (!player) {
-      return [];
+      return new Set<Region>();
     }
 
     const controlledHouses: (House | null)[] = [
       player.house,
       ...this.getVassalsControlledByPlayer(player)
     ];
-    const allRegionsWithControllers = this.world.getAllRegionsWithControllers();
 
     // We begin with all controlled areas of own and vassal units. We definitely always see them
     const result: Set<Region> = new Set(
@@ -1877,29 +1875,27 @@ export default class IngameGameState extends GameState<
     const regionsWithUnits = Array.from(result).filter((r) => r.units.size > 0);
     const checkedRegions = new Set<Region>();
 
-    // Additionally we see regions adjacents to our regions with units
-    for (let i = 0; i < regionsWithUnits.length; i++) {
-      const rootRegion = regionsWithUnits[i];
-
+    // Additionally we see regions adjacent to our regions with units,
+    // expanding outwards one region at a time up to each unit's visibility range
+    for (const rootRegion of regionsWithUnits) {
       const visibilityRange =
         this.calculateVisibilityRangeForRegion(rootRegion);
-      let rootRegions = [rootRegion];
-      for (let j = 0; j < visibilityRange; j++) {
-        const allAdjacents = new Set<Region>();
-        for (let k = 0; k < rootRegions.length; k++) {
-          const region = rootRegions[k];
+
+      let border = [rootRegion];
+      for (let step = 0; step < visibilityRange; step++) {
+        const nextBorder = new Set<Region>();
+        for (const region of border) {
           if (checkedRegions.has(region)) {
             continue;
           }
-
-          const adjacent = this.world.getNeighbouringRegions(region);
-          adjacent.forEach((r) => {
-            allAdjacents.add(r);
-            result.add(r);
-          });
           checkedRegions.add(region);
+
+          this.world.getNeighbouringRegions(region).forEach((neighbour) => {
+            nextBorder.add(neighbour);
+            result.add(neighbour);
+          });
         }
-        rootRegions = Array.from(allAdjacents);
+        border = Array.from(nextBorder);
       }
     }
 
@@ -1915,7 +1911,7 @@ export default class IngameGameState extends GameState<
       }
     });
 
-    return Array.from(result);
+    return result;
   }
 
   calculateRequiredVisibleRegionsForPlayer(player: Player): Region[] {
