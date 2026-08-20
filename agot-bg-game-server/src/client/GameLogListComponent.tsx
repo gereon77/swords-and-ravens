@@ -3391,6 +3391,16 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
+      case "maester-luwin-used": {
+        const house = this.game.houses.get(data.house);
+        const houseCard = this.allHouseCards.get(data.houseCard);
+        return (
+          <p>
+            <b>Maester Luwin</b>: House <b>{house.name}</b> decided to return{" "}
+            <b>{houseCard.name}</b> to hand.
+          </p>
+        );
+      }
     }
   }
 

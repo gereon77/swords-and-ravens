@@ -27,6 +27,8 @@ import MissandeiAbilityGameState from "../../../common/ingame-game-state/action-
 import MissandeiAbilityComponent from "./MissandeiAbilityComponent";
 import SerIlynPayneASoSAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/ser-ilyn-payne-asos-ability-game-state/SerIlynPayneASoSAbilityGameState";
 import SerIlynPayneASoSAbilityComponent from "./SerIlynPayneASoSAbilityComponent";
+import MaesterLuwinAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/maester-luwin-ability-game-state/MaesterLuwinAbilityGameState";
+import MaesterLuwinAbilityComponent from "./MaesterLuwinAbilityComponent";
 
 @observer
 export default class AfterWinnerDeterminationComponent extends Component<
@@ -50,7 +52,8 @@ export default class AfterWinnerDeterminationComponent extends Component<
         [AlayneStoneAbilityGameState, AlayneStoneAbilityComponent],
         [LysaArrynModAbilityGameState, LysaArrynModAbilityComponent],
         [MissandeiAbilityGameState, MissandeiAbilityComponent],
-        [SerIlynPayneASoSAbilityGameState, SerIlynPayneASoSAbilityComponent]
+        [SerIlynPayneASoSAbilityGameState, SerIlynPayneASoSAbilityComponent],
+        [MaesterLuwinAbilityGameState, MaesterLuwinAbilityComponent]
       ]
     );
   }

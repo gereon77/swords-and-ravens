@@ -111,7 +111,8 @@ const modifyingGameLogTypes = new Set([
   "attack",
   "vassals-claimed",
   "claim-vassals-began",
-  "jamie-lannister-power-tokens-gained"
+  "jamie-lannister-power-tokens-gained",
+  "maester-luwin-used"
 ]);
 
 const relatedCombatResultTypes = new Set([

@@ -46,6 +46,9 @@ import MissandeiAbilityGameState, {
 import SerIlynPayneASoSAbilityGameState, {
   SerializedSerIlynPayneASoSAbilityGameState
 } from "./ser-ilyn-payne-asos-ability-game-state/SerIlynPayneASoSAbilityGameState";
+import MaesterLuwinAbilityGameState, {
+  SerializedMaesterLuwinAbilityGameState
+} from "./maester-luwin-ability-game-state/MaesterLuwinAbilityGameState";
 
 export default class AfterWinnerDeterminationGameState extends GameState<
   PostCombatGameState,
@@ -63,6 +66,7 @@ export default class AfterWinnerDeterminationGameState extends GameState<
     | LysaArrynModAbilityGameState
     | MissandeiAbilityGameState
     | SerIlynPayneASoSAbilityGameState
+    | MaesterLuwinAbilityGameState
   >
 > {
   get postCombatGameState(): PostCombatGameState {
@@ -93,6 +97,7 @@ export default class AfterWinnerDeterminationGameState extends GameState<
         | LysaArrynModAbilityGameState
         | MissandeiAbilityGameState
         | SerIlynPayneASoSAbilityGameState
+        | MaesterLuwinAbilityGameState
       >(this)
     ).firstStart();
   }
@@ -208,6 +213,11 @@ export default class AfterWinnerDeterminationGameState extends GameState<
           houseCardResolution,
           data
         );
+      case "maester-luwin-ability":
+        return MaesterLuwinAbilityGameState.deserializeFromServer(
+          houseCardResolution,
+          data
+        );
     }
   }
 }
@@ -227,5 +237,6 @@ export interface SerializedAfterWinnerDeterminationGameState {
     | SerializedLysaArrynModAbilityGameState
     | SerializedMissandeiAbilityGameState
     | SerializedSerIlynPayneASoSAbilityGameState
+    | SerializedMaesterLuwinAbilityGameState
   >;
 }

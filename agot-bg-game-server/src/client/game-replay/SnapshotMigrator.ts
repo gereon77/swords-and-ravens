@@ -852,7 +852,8 @@ export default class SnapshotMigrator {
         house.addPowerTokens(1);
         return snap;
       }
-      case "bran-stark-used": {
+      case "bran-stark-used":
+      case "maester-luwin-used": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         house.markHouseCardAsAvailable(log.houseCard);
