@@ -3401,6 +3401,18 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
+      case "melisandre-of-asshai-1st-used": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const houseCard = this.allHouseCards.get(data.houseCard);
+        return (
+          <p>
+            <b>Melisandre of Asshai</b>: House <b>{house.name}</b> spent 1
+            Power&nbsp;token to discard <b>{houseCard.name}</b> from House{" "}
+            <b>{affectedHouse.name}</b>.
+          </p>
+        );
+      }
     }
   }
 

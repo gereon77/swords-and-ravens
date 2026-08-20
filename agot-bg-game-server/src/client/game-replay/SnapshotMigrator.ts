@@ -733,10 +733,15 @@ export default class SnapshotMigrator {
         return snap;
       }
 
-      case "patchface-used": {
+      case "patchface-used":
+      case "melisandre-of-asshai-1st-used": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.affectedHouse);
         house.markHouseCardAsUsed(log.houseCard);
+
+        if (log.type == "melisandre-of-asshai-1st-used") {
+          house.removePowerTokens(1);
+        }
 
         return snap;
       }

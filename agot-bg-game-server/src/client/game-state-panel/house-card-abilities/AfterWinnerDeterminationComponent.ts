@@ -29,6 +29,8 @@ import SerIlynPayneASoSAbilityGameState from "../../../common/ingame-game-state/
 import SerIlynPayneASoSAbilityComponent from "./SerIlynPayneASoSAbilityComponent";
 import MaesterLuwinAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/maester-luwin-ability-game-state/MaesterLuwinAbilityGameState";
 import MaesterLuwinAbilityComponent from "./MaesterLuwinAbilityComponent";
+import MelisandreOfAsshai1stAbilityComponent from "./MelisandreOfAsshai1stAbilityComponent";
+import MelisandreOfAsshai1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/melisandre-of-asshai-1st-ability-game-state/MelisandreOfAsshai1stAbilityGameState";
 
 @observer
 export default class AfterWinnerDeterminationComponent extends Component<
@@ -53,7 +55,11 @@ export default class AfterWinnerDeterminationComponent extends Component<
         [LysaArrynModAbilityGameState, LysaArrynModAbilityComponent],
         [MissandeiAbilityGameState, MissandeiAbilityComponent],
         [SerIlynPayneASoSAbilityGameState, SerIlynPayneASoSAbilityComponent],
-        [MaesterLuwinAbilityGameState, MaesterLuwinAbilityComponent]
+        [MaesterLuwinAbilityGameState, MaesterLuwinAbilityComponent],
+        [
+          MelisandreOfAsshai1stAbilityGameState,
+          MelisandreOfAsshai1stAbilityComponent
+        ]
       ]
     );
   }

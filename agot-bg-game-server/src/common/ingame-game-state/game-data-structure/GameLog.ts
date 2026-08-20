@@ -195,7 +195,8 @@ export type GameLogData =
   | LastLandUnitTransformedToDragon
   | LivePbemSwitch
   | JamieLannisterPowerTokensGained
-  | MaesterLuwinUsed;
+  | MaesterLuwinUsed
+  | MelisandreOfAsshai1stUsed;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -315,7 +316,8 @@ export type ModifyingGameLog =
   | VassalsClaimed
   | ClaimVassalsBegan
   | JamieLannisterPowerTokensGained
-  | MaesterLuwinUsed;
+  | MaesterLuwinUsed
+  | MelisandreOfAsshai1stUsed;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -1466,5 +1468,12 @@ export interface JamieLannisterPowerTokensGained {
 interface MaesterLuwinUsed {
   type: "maester-luwin-used";
   house: string;
+  houseCard: string;
+}
+
+interface MelisandreOfAsshai1stUsed {
+  type: "melisandre-of-asshai-1st-used";
+  house: string;
+  affectedHouse: string;
   houseCard: string;
 }
