@@ -1,20 +1,20 @@
 import HouseCardAbility from "./HouseCardAbility";
 import House from "../House";
 import HouseCard from "./HouseCard";
-import CancelHouseCardAbilitiesGameState from "../../action-game-state/resolve-march-order-game-state/combat-game-state/cancel-house-card-abilities-game-state/CancelHouseCardAbilitiesGameState";
+import ImmediatelyHouseCardAbilitiesResolutionGameState from "../../action-game-state/resolve-march-order-game-state/combat-game-state/immediately-house-card-abilities-resolution-game-state/ImmediatelyHouseCardAbilitiesResolutionGameState";
 import SupportOrderType from "../order-types/SupportOrderType";
 import RaidSupportOrderType from "../order-types/RaidSupportOrderType";
 import BetterMap from "../../../../utils/BetterMap";
 
 export default class StannisBaratheonDwDHouseCardAbility extends HouseCardAbility {
-  cancel(
-    cancelResolutionState: CancelHouseCardAbilitiesGameState,
+  immediatelyResolution(
+    immediatelyResolution: ImmediatelyHouseCardAbilitiesResolutionGameState,
     house: House,
     _houseCard: HouseCard
   ): void {
-    const combatGameState = cancelResolutionState.combatGameState;
+    const combatGameState = immediatelyResolution.combatGameState;
     const actionGameState = combatGameState.actionGameState;
-    const game = cancelResolutionState.game;
+    const game = immediatelyResolution.game;
     if (
       combatGameState.supporters.entries.every(
         ([_supporter, supported]) => supported != house
@@ -32,7 +32,7 @@ export default class StannisBaratheonDwDHouseCardAbility extends HouseCardAbilit
         .map(({ r }) => r);
 
       regions.forEach((r) =>
-        cancelResolutionState.combatGameState.actionGameState.removeOrderFromRegion(
+        immediatelyResolution.combatGameState.actionGameState.removeOrderFromRegion(
           r,
           true,
           undefined,
@@ -43,10 +43,6 @@ export default class StannisBaratheonDwDHouseCardAbility extends HouseCardAbilit
       combatGameState.supporters = new BetterMap();
     }
 
-    cancelResolutionState.childGameState.onHouseCardResolutionFinish(house);
-  }
-
-  isCancelAbility(): boolean {
-    return true;
+    immediatelyResolution.childGameState.onHouseCardResolutionFinish(house);
   }
 }
