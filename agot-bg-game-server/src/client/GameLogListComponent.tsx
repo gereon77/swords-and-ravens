@@ -3413,6 +3413,27 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
+      case "asha-greyjoy-1st-no-order-available":
+        return (
+          <p>
+            <b>Asha Greyjoy</b>: There were no Order tokens to be removed.
+          </p>
+        );
+
+      case "asha-greyjoy-1st-order-removed": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const region = this.world.regions.get(data.region);
+        const removedOrder = orders.get(data.order);
+
+        return (
+          <p>
+            <b>Asha Greyjoy</b>: House <b>{house.name}</b> removed a{" "}
+            <b>{removedOrder.type.name}</b> Order of <b>{affectedHouse.name}</b>{" "}
+            in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
+          </p>
+        );
+      }
     }
   }
 

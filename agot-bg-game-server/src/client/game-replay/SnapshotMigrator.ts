@@ -892,7 +892,8 @@ export default class SnapshotMigrator {
         affectedHouse.powerTokens = 0;
         return snap;
       }
-      case "cersei-lannister-order-removed": {
+      case "cersei-lannister-order-removed":
+      case "asha-greyjoy-1st-order-removed": {
         const region = snap.getRegion(log.region);
         region.removeOrder();
         return snap;

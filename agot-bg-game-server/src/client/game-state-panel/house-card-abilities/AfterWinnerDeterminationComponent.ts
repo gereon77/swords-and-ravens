@@ -31,6 +31,8 @@ import MaesterLuwinAbilityGameState from "../../../common/ingame-game-state/acti
 import MaesterLuwinAbilityComponent from "./MaesterLuwinAbilityComponent";
 import MelisandreOfAsshai1stAbilityComponent from "./MelisandreOfAsshai1stAbilityComponent";
 import MelisandreOfAsshai1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/melisandre-of-asshai-1st-ability-game-state/MelisandreOfAsshai1stAbilityGameState";
+import AshaGreyjoy1stAbilityComponent from "./AshaGreyjoy1stAbilityComponent";
+import AshaGreyjoy1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/asha-greyjoy-1st-ability-game-state/AshaGreyjoy1stAbilityGameState";
 
 @observer
 export default class AfterWinnerDeterminationComponent extends Component<
@@ -59,7 +61,8 @@ export default class AfterWinnerDeterminationComponent extends Component<
         [
           MelisandreOfAsshai1stAbilityGameState,
           MelisandreOfAsshai1stAbilityComponent
-        ]
+        ],
+        [AshaGreyjoy1stAbilityGameState, AshaGreyjoy1stAbilityComponent]
       ]
     );
   }

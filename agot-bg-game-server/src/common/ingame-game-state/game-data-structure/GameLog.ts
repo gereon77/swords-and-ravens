@@ -196,7 +196,9 @@ export type GameLogData =
   | LivePbemSwitch
   | JamieLannisterPowerTokensGained
   | MaesterLuwinUsed
-  | MelisandreOfAsshai1stUsed;
+  | MelisandreOfAsshai1stUsed
+  | AshaGreyjoy1stNoOrderAvailable
+  | AshaGreyjoy1stOrderRemoved;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -317,7 +319,8 @@ export type ModifyingGameLog =
   | ClaimVassalsBegan
   | JamieLannisterPowerTokensGained
   | MaesterLuwinUsed
-  | MelisandreOfAsshai1stUsed;
+  | MelisandreOfAsshai1stUsed
+  | AshaGreyjoy1stOrderRemoved;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -1476,4 +1479,16 @@ interface MelisandreOfAsshai1stUsed {
   house: string;
   affectedHouse: string;
   houseCard: string;
+}
+
+interface AshaGreyjoy1stNoOrderAvailable {
+  type: "asha-greyjoy-1st-no-order-available";
+}
+
+interface AshaGreyjoy1stOrderRemoved {
+  type: "asha-greyjoy-1st-order-removed";
+  house: string;
+  affectedHouse: string;
+  region: string;
+  order: number;
 }

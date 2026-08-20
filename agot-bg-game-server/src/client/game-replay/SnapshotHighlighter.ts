@@ -402,7 +402,8 @@ export default class SnapshotHighlighter {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }
-      case "cersei-lannister-order-removed": {
+      case "cersei-lannister-order-removed":
+      case "asha-greyjoy-1st-order-removed": {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }

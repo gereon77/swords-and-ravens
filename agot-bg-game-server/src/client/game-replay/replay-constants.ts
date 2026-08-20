@@ -113,7 +113,8 @@ const modifyingGameLogTypes = new Set([
   "claim-vassals-began",
   "jamie-lannister-power-tokens-gained",
   "maester-luwin-used",
-  "melisandre-of-asshai-1st-used"
+  "melisandre-of-asshai-1st-used",
+  "asha-greyjoy-1st-order-removed"
 ]);
 
 const relatedCombatResultTypes = new Set([
