@@ -727,6 +727,7 @@ interface RenlyBaratheonFootmanUpgradedToKnight {
 interface MaceTyrellNoFootmanAvailable {
   type: "mace-tyrell-no-footman-available";
   house: string;
+  houseCard?: string;
 }
 
 interface MaceTyrellCasualtiesPrevented {
@@ -738,6 +739,7 @@ interface MaceTyrellFootmanKilled {
   type: "mace-tyrell-footman-killed";
   house: string;
   region: string;
+  houseCard?: string;
 }
 
 interface SerIlynPayneFootmanKilled {

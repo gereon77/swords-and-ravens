@@ -8,12 +8,12 @@ export default class MaceTyrellHouseCardAbility extends HouseCardAbility {
   immediatelyResolution(
     immediately: ImmediatelyHouseCardAbilitiesResolutionGameState,
     house: House,
-    _houseCard: HouseCard
+    houseCard: HouseCard
   ): void {
     immediately.childGameState
       .setChildGameState(
         new MaceTyrellAbilityGameState(immediately.childGameState)
       )
-      .firstStart(house);
+      .firstStart(house, houseCard);
   }
 }

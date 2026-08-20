@@ -97,7 +97,6 @@ import ObaraSand1stHouseCardAbility from "./ObaraSand1stHouseCardAbility";
 import EllariaSand1stHouseCardAbility from "./EllariaSand1stHouseCardAbility";
 import DoranMartell1stHouseCardAbility from "./DoranMartell1stHouseCardAbility";
 import ArianneMartell1stHouseCardAbility from "./ArianneMartell1stHouseCardAbility";
-import LorasTyrell1stHouseCardAbility from "./LorasTyrell1stHouseCardAbility";
 import BrienneOfTarth1stHouseCardAbility from "./BrienneOfTarth1stHouseCardAbility";
 
 export const theonGreyjoy = new TheonGreyjoyHouseCardAbility(
@@ -550,10 +549,6 @@ export const arianneMartell1st = new ArianneMartell1stHouseCardAbility(
     " participated in the battle. If that was the last enemy unit, you must still retreat, but" +
     " your opponent is not considered to have taken the area."
 );
-export const lorasTyrell1st = new LorasTyrell1stHouseCardAbility(
-  "loras-tyrell-1st",
-  "Immediately kill 1 of your opponent's attacking or defending Footmen units."
-);
 export const brienneOfTarth1st = new BrienneOfTarth1stHouseCardAbility(
   "brienne-of-tarth-1st",
   "Immediately discard your opponent's Defense order in the area of battle."
@@ -657,7 +652,6 @@ const houseCardAbilities = new BetterMap<string, HouseCardAbility>([
   [ellariaSand1st.id, ellariaSand1st],
   [doranMartell1st.id, doranMartell1st],
   [arianneMartell1st.id, arianneMartell1st],
-  [lorasTyrell1st.id, lorasTyrell1st],
   [brienneOfTarth1st.id, brienneOfTarth1st]
 ]);
 

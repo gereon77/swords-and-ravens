@@ -1507,19 +1507,26 @@ export default class GameLogListComponent extends Component<GameLogListComponent
         );
       }
       case "mace-tyrell-no-footman-available":
+        const houseCardName = data.houseCard
+          ? this.allHouseCards.get(data.houseCard).name
+          : "Mace Tyrell";
         return (
           <p>
-            <b>Mace Tyrell</b>: No enemy Footman was available to be destroyed.
+            <b>{houseCardName}</b>: No enemy Footman was available to be
+            destroyed.
           </p>
         );
 
       case "mace-tyrell-footman-killed": {
         const house = this.game.houses.get(data.house);
         const region = this.world.regions.get(data.region);
+        const houseCardName = data.houseCard
+          ? this.allHouseCards.get(data.houseCard).name
+          : "Mace Tyrell";
 
         return (
           <p>
-            <b>Mace Tyrell</b>: House <b>{house.name}</b> destroyed an enemy
+            <b>{houseCardName}</b>: House <b>{house.name}</b> destroyed an enemy
             Footman in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
           </p>
         );

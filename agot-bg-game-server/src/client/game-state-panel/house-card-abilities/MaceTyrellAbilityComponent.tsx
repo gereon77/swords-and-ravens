@@ -13,10 +13,11 @@ export default class MaceTyrellAbilityComponent extends Component<
   GameStateComponentProps<MaceTyrellAbilityGameState>
 > {
   render(): ReactNode {
+    const houseCardName = this.props.gameState.triggeringHouseCard.name;
     return (
       <>
         <Col xs={12} className="text-center">
-          <b>Mace Tyrell: </b> House{" "}
+          <b>{houseCardName}:</b> House{" "}
           <b>{this.props.gameState.childGameState.house.name}</b> immediately
           kills a Footman of House{" "}
           <b>

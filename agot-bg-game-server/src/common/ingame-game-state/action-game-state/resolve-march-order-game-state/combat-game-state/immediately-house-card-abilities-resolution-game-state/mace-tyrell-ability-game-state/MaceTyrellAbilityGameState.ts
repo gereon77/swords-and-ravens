@@ -21,6 +21,7 @@ export default class MaceTyrellAbilityGameState extends GameState<
   ImmediatelyHouseCardAbilitiesResolutionGameState["childGameState"],
   SelectUnitsGameState<MaceTyrellAbilityGameState>
 > {
+  triggeringHouseCard: HouseCard;
   get game(): Game {
     return this.parentGameState.game;
   }
@@ -33,14 +34,16 @@ export default class MaceTyrellAbilityGameState extends GameState<
     return this.parentGameState.parentGameState.parentGameState.ingameGameState;
   }
 
-  firstStart(house: House): void {
+  firstStart(house: House, houseCard: HouseCard): void {
+    this.triggeringHouseCard = houseCard;
     const enemy = this.combatGameState.getEnemy(house);
     const availableFootmen = this.getAvailableFootmen(house);
 
     if (availableFootmen.length == 0) {
       this.ingame.log({
         type: "mace-tyrell-no-footman-available",
-        house: house.id
+        house: house.id,
+        houseCard: this.triggeringHouseCard.id
       });
 
       this.parentGameState.onHouseCardResolutionFinish(house);
@@ -108,7 +111,8 @@ export default class MaceTyrellAbilityGameState extends GameState<
         {
           type: "mace-tyrell-footman-killed",
           house: house.id,
-          region: region.id
+          region: region.id,
+          houseCard: this.triggeringHouseCard.id
         },
         resolvedAutomatically
       );
@@ -137,6 +141,7 @@ export default class MaceTyrellAbilityGameState extends GameState<
   ): SerializedMaceTyrellAbilityGameState {
     return {
       type: "mace-tyrell-ability",
+      triggeringHouseCard: this.triggeringHouseCard.id,
       childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
@@ -148,6 +153,9 @@ export default class MaceTyrellAbilityGameState extends GameState<
     const maceTyrellAbilityGameState = new MaceTyrellAbilityGameState(
       houseCardResolution
     );
+
+    maceTyrellAbilityGameState.triggeringHouseCard =
+      houseCardResolution.game.getHouseCardById(data.triggeringHouseCard);
 
     maceTyrellAbilityGameState.childGameState =
       maceTyrellAbilityGameState.deserializeChildGameState(data.childGameState);
@@ -164,5 +172,6 @@ export default class MaceTyrellAbilityGameState extends GameState<
 
 export interface SerializedMaceTyrellAbilityGameState {
   type: "mace-tyrell-ability";
+  triggeringHouseCard: string;
   childGameState: SerializedSelectUnitsGameState;
 }
