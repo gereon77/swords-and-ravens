@@ -10,10 +10,8 @@ import { GameLogData } from "../common/ingame-game-state/game-data-structure/Gam
 import { UserSettings } from "./ClientMessage";
 import { SerializedWesterosCard } from "../common/ingame-game-state/game-data-structure/westeros-card/WesterosCard";
 import { SerializedVote } from "../common/ingame-game-state/vote-system/Vote";
-import { CrowKillersStep } from "../common/ingame-game-state/westeros-game-state/wildlings-attack-game-state/crow-killers-wildling-victory-game-state/CrowKillersWildlingVictoryGameState";
 import HouseCardModifier from "../common/ingame-game-state/game-data-structure/house-card/HouseCardModifier";
 import { CombatStats } from "../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
-import { DraftStep } from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
 import { SerializedLoanCard } from "../common/ingame-game-state/game-data-structure/loan-card/LoanCard";
 import { SerializedWaitedForData } from "../common/ingame-game-state/Player";
 
@@ -93,7 +91,7 @@ export type ServerMessage =
   | HideOrRevealUserNames
   | ClearChatRoom
   | UpdateSelectableObjectives
-  | UpdateUsurper
+  | UpdateOverwrittenDominanceTokenHolder
   | StartPlayerClock
   | StopPlayerClock
   | GamePaused
@@ -402,7 +400,7 @@ interface VassalReplaced {
 
 interface CrowKillersStepChanged {
   type: "crow-killers-step-changed";
-  newStep: CrowKillersStep;
+  newStep: 0 | 1;
 }
 
 interface VassalRelations {
@@ -442,7 +440,7 @@ interface UpdateDraftState {
   type: "update-draft-state";
   rowIndex: number;
   columnIndex: number;
-  draftStep: DraftStep;
+  draftStep: 0 | 1 | 2;
 }
 
 interface RevealBids {
@@ -541,9 +539,11 @@ interface UpdateSelectableObjectives {
   selectableObjectives: string[];
 }
 
-interface UpdateUsurper {
-  type: "update-usurper";
-  house: string | null;
+interface UpdateOverwrittenDominanceTokenHolder {
+  type: "update-overwritten-dominance-token-holder";
+  ironThroneHolder?: string | null;
+  valyrianSteelBladeHolder?: string | null;
+  ravenHolder?: string | null;
 }
 
 interface StartPlayerClock {

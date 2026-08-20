@@ -154,6 +154,9 @@ export default class SnapshotMigrator {
         if (!snap.gameSnapshot) return snap;
         if (log.trackerI == 0) {
           snap.gameSnapshot.ironThroneTrack = log.finalOrder;
+          snap.gameSnapshot.overwrittenIronThroneHolder = undefined;
+          snap.gameSnapshot.overwrittenValyrianSteelBladeHolder = undefined;
+          snap.gameSnapshot.overwrittenRavenHolder = undefined;
         } else if (log.trackerI == 1) {
           snap.gameSnapshot.fiefdomsTrack = log.finalOrder;
         } else if (log.trackerI == 2) {
@@ -733,10 +736,15 @@ export default class SnapshotMigrator {
         return snap;
       }
 
-      case "patchface-used": {
+      case "patchface-used":
+      case "melisandre-of-asshai-1st-used": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.affectedHouse);
         house.markHouseCardAsUsed(log.houseCard);
+
+        if (log.type == "melisandre-of-asshai-1st-used") {
+          house.removePowerTokens(1);
+        }
 
         return snap;
       }
@@ -801,9 +809,15 @@ export default class SnapshotMigrator {
         house.removePowerTokens(2);
         return snap;
       }
-      case "stannis-baratheon-asos-used": {
+      case "dominance-token-stolen": {
         if (!snap.gameSnapshot) return snap;
-        // TODO: such a rare card. needs UI adaption
+        if (log.dominanceToken == "iron-throne") {
+          snap.gameSnapshot.overwrittenIronThroneHolder = log.newHolder;
+        } else if (log.dominanceToken == "valyrian-steel-blade") {
+          snap.gameSnapshot.overwrittenValyrianSteelBladeHolder = log.newHolder;
+        } else if (log.dominanceToken == "raven") {
+          snap.gameSnapshot.overwrittenRavenHolder = log.newHolder;
+        }
         return snap;
       }
       case "viserys-targaryen-used": {
@@ -852,7 +866,8 @@ export default class SnapshotMigrator {
         house.addPowerTokens(1);
         return snap;
       }
-      case "bran-stark-used": {
+      case "bran-stark-used":
+      case "maester-luwin-used": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         house.markHouseCardAsAvailable(log.houseCard);
@@ -886,7 +901,8 @@ export default class SnapshotMigrator {
         affectedHouse.powerTokens = 0;
         return snap;
       }
-      case "cersei-lannister-order-removed": {
+      case "cersei-lannister-order-removed":
+      case "asha-greyjoy-1st-order-removed": {
         const region = snap.getRegion(log.region);
         region.removeOrder();
         return snap;
@@ -1016,7 +1032,8 @@ export default class SnapshotMigrator {
         toRegion.order = order;
         return snap;
       }
-      case "tywin-lannister-power-tokens-gained": {
+      case "tywin-lannister-power-tokens-gained":
+      case "jamie-lannister-power-tokens-gained": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         house.addPowerTokens(log.powerTokensGained);
@@ -1044,18 +1061,10 @@ export default class SnapshotMigrator {
         );
         return snap;
       }
-      case "ser-ilyn-payne-asos-casualty-suffered": {
-        if (!snap.gameSnapshot) return snap;
-        if (!this.combatResultData) throw new Error("combat result not set");
-        const crd = this.combatResultData;
-        const region = snap.getRegion(crd.loserRegion);
-        region.removeUnit(log.unit, log.affectedHouse);
-        return snap;
-      }
       case "varys-used": {
         if (!snap.gameSnapshot) return snap;
         const track = snap.getInfluenceTrack(1);
-        _.pull(track);
+        _.pull(track, log.house);
         track.unshift(log.house);
         return snap;
       }
@@ -1064,6 +1073,12 @@ export default class SnapshotMigrator {
         snap.gameSnapshot.housesOnVictoryTrack.forEach((h) => {
           h.suzerainHouseId = undefined;
         });
+        return snap;
+      }
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
+        const region = snap.getRegion(log.region);
+        region.removeUnit("footman", log.house);
+        region.createUnit("knight", log.house);
         return snap;
       }
 

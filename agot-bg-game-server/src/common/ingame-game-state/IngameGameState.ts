@@ -1708,10 +1708,21 @@ export default class IngameGameState extends GameState<
     } else if (message.type == "update-secret-objectives") {
       this.game.houses.get(message.house).secretObjectives =
         message.objectives.map((ocid) => objectiveCards.get(ocid));
-    } else if (message.type == "update-usurper") {
-      this.game.usurper = message.house
-        ? this.game.houses.get(message.house)
-        : null;
+    } else if (message.type == "update-overwritten-dominance-token-holder") {
+      this.game.overwrittenIronThroneHolder =
+        message.ironThroneHolder !== undefined &&
+        message.ironThroneHolder !== null
+          ? this.game.houses.get(message.ironThroneHolder)
+          : null;
+      this.game.overwrittenValyrianSteelBladeHolder =
+        message.valyrianSteelBladeHolder !== undefined &&
+        message.valyrianSteelBladeHolder !== null
+          ? this.game.houses.get(message.valyrianSteelBladeHolder)
+          : null;
+      this.game.overwrittenRavenHolder =
+        message.ravenHolder !== undefined && message.ravenHolder !== null
+          ? this.game.houses.get(message.ravenHolder)
+          : null;
     } else if (message.type == "start-player-clock") {
       const player = this.players.get(
         this.entireGame.users.get(message.userId)

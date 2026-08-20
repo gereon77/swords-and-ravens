@@ -81,20 +81,21 @@ export default class Game {
    */
   vassalRelations = new BetterMap<House, House>();
   revealedWesterosCards = 0;
-  @observable usurper: House | null;
+
+  @observable overwrittenIronThroneHolder: House | null;
+  @observable overwrittenValyrianSteelBladeHolder: House | null;
+  @observable overwrittenRavenHolder: House | null;
 
   get ironThroneHolder(): House {
-    return this.usurper
-      ? this.usurper
-      : this.getTokenHolder(this.ironThroneTrack);
+    return this.getTokenHolder(this.ironThroneTrack, 0);
   }
 
   get valyrianSteelBladeHolder(): House {
-    return this.getTokenHolder(this.fiefdomsTrack);
+    return this.getTokenHolder(this.fiefdomsTrack, 1);
   }
 
   get ravenHolder(): House {
-    return this.getTokenHolder(this.kingsCourtTrack);
+    return this.getTokenHolder(this.kingsCourtTrack, 2);
   }
 
   get influenceTracks(): House[][] {
@@ -192,7 +193,27 @@ export default class Game {
     return this.wildlingStrength;
   }
 
-  getTokenHolder(track: House[]): House {
+  getTokenHolder(track: House[], trackIndex: number): House {
+    if (
+      trackIndex == 0 &&
+      this.overwrittenIronThroneHolder &&
+      !this.ingame.isVassalHouse(this.overwrittenIronThroneHolder)
+    ) {
+      return this.overwrittenIronThroneHolder;
+    } else if (
+      trackIndex == 1 &&
+      this.overwrittenValyrianSteelBladeHolder &&
+      !this.ingame.isVassalHouse(this.overwrittenValyrianSteelBladeHolder)
+    ) {
+      return this.overwrittenValyrianSteelBladeHolder;
+    } else if (
+      trackIndex == 2 &&
+      this.overwrittenRavenHolder &&
+      !this.ingame.isVassalHouse(this.overwrittenRavenHolder)
+    ) {
+      return this.overwrittenRavenHolder;
+    }
+
     // A vassal can never be the bearer of a dominance token
     // Ignore them when finding the token holder
     const nonVassalTrack = track.filter((h) => !this.ingame.isVassalHouse(h));
@@ -663,7 +684,11 @@ export default class Game {
             ?.id
         };
       }),
-      ironBank: this.ironBank?.getSnapshot()
+      ironBank: this.ironBank?.getSnapshot(),
+      overwrittenIronThroneHolder: this.overwrittenIronThroneHolder?.id,
+      overwrittenValyrianSteelBladeHolder:
+        this.overwrittenValyrianSteelBladeHolder?.id,
+      overwrittenRavenHolder: this.overwrittenRavenHolder?.id
     };
   }
 
@@ -744,7 +769,16 @@ export default class Game {
       removedDragonStrengthTokens: this.removedDragonStrengthTokens,
       ironBank: this.ironBank ? this.ironBank.serializeToClient(admin) : null,
       objectiveDeck: admin ? this.objectiveDeck.map((oc) => oc.id) : [],
-      usurper: this.usurper ? this.usurper.id : null
+      overwrittenIronThroneHolder: this.overwrittenIronThroneHolder
+        ? this.overwrittenIronThroneHolder.id
+        : null,
+      overwrittenValyrianSteelBladeHolder: this
+        .overwrittenValyrianSteelBladeHolder
+        ? this.overwrittenValyrianSteelBladeHolder.id
+        : null,
+      overwrittenRavenHolder: this.overwrittenRavenHolder
+        ? this.overwrittenRavenHolder.id
+        : null
     };
   }
 
@@ -837,7 +871,16 @@ export default class Game {
     game.objectiveDeck = data.objectiveDeck.map((ocid) =>
       objectiveCards.get(ocid)
     );
-    game.usurper = data.usurper ? game.houses.get(data.usurper) : null;
+    game.overwrittenIronThroneHolder = data.overwrittenIronThroneHolder
+      ? game.houses.get(data.overwrittenIronThroneHolder)
+      : null;
+    game.overwrittenValyrianSteelBladeHolder =
+      data.overwrittenValyrianSteelBladeHolder
+        ? game.houses.get(data.overwrittenValyrianSteelBladeHolder)
+        : null;
+    game.overwrittenRavenHolder = data.overwrittenRavenHolder
+      ? game.houses.get(data.overwrittenRavenHolder)
+      : null;
 
     return game;
   }
@@ -851,6 +894,9 @@ export interface SerializedGame {
   ironThroneTrack: string[];
   fiefdomsTrack: string[];
   kingsCourtTrack: string[];
+  overwrittenIronThroneHolder: string | null;
+  overwrittenValyrianSteelBladeHolder: string | null;
+  overwrittenRavenHolder: string | null;
   westerosDecks: SerializedWesterosCard[][];
   winterIsComingHappened: boolean[];
   starredOrderRestrictions: number[];
@@ -874,5 +920,4 @@ export interface SerializedGame {
   removedDragonStrengthTokens: number[];
   ironBank: SerializedIronBank | null;
   objectiveDeck: string[];
-  usurper: string | null;
 }

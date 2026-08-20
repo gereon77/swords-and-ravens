@@ -260,6 +260,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
       if (settings.houseCardsEvolution) {
         settings.adwdHouseCards = false;
         settings.asosHouseCards = false;
+        settings.firstEditionHouseCards = false;
         settings.draftHouseCards = false;
         settings.thematicDraft = false;
         settings.limitedDraft = false;
@@ -274,6 +275,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
         settings.mixedWesterosDeck1 = false;
         settings.endless = false;
         settings.houseCardsEvolution = false;
+        settings.firstEditionHouseCards = false;
       }
 
       if (settings.setupId != "a-feast-for-crows") {
@@ -282,9 +284,16 @@ export default class LobbyGameState extends GameState<EntireGame> {
 
       if (settings.asosHouseCards) {
         settings.adwdHouseCards = false;
+        settings.firstEditionHouseCards = false;
       }
 
       if (settings.adwdHouseCards) {
+        settings.asosHouseCards = false;
+        settings.firstEditionHouseCards = false;
+      }
+
+      if (settings.firstEditionHouseCards) {
+        settings.adwdHouseCards = false;
         settings.asosHouseCards = false;
       }
 
@@ -294,6 +303,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
         settings.thematicDraft = false;
         settings.adwdHouseCards = false;
         settings.asosHouseCards = false;
+        settings.firstEditionHouseCards = false;
       }
 
       if (!settings.randomDraft && this.settings.randomDraft) {
@@ -328,6 +338,21 @@ export default class LobbyGameState extends GameState<EntireGame> {
       if (settings.draftHouseCards) {
         settings.adwdHouseCards = false;
         settings.asosHouseCards = false;
+        settings.firstEditionHouseCards = false;
+      }
+
+      // 1st edition house cards use different combat strengths (0-0-1-1-2-2-3) than the
+      // 2nd edition/expansion Arryn and Targaryen cards (0-1-1-2-2-3-4), so it cannot be
+      // combined with more than 6 players.
+      if (settings.playerCount > 6) {
+        settings.firstEditionHouseCards = false;
+
+        // ASoS and FirstEdition decks have no MoD A/B equivalent for Arryn and Targaryen,
+        // so lock everyone to Base and DwD/FfC/ModB to keep the same 2 decks for all houses
+        if (settings.thematicDraft) {
+          settings.selectedDraftDecks =
+            HouseCardDecks.BaseAndModA | HouseCardDecks.DwdFfcModB;
+        }
       }
 
       if (!this.settings.draftHouseCards && settings.draftHouseCards) {

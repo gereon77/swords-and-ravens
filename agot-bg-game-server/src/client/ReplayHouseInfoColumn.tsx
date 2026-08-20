@@ -47,7 +47,7 @@ export default class ReplayHouseInfoColumn extends Component<ReplayHouseInfoColu
     return [
       { track: ironThrone, stars: false },
       { track: fiefdoms, stars: false },
-      { track: kingsCourt, stars: true },
+      { track: kingsCourt, stars: true }
     ];
   }
 
@@ -147,6 +147,25 @@ export default class ReplayHouseInfoColumn extends Component<ReplayHouseInfoColu
       filledTrack.push(null);
     }
 
+    let tokenHolder: HouseSnapshot | null = null;
+
+    const entireSnap = this.ingame.replayManager.selectedSnapshot;
+    const snap = entireSnap?.gameSnapshot;
+    if (snap) {
+      if (i == 0 && snap.overwrittenIronThroneHolder) {
+        tokenHolder = entireSnap.getHouse(snap.overwrittenIronThroneHolder);
+      } else if (i == 1 && snap.overwrittenValyrianSteelBladeHolder) {
+        tokenHolder = entireSnap.getHouse(
+          snap.overwrittenValyrianSteelBladeHolder
+        );
+      } else if (i == 2 && snap.overwrittenRavenHolder) {
+        tokenHolder = entireSnap.getHouse(snap.overwrittenRavenHolder);
+      } else {
+        // Find the first non vassal on track
+        tokenHolder = filledTrack.find((h) => h && !h.isVassal) ?? null;
+      }
+    }
+
     return filledTrack.map((h, j) => (
       <Col
         xs="auto"
@@ -154,7 +173,16 @@ export default class ReplayHouseInfoColumn extends Component<ReplayHouseInfoColu
       >
         {h ? (
           <>
-            <SimpleInfluenceIconComponent house={h} />
+            <SimpleInfluenceIconComponent
+              house={h}
+              // Highlight the token holder and for fiefdoms track vassals of the token holder
+              highlight={
+                tokenHolder == h ||
+                (i == 1 &&
+                  h.suzerainHouseId !== undefined &&
+                  h.suzerainHouseId === tokenHolder?.id)
+              }
+            />
             <div className="tracker-star-container">
               {stars &&
                 _.range(0, this.ingame.game.starredOrderRestrictions[j]).map(

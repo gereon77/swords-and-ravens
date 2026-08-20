@@ -45,4 +45,8 @@ export default class StannisBaratheonDwDHouseCardAbility extends HouseCardAbilit
 
     cancelResolutionState.childGameState.onHouseCardResolutionFinish(house);
   }
+
+  isCancelAbility(): boolean {
+    return true;
+  }
 }

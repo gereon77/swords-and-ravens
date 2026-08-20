@@ -184,7 +184,7 @@ export type GameLogData =
   | SerDavosSeaworthASoSFortificationGained
   | CasualtiesPrevented
   | SerIlynPayneASoSCasualtySuffered
-  | StannisBaratheonASoSUsed
+  | DominanceTokenStolen
   | AeronDamphairHouseCardChanged
   | ControlPowerTokenRemoved
   | GamePaused
@@ -193,7 +193,16 @@ export type GameLogData =
   | HousesSwapped
   | NoLoyaltyTokenAvailable
   | LastLandUnitTransformedToDragon
-  | LivePbemSwitch;
+  | LivePbemSwitch
+  | JamieLannisterPowerTokensGained
+  | MaesterLuwinUsed
+  | MelisandreOfAsshai1stUsed
+  | AshaGreyjoy1stNoOrderAvailable
+  | AshaGreyjoy1stOrderRemoved
+  | EllariaSand1stNoFootmanAvailable
+  | EllariaSand1stNoKnightAvailable
+  | EllariaSand1stFootmanUpgradedToKnight
+  | ArianneMartell1stArmyUnitKilled;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -306,12 +315,18 @@ export type ModifyingGameLog =
   | MelisandreOfAsshaiPowerTokensGained
   | SalladharSaanASoSPowerTokensChanged
   | SerIlynPayneASoSCasualtySuffered
-  | StannisBaratheonASoSUsed
+  | DominanceTokenStolen
   | ControlPowerTokenRemoved
   | LastLandUnitTransformedToDragon
   | CombatResult
   | VassalsClaimed
-  | ClaimVassalsBegan;
+  | ClaimVassalsBegan
+  | JamieLannisterPowerTokensGained
+  | MaesterLuwinUsed
+  | MelisandreOfAsshai1stUsed
+  | AshaGreyjoy1stOrderRemoved
+  | EllariaSand1stFootmanUpgradedToKnight
+  | ArianneMartell1stArmyUnitKilled;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -712,6 +727,7 @@ interface RenlyBaratheonFootmanUpgradedToKnight {
 interface MaceTyrellNoFootmanAvailable {
   type: "mace-tyrell-no-footman-available";
   house: string;
+  houseCard?: string;
 }
 
 interface MaceTyrellCasualtiesPrevented {
@@ -723,6 +739,7 @@ interface MaceTyrellFootmanKilled {
   type: "mace-tyrell-footman-killed";
   house: string;
   region: string;
+  houseCard?: string;
 }
 
 interface SerIlynPayneFootmanKilled {
@@ -1385,10 +1402,12 @@ interface SerIlynPayneASoSCasualtySuffered {
   unit: string;
 }
 
-interface StannisBaratheonASoSUsed {
-  type: "stannis-baratheon-asos-used";
-  house: string;
-  oldThroneOwner: string;
+interface DominanceTokenStolen {
+  type: "dominance-token-stolen";
+  oldHolder: string;
+  newHolder: string;
+  dominanceToken: "iron-throne" | "valyrian-steel-blade" | "raven";
+  houseCardId: string;
 }
 
 interface AeronDamphairHouseCardChanged {
@@ -1451,4 +1470,58 @@ export interface LastLandUnitTransformedToDragon {
 export interface LivePbemSwitch {
   type: "live-pbem-switch";
   isNowPbem: boolean;
+}
+
+export interface JamieLannisterPowerTokensGained {
+  type: "jamie-lannister-power-tokens-gained";
+  house: string;
+  powerTokensGained: number;
+}
+
+interface MaesterLuwinUsed {
+  type: "maester-luwin-used";
+  house: string;
+  houseCard: string;
+}
+
+interface MelisandreOfAsshai1stUsed {
+  type: "melisandre-of-asshai-1st-used";
+  house: string;
+  affectedHouse: string;
+  houseCard: string;
+}
+
+interface AshaGreyjoy1stNoOrderAvailable {
+  type: "asha-greyjoy-1st-no-order-available";
+}
+
+interface AshaGreyjoy1stOrderRemoved {
+  type: "asha-greyjoy-1st-order-removed";
+  house: string;
+  affectedHouse: string;
+  region: string;
+  order: number;
+}
+
+interface EllariaSand1stNoFootmanAvailable {
+  type: "ellaria-sand-1st-no-footman-available";
+  house: string;
+}
+
+interface EllariaSand1stNoKnightAvailable {
+  type: "ellaria-sand-1st-no-knight-available";
+  house: string;
+}
+
+interface EllariaSand1stFootmanUpgradedToKnight {
+  type: "ellaria-sand-1st-footman-upgraded-to-knight";
+  house: string;
+  region: string;
+}
+
+interface ArianneMartell1stArmyUnitKilled {
+  type: "arianne-martell-1st-army-unit-killed";
+  house: string;
+  affectedHouse: string;
+  unit: string;
 }

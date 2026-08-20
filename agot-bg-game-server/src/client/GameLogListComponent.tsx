@@ -1507,19 +1507,26 @@ export default class GameLogListComponent extends Component<GameLogListComponent
         );
       }
       case "mace-tyrell-no-footman-available":
+        const houseCardName = data.houseCard
+          ? this.allHouseCards.get(data.houseCard).name
+          : "Mace Tyrell";
         return (
           <p>
-            <b>Mace Tyrell</b>: No enemy Footman was available to be destroyed.
+            <b>{houseCardName}</b>: No enemy Footman was available to be
+            destroyed.
           </p>
         );
 
       case "mace-tyrell-footman-killed": {
         const house = this.game.houses.get(data.house);
         const region = this.world.regions.get(data.region);
+        const houseCardName = data.houseCard
+          ? this.allHouseCards.get(data.houseCard).name
+          : "Mace Tyrell";
 
         return (
           <p>
-            <b>Mace Tyrell</b>: House <b>{house.name}</b> destroyed an enemy
+            <b>{houseCardName}</b>: House <b>{house.name}</b> destroyed an enemy
             Footman in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
           </p>
         );
@@ -3232,14 +3239,24 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
-      case "stannis-baratheon-asos-used": {
-        const house = this.game.houses.get(data.house);
-        const oldThroneOwner = this.game.houses.get(data.oldThroneOwner);
+      case "dominance-token-stolen": {
+        const oldHolder = this.game.houses.get(data.oldHolder);
+        const newHolder = this.game.houses.get(data.newHolder);
+        const dominanceToken =
+          data.dominanceToken == "iron-throne"
+            ? "Iron Throne"
+            : data.dominanceToken == "valyrian-steel-blade"
+              ? "Valyrian Steel Blade"
+              : data.dominanceToken == "raven"
+                ? "Raven"
+                : "Unknown";
+
+        const houseCardName = this.allHouseCards.get(data.houseCardId).name;
 
         return (
           <p>
-            <b>Stannis Baratheon</b>: House <b>{house.name}</b> has stolen the
-            Iron Throne dominance token from House <b>{oldThroneOwner.name}</b>.
+            <b>{houseCardName}</b>: House <b>{newHolder.name}</b> has stolen the{" "}
+            {dominanceToken} dominance token from House <b>{oldHolder.name}</b>.
           </p>
         );
       }
@@ -3378,6 +3395,105 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
         break;
+      }
+      case "jamie-lannister-power-tokens-gained": {
+        const house = this.game.houses.get(data.house);
+        const powerTokensGained = data.powerTokensGained;
+
+        return (
+          <p>
+            <b>Jamie Lannister</b>: House <b>{house.name}</b> gained{" "}
+            <b>{powerTokensGained}</b> Power&nbsp;token
+            {powerTokensGained != 1 ? "s" : ""}.
+          </p>
+        );
+      }
+      case "maester-luwin-used": {
+        const house = this.game.houses.get(data.house);
+        const houseCard = this.allHouseCards.get(data.houseCard);
+        return (
+          <p>
+            <b>Maester Luwin</b>: House <b>{house.name}</b> decided to return{" "}
+            <b>{houseCard.name}</b> to hand.
+          </p>
+        );
+      }
+      case "melisandre-of-asshai-1st-used": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const houseCard = this.allHouseCards.get(data.houseCard);
+        return (
+          <p>
+            <b>Melisandre of Asshai</b>: House <b>{house.name}</b> spent 1
+            Power&nbsp;token to discard <b>{houseCard.name}</b> from House{" "}
+            <b>{affectedHouse.name}</b>.
+          </p>
+        );
+      }
+      case "asha-greyjoy-1st-no-order-available":
+        return (
+          <p>
+            <b>Asha Greyjoy</b>: There were no Order tokens to be removed.
+          </p>
+        );
+
+      case "asha-greyjoy-1st-order-removed": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const region = this.world.regions.get(data.region);
+        const removedOrder = orders.get(data.order);
+
+        return (
+          <p>
+            <b>Asha Greyjoy</b>: House <b>{house.name}</b> removed a{" "}
+            <b>{removedOrder.type.name}</b> Order of <b>{affectedHouse.name}</b>{" "}
+            in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
+          </p>
+        );
+      }
+      case "ellaria-sand-1st-no-knight-available": {
+        const house = this.game.houses.get(data.house);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> had no available
+            Knight to upgrade to.
+          </p>
+        );
+      }
+      case "ellaria-sand-1st-no-footman-available": {
+        const house = this.game.houses.get(data.house);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> had no available
+            Footman to upgrade.
+          </p>
+        );
+      }
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
+        const house = this.game.houses.get(data.house);
+        const region = this.world.regions.get(data.region);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> upgraded a Footman to
+            a Knight in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
+          </p>
+        );
+      }
+      case "arianne-martell-1st-army-unit-killed": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const unitType = unitTypes.get(data.unit);
+
+        return (
+          <p>
+            <b>Arianne Martell</b>: House <b>{house.name}</b> killed a{" "}
+            <b>{this.fogOfWar ? fogOfWarUnit : unitType.name}</b> of House{" "}
+            <b>{affectedHouse.name}</b>.
+          </p>
+        );
       }
     }
   }

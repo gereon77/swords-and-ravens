@@ -311,6 +311,20 @@ export default class CombatSnapshotMigrator {
         this.combatResultData.winnerArmy.push("knight");
         return snap;
       }
+      case "arianne-martell-1st-army-unit-killed": {
+        if (!snap.gameSnapshot) return snap;
+        const region = snap.getRegion(this.combatResultData.winnerRegion);
+        region.removeUnit(log.unit, log.affectedHouse);
+        pullFirst(this.combatResultData.winnerArmy, log.unit);
+        return snap;
+      }
+      case "ser-ilyn-payne-asos-casualty-suffered": {
+        if (!snap.gameSnapshot) return snap;
+        const region = snap.getRegion(this.combatResultData.loserRegion);
+        region.removeUnit(log.unit, log.affectedHouse);
+        pullFirst(this.combatResultData.loserArmy, log.unit);
+        return snap;
+      }
       default:
         throw new Error(`Unhandled combat result log type '${log.type}'`);
     }

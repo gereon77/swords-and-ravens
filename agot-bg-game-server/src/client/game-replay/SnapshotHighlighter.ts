@@ -402,11 +402,13 @@ export default class SnapshotHighlighter {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }
-      case "cersei-lannister-order-removed": {
+      case "cersei-lannister-order-removed":
+      case "asha-greyjoy-1st-order-removed": {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }
-      case "renly-baratheon-footman-upgraded-to-knight": {
+      case "renly-baratheon-footman-upgraded-to-knight":
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }
@@ -421,9 +423,31 @@ export default class SnapshotHighlighter {
         break;
       }
       case "ser-ilyn-payne-asos-casualty-suffered":
+      case "arianne-martell-1st-army-unit-killed": {
+        // Get combat result data from migrator:
+        const crd = this.replayManager.migrator.combatResultData;
+        if (!crd) {
+          break;
+        }
+
+        this.regionsToHighlight.set(
+          crd.defenderRegion,
+          snap.getHouse(log.affectedHouse).color
+        );
+        break;
+      }
       case "beric-dondarrion-used": {
-        // no region info here. we would need that from another log
-        // and we wont do that in a loop for highlighting rare logs
+        // Get combat result data from migrator:
+        const crd = this.replayManager.migrator.combatResultData;
+        if (!crd) {
+          break;
+        }
+
+        this.regionsToHighlight.set(
+          crd.defenderRegion,
+          snap.getHouse(log.house).color
+        );
+
         break;
       }
     }

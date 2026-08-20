@@ -6,7 +6,8 @@ import {
   modBHouseCardsData,
   HouseCardData,
   asosHouseCardsData,
-  createHouseCard,
+  firstEditionHouseCardsData,
+  createHouseCard
 } from "../../common/ingame-game-state/game-data-structure/createGame";
 import HouseCard from "../../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import houseCardAbilities from "../../common/ingame-game-state/game-data-structure/house-card/houseCardAbilities";
@@ -46,7 +47,7 @@ function createNerfedHouseCards(): [string, HouseCard][] {
 
   return [
     [balonNerfed.id, balonNerfed],
-    [aeronDwdNerfed.id, aeronDwdNerfed],
+    [aeronDwdNerfed.id, aeronDwdNerfed]
   ];
 }
 
@@ -57,6 +58,7 @@ function getAllHouseCards(): [string, HouseCard][] {
     createHouseCards(ffcHouseCardsData),
     createHouseCards(modBHouseCardsData),
     createHouseCards(asosHouseCardsData),
+    createHouseCards(firstEditionHouseCardsData),
     vassalHouseCards.map((hc) => [hc.id, hc] as [string, HouseCard]),
     createNerfedHouseCards()
   );

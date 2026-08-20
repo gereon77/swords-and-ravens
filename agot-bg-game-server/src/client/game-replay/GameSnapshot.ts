@@ -13,6 +13,9 @@ export default class GameSnapshot implements IGameSnapshot {
   @observable housesOnVictoryTrack: HouseSnapshot[];
   @observable vsbUsed?: boolean;
   @observable ironBank?: IronBankSnapshot;
+  @observable overwrittenIronThroneHolder?: string;
+  @observable overwrittenValyrianSteelBladeHolder?: string;
+  @observable overwrittenRavenHolder?: string;
 
   constructor(data: IGameSnapshot) {
     this.round = data.round;
@@ -28,6 +31,10 @@ export default class GameSnapshot implements IGameSnapshot {
     this.ironBank = data.ironBank
       ? new IronBankSnapshot(data.ironBank)
       : undefined;
+    this.overwrittenIronThroneHolder = data.overwrittenIronThroneHolder;
+    this.overwrittenValyrianSteelBladeHolder =
+      data.overwrittenValyrianSteelBladeHolder;
+    this.overwrittenRavenHolder = data.overwrittenRavenHolder;
   }
 
   getCopy(): GameSnapshot {

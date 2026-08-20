@@ -95,8 +95,7 @@ const modifyingGameLogTypes = new Set([
   "doran-martell-asos-used",
   "melisandre-of-asshai-power-tokens-gained",
   "salladhar-saan-asos-power-tokens-changed",
-  "ser-ilyn-payne-asos-casualty-suffered",
-  "stannis-baratheon-asos-used",
+  "dominance-token-stolen",
   "control-power-token-removed",
   "last-land-unit-transformed-to-dragon",
   "cersei-lannister-order-removed",
@@ -111,6 +110,11 @@ const modifyingGameLogTypes = new Set([
   "attack",
   "vassals-claimed",
   "claim-vassals-began",
+  "jamie-lannister-power-tokens-gained",
+  "maester-luwin-used",
+  "melisandre-of-asshai-1st-used",
+  "asha-greyjoy-1st-order-removed",
+  "ellaria-sand-1st-footman-upgraded-to-knight"
 ]);
 
 const relatedCombatResultTypes = new Set([
@@ -121,6 +125,8 @@ const relatedCombatResultTypes = new Set([
   "arianne-martell-force-retreat",
   "retreat-casualties-suffered",
   "renly-baratheon-footman-upgraded-to-knight",
+  "ser-ilyn-payne-asos-casualty-suffered",
+  "arianne-martell-1st-army-unit-killed"
 ]);
 
 const combatTerminationLogTypes = new Set([
@@ -130,7 +136,7 @@ const combatTerminationLogTypes = new Set([
   "action-phase-resolve-consolidate-power-began",
   "winner-declared",
   "turn-begin",
-  "westeros-phase-began",
+  "westeros-phase-began"
 ]);
 
 const replacementLogTypes = new Set(["player-replaced", "vassal-replaced"]);
