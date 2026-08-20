@@ -3434,6 +3434,37 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
+      case "ellaria-sand-1st-no-knight-available": {
+        const house = this.game.houses.get(data.house);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> had no available
+            Knight to upgrade to.
+          </p>
+        );
+      }
+      case "ellaria-sand-1st-no-footman-available": {
+        const house = this.game.houses.get(data.house);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> had no available
+            Footman to upgrade.
+          </p>
+        );
+      }
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
+        const house = this.game.houses.get(data.house);
+        const region = this.world.regions.get(data.region);
+
+        return (
+          <p>
+            <b>Ellaria Sand</b>: House <b>{house.name}</b> upgraded a Footman to
+            a Knight in <b>{this.fogOfWar ? fogOfWarRegion : region.name}</b>.
+          </p>
+        );
+      }
     }
   }
 

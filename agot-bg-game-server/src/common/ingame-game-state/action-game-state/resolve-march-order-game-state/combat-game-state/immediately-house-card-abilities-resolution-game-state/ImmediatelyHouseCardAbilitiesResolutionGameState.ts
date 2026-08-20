@@ -24,6 +24,9 @@ import MaceTyrellAbilityGameState, {
 import TyrionLannisterAbilityGameState, {
   SerializedTyrionLannisterAbilityGameState
 } from "../cancel-house-card-abilities-game-state/tyrion-lannister-ability-game-state/TyrionLannisterAbilityGameState";
+import EllariaSand1stAbilityGameState, {
+  SerializedEllariaSand1stAbilityGameState
+} from "./ellaria-sand-1st-ability-game-state/EllariaSand1stAbilityGameState";
 
 export default class ImmediatelyHouseCardAbilitiesResolutionGameState extends GameState<
   CombatGameState,
@@ -34,6 +37,7 @@ export default class ImmediatelyHouseCardAbilitiesResolutionGameState extends Ga
     | AeronDamphairAbilityGameState
     | MaceTyrellAbilityGameState
     | TyrionLannisterAbilityGameState
+    | EllariaSand1stAbilityGameState
   >
 > {
   get combatGameState(): CombatGameState {
@@ -53,6 +57,7 @@ export default class ImmediatelyHouseCardAbilitiesResolutionGameState extends Ga
         | AeronDamphairAbilityGameState
         | MaceTyrellAbilityGameState
         | TyrionLannisterAbilityGameState
+        | EllariaSand1stAbilityGameState
       >(this)
     ).firstStart();
   }
@@ -113,6 +118,11 @@ export default class ImmediatelyHouseCardAbilitiesResolutionGameState extends Ga
           houseCardResolution,
           data
         );
+      case "ellaria-sand-1st-ability":
+        return EllariaSand1stAbilityGameState.deserializeFromServer(
+          houseCardResolution,
+          data
+        );
     }
   }
 
@@ -146,5 +156,6 @@ export interface SerializedImmediatelyHouseCardAbilitiesResolutionGameState {
     | SerializedAeronDamphairAbilityGameState
     | SerializedMaceTyrellAbilityGameState
     | SerializedTyrionLannisterAbilityGameState
+    | SerializedEllariaSand1stAbilityGameState
   >;
 }

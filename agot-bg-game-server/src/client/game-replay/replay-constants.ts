@@ -124,7 +124,8 @@ const relatedCombatResultTypes = new Set([
   "arianne-martell-prevent-movement",
   "arianne-martell-force-retreat",
   "retreat-casualties-suffered",
-  "renly-baratheon-footman-upgraded-to-knight"
+  "renly-baratheon-footman-upgraded-to-knight",
+  "ellaria-sand-1st-footman-upgraded-to-knight"
 ]);
 
 const combatTerminationLogTypes = new Set([

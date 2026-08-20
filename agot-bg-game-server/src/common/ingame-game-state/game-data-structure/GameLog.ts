@@ -198,7 +198,10 @@ export type GameLogData =
   | MaesterLuwinUsed
   | MelisandreOfAsshai1stUsed
   | AshaGreyjoy1stNoOrderAvailable
-  | AshaGreyjoy1stOrderRemoved;
+  | AshaGreyjoy1stOrderRemoved
+  | EllariaSand1stNoFootmanAvailable
+  | EllariaSand1stNoKnightAvailable
+  | EllariaSand1stFootmanUpgradedToKnight;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -320,7 +323,8 @@ export type ModifyingGameLog =
   | JamieLannisterPowerTokensGained
   | MaesterLuwinUsed
   | MelisandreOfAsshai1stUsed
-  | AshaGreyjoy1stOrderRemoved;
+  | AshaGreyjoy1stOrderRemoved
+  | EllariaSand1stFootmanUpgradedToKnight;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -1491,4 +1495,20 @@ interface AshaGreyjoy1stOrderRemoved {
   affectedHouse: string;
   region: string;
   order: number;
+}
+
+interface EllariaSand1stNoFootmanAvailable {
+  type: "ellaria-sand-1st-no-footman-available";
+  house: string;
+}
+
+interface EllariaSand1stNoKnightAvailable {
+  type: "ellaria-sand-1st-no-knight-available";
+  house: string;
+}
+
+interface EllariaSand1stFootmanUpgradedToKnight {
+  type: "ellaria-sand-1st-footman-upgraded-to-knight";
+  house: string;
+  region: string;
 }

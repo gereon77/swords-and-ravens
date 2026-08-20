@@ -407,7 +407,8 @@ export default class SnapshotHighlighter {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }
-      case "renly-baratheon-footman-upgraded-to-knight": {
+      case "renly-baratheon-footman-upgraded-to-knight":
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
         this.regionsToHighlight.set(log.region, snap.getHouse(log.house).color);
         break;
       }

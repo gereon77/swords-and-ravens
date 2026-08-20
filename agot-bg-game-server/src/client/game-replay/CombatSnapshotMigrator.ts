@@ -303,7 +303,8 @@ export default class CombatSnapshotMigrator {
           throw new Error(`Unable to apply log ${JSON.stringify(log)}`);
         }
       }
-      case "renly-baratheon-footman-upgraded-to-knight": {
+      case "renly-baratheon-footman-upgraded-to-knight":
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
         const region = snap.getRegion(log.region);
         region.removeUnit("footman", log.house);
         region.createUnit("knight", log.house);

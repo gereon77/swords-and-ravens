@@ -14,6 +14,8 @@ import MaceTyrellAbilityComponent from "./MaceTyrellAbilityComponent";
 import React from "react";
 import TyrionLannisterAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/cancel-house-card-abilities-game-state/tyrion-lannister-ability-game-state/TyrionLannisterAbilityGameState";
 import TyrionLannisterAbilityComponent from "./TyrionLannisterAbilityComponent";
+import EllariaSand1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/immediately-house-card-abilities-resolution-game-state/ellaria-sand-1st-ability-game-state/EllariaSand1stAbilityGameState";
+import EllariaSand1stAbilityComponent from "./EllariaSand1stAbilityComponent";
 
 @observer
 export default class ImmediatelyHouseCardAbilitiesResolutionComponent extends Component<
@@ -30,7 +32,8 @@ export default class ImmediatelyHouseCardAbilitiesResolutionComponent extends Co
           [DoranMartellAbilityGameState, DoranMartellAbilityComponent],
           [AeronDamphairAbilityGameState, AeronDamphairAbilityComponent],
           [MaceTyrellAbilityGameState, MaceTyrellAbilityComponent],
-          [TyrionLannisterAbilityGameState, TyrionLannisterAbilityComponent]
+          [TyrionLannisterAbilityGameState, TyrionLannisterAbilityComponent],
+          [EllariaSand1stAbilityGameState, EllariaSand1stAbilityComponent]
         ]
       )
     );
