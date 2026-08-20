@@ -8,7 +8,7 @@ export default class RenlyBaratheonHouseCardAbility extends HouseCardAbility {
   afterWinnerDetermination(
     afterWinnerDetermination: AfterWinnerDeterminationGameState,
     house: House,
-    _houseCard: HouseCard
+    houseCard: HouseCard
   ): void {
     if (afterWinnerDetermination.postCombatGameState.winner == house) {
       afterWinnerDetermination.childGameState
@@ -17,7 +17,7 @@ export default class RenlyBaratheonHouseCardAbility extends HouseCardAbility {
             afterWinnerDetermination.childGameState
           )
         )
-        .firstStart(house);
+        .firstStart(house, houseCard.id == "renly-baratheon");
       return;
     }
     afterWinnerDetermination.childGameState.onHouseCardResolutionFinish(house);

@@ -36,8 +36,11 @@ export default class RenlyBaratheonAbilityGameState extends GameState<
       .ingameGameState;
   }
 
-  firstStart(house: House): void {
-    const upgradableFootmen = this.getUpgradableFootmen(house);
+  firstStart(house: House, includeSupportingUnits: boolean): void {
+    const upgradableFootmen = this.getUpgradableFootmen(
+      house,
+      includeSupportingUnits
+    );
 
     if (this.game.getAvailableUnitsOfType(house, knight) == 0) {
       this.ingame.log(
@@ -69,10 +72,13 @@ export default class RenlyBaratheonAbilityGameState extends GameState<
     }
   }
 
-  getUpgradableFootmen(house: House): Unit[] {
+  getUpgradableFootmen(house: House, includeSupportingUnits: boolean): Unit[] {
     // Assemble a list of all units belonging to the house (supporting or not), and then take the footmen among them
     const units = [...this.combatGameState.houseCombatDatas.get(house).army];
-    if (this.combatGameState.supporters.tryGet(house, null) == house) {
+    if (
+      includeSupportingUnits &&
+      this.combatGameState.supporters.tryGet(house, null) == house
+    ) {
       units.push(
         ..._.flatMap(
           this.combatGameState

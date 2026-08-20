@@ -89,7 +89,6 @@ import JaimeLannister1stHouseCardAbility from "./JaimeLannister1stHouseCardAbili
 import VargoHoat1stHouseCardAbility from "./VargoHoat1stHouseCardAbility";
 import RobbStark1stHouseCardAbility from "./RobbStark1stHouseCardAbility";
 import MaesterLuwin1stHouseCardAbility from "./MaesterLuwin1stHouseCardAbility";
-import RenlyBaratheon1stHouseCardAbility from "./RenlyBaratheon1stHouseCardAbility";
 import SalladhorSaan1stHouseCardAbility from "./SalladhorSaan1stHouseCardAbility";
 import MelisandreOfAsshai1stHouseCardAbility from "./MelisandreOfAsshai1stHouseCardAbility";
 import AshaGreyjoy1stHouseCardAbility from "./AshaGreyjoy1stHouseCardAbility";
@@ -513,11 +512,6 @@ export const maesterLuwin1st = new MaesterLuwin1stHouseCardAbility(
   "maester-luwin-1st",
   "If you win this battle, you may return one of your discarded House Cards to your hand."
 );
-export const renlyBaratheon1st = new RenlyBaratheon1stHouseCardAbility(
-  "renly-baratheon-1st",
-  "If you win this battle, you may upgrade 1 of your footman to knight. That footman must have" +
-    " participated in the battle as either attacker or defender."
-);
 export const salladhorSaan1st = new SalladhorSaan1stHouseCardAbility(
   "salladhor-saan-1st",
   "The combat strength of any opposing supporting ships is reduced to 0."
@@ -655,7 +649,6 @@ const houseCardAbilities = new BetterMap<string, HouseCardAbility>([
   [vargoHoat1st.id, vargoHoat1st],
   [robbStark1st.id, robbStark1st],
   [maesterLuwin1st.id, maesterLuwin1st],
-  [renlyBaratheon1st.id, renlyBaratheon1st],
   [salladhorSaan1st.id, salladhorSaan1st],
   [melisandreOfAsshai1st.id, melisandreOfAsshai1st],
   [ashaGreyjoy1st.id, ashaGreyjoy1st],
