@@ -3465,6 +3465,19 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
+      case "arianne-martell-1st-army-unit-killed": {
+        const house = this.game.houses.get(data.house);
+        const affectedHouse = this.game.houses.get(data.affectedHouse);
+        const unitType = unitTypes.get(data.unit);
+
+        return (
+          <p>
+            <b>Arianne Martell</b>: House <b>{house.name}</b> killed a{" "}
+            <b>{this.fogOfWar ? fogOfWarUnit : unitType.name}</b> of House{" "}
+            <b>{affectedHouse.name}</b>.
+          </p>
+        );
+      }
     }
   }
 

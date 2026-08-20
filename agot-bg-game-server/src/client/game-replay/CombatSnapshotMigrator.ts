@@ -303,13 +303,26 @@ export default class CombatSnapshotMigrator {
           throw new Error(`Unable to apply log ${JSON.stringify(log)}`);
         }
       }
-      case "renly-baratheon-footman-upgraded-to-knight":
-      case "ellaria-sand-1st-footman-upgraded-to-knight": {
+      case "renly-baratheon-footman-upgraded-to-knight": {
         const region = snap.getRegion(log.region);
         region.removeUnit("footman", log.house);
         region.createUnit("knight", log.house);
         pullFirst(this.combatResultData.winnerArmy, "footman");
         this.combatResultData.winnerArmy.push("knight");
+        return snap;
+      }
+      case "arianne-martell-1st-army-unit-killed": {
+        if (!snap.gameSnapshot) return snap;
+        const region = snap.getRegion(this.combatResultData.winnerRegion);
+        region.removeUnit(log.unit, log.affectedHouse);
+        pullFirst(this.combatResultData.winnerArmy, log.unit);
+        return snap;
+      }
+      case "ser-ilyn-payne-asos-casualty-suffered": {
+        if (!snap.gameSnapshot) return snap;
+        const region = snap.getRegion(this.combatResultData.loserRegion);
+        region.removeUnit(log.unit, log.affectedHouse);
+        pullFirst(this.combatResultData.loserArmy, log.unit);
         return snap;
       }
       default:

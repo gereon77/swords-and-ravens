@@ -1052,14 +1052,6 @@ export default class SnapshotMigrator {
         );
         return snap;
       }
-      case "ser-ilyn-payne-asos-casualty-suffered": {
-        if (!snap.gameSnapshot) return snap;
-        if (!this.combatResultData) throw new Error("combat result not set");
-        const crd = this.combatResultData;
-        const region = snap.getRegion(crd.loserRegion);
-        region.removeUnit(log.unit, log.affectedHouse);
-        return snap;
-      }
       case "varys-used": {
         if (!snap.gameSnapshot) return snap;
         const track = snap.getInfluenceTrack(1);
@@ -1072,6 +1064,12 @@ export default class SnapshotMigrator {
         snap.gameSnapshot.housesOnVictoryTrack.forEach((h) => {
           h.suzerainHouseId = undefined;
         });
+        return snap;
+      }
+      case "ellaria-sand-1st-footman-upgraded-to-knight": {
+        const region = snap.getRegion(log.region);
+        region.removeUnit("footman", log.house);
+        region.createUnit("knight", log.house);
         return snap;
       }
 

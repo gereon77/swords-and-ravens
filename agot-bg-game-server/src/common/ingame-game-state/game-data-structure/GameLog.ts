@@ -201,7 +201,8 @@ export type GameLogData =
   | AshaGreyjoy1stOrderRemoved
   | EllariaSand1stNoFootmanAvailable
   | EllariaSand1stNoKnightAvailable
-  | EllariaSand1stFootmanUpgradedToKnight;
+  | EllariaSand1stFootmanUpgradedToKnight
+  | ArianneMartell1stArmyUnitKilled;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -324,7 +325,8 @@ export type ModifyingGameLog =
   | MaesterLuwinUsed
   | MelisandreOfAsshai1stUsed
   | AshaGreyjoy1stOrderRemoved
-  | EllariaSand1stFootmanUpgradedToKnight;
+  | EllariaSand1stFootmanUpgradedToKnight
+  | ArianneMartell1stArmyUnitKilled;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -1511,4 +1513,11 @@ interface EllariaSand1stFootmanUpgradedToKnight {
   type: "ellaria-sand-1st-footman-upgraded-to-knight";
   house: string;
   region: string;
+}
+
+interface ArianneMartell1stArmyUnitKilled {
+  type: "arianne-martell-1st-army-unit-killed";
+  house: string;
+  affectedHouse: string;
+  unit: string;
 }

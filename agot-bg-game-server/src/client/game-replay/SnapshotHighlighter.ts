@@ -423,9 +423,31 @@ export default class SnapshotHighlighter {
         break;
       }
       case "ser-ilyn-payne-asos-casualty-suffered":
+      case "arianne-martell-1st-army-unit-killed": {
+        // Get combat result data from migrator:
+        const crd = this.replayManager.migrator.combatResultData;
+        if (!crd) {
+          break;
+        }
+
+        this.regionsToHighlight.set(
+          crd.defenderRegion,
+          snap.getHouse(log.affectedHouse).color
+        );
+        break;
+      }
       case "beric-dondarrion-used": {
-        // no region info here. we would need that from another log
-        // and we wont do that in a loop for highlighting rare logs
+        // Get combat result data from migrator:
+        const crd = this.replayManager.migrator.combatResultData;
+        if (!crd) {
+          break;
+        }
+
+        this.regionsToHighlight.set(
+          crd.defenderRegion,
+          snap.getHouse(log.house).color
+        );
+
         break;
       }
     }

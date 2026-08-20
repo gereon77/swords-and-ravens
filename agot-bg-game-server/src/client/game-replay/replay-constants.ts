@@ -95,7 +95,6 @@ const modifyingGameLogTypes = new Set([
   "doran-martell-asos-used",
   "melisandre-of-asshai-power-tokens-gained",
   "salladhar-saan-asos-power-tokens-changed",
-  "ser-ilyn-payne-asos-casualty-suffered",
   "stannis-baratheon-asos-used",
   "control-power-token-removed",
   "last-land-unit-transformed-to-dragon",
@@ -114,7 +113,8 @@ const modifyingGameLogTypes = new Set([
   "jamie-lannister-power-tokens-gained",
   "maester-luwin-used",
   "melisandre-of-asshai-1st-used",
-  "asha-greyjoy-1st-order-removed"
+  "asha-greyjoy-1st-order-removed",
+  "ellaria-sand-1st-footman-upgraded-to-knight"
 ]);
 
 const relatedCombatResultTypes = new Set([
@@ -125,7 +125,8 @@ const relatedCombatResultTypes = new Set([
   "arianne-martell-force-retreat",
   "retreat-casualties-suffered",
   "renly-baratheon-footman-upgraded-to-knight",
-  "ellaria-sand-1st-footman-upgraded-to-knight"
+  "ser-ilyn-payne-asos-casualty-suffered",
+  "arianne-martell-1st-army-unit-killed"
 ]);
 
 const combatTerminationLogTypes = new Set([
