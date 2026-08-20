@@ -41,7 +41,7 @@ export default class InfluenceIconComponent extends Component<InfluenceIconCompo
         // Highlight vassals of token holder as well
         const possibleCommander = this.ingame.game.vassalRelations.tryGet(
           this.house,
-          null,
+          null
         );
         if (possibleCommander == tokenHolder) {
           isTokenHolder = true;
@@ -64,12 +64,12 @@ export default class InfluenceIconComponent extends Component<InfluenceIconCompo
           className={classNames(
             "influence-icon",
             { "smedium-outline": isTokenHolder },
-            { invisible: this.house == null },
+            { invisible: this.house == null }
           )}
           style={{
             backgroundImage: this.house
               ? `url(${houseInfluenceImages.get(this.house.id)})`
-              : "none",
+              : "none"
           }}
         ></div>
       </OverlayTrigger>

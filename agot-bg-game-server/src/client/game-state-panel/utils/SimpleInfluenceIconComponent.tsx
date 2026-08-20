@@ -38,16 +38,16 @@ export default class SimpleInfluenceIconComponent extends Component<SimpleInflue
       >
         <div
           className={classNames("influence-icon", {
-            invisible: this.house == null,
+            invisible: this.house == null
           })}
           style={{
             ...{
               backgroundImage: this.house
                 ? `url(${houseInfluenceImages.get(this.house.id)})`
                 : "none",
-              height: height,
+              height: height
             },
-            ...this.props.style,
+            ...this.props.style
           }}
         />
       </OverlayTrigger>

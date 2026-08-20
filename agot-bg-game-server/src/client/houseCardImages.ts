@@ -95,243 +95,243 @@ import jonConningtonImage from "../../public/images/house-cards/JonConnington.pn
 import bericImage from "../../public/images/house-cards/BericDondarrion.png";
 import bronnImage from "../../public/images/house-cards/Bronn.png";
 
-import alayneStoneFfcImage from "../../public/images/house-cards/AlayneStone-ffc.png"
-import anyaWaynwoodModImage from "../../public/images/house-cards/AnyaWaynwood-mod.png"
-import arstanWhitebeardAImage from "../../public/images/house-cards/ArstanWhitebeard-A.png"
-import bronzeYohnRoyceFfcImage from "../../public/images/house-cards/BronzeYohnRoyce-ffc.png"
-import bronzeYohnRoyceModImage from "../../public/images/house-cards/BronzeYohnRoyce-mod.png"
-import captainGroleoBImage from "../../public/images/house-cards/CaptainGroleo-B.png"
-import daarioNaharisBImage from "../../public/images/house-cards/DaarioNaharis-B.png"
-import daenerysTargaryenAImage from "../../public/images/house-cards/DaenerysTargaryen-A.png"
-import daenerysTargaryenBImage from "../../public/images/house-cards/DaenerysTargaryen-B.png"
-import godricBorrellModImage from "../../public/images/house-cards/GodricBorrell-mod.png"
-import grayWormBImage from "../../public/images/house-cards/GrayWorm-B.png"
-import harryHardyngModImage from "../../public/images/house-cards/HarryHardyng-mod.png"
-import illyrioMopatisAImage from "../../public/images/house-cards/IllyrioMopatis-A.png"
-import khalDrogoAImage from "../../public/images/house-cards/KhalDrogo-A.png"
-import littlefingerFfcImage from "../../public/images/house-cards/Littlefinger-ffc.png"
-import lothorBruneFfcImage from "../../public/images/house-cards/LothorBrune-ffc.png"
-import lynCorbrayFfcImage from "../../public/images/house-cards/LynCorbray-ffc.png"
-import lysaArrynFfcImage from "../../public/images/house-cards/LysaArryn-ffc.png"
-import lysaArrynModImage from "../../public/images/house-cards/LysaArryn-mod.png"
-import missandeiBImage from "../../public/images/house-cards/Missandei-B.png"
-import nestorRoyceFfcImage from "../../public/images/house-cards/NestorRoyce-ffc.png"
-import rakharoBImage from "../../public/images/house-cards/Rakharo-B.png"
-import robertArrynModImage from "../../public/images/house-cards/RobertArryn-mod.png"
-import serJorahMormontAImage from "../../public/images/house-cards/SerJorahMormont-A.png"
-import serVardisEgenModImage from "../../public/images/house-cards/SerVardisEgen-mod.png"
-import strongBelwasBImage from "../../public/images/house-cards/StrongBelwas-B.png"
-import viserysTargaryenAImage from "../../public/images/house-cards/ViserysTargaryen-A.png"
-import xaroXhoanDaxosAImage from "../../public/images/house-cards/XaroXhoanDaxos-A.png"
+import alayneStoneFfcImage from "../../public/images/house-cards/AlayneStone-ffc.png";
+import anyaWaynwoodModImage from "../../public/images/house-cards/AnyaWaynwood-mod.png";
+import arstanWhitebeardAImage from "../../public/images/house-cards/ArstanWhitebeard-A.png";
+import bronzeYohnRoyceFfcImage from "../../public/images/house-cards/BronzeYohnRoyce-ffc.png";
+import bronzeYohnRoyceModImage from "../../public/images/house-cards/BronzeYohnRoyce-mod.png";
+import captainGroleoBImage from "../../public/images/house-cards/CaptainGroleo-B.png";
+import daarioNaharisBImage from "../../public/images/house-cards/DaarioNaharis-B.png";
+import daenerysTargaryenAImage from "../../public/images/house-cards/DaenerysTargaryen-A.png";
+import daenerysTargaryenBImage from "../../public/images/house-cards/DaenerysTargaryen-B.png";
+import godricBorrellModImage from "../../public/images/house-cards/GodricBorrell-mod.png";
+import grayWormBImage from "../../public/images/house-cards/GrayWorm-B.png";
+import harryHardyngModImage from "../../public/images/house-cards/HarryHardyng-mod.png";
+import illyrioMopatisAImage from "../../public/images/house-cards/IllyrioMopatis-A.png";
+import khalDrogoAImage from "../../public/images/house-cards/KhalDrogo-A.png";
+import littlefingerFfcImage from "../../public/images/house-cards/Littlefinger-ffc.png";
+import lothorBruneFfcImage from "../../public/images/house-cards/LothorBrune-ffc.png";
+import lynCorbrayFfcImage from "../../public/images/house-cards/LynCorbray-ffc.png";
+import lysaArrynFfcImage from "../../public/images/house-cards/LysaArryn-ffc.png";
+import lysaArrynModImage from "../../public/images/house-cards/LysaArryn-mod.png";
+import missandeiBImage from "../../public/images/house-cards/Missandei-B.png";
+import nestorRoyceFfcImage from "../../public/images/house-cards/NestorRoyce-ffc.png";
+import rakharoBImage from "../../public/images/house-cards/Rakharo-B.png";
+import robertArrynModImage from "../../public/images/house-cards/RobertArryn-mod.png";
+import serJorahMormontAImage from "../../public/images/house-cards/SerJorahMormont-A.png";
+import serVardisEgenModImage from "../../public/images/house-cards/SerVardisEgen-mod.png";
+import strongBelwasBImage from "../../public/images/house-cards/StrongBelwas-B.png";
+import viserysTargaryenAImage from "../../public/images/house-cards/ViserysTargaryen-A.png";
+import xaroXhoanDaxosAImage from "../../public/images/house-cards/XaroXhoanDaxos-A.png";
 
-import aeronDamphairASoSImage from "../../public/images/house-cards/storm-of-swords/AeronDamphair.png"
-import andrikTheUnsmilingImage from "../../public/images/house-cards/storm-of-swords/AndrikTheUnsmiling.png"
-import areoHotahASoSImage from "../../public/images/house-cards/storm-of-swords/AreoHotah.png"
-import arianneMartellASoSImage from "../../public/images/house-cards/storm-of-swords/ArianneMartell.png"
-import ashaGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/AshaGreyjoy.png"
-import balonGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/BalonGreyjoy.png"
-import branStarkImage from "../../public/images/house-cards/storm-of-swords/BranStark.png"
-import catelynStarkASoSImage from "../../public/images/house-cards/storm-of-swords/CatelynStark.png"
-import cerseiLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/CerseiLannister.png"
-import dagmerCleftjawImage from "../../public/images/house-cards/storm-of-swords/DagmerCleftjaw.png"
-import darkstarASoSImage from "../../public/images/house-cards/storm-of-swords/Darkstar.png"
-import devanSeaworthImage from "../../public/images/house-cards/storm-of-swords/DevanSeaworth.png"
-import doranMartellASoSImage from "../../public/images/house-cards/storm-of-swords/DoranMartell.png"
-import eddardStarkASoSImage from "../../public/images/house-cards/storm-of-swords/EddardStark.png"
-import joffreyLannisterImage from "../../public/images/house-cards/storm-of-swords/JoffreyLannister.png"
-import joryCasselImage from "../../public/images/house-cards/storm-of-swords/JoryCassel.png"
-import maceTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/MaceTyrell.png"
-import maegeMormontImage from "../../public/images/house-cards/storm-of-swords/MaegeMormont.png"
-import maesterCaleotteImage from "../../public/images/house-cards/storm-of-swords/MaesterCaleotte.png"
-import margaeryTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/MargaeryTyrell.png"
-import melisandreOfAsshaiImage from "../../public/images/house-cards/storm-of-swords/MelisandreOfAsshai.png"
-import nymeriaSandImage from "../../public/images/house-cards/storm-of-swords/NymeriaSand.png"
-import queenOfThornsASoSImage from "../../public/images/house-cards/storm-of-swords/QueenOfThorns.png"
-import randyllTarlyASoSImage from "../../public/images/house-cards/storm-of-swords/RandyllTarly.png"
-import renlyBaratheonASoSImage from "../../public/images/house-cards/storm-of-swords/RenlyBaratheon.png"
-import robbStarkImage from "../../public/images/house-cards/storm-of-swords/RobbStark.png"
-import salladharSaanASoSImage from "../../public/images/house-cards/storm-of-swords/SalladharSaan.png"
-import SerAxellFlorentASoSImage from "../../public/images/house-cards/storm-of-swords/SerAxellFlorent.png"
-import serDavosSeaworthASoSImage from "../../public/images/house-cards/storm-of-swords/SerDavosSeaworth.png"
-import serGarlanTyrellImage from "../../public/images/house-cards/storm-of-swords/SerGarlanTyrell.png"
-import serGregorCleganeASoSImage from "../../public/images/house-cards/storm-of-swords/SerGregorClegane.png"
-import serIlynPayneASoSImage from "../../public/images/house-cards/storm-of-swords/SerIlynPayne.png"
-import serJaimeLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/SerJaimeLannister.png"
-import serLorasTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/SerLorasTyrell.png"
-import smalljonUmberImage from "../../public/images/house-cards/storm-of-swords/SmalljonUmber.png"
-import stannisBaratheonASoSImage from "../../public/images/house-cards/storm-of-swords/StannisBaratheon.png"
-import theonGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/TheonGreyjoy.png"
-import theRedViperASoSImage from "../../public/images/house-cards/storm-of-swords/TheRedViper.png"
-import tyrionLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/TyrionLannister.png"
-import tywinLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/TywinLannister.png"
-import victarionGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/VictarionGreyjoy.png"
-import willasTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/WillasTyrell.png"
+import aeronDamphairASoSImage from "../../public/images/house-cards/storm-of-swords/AeronDamphair.png";
+import andrikTheUnsmilingImage from "../../public/images/house-cards/storm-of-swords/AndrikTheUnsmiling.png";
+import areoHotahASoSImage from "../../public/images/house-cards/storm-of-swords/AreoHotah.png";
+import arianneMartellASoSImage from "../../public/images/house-cards/storm-of-swords/ArianneMartell.png";
+import ashaGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/AshaGreyjoy.png";
+import balonGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/BalonGreyjoy.png";
+import branStarkImage from "../../public/images/house-cards/storm-of-swords/BranStark.png";
+import catelynStarkASoSImage from "../../public/images/house-cards/storm-of-swords/CatelynStark.png";
+import cerseiLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/CerseiLannister.png";
+import dagmerCleftjawImage from "../../public/images/house-cards/storm-of-swords/DagmerCleftjaw.png";
+import darkstarASoSImage from "../../public/images/house-cards/storm-of-swords/Darkstar.png";
+import devanSeaworthImage from "../../public/images/house-cards/storm-of-swords/DevanSeaworth.png";
+import doranMartellASoSImage from "../../public/images/house-cards/storm-of-swords/DoranMartell.png";
+import eddardStarkASoSImage from "../../public/images/house-cards/storm-of-swords/EddardStark.png";
+import joffreyLannisterImage from "../../public/images/house-cards/storm-of-swords/JoffreyLannister.png";
+import joryCasselImage from "../../public/images/house-cards/storm-of-swords/JoryCassel.png";
+import maceTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/MaceTyrell.png";
+import maegeMormontImage from "../../public/images/house-cards/storm-of-swords/MaegeMormont.png";
+import maesterCaleotteImage from "../../public/images/house-cards/storm-of-swords/MaesterCaleotte.png";
+import margaeryTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/MargaeryTyrell.png";
+import melisandreOfAsshaiImage from "../../public/images/house-cards/storm-of-swords/MelisandreOfAsshai.png";
+import nymeriaSandImage from "../../public/images/house-cards/storm-of-swords/NymeriaSand.png";
+import queenOfThornsASoSImage from "../../public/images/house-cards/storm-of-swords/QueenOfThorns.png";
+import randyllTarlyASoSImage from "../../public/images/house-cards/storm-of-swords/RandyllTarly.png";
+import renlyBaratheonASoSImage from "../../public/images/house-cards/storm-of-swords/RenlyBaratheon.png";
+import robbStarkImage from "../../public/images/house-cards/storm-of-swords/RobbStark.png";
+import salladharSaanASoSImage from "../../public/images/house-cards/storm-of-swords/SalladharSaan.png";
+import SerAxellFlorentASoSImage from "../../public/images/house-cards/storm-of-swords/SerAxellFlorent.png";
+import serDavosSeaworthASoSImage from "../../public/images/house-cards/storm-of-swords/SerDavosSeaworth.png";
+import serGarlanTyrellImage from "../../public/images/house-cards/storm-of-swords/SerGarlanTyrell.png";
+import serGregorCleganeASoSImage from "../../public/images/house-cards/storm-of-swords/SerGregorClegane.png";
+import serIlynPayneASoSImage from "../../public/images/house-cards/storm-of-swords/SerIlynPayne.png";
+import serJaimeLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/SerJaimeLannister.png";
+import serLorasTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/SerLorasTyrell.png";
+import smalljonUmberImage from "../../public/images/house-cards/storm-of-swords/SmalljonUmber.png";
+import stannisBaratheonASoSImage from "../../public/images/house-cards/storm-of-swords/StannisBaratheon.png";
+import theonGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/TheonGreyjoy.png";
+import theRedViperASoSImage from "../../public/images/house-cards/storm-of-swords/TheRedViper.png";
+import tyrionLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/TyrionLannister.png";
+import tywinLannisterASoSImage from "../../public/images/house-cards/storm-of-swords/TywinLannister.png";
+import victarionGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/VictarionGreyjoy.png";
+import willasTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/WillasTyrell.png";
 
 const houseCardImages = new BetterMap([
-    ["queen-of-thorns", queenImage],
-    ["aeron-damphair", aeronImage],
-    ["alester-florent", alesterImage],
-    ["arianne-martell", arianneImage],
-    ["areo-hotah", aeroImage],
-    ["asha-greyjoy", ashaImage],
-    ["balon-greyjoy", balonImage],
-    ["balon-greyjoy-nerfed", balonNerfedImage],
-    ["the-blackfish", blackfishImage],
-    ["brienne-of-tarth", brienneImage],
-    ["catelyn-stark", catelynImage],
-    ["cersei-lannister", cerseiImage],
-    ["dagmar-cleftjaw", dagmarImage],
-    ["darkstar", darkStarImage],
-    ["ser-davos-seaworth", davosImage],
-    ["doran-martell", doranImage],
-    ["eddard-stark", eddardImage],
-    ["euron-crows-eye", euronImage],
-    ["ser-garlan-tyrell", garlanImage],
-    ["greatjon-umber", greatjonImage],
-    ["ser-gregor-clegane", gregorImage],
-    ["the-hound", houndImage],
-    ["ser-jaime-lannister", jaimeImage],
-    ["ser-kevan-lannister", kevanImage],
-    ["ser-loras-tyrell", lorasImage],
-    ["mace-tyrell", maceImage],
-    ["margaery-tyrell", margaeryImage],
-    ["melisandre", melisandreImage],
-    ["nymeria-sand", nymeriaImage],
-    ["obara-sand", obaraImage],
-    ["patchface", patchfaceImage],
-    ["queen-of-thorns", queenImage],
-    ["randyll-tarly", randyllImage],
-    ["the-red-viper", redViperImage],
-    ["renly-baratheon", renlyImage],
-    ["robb-stark", robbImage],
-    ["ser-rodrick-cassel", rodrickImage],
-    ["roose-bolton", rooseImage],
-    ["salladhor-saan", salladhorImage],
-    ["stannis-baratheon", stannisImage],
-    ["theon-greyjoy", theonImage],
-    ["tyrion-lannister", tyrionImage],
-    ["tywin-lannister", tywinImage],
-    ["victarion-greyjoy", victarionImage],
-    ["rayder", rayderImage],
-    ["melisandre-dwd", melisandreDwDImage],
-    ["jon-snow", jonSnow],
-    ["stannis-baratheon-dwd", stannisDwDImage],
-    ["aeron-damphair-dwd", aeronDwDImage],
-    ["aeron-damphair-dwd-nerfed", aeronDwDNerfedImage],
-    ["qarl-the-maid", qarlTheMaidImage],
-    ["rodrik-the-reader", rodrikTheReaderImage],
-    ["euron-crows-eye-dwd", euronDwDImage],
-    ["qyburn", qyburnImage],
-    ["ser-addam-marbrand", serAddamMarbrandImage],
-    ["ser-ilyn-payne", serIlynPayneImage],
-    ["quentyn-martell", quentynMartellImage],
-    ["ser-gerris-drinkwater", serGerrisDrinkwaterImage],
-    ["doran-martell-dwd", doranMartellImage],
-    ["walder-frey", walderFreyImage],
-    ["reek", reekImage],
-    ["ramsay-bolton", ramsayBoltonImage],
-    ["queen-of-thorns-dwd", queenOfThornsDwDImage],
-    ["paxter-redwyne", paxterRedwyneImage],
-    ["margaery-tyrell-dwd", margaeryTyrellDwDImage],
-    ["mace-tyrell-dwd", maceTyrellDwDImage],
-    ["randyll-tarly-dwd", randyllTarlyDwDImage],
-    ["willas-tyrell", willasTyrellImage],
-    ["ser-jon-fossoway", serJonFossowayImage],
-    ["nymeria-sand-dwd", nymeriaSandDwDImage],
-    ["areo-hotah-dwd", areoHotahDwDImage],
-    ["bastard-of-godsgrace", bastardOfGodsgraceImage],
-    ["big-man", bigManImage],
-    ["ser-harras-harlaw", serHarrasHarlawImage],
-    ["victarion-greyjoy-dwd", victarionGreyjoyDwDImage],
-    ["asha-greyjoy-dwd", ashaGreyjoyDwDImage],
-    ["bastard-of-nightsong", bastardOfNightsongImage],
-    ["ser-davos-seaworth-dwd", serDavosSeaworthDwDImage],
-    ["ser-axell-florent", serAxellFlorentImage],
-    ["black-walder", blackWalderImage],
-    ["steelshanks-walton", steelshanksWaltonImage],
-    ["damon-dance-for-me", damonDanceForMeImage],
-    ["roose-bolton-dwd", rooseBoltonDwDImage],
-    ["cersei-lannister-dwd", cerseiLannisterDwDImage],
-    ["ser-jaime-lannister-dwd", serJaimeLannisterDwDImage],
-    ["ser-kevan-lannister-dwd", serKevanLannisterDwDImage],
-    ["ser-daven-lannister", serDavenLannisterImage],
-    ["varys", varysImage],
-    ["syrio-forel", syrioImage],
-    ["jaqen-h-ghar", jaqenImage],
-    ["janos-slynt", janosImage],
-    ["jon-connington", jonConningtonImage],
-    ["beric-dondarrion", bericImage],
-    ["bronn", bronnImage],
-    ["alayne-stone", alayneStoneFfcImage],
-    ["anya-waynwood", anyaWaynwoodModImage],
-    ["arstan-whitebeard", arstanWhitebeardAImage],
-    ["bronze-yohn-royce-ffc", bronzeYohnRoyceFfcImage],
-    ["bronze-yohn-royce-mod", bronzeYohnRoyceModImage],
-    ["captain-groleo", captainGroleoBImage],
-    ["daario-naharis", daarioNaharisBImage],
-    ["daenerys-targaryen-a", daenerysTargaryenAImage],
-    ["daenerys-targaryen-b", daenerysTargaryenBImage],
-    ["godric-borrell", godricBorrellModImage],
-    ["gray-worm", grayWormBImage],
-    ["harry-hardyng", harryHardyngModImage],
-    ["illyrio-mopatis", illyrioMopatisAImage],
-    ["khal-drogo", khalDrogoAImage],
-    ["littlefinger", littlefingerFfcImage],
-    ["lothor-brune", lothorBruneFfcImage],
-    ["lyn-corbray", lynCorbrayFfcImage],
-    ["lysa-arryn-ffc", lysaArrynFfcImage],
-    ["lysa-arryn-mod", lysaArrynModImage],
-    ["missandei", missandeiBImage],
-    ["nestor-royce", nestorRoyceFfcImage],
-    ["rakharo", rakharoBImage],
-    ["robert-arryn", robertArrynModImage],
-    ["ser-jorah-mormont", serJorahMormontAImage],
-    ["ser-vardis-egen", serVardisEgenModImage],
-    ["strong-belwas", strongBelwasBImage],
-    ["viserys-targaryen", viserysTargaryenAImage],
-    ["xaro-xhoan-daxos", xaroXhoanDaxosAImage],
-    ["aeron-damphair-asos", aeronDamphairASoSImage],
-    ["andrik-the-unsmiling", andrikTheUnsmilingImage],
-    ["areo-hotah-asos", areoHotahASoSImage],
-    ["arianne-martell-asos", arianneMartellASoSImage],
-    ["asha-greyjoy-asos", ashaGreyjoyASoSImage],
-    ["balon-greyjoy-asos", balonGreyjoyASoSImage],
-    ["bran-stark", branStarkImage],
-    ["catelyn-stark-asos", catelynStarkASoSImage],
-    ["cersei-lannister-asos", cerseiLannisterASoSImage],
-    ["dagmer-cleftjaw", dagmerCleftjawImage],
-    ["darkstar-asos", darkstarASoSImage],
-    ["devan-seaworth", devanSeaworthImage],
-    ["doran-martell-asos", doranMartellASoSImage],
-    ["eddard-stark-asos", eddardStarkASoSImage],
-    ["joffrey-lannister", joffreyLannisterImage],
-    ["jory-cassel", joryCasselImage],
-    ["mace-tyrell-asos", maceTyrellASoSImage],
-    ["maege-mormont", maegeMormontImage],
-    ["maester-caleotte", maesterCaleotteImage],
-    ["margaery-tyrell-asos", margaeryTyrellASoSImage],
-    ["melisandre-of-asshai", melisandreOfAsshaiImage],
-    ["nymeria-sand-asos", nymeriaSandImage],
-    ["queen-of-thorns-asos", queenOfThornsASoSImage],
-    ["randyll-tarly-asos", randyllTarlyASoSImage],
-    ["renly-baratheon-asos", renlyBaratheonASoSImage],
-    ["robb-stark-asos", robbStarkImage],
-    ["salladhar-saan-asos", salladharSaanASoSImage],
-    ["ser-axell-florent-asos", SerAxellFlorentASoSImage],
-    ["ser-davos-seaworth-asos", serDavosSeaworthASoSImage],
-    ["ser-garlan-tyrell-asos", serGarlanTyrellImage],
-    ["ser-gregor-clegane-asos", serGregorCleganeASoSImage],
-    ["ser-ilyn-payne-asos", serIlynPayneASoSImage],
-    ["ser-jaime-lannister-asos", serJaimeLannisterASoSImage],
-    ["ser-loras-tyrell-asos", serLorasTyrellASoSImage],
-    ["smalljon-umber", smalljonUmberImage],
-    ["stannis-baratheon-asos", stannisBaratheonASoSImage],
-    ["theon-greyjoy-asos", theonGreyjoyASoSImage],
-    ["the-red-viper-asos", theRedViperASoSImage],
-    ["tyrion-lannister-asos", tyrionLannisterASoSImage],
-    ["tywin-lannister-asos", tywinLannisterASoSImage],
-    ["victarion-greyjoy-asos", victarionGreyjoyASoSImage],
-    ["willas-tyrell-asos", willasTyrellASoSImage]
+  ["queen-of-thorns", queenImage],
+  ["aeron-damphair", aeronImage],
+  ["alester-florent", alesterImage],
+  ["arianne-martell", arianneImage],
+  ["areo-hotah", aeroImage],
+  ["asha-greyjoy", ashaImage],
+  ["balon-greyjoy", balonImage],
+  ["balon-greyjoy-nerfed", balonNerfedImage],
+  ["the-blackfish", blackfishImage],
+  ["brienne-of-tarth", brienneImage],
+  ["catelyn-stark", catelynImage],
+  ["cersei-lannister", cerseiImage],
+  ["dagmar-cleftjaw", dagmarImage],
+  ["darkstar", darkStarImage],
+  ["ser-davos-seaworth", davosImage],
+  ["doran-martell", doranImage],
+  ["eddard-stark", eddardImage],
+  ["euron-crows-eye", euronImage],
+  ["ser-garlan-tyrell", garlanImage],
+  ["greatjon-umber", greatjonImage],
+  ["ser-gregor-clegane", gregorImage],
+  ["the-hound", houndImage],
+  ["ser-jaime-lannister", jaimeImage],
+  ["ser-kevan-lannister", kevanImage],
+  ["ser-loras-tyrell", lorasImage],
+  ["mace-tyrell", maceImage],
+  ["margaery-tyrell", margaeryImage],
+  ["melisandre", melisandreImage],
+  ["nymeria-sand", nymeriaImage],
+  ["obara-sand", obaraImage],
+  ["patchface", patchfaceImage],
+  ["queen-of-thorns", queenImage],
+  ["randyll-tarly", randyllImage],
+  ["the-red-viper", redViperImage],
+  ["renly-baratheon", renlyImage],
+  ["robb-stark", robbImage],
+  ["ser-rodrick-cassel", rodrickImage],
+  ["roose-bolton", rooseImage],
+  ["salladhor-saan", salladhorImage],
+  ["stannis-baratheon", stannisImage],
+  ["theon-greyjoy", theonImage],
+  ["tyrion-lannister", tyrionImage],
+  ["tywin-lannister", tywinImage],
+  ["victarion-greyjoy", victarionImage],
+  ["rayder", rayderImage],
+  ["melisandre-dwd", melisandreDwDImage],
+  ["jon-snow", jonSnow],
+  ["stannis-baratheon-dwd", stannisDwDImage],
+  ["aeron-damphair-dwd", aeronDwDImage],
+  ["aeron-damphair-dwd-nerfed", aeronDwDNerfedImage],
+  ["qarl-the-maid", qarlTheMaidImage],
+  ["rodrik-the-reader", rodrikTheReaderImage],
+  ["euron-crows-eye-dwd", euronDwDImage],
+  ["qyburn", qyburnImage],
+  ["ser-addam-marbrand", serAddamMarbrandImage],
+  ["ser-ilyn-payne", serIlynPayneImage],
+  ["quentyn-martell", quentynMartellImage],
+  ["ser-gerris-drinkwater", serGerrisDrinkwaterImage],
+  ["doran-martell-dwd", doranMartellImage],
+  ["walder-frey", walderFreyImage],
+  ["reek", reekImage],
+  ["ramsay-bolton", ramsayBoltonImage],
+  ["queen-of-thorns-dwd", queenOfThornsDwDImage],
+  ["paxter-redwyne", paxterRedwyneImage],
+  ["margaery-tyrell-dwd", margaeryTyrellDwDImage],
+  ["mace-tyrell-dwd", maceTyrellDwDImage],
+  ["randyll-tarly-dwd", randyllTarlyDwDImage],
+  ["willas-tyrell", willasTyrellImage],
+  ["ser-jon-fossoway", serJonFossowayImage],
+  ["nymeria-sand-dwd", nymeriaSandDwDImage],
+  ["areo-hotah-dwd", areoHotahDwDImage],
+  ["bastard-of-godsgrace", bastardOfGodsgraceImage],
+  ["big-man", bigManImage],
+  ["ser-harras-harlaw", serHarrasHarlawImage],
+  ["victarion-greyjoy-dwd", victarionGreyjoyDwDImage],
+  ["asha-greyjoy-dwd", ashaGreyjoyDwDImage],
+  ["bastard-of-nightsong", bastardOfNightsongImage],
+  ["ser-davos-seaworth-dwd", serDavosSeaworthDwDImage],
+  ["ser-axell-florent", serAxellFlorentImage],
+  ["black-walder", blackWalderImage],
+  ["steelshanks-walton", steelshanksWaltonImage],
+  ["damon-dance-for-me", damonDanceForMeImage],
+  ["roose-bolton-dwd", rooseBoltonDwDImage],
+  ["cersei-lannister-dwd", cerseiLannisterDwDImage],
+  ["ser-jaime-lannister-dwd", serJaimeLannisterDwDImage],
+  ["ser-kevan-lannister-dwd", serKevanLannisterDwDImage],
+  ["ser-daven-lannister", serDavenLannisterImage],
+  ["varys", varysImage],
+  ["syrio-forel", syrioImage],
+  ["jaqen-h-ghar", jaqenImage],
+  ["janos-slynt", janosImage],
+  ["jon-connington", jonConningtonImage],
+  ["beric-dondarrion", bericImage],
+  ["bronn", bronnImage],
+  ["alayne-stone", alayneStoneFfcImage],
+  ["anya-waynwood", anyaWaynwoodModImage],
+  ["arstan-whitebeard", arstanWhitebeardAImage],
+  ["bronze-yohn-royce-ffc", bronzeYohnRoyceFfcImage],
+  ["bronze-yohn-royce-mod", bronzeYohnRoyceModImage],
+  ["captain-groleo", captainGroleoBImage],
+  ["daario-naharis", daarioNaharisBImage],
+  ["daenerys-targaryen-a", daenerysTargaryenAImage],
+  ["daenerys-targaryen-b", daenerysTargaryenBImage],
+  ["godric-borrell", godricBorrellModImage],
+  ["gray-worm", grayWormBImage],
+  ["harry-hardyng", harryHardyngModImage],
+  ["illyrio-mopatis", illyrioMopatisAImage],
+  ["khal-drogo", khalDrogoAImage],
+  ["littlefinger", littlefingerFfcImage],
+  ["lothor-brune", lothorBruneFfcImage],
+  ["lyn-corbray", lynCorbrayFfcImage],
+  ["lysa-arryn-ffc", lysaArrynFfcImage],
+  ["lysa-arryn-mod", lysaArrynModImage],
+  ["missandei", missandeiBImage],
+  ["nestor-royce", nestorRoyceFfcImage],
+  ["rakharo", rakharoBImage],
+  ["robert-arryn", robertArrynModImage],
+  ["ser-jorah-mormont", serJorahMormontAImage],
+  ["ser-vardis-egen", serVardisEgenModImage],
+  ["strong-belwas", strongBelwasBImage],
+  ["viserys-targaryen", viserysTargaryenAImage],
+  ["xaro-xhoan-daxos", xaroXhoanDaxosAImage],
+  ["aeron-damphair-asos", aeronDamphairASoSImage],
+  ["andrik-the-unsmiling", andrikTheUnsmilingImage],
+  ["areo-hotah-asos", areoHotahASoSImage],
+  ["arianne-martell-asos", arianneMartellASoSImage],
+  ["asha-greyjoy-asos", ashaGreyjoyASoSImage],
+  ["balon-greyjoy-asos", balonGreyjoyASoSImage],
+  ["bran-stark", branStarkImage],
+  ["catelyn-stark-asos", catelynStarkASoSImage],
+  ["cersei-lannister-asos", cerseiLannisterASoSImage],
+  ["dagmer-cleftjaw", dagmerCleftjawImage],
+  ["darkstar-asos", darkstarASoSImage],
+  ["devan-seaworth", devanSeaworthImage],
+  ["doran-martell-asos", doranMartellASoSImage],
+  ["eddard-stark-asos", eddardStarkASoSImage],
+  ["joffrey-lannister", joffreyLannisterImage],
+  ["jory-cassel", joryCasselImage],
+  ["mace-tyrell-asos", maceTyrellASoSImage],
+  ["maege-mormont", maegeMormontImage],
+  ["maester-caleotte", maesterCaleotteImage],
+  ["margaery-tyrell-asos", margaeryTyrellASoSImage],
+  ["melisandre-of-asshai", melisandreOfAsshaiImage],
+  ["nymeria-sand-asos", nymeriaSandImage],
+  ["queen-of-thorns-asos", queenOfThornsASoSImage],
+  ["randyll-tarly-asos", randyllTarlyASoSImage],
+  ["renly-baratheon-asos", renlyBaratheonASoSImage],
+  ["robb-stark-asos", robbStarkImage],
+  ["salladhar-saan-asos", salladharSaanASoSImage],
+  ["ser-axell-florent-asos", SerAxellFlorentASoSImage],
+  ["ser-davos-seaworth-asos", serDavosSeaworthASoSImage],
+  ["ser-garlan-tyrell-asos", serGarlanTyrellImage],
+  ["ser-gregor-clegane-asos", serGregorCleganeASoSImage],
+  ["ser-ilyn-payne-asos", serIlynPayneASoSImage],
+  ["ser-jaime-lannister-asos", serJaimeLannisterASoSImage],
+  ["ser-loras-tyrell-asos", serLorasTyrellASoSImage],
+  ["smalljon-umber", smalljonUmberImage],
+  ["stannis-baratheon-asos", stannisBaratheonASoSImage],
+  ["theon-greyjoy-asos", theonGreyjoyASoSImage],
+  ["the-red-viper-asos", theRedViperASoSImage],
+  ["tyrion-lannister-asos", tyrionLannisterASoSImage],
+  ["tywin-lannister-asos", tywinLannisterASoSImage],
+  ["victarion-greyjoy-asos", victarionGreyjoyASoSImage],
+  ["willas-tyrell-asos", willasTyrellASoSImage]
 ]);
 
 export default houseCardImages;

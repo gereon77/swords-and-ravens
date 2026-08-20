@@ -47,7 +47,7 @@ export default class ReplayHouseInfoColumn extends Component<ReplayHouseInfoColu
     return [
       { track: ironThrone, stars: false },
       { track: fiefdoms, stars: false },
-      { track: kingsCourt, stars: true },
+      { track: kingsCourt, stars: true }
     ];
   }
 
