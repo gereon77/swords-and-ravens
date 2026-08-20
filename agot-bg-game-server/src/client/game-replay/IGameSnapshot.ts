@@ -11,4 +11,7 @@ export default interface IGameSnapshot {
   housesOnVictoryTrack: IHouseSnapshot[];
   vsbUsed?: boolean;
   ironBank?: IIronBankSnapshot;
+  overwrittenIronThroneHolder?: string;
+  overwrittenValyrianSteelBladeHolder?: string;
+  overwrittenRavenHolder?: string;
 }

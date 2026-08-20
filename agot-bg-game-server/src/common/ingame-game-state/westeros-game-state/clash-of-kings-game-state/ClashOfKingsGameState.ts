@@ -40,14 +40,6 @@ export default class ClashOfKingsGameState extends GameState<
   proceedNextTrack(): void {
     this.currentTrackI++;
 
-    if (this.currentTrackI == 1 && this.game.usurper != null) {
-      // We have bid for the IT track. Now reset a possible usurper
-      this.game.usurper = null;
-      this.entireGame.broadcastToClients({
-        type: "update-usurper",
-        house: null
-      });
-    }
     this.entireGame.broadcastToClients({
       type: "bidding-next-track",
       nextTrack: this.currentTrackI
@@ -149,6 +141,25 @@ export default class ClashOfKingsGameState extends GameState<
     });
 
     this.ingame.setInfluenceTrack(this.currentTrackI, finalOrdering);
+
+    if (
+      this.currentTrackI == 0 &&
+      (this.game.overwrittenIronThroneHolder != null ||
+        this.game.overwrittenValyrianSteelBladeHolder != null ||
+        this.game.overwrittenRavenHolder != null)
+    ) {
+      // We have bid for the IT track.
+      // Now reset overwritten dominance token holders
+      this.game.overwrittenIronThroneHolder = null;
+      this.game.overwrittenValyrianSteelBladeHolder = null;
+      this.game.overwrittenRavenHolder = null;
+      this.entireGame.broadcastToClients({
+        type: "update-overwritten-dominance-token-holder",
+        ironThroneHolder: null,
+        valyrianSteelBladeHolder: null,
+        ravenHolder: null
+      });
+    }
 
     if (this.currentTrackI < 2) {
       this.proceedNextTrack();

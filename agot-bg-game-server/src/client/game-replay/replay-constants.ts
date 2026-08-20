@@ -95,7 +95,7 @@ const modifyingGameLogTypes = new Set([
   "doran-martell-asos-used",
   "melisandre-of-asshai-power-tokens-gained",
   "salladhar-saan-asos-power-tokens-changed",
-  "stannis-baratheon-asos-used",
+  "dominance-token-stolen",
   "control-power-token-removed",
   "last-land-unit-transformed-to-dragon",
   "cersei-lannister-order-removed",

@@ -3239,14 +3239,24 @@ export default class GameLogListComponent extends Component<GameLogListComponent
           </p>
         );
       }
-      case "stannis-baratheon-asos-used": {
-        const house = this.game.houses.get(data.house);
-        const oldThroneOwner = this.game.houses.get(data.oldThroneOwner);
+      case "dominance-token-stolen": {
+        const oldHolder = this.game.houses.get(data.oldHolder);
+        const newHolder = this.game.houses.get(data.newHolder);
+        const dominanceToken =
+          data.dominanceToken == "iron-throne"
+            ? "Iron Throne"
+            : data.dominanceToken == "valyrian-steel-blade"
+              ? "Valyrian Steel Blade"
+              : data.dominanceToken == "raven"
+                ? "Raven"
+                : "Unknown";
+
+        const houseCardName = this.allHouseCards.get(data.houseCardId).name;
 
         return (
           <p>
-            <b>Stannis Baratheon</b>: House <b>{house.name}</b> has stolen the
-            Iron Throne dominance token from House <b>{oldThroneOwner.name}</b>.
+            <b>{houseCardName}</b>: House <b>{newHolder.name}</b> has stolen the{" "}
+            {dominanceToken} dominance token from House <b>{oldHolder.name}</b>.
           </p>
         );
       }

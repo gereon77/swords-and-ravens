@@ -2412,7 +2412,7 @@ const serializedGameMigrations: {
 
         const oldPlayerHouseCards = _.flatMap(
           game.oldPlayerHouseCards.map(([_hid, hcs]: any) => hcs)
-        ).map(([_hcid, shc]) => shc);
+        ).map(([_hcid, shc]: any) => shc);
         allHouseCards.push(...oldPlayerHouseCards);
 
         const walderFrey = allHouseCards.find(
@@ -3050,6 +3050,32 @@ const serializedGameMigrations: {
         const ingame = serializedGame.childGameState;
         ingame.publicVisibleRegions = undefined;
         ingame.visibleRegionsPerPlayer = undefined;
+      }
+
+      return serializedGame;
+    }
+  },
+  {
+    version: "134",
+    migrate: (serializedGame: any) => {
+      if (serializedGame.childGameState.type == "ingame") {
+        const ingame = serializedGame.childGameState;
+        ingame.game.overwrittenIronThroneHolder = ingame.game.usurper;
+        ingame.game.overwrittenValyrianSteelBladeHolder = null;
+        ingame.game.overwrittenRavenHolder = null;
+
+        ingame.gameLogManager.logs.forEach((log: any) => {
+          if (log.data.type == "stannis-baratheon-asos-used") {
+            log.data.type = "dominance-token-stolen";
+            log.data.newHolder = log.data.house;
+            log.data.oldHolder = log.data.oldThroneOwner;
+            log.data.dominanceToken = "iron-throne";
+            log.data.houseCardId = "stannis-baratheon-asos";
+          }
+        });
+
+        // No migration for reused MaceTyrellAbilityGameState as this state is fast-tracked in 99% of cases
+        // If any game really breaks because of this, I will fix it manually. It is not worth adding a migration for this.
       }
 
       return serializedGame;

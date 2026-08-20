@@ -40,23 +40,6 @@ export default class StannisBaratheonASoSAbilityGameState extends GameState<
   onSimpleChoiceGameStateEnd(choice: number): void {
     const house = this.childGameState.house;
 
-    if (choice == 1) {
-      this.combatGameState.ingameGameState.log({
-        type: "house-card-ability-not-used",
-        house: house.id,
-        houseCard: stannisBaratheonASoS.id
-      });
-      this.parentGameState.onHouseCardResolutionFinish(house);
-      return;
-    }
-
-    const oldThroneOwner = this.game.ironThroneHolder;
-    this.game.usurper = house;
-    this.entireGame.broadcastToClients({
-      type: "update-usurper",
-      house: house.id
-    });
-
     const houseCardModifier = new HouseCardModifier();
     houseCardModifier.swordIcons = 1;
 
@@ -71,10 +54,29 @@ export default class StannisBaratheonASoSAbilityGameState extends GameState<
       modifier: houseCardModifier
     });
 
+    if (choice == 1) {
+      this.combatGameState.ingameGameState.log({
+        type: "house-card-ability-not-used",
+        house: house.id,
+        houseCard: stannisBaratheonASoS.id
+      });
+      this.parentGameState.onHouseCardResolutionFinish(house);
+      return;
+    }
+
+    const oldThroneOwner = this.game.ironThroneHolder;
+    this.game.overwrittenIronThroneHolder = house;
+    this.entireGame.broadcastToClients({
+      type: "update-overwritten-dominance-token-holder",
+      ironThroneHolder: house.id
+    });
+
     this.ingame.log({
-      type: "stannis-baratheon-asos-used",
-      house: house.id,
-      oldThroneOwner: oldThroneOwner.id
+      type: "dominance-token-stolen",
+      newHolder: house.id,
+      oldHolder: oldThroneOwner.id,
+      dominanceToken: "iron-throne",
+      houseCardId: stannisBaratheonASoS.id
     });
 
     this.parentGameState.onHouseCardResolutionFinish(house);

@@ -192,7 +192,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
   private renderInfluenceTracks(
     tracks: InfluenceTrackDetails[]
   ): React.ReactNode {
-    return tracks.map(({ name, trackToShow, realTrack, stars }, i) => (
+    return tracks.map(({ trackToShow, realTrack, stars }, i) => (
       <ListGroupItem
         key={`influence-track-container_${i}`}
         style={{ minHeight: "61px" }}
@@ -264,7 +264,7 @@ export default class HouseInfoColumn extends Component<HouseInfoColumnProps> {
                 house={h}
                 ingame={this.ingame}
                 track={realTrack}
-                name={name}
+                trackIndex={i}
               />
               <div className="tracker-star-container">
                 {stars &&

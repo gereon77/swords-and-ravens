@@ -11,6 +11,7 @@ interface SimpleInfluenceIconComponentProps {
   house: LobbyHouse | null;
   small?: boolean;
   xsmall?: boolean;
+  highlight?: boolean;
   style?: React.CSSProperties;
 }
 
@@ -38,7 +39,8 @@ export default class SimpleInfluenceIconComponent extends Component<SimpleInflue
       >
         <div
           className={classNames("influence-icon", {
-            invisible: this.house == null
+            invisible: this.house == null,
+            "smedium-outline": this.props.highlight
           })}
           style={{
             ...{

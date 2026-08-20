@@ -11,7 +11,7 @@ interface InfluenceIconComponentProps {
   house: House | null;
   ingame: IngameGameState;
   track: House[];
-  name: string;
+  trackIndex: number;
 }
 
 @observer
@@ -31,13 +31,13 @@ export default class InfluenceIconComponent extends Component<InfluenceIconCompo
   render(): ReactNode {
     let isTokenHolder = false;
     try {
-      const tokenHolder =
-        this.props.name == "Iron Throne"
-          ? this.ingame.game.ironThroneHolder
-          : this.ingame.game.getTokenHolder(this.track);
+      const tokenHolder = this.ingame.game.getTokenHolder(
+        this.track,
+        this.props.trackIndex
+      );
       isTokenHolder = tokenHolder == this.house;
 
-      if (this.props.name == "Fiefdoms" && this.house) {
+      if (this.props.trackIndex == 1 && this.house) {
         // Highlight vassals of token holder as well
         const possibleCommander = this.ingame.game.vassalRelations.tryGet(
           this.house,

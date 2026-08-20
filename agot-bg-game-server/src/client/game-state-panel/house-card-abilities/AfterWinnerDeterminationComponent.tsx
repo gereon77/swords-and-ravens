@@ -35,6 +35,8 @@ import AshaGreyjoy1stAbilityComponent from "./AshaGreyjoy1stAbilityComponent";
 import AshaGreyjoy1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/asha-greyjoy-1st-ability-game-state/AshaGreyjoy1stAbilityGameState";
 import ArianneMartell1stAbilityComponent from "./ArianneMartell1stAbilityComponent";
 import ArianneMartell1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/arianne-martell-1st-ability-game-state/ArianneMartell1stAbilityGameState";
+import DoranMartell1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/doran-martell-1st-ability-game-state/DoranMartell1stAbilityGameState";
+import DoranMartell1stAbilityComponent from "./DoranMartell1stAbilityComponent";
 
 @observer
 export default class AfterWinnerDeterminationComponent extends Component<
@@ -65,7 +67,8 @@ export default class AfterWinnerDeterminationComponent extends Component<
           MelisandreOfAsshai1stAbilityComponent
         ],
         [AshaGreyjoy1stAbilityGameState, AshaGreyjoy1stAbilityComponent],
-        [ArianneMartell1stAbilityGameState, ArianneMartell1stAbilityComponent]
+        [ArianneMartell1stAbilityGameState, ArianneMartell1stAbilityComponent],
+        [DoranMartell1stAbilityGameState, DoranMartell1stAbilityComponent]
       ]
     );
   }

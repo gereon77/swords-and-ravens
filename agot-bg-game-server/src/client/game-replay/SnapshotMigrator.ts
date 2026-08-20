@@ -154,6 +154,9 @@ export default class SnapshotMigrator {
         if (!snap.gameSnapshot) return snap;
         if (log.trackerI == 0) {
           snap.gameSnapshot.ironThroneTrack = log.finalOrder;
+          snap.gameSnapshot.overwrittenIronThroneHolder = undefined;
+          snap.gameSnapshot.overwrittenValyrianSteelBladeHolder = undefined;
+          snap.gameSnapshot.overwrittenRavenHolder = undefined;
         } else if (log.trackerI == 1) {
           snap.gameSnapshot.fiefdomsTrack = log.finalOrder;
         } else if (log.trackerI == 2) {
@@ -806,9 +809,15 @@ export default class SnapshotMigrator {
         house.removePowerTokens(2);
         return snap;
       }
-      case "stannis-baratheon-asos-used": {
+      case "dominance-token-stolen": {
         if (!snap.gameSnapshot) return snap;
-        // TODO: such a rare card. needs UI adaption
+        if (log.dominanceToken == "iron-throne") {
+          snap.gameSnapshot.overwrittenIronThroneHolder = log.newHolder;
+        } else if (log.dominanceToken == "valyrian-steel-blade") {
+          snap.gameSnapshot.overwrittenValyrianSteelBladeHolder = log.newHolder;
+        } else if (log.dominanceToken == "raven") {
+          snap.gameSnapshot.overwrittenRavenHolder = log.newHolder;
+        }
         return snap;
       }
       case "viserys-targaryen-used": {
@@ -1055,7 +1064,7 @@ export default class SnapshotMigrator {
       case "varys-used": {
         if (!snap.gameSnapshot) return snap;
         const track = snap.getInfluenceTrack(1);
-        _.pull(track);
+        _.pull(track, log.house);
         track.unshift(log.house);
         return snap;
       }

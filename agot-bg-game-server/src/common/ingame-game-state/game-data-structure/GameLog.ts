@@ -184,7 +184,7 @@ export type GameLogData =
   | SerDavosSeaworthASoSFortificationGained
   | CasualtiesPrevented
   | SerIlynPayneASoSCasualtySuffered
-  | StannisBaratheonASoSUsed
+  | DominanceTokenStolen
   | AeronDamphairHouseCardChanged
   | ControlPowerTokenRemoved
   | GamePaused
@@ -315,7 +315,7 @@ export type ModifyingGameLog =
   | MelisandreOfAsshaiPowerTokensGained
   | SalladharSaanASoSPowerTokensChanged
   | SerIlynPayneASoSCasualtySuffered
-  | StannisBaratheonASoSUsed
+  | DominanceTokenStolen
   | ControlPowerTokenRemoved
   | LastLandUnitTransformedToDragon
   | CombatResult
@@ -1402,10 +1402,12 @@ interface SerIlynPayneASoSCasualtySuffered {
   unit: string;
 }
 
-interface StannisBaratheonASoSUsed {
-  type: "stannis-baratheon-asos-used";
-  house: string;
-  oldThroneOwner: string;
+interface DominanceTokenStolen {
+  type: "dominance-token-stolen";
+  oldHolder: string;
+  newHolder: string;
+  dominanceToken: "iron-throne" | "valyrian-steel-blade" | "raven";
+  houseCardId: string;
 }
 
 interface AeronDamphairHouseCardChanged {
