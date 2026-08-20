@@ -59,7 +59,7 @@ export interface HouseCardData {
   combatStrength?: number;
   swordIcons?: number;
   towerIcons?: number;
-  ability?: string | null; // todo: remove this after all abilities are implemented
+  ability?: string;
 }
 
 export interface GameSetup {

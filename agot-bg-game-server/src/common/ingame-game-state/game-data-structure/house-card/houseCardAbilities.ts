@@ -85,6 +85,21 @@ import StannisBaratheonASoSHouseCardAbility from "./StannisBaratheonASoSHouseCar
 import VictarionGreyjoyASoSHouseCardAbility from "./VictarionGreyjoyASoSHouseCardAbility";
 import WillasTyrellHouseCardAbility from "./WillasTyrellHouseCardAbility";
 import AeronDamphairASoSHouseCardAbility from "./AeronDamphairASoSHouseCardAbility";
+import JaimeLannister1stHouseCardAbility from "./JaimeLannister1stHouseCardAbility";
+import VargoHoat1stHouseCardAbility from "./VargoHoat1stHouseCardAbility";
+import RobbStark1stHouseCardAbility from "./RobbStark1stHouseCardAbility";
+import MaesterLuwin1stHouseCardAbility from "./MaesterLuwin1stHouseCardAbility";
+import RenlyBaratheon1stHouseCardAbility from "./RenlyBaratheon1stHouseCardAbility";
+import SalladhorSaan1stHouseCardAbility from "./SalladhorSaan1stHouseCardAbility";
+import MelisandreOfAsshai1stHouseCardAbility from "./MelisandreOfAsshai1stHouseCardAbility";
+import AshaGreyjoy1stHouseCardAbility from "./AshaGreyjoy1stHouseCardAbility";
+import VictarionGreyjoy1stHouseCardAbility from "./VictarionGreyjoy1stHouseCardAbility";
+import ObaraSand1stHouseCardAbility from "./ObaraSand1stHouseCardAbility";
+import EllariaSand1stHouseCardAbility from "./EllariaSand1stHouseCardAbility";
+import DoranMartell1stHouseCardAbility from "./DoranMartell1stHouseCardAbility";
+import ArianneMartell1stHouseCardAbility from "./ArianneMartell1stHouseCardAbility";
+import LorasTyrell1stHouseCardAbility from "./LorasTyrell1stHouseCardAbility";
+import BrienneOfTarth1stHouseCardAbility from "./BrienneOfTarth1stHouseCardAbility";
 
 export const theonGreyjoy = new TheonGreyjoyHouseCardAbility(
   "theon-greyjoy",
@@ -482,6 +497,73 @@ export const willasTyrellASoS = new WillasTyrellHouseCardAbility(
   "willas-tyrell-asos",
   "If you are defending in this battle, this House Card has a strength of 3."
 );
+export const jaimeLannister1st = new JaimeLannister1stHouseCardAbility(
+  "jaime-lannister-1st",
+  "If you win this battle, immediately gain 2 Power Tokens."
+);
+export const vargoHoat1st = new VargoHoat1stHouseCardAbility(
+  "vargo-hoat-1st",
+  "Attacking footman in your army add +2 to your combat strength."
+);
+export const robbStark1st = new RobbStark1stHouseCardAbility(
+  "robb-stark-1st",
+  "Attacking knights in your army add +3 to your combat strength instead of +2."
+);
+export const maesterLuwin1st = new MaesterLuwin1stHouseCardAbility(
+  "maester-luwin-1st",
+  "If you win this battle, you may return one of your discarded House Cards to your hand."
+);
+export const renlyBaratheon1st = new RenlyBaratheon1stHouseCardAbility(
+  "renly-baratheon-1st",
+  "If you win this battle, you may upgrade 1 of your footman to knight. That footman must have" +
+    " participated in the battle as either attacker or defender."
+);
+export const salladhorSaan1st = new SalladhorSaan1stHouseCardAbility(
+  "salladhor-saan-1st",
+  "The combat strength of any opposing supporting ships is reduced to 0."
+);
+export const melisandreOfAsshai1st = new MelisandreOfAsshai1stHouseCardAbility(
+  "melisandre-of-asshai-1st",
+  "If you win this battle, you may expend 1 Power token to choose and discard 1 House Card" +
+    " from the losing player's hand."
+);
+export const ashaGreyjoy1st = new AshaGreyjoy1stHouseCardAbility(
+  "asha-greyjoy-1st",
+  "If you win this battle, you may immediately remove a Support or Consolidate Power order" +
+    " in any Sea or Land area adjacent to the battle."
+);
+export const victarionGreyjoy1st = new VictarionGreyjoy1stHouseCardAbility(
+  "victarion-greyjoy-1st",
+  "Attacking ships in your army add +2 to your combat strength instead of +1."
+);
+export const obaraSand1st = new ObaraSand1stHouseCardAbility(
+  "obara-sand-1st",
+  "When attacking, you gain one sword icon."
+);
+export const ellariaSand1st = new EllariaSand1stHouseCardAbility(
+  "ellaria-sand-1st",
+  "If defending, you may immediately upgrade 1 of your defending Footmen to a Knight."
+);
+export const doranMartell1st = new DoranMartell1stHouseCardAbility(
+  "doran-martell-1st",
+  "If you win this battle, you may steal any 1 Influence Token (Iron Throne, Valyrian Steel" +
+    ' Blade or Messenger Raven) held by your opponent and use its ability until the next "Clash' +
+    ' of Kings" resolution.'
+);
+export const arianneMartell1st = new ArianneMartell1stHouseCardAbility(
+  "arianne-martell-1st",
+  "If you lose this battle, you may immediately kill 1 of your opponent's units that" +
+    " participated in the battle. If that was the last enemy unit, you must still retreat, but" +
+    " your opponent is not considered to have taken the area."
+);
+export const lorasTyrell1st = new LorasTyrell1stHouseCardAbility(
+  "loras-tyrell-1st",
+  "Immediately kill 1 of your opponent's attacking or defending Footmen units."
+);
+export const brienneOfTarth1st = new BrienneOfTarth1stHouseCardAbility(
+  "brienne-of-tarth-1st",
+  "Immediately discard your opponent's Defense order in the area of battle."
+);
 
 const houseCardAbilities = new BetterMap<string, HouseCardAbility>([
   [theonGreyjoy.id, theonGreyjoy],
@@ -568,7 +650,22 @@ const houseCardAbilities = new BetterMap<string, HouseCardAbility>([
   [tyrionLannisterAsos.id, tyrionLannisterAsos],
   [stannisBaratheonASoS.id, stannisBaratheonASoS],
   [victarionGreyjoyASoS.id, victarionGreyjoyASoS],
-  [willasTyrellASoS.id, willasTyrellASoS]
+  [willasTyrellASoS.id, willasTyrellASoS],
+  [jaimeLannister1st.id, jaimeLannister1st],
+  [vargoHoat1st.id, vargoHoat1st],
+  [robbStark1st.id, robbStark1st],
+  [maesterLuwin1st.id, maesterLuwin1st],
+  [renlyBaratheon1st.id, renlyBaratheon1st],
+  [salladhorSaan1st.id, salladhorSaan1st],
+  [melisandreOfAsshai1st.id, melisandreOfAsshai1st],
+  [ashaGreyjoy1st.id, ashaGreyjoy1st],
+  [victarionGreyjoy1st.id, victarionGreyjoy1st],
+  [obaraSand1st.id, obaraSand1st],
+  [ellariaSand1st.id, ellariaSand1st],
+  [doranMartell1st.id, doranMartell1st],
+  [arianneMartell1st.id, arianneMartell1st],
+  [lorasTyrell1st.id, lorasTyrell1st],
+  [brienneOfTarth1st.id, brienneOfTarth1st]
 ]);
 
 export default houseCardAbilities;

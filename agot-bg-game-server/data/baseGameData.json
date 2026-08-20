@@ -3232,7 +3232,7 @@
         "jaime-lannister-1st": {
           "name": "Jaime Lannister",
           "combatStrength": 2,
-          "ability": null
+          "ability": "jaime-lannister-1st"
         },
         "tyrion-lannister-1st": {
           "name": "Tyrion Lannister",
@@ -3251,7 +3251,7 @@
         },
         "vargo-hoat-1st": {
           "name": "Vargo Hoat",
-          "ability": null
+          "ability": "vargo-hoat-1st"
         },
         "cercei-lannister-1st": {
           "name": "Cercei Lannister",
@@ -3269,7 +3269,7 @@
         "robb-stark-1st": {
           "name": "Robb Stark",
           "combatStrength": 2,
-          "ability": null
+          "ability": "robb-stark-1st"
         },
         "greatjon-umber-1st": {
           "name": "Greatjon Umber",
@@ -3292,7 +3292,7 @@
         },
         "maester-luwin-1st": {
           "name": "Maester Luwin",
-          "ability": null
+          "ability": "maester-luwin-1st"
         }
       }
     },
@@ -3307,7 +3307,7 @@
         "renly-baratheon-1st": {
           "name": "Renly Baratheon",
           "combatStrength": 2,
-          "ability": null
+          "ability": "renly-baratheon-1st"
         },
         "ser-davos-seaworth-1st": {
           "name": "Ser Davos Seaworth",
@@ -3326,11 +3326,11 @@
         },
         "salladhor-saan-1st": {
           "name": "Salladhor Saan",
-          "ability": null
+          "ability": "salladhor-saan-1st"
         },
         "melisandre-of-asshai-1st": {
           "name": "Melisandre of Asshai",
-          "ability": null
+          "ability": "melisandre-of-asshai-1st"
         }
       }
     },
@@ -3344,7 +3344,7 @@
         "asha-greyjoy-1st": {
           "name": "Asha Greyjoy",
           "combatStrength": 2,
-          "ability": null
+          "ability": "asha-greyjoy-1st"
         },
         "theon-greyjoy-1st": {
           "name": "Theon Greyjoy",
@@ -3363,7 +3363,7 @@
         },
         "victarion-greyjoy-1st": {
           "name": "Victarion Greyjoy",
-          "ability": null
+          "ability": "victarion-greyjoy-1st"
         },
         "balon-greyjoy-1st": {
           "name": "Balon Greyjoy",
@@ -3386,12 +3386,12 @@
         "obara-sand-1st": {
           "name": "Obara Sand",
           "combatStrength": 2,
-          "ability": null
+          "ability": "obara-sand-1st"
         },
         "ellaria-sand-1st": {
           "name": "Ellaria Sand",
           "combatStrength": 1,
-          "ability": null
+          "ability": "ellaria-sand-1st"
         },
         "nymeria-sand-1st": {
           "name": "Nymeria Sand",
@@ -3400,11 +3400,11 @@
         },
         "doran-martell-1st": {
           "name": "Doran Martell",
-          "ability": null
+          "ability": "doran-martell-1st"
         },
         "arianne-martell-1st": {
           "name": "Arianne Martell",
-          "ability": null
+          "ability": "arianne-martell-1st"
         }
       }
     },
@@ -3418,7 +3418,7 @@
         "loras-tyrell-1st": {
           "name": "Loras Tyrell",
           "combatStrength": 2,
-          "ability": null
+          "ability": "loras-tyrell-1st"
         },
         "garlan-tyrell-1st": {
           "name": "Garlan Tyrell",
@@ -3437,7 +3437,7 @@
         },
         "brienne-of-tarth-1st": {
           "name": "Brienne of Tarth",
-          "ability": null
+          "ability": "brienne-of-tarth-1st"
         },
         "queen-of-thorns-1st": {
           "name": "Queen of Thorns",
