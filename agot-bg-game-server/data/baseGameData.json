@@ -3220,5 +3220,230 @@
         }
       }
     }
+  },
+  "firstEditionHouseCards": {
+    "lannister": {
+      "houseCards": {
+        "tywin-lannister-1st": {
+          "name": "Tywin Lannister",
+          "combatStrength": 3,
+          "swordIcons": 2
+        },
+        "jaime-lannister-1st": {
+          "name": "Jaime Lannister",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "tyrion-lannister-1st": {
+          "name": "Tyrion Lannister",
+          "combatStrength": 2,
+          "towerIcons": 1
+        },
+        "kevan-lannister-1st": {
+          "name": "Kevan Lannister",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "lannister-captain-1st": {
+          "name": "Lannister Captain",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "vargo-hoat-1st": {
+          "name": "Vargo Hoat",
+          "ability": null
+        },
+        "cercei-lannister-1st": {
+          "name": "Cercei Lannister",
+          "ability": "cersei-lannister"
+        }
+      }
+    },
+    "stark": {
+      "houseCards": {
+        "eddard-stark-1st": {
+          "name": "Eddard Stark",
+          "combatStrength": 3,
+          "towerIcons": 2
+        },
+        "robb-stark-1st": {
+          "name": "Robb Stark",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "greatjon-umber-1st": {
+          "name": "Greatjon Umber",
+          "combatStrength": 2,
+          "swordIcons": 1
+        },
+        "lord-mormont-1st": {
+          "name": "Lord Mormont",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "sir-rodrik-cassel-1st": {
+          "name": "Sir Rodrik Cassel",
+          "combatStrength": 1,
+          "towerIcons": 1
+        },
+        "catelyn-stark-1st": {
+          "name": "Catelyn Stark",
+          "ability": "catelyn-stark"
+        },
+        "maester-luwin-1st": {
+          "name": "Maester Luwin",
+          "ability": null
+        }
+      }
+    },
+    "baratheon": {
+      "houseCards": {
+        "stannis-baratheon-1st": {
+          "name": "Stannis Baratheon",
+          "combatStrength": 3,
+          "swordIcons": 1,
+          "towerIcons": 1
+        },
+        "renly-baratheon-1st": {
+          "name": "Renly Baratheon",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "ser-davos-seaworth-1st": {
+          "name": "Ser Davos Seaworth",
+          "combatStrength": 2,
+          "towerIcons": 1
+        },
+        "robert-baratheon-1st": {
+          "name": "Robert Baratheon",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "ser-axell-florent-1st": {
+          "name": "Axell Florent",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "salladhor-saan-1st": {
+          "name": "Salladhor Saan",
+          "ability": null
+        },
+        "melisandre-of-asshai-1st": {
+          "name": "Melisandre of Asshai",
+          "ability": null
+        }
+      }
+    },
+    "greyjoy": {
+      "houseCards": {
+        "euron-crows-eye-1st": {
+          "name": "Euron Crow's Eye",
+          "combatStrength": 3,
+          "swordIcons": 2
+        },
+        "asha-greyjoy-1st": {
+          "name": "Asha Greyjoy",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "theon-greyjoy-1st": {
+          "name": "Theon Greyjoy",
+          "combatStrength": 2,
+          "swordIcons": 1
+        },
+        "blacktyde-captain-1st": {
+          "name": "Blacktyde Captain",
+          "combatStrength": 1,
+          "towerIcons": 1
+        },
+        "aeron-damphair-1st": {
+          "name": "Aeron Damphair",
+          "combatStrength": 1,
+          "towerIcons": 1
+        },
+        "victarion-greyjoy-1st": {
+          "name": "Victarion Greyjoy",
+          "ability": null
+        },
+        "balon-greyjoy-1st": {
+          "name": "Balon Greyjoy",
+          "ability": "balon-greyjoy"
+        }
+      }
+    },
+    "martell": {
+      "houseCards": {
+        "the-red-viper-1st": {
+          "name": "The Red Viper",
+          "combatStrength": 3,
+          "swordIcons": 2
+        },
+        "areo-hotah-1st": {
+          "name": "Areo Hotah",
+          "combatStrength": 2,
+          "swordIcons": 1
+        },
+        "obara-sand-1st": {
+          "name": "Obara Sand",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "ellaria-sand-1st": {
+          "name": "Ellaria Sand",
+          "combatStrength": 1,
+          "ability": null
+        },
+        "nymeria-sand-1st": {
+          "name": "Nymeria Sand",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "doran-martell-1st": {
+          "name": "Doran Martell",
+          "ability": null
+        },
+        "arianne-martell-1st": {
+          "name": "Arianne Martell",
+          "ability": null
+        }
+      }
+    },
+    "tyrell": {
+      "houseCards": {
+        "mace-tyrell-1st": {
+          "name": "Mace Tyrell",
+          "combatStrength": 3,
+          "swordIcons": 2
+        },
+        "loras-tyrell-1st": {
+          "name": "Loras Tyrell",
+          "combatStrength": 2,
+          "ability": null
+        },
+        "garlan-tyrell-1st": {
+          "name": "Garlan Tyrell",
+          "combatStrength": 2,
+          "swordIcons": 1
+        },
+        "tyrell-captain-1st": {
+          "name": "Tyrell Captain",
+          "combatStrength": 1,
+          "swordIcons": 1
+        },
+        "margery-tyrell-1st": {
+          "name": "Margery Tyrell",
+          "combatStrength": 1,
+          "towerIcons": 1
+        },
+        "brienne-of-tarth-1st": {
+          "name": "Brienne of Tarth",
+          "ability": null
+        },
+        "queen-of-thorns-1st": {
+          "name": "Queen of Thorns",
+          "ability": "queen-of-thorns-dwd"
+        }
+      }
+    }
   }
 }

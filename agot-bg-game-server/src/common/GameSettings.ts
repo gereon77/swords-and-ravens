@@ -1,9 +1,10 @@
 export enum HouseCardDecks {
   None = 0,
-  BaseAndModA = 1 << 0, // 001
-  DwdFfcModB = 1 << 1, // 010
-  StormOfSwords = 1 << 2, // 100
-  All = ~(~0 << 3), // 111
+  BaseAndModA = 1 << 0, // 0001
+  DwdFfcModB = 1 << 1, // 0010
+  StormOfSwords = 1 << 2, // 0100
+  FirstEdition = 1 << 3, // 1000
+  All = ~(~0 << 4) // 1111
 }
 
 export class GameSettings {
@@ -17,6 +18,7 @@ export class GameSettings {
   randomChosenHouses = false;
   adwdHouseCards = false;
   asosHouseCards = false;
+  firstEditionHouseCards = false;
   cokWesterosPhase = false;
   vassals = true;
   seaOrderTokens = true;
@@ -69,6 +71,7 @@ export class GameSettings {
     settings.randomChosenHouses = data.randomChosenHouses ?? false;
     settings.adwdHouseCards = data.adwdHouseCards ?? false;
     settings.asosHouseCards = data.asosHouseCards ?? false;
+    settings.firstEditionHouseCards = data.firstEditionHouseCards ?? false;
     settings.cokWesterosPhase = data.cokWesterosPhase ?? false;
     settings.vassals = data.vassals ?? false;
     settings.seaOrderTokens = data.seaOrderTokens ?? false;
@@ -131,6 +134,7 @@ export class GameSettings {
       randomChosenHouses: this.randomChosenHouses || undefined,
       adwdHouseCards: this.adwdHouseCards || undefined,
       asosHouseCards: this.asosHouseCards || undefined,
+      firstEditionHouseCards: this.firstEditionHouseCards || undefined,
       cokWesterosPhase: this.cokWesterosPhase || undefined,
       vassals: this.vassals || undefined,
       seaOrderTokens: this.seaOrderTokens || undefined,
@@ -180,7 +184,7 @@ export class GameSettings {
       dragonWar: this.dragonWar || undefined,
       dragonRevenge: this.dragonRevenge || undefined,
       holdVictoryPointsUntilEndOfRound:
-        this.holdVictoryPointsUntilEndOfRound || undefined,
+        this.holdVictoryPointsUntilEndOfRound || undefined
     };
   }
 }
@@ -196,6 +200,7 @@ export class SerializedGameSettings {
   randomChosenHouses?: boolean;
   adwdHouseCards?: boolean;
   asosHouseCards?: boolean;
+  firstEditionHouseCards?: boolean;
   cokWesterosPhase?: boolean;
   vassals?: boolean;
   seaOrderTokens?: boolean;

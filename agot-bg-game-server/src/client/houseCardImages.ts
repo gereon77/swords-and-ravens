@@ -167,6 +167,49 @@ import tywinLannisterASoSImage from "../../public/images/house-cards/storm-of-sw
 import victarionGreyjoyASoSImage from "../../public/images/house-cards/storm-of-swords/VictarionGreyjoy.png";
 import willasTyrellASoSImage from "../../public/images/house-cards/storm-of-swords/WillasTyrell.png";
 
+import axellFlorent1stImage from "../../public/images/house-cards/1st_b_axell-florent.png";
+import davosSeaworth1stImage from "../../public/images/house-cards/1st_b_davos-seaworth.png";
+import melisandreOfAsshai1stImage from "../../public/images/house-cards/1st_b_melisandre-of-asshai.png";
+import renlyBaratheon1stImage from "../../public/images/house-cards/1st_b_renly-baratheon.png";
+import robertBaratheon1stImage from "../../public/images/house-cards/1st_b_robert-baratheon.png";
+import salladhorSaan1stImage from "../../public/images/house-cards/1st_b_salladhor-saan.png";
+import stannisBaratheon1stImage from "../../public/images/house-cards/1st_b_stannis-baratheon.png";
+import aeronDamphair1stImage from "../../public/images/house-cards/1st_g_aeron-damphair.png";
+import ashaGreyjoy1stImage from "../../public/images/house-cards/1st_g_asha-greyjoy.png";
+import balonGreyjoy1stImage from "../../public/images/house-cards/1st_g_balon-greyjoy.png";
+import blacktydeCaptain1stImage from "../../public/images/house-cards/1st_g_blacktyde-captain.png";
+import euronCrowsEye1stImage from "../../public/images/house-cards/1st_g_euron-crows-eye.png";
+import theonGreyjoy1stImage from "../../public/images/house-cards/1st_g_theon-greyjoy.png";
+import victarionGreyjoy1stImage from "../../public/images/house-cards/1st_g_victarion-greyjoy.png";
+import cerceiLannister1stImage from "../../public/images/house-cards/1st_l_cercei-lannister.png";
+import jaimeLannister1stImage from "../../public/images/house-cards/1st_l_jaime-lannister.png";
+import kevanLannister1stImage from "../../public/images/house-cards/1st_l_kevan-lannister.png";
+import lannisterCaptain1stImage from "../../public/images/house-cards/1st_l_lannister-captain.png";
+import tyrionLannister1stImage from "../../public/images/house-cards/1st_l_tyrion-lannister.png";
+import tywinLannister1stImage from "../../public/images/house-cards/1st_l_tywin-lannister.png";
+import vargoHoat1stImage from "../../public/images/house-cards/1st_l_vargo-hoat.png";
+import areoHotah1stImage from "../../public/images/house-cards/1st_m_areo-hotah.png";
+import arianneMartell1stImage from "../../public/images/house-cards/1st_m_arianne-martell.png";
+import doranMartell1stImage from "../../public/images/house-cards/1st_m_doran-martell.png";
+import ellariaSand1stImage from "../../public/images/house-cards/1st_m_ellaria-sand.png";
+import nymeriaSand1stImage from "../../public/images/house-cards/1st_m_nymeria-sand.png";
+import obaraSand1stImage from "../../public/images/house-cards/1st_m_obara-sand.png";
+import theRedViper1stImage from "../../public/images/house-cards/1st_m_the-red-viper.png";
+import catelynStark1stImage from "../../public/images/house-cards/1st_s_catelyn-stark.png";
+import eddardStark1stImage from "../../public/images/house-cards/1st_s_eddard-stark.png";
+import greatjonUmber1stImage from "../../public/images/house-cards/1st_s_greatjon-umber.png";
+import lordMormont1stImage from "../../public/images/house-cards/1st_s_lord-mormont.png";
+import maesterLuwin1stImage from "../../public/images/house-cards/1st_s_maester-luwin.png";
+import robbStark1stImage from "../../public/images/house-cards/1st_s_robb-stark.png";
+import sirRodrikCassel1stImage from "../../public/images/house-cards/1st_s_sir-rodrik-cassel.png";
+import brienneOfTarth1stImage from "../../public/images/house-cards/1st_t_brienne-of-tarth.png";
+import garlanTyrell1stImage from "../../public/images/house-cards/1st_t_garlan-tyrell.png";
+import lorasTyrell1stImage from "../../public/images/house-cards/1st_t_loras-tyrell.png";
+import maceTyrell1stImage from "../../public/images/house-cards/1st_t_mace-tyrell.png";
+import margeryTyrell1stImage from "../../public/images/house-cards/1st_t_margery-tyrell.png";
+import queenOfThorns1stImage from "../../public/images/house-cards/1st_t_queen-of-thorns.png";
+import tyrellCaptain1stImage from "../../public/images/house-cards/1st_t_tyrell-captain.png";
+
 const houseCardImages = new BetterMap([
   ["queen-of-thorns", queenImage],
   ["aeron-damphair", aeronImage],
@@ -331,7 +374,49 @@ const houseCardImages = new BetterMap([
   ["tyrion-lannister-asos", tyrionLannisterASoSImage],
   ["tywin-lannister-asos", tywinLannisterASoSImage],
   ["victarion-greyjoy-asos", victarionGreyjoyASoSImage],
-  ["willas-tyrell-asos", willasTyrellASoSImage]
+  ["willas-tyrell-asos", willasTyrellASoSImage],
+  ["ser-axell-florent-1st", axellFlorent1stImage],
+  ["ser-davos-seaworth-1st", davosSeaworth1stImage],
+  ["melisandre-of-asshai-1st", melisandreOfAsshai1stImage],
+  ["renly-baratheon-1st", renlyBaratheon1stImage],
+  ["robert-baratheon-1st", robertBaratheon1stImage],
+  ["salladhor-saan-1st", salladhorSaan1stImage],
+  ["stannis-baratheon-1st", stannisBaratheon1stImage],
+  ["aeron-damphair-1st", aeronDamphair1stImage],
+  ["asha-greyjoy-1st", ashaGreyjoy1stImage],
+  ["balon-greyjoy-1st", balonGreyjoy1stImage],
+  ["blacktyde-captain-1st", blacktydeCaptain1stImage],
+  ["euron-crows-eye-1st", euronCrowsEye1stImage],
+  ["theon-greyjoy-1st", theonGreyjoy1stImage],
+  ["victarion-greyjoy-1st", victarionGreyjoy1stImage],
+  ["cercei-lannister-1st", cerceiLannister1stImage],
+  ["jaime-lannister-1st", jaimeLannister1stImage],
+  ["kevan-lannister-1st", kevanLannister1stImage],
+  ["lannister-captain-1st", lannisterCaptain1stImage],
+  ["tyrion-lannister-1st", tyrionLannister1stImage],
+  ["tywin-lannister-1st", tywinLannister1stImage],
+  ["vargo-hoat-1st", vargoHoat1stImage],
+  ["areo-hotah-1st", areoHotah1stImage],
+  ["arianne-martell-1st", arianneMartell1stImage],
+  ["doran-martell-1st", doranMartell1stImage],
+  ["ellaria-sand-1st", ellariaSand1stImage],
+  ["nymeria-sand-1st", nymeriaSand1stImage],
+  ["obara-sand-1st", obaraSand1stImage],
+  ["the-red-viper-1st", theRedViper1stImage],
+  ["catelyn-stark-1st", catelynStark1stImage],
+  ["eddard-stark-1st", eddardStark1stImage],
+  ["greatjon-umber-1st", greatjonUmber1stImage],
+  ["lord-mormont-1st", lordMormont1stImage],
+  ["maester-luwin-1st", maesterLuwin1stImage],
+  ["robb-stark-1st", robbStark1stImage],
+  ["sir-rodrik-cassel-1st", sirRodrikCassel1stImage],
+  ["brienne-of-tarth-1st", brienneOfTarth1stImage],
+  ["garlan-tyrell-1st", garlanTyrell1stImage],
+  ["loras-tyrell-1st", lorasTyrell1stImage],
+  ["mace-tyrell-1st", maceTyrell1stImage],
+  ["margery-tyrell-1st", margeryTyrell1stImage],
+  ["queen-of-thorns-1st", queenOfThorns1stImage],
+  ["tyrell-captain-1st", tyrellCaptain1stImage]
 ]);
 
 export default houseCardImages;

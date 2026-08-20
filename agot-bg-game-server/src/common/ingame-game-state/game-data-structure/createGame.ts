@@ -59,7 +59,7 @@ export interface HouseCardData {
   combatStrength?: number;
   swordIcons?: number;
   towerIcons?: number;
-  ability?: string;
+  ability?: string | null; // todo: remove this after all abilities are implemented
 }
 
 export interface GameSetup {
@@ -171,6 +171,9 @@ export const adwdHouseCardsData = getHouseCardData(baseGameData.adwdHouseCards);
 export const ffcHouseCardsData = getHouseCardData(baseGameData.ffcHouseCards);
 export const modBHouseCardsData = getHouseCardData(baseGameData.modBHouseCards);
 export const asosHouseCardsData = getHouseCardData(baseGameData.asosHouseCards);
+export const firstEditionHouseCardsData = getHouseCardData(
+  baseGameData.firstEditionHouseCards
+);
 
 export const allGameSetups = new BetterMap(
   Object.entries(baseGameData.setups as { [key: string]: GameSetupContainer })
@@ -282,6 +285,23 @@ export default function createGame(
       .forEach((hid) => {
         const newHouseData = baseGameHousesToCreate.get(hid);
         newHouseData.houseCards = asosHouseCards.get(hid).houseCards;
+        baseGameHousesToCreate.set(hid, newHouseData);
+      });
+  }
+
+  if (gameSettings.firstEditionHouseCards) {
+    const firstEditionHouseCards = new BetterMap(
+      Object.entries(
+        baseGameData.firstEditionHouseCards as {
+          [key: string]: HouseCardContainer;
+        }
+      )
+    );
+    firstEditionHouseCards.keys
+      .filter((hid) => housesToCreate.includes(hid))
+      .forEach((hid) => {
+        const newHouseData = baseGameHousesToCreate.get(hid);
+        newHouseData.houseCards = firstEditionHouseCards.get(hid).houseCards;
         baseGameHousesToCreate.set(hid, newHouseData);
       });
   }
@@ -462,6 +482,9 @@ export default function createGame(
     const ffcHouseCards = getHouseCardSet(baseGameData.ffcHouseCards);
     const modBHouseCards = getHouseCardSet(baseGameData.modBHouseCards);
     const asosHouseCards = getHouseCardSet(baseGameData.asosHouseCards);
+    const firstEditionHouseCards = getHouseCardSet(
+      baseGameData.firstEditionHouseCards
+    );
 
     const selectedHouseCards = new BetterMap<string, HouseCard>();
 
@@ -486,6 +509,16 @@ export default function createGame(
       HouseCardDecks.StormOfSwords
     ) {
       asosHouseCards.forEach((hc) => selectedHouseCards.set(hc.id, hc));
+      baseGameHouseCards
+        .filter((hc) => hc.houseId == "arryn" || hc.houseId == "targaryen")
+        .forEach((hc) => selectedHouseCards.set(hc.id, hc));
+    }
+
+    if (
+      (gameSettings.selectedDraftDecks & HouseCardDecks.FirstEdition) ==
+      HouseCardDecks.FirstEdition
+    ) {
+      firstEditionHouseCards.forEach((hc) => selectedHouseCards.set(hc.id, hc));
       baseGameHouseCards
         .filter((hc) => hc.houseId == "arryn" || hc.houseId == "targaryen")
         .forEach((hc) => selectedHouseCards.set(hc.id, hc));

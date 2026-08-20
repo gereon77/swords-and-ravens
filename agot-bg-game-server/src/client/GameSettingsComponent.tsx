@@ -665,6 +665,36 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
               }
             />
           </Col>
+          <Col xs="12">
+            <FormCheck
+              id="first-edition-house-cards-setting"
+              type="switch"
+              label={
+                <OverlayTrigger
+                  overlay={
+                    <Tooltip id="first-edition-house-cards-setting-tooltip">
+                      If this option is enabled, the House cards from the{" "}
+                      <i>1st&nbsp;edition</i> base game are used. Only available
+                      for up to 6 players, as the combat strengths of these
+                      cards differ from the 2nd edition and expansion cards.
+                    </Tooltip>
+                  }
+                >
+                  <label htmlFor="first-edition-house-cards-setting">
+                    Use <i>1st edition</i> House cards
+                  </label>
+                </OverlayTrigger>
+              }
+              checked={this.gameSettings.firstEditionHouseCards}
+              onChange={() =>
+                this.changeGameSettings(
+                  () =>
+                    (this.gameSettings.firstEditionHouseCards =
+                      !this.gameSettings.firstEditionHouseCards)
+                )
+              }
+            />
+          </Col>
           <Col xs="auto" className="d-flex justify-content-between">
             <FormCheck
               id="decks-evolution-setting"
@@ -1812,6 +1842,36 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 }
                 onChange={(e) =>
                   this.selectHouseCardDeck(e, HouseCardDecks.StormOfSwords)
+                }
+              />
+            </Col>
+            <Col xs="12">
+              <FormCheck
+                id="first-edition-deck-setting"
+                type="checkbox"
+                label={
+                  <OverlayTrigger
+                    overlay={
+                      <Tooltip id="first-edition-deck-setting-tooltip">
+                        This option adds the decks from the{" "}
+                        <b>1st&nbsp;edition</b> base game and the{" "}
+                        <b>Mother&nbsp;of&nbsp;Dragons&nbsp;A</b> decks for{" "}
+                        <b>Arryn</b> and <b>Targaryen</b>.
+                      </Tooltip>
+                    }
+                  >
+                    <label htmlFor="first-edition-deck-setting">
+                      1st ed and MoD A
+                    </label>
+                  </OverlayTrigger>
+                }
+                checked={
+                  (this.gameSettings.selectedDraftDecks &
+                    HouseCardDecks.FirstEdition) ==
+                  HouseCardDecks.FirstEdition
+                }
+                onChange={(e) =>
+                  this.selectHouseCardDeck(e, HouseCardDecks.FirstEdition)
                 }
               />
             </Col>
