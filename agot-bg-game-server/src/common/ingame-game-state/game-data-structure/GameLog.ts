@@ -193,7 +193,8 @@ export type GameLogData =
   | HousesSwapped
   | NoLoyaltyTokenAvailable
   | LastLandUnitTransformedToDragon
-  | LivePbemSwitch;
+  | LivePbemSwitch
+  | JamieLannisterPowerTokensGained;
 
 export type ModifyingGameLog =
   | TurnBegin
@@ -311,7 +312,8 @@ export type ModifyingGameLog =
   | LastLandUnitTransformedToDragon
   | CombatResult
   | VassalsClaimed
-  | ClaimVassalsBegan;
+  | ClaimVassalsBegan
+  | JamieLannisterPowerTokensGained;
 
 export enum PlayerActionType {
   ORDERS_PLACED,
@@ -1451,4 +1453,10 @@ export interface LastLandUnitTransformedToDragon {
 export interface LivePbemSwitch {
   type: "live-pbem-switch";
   isNowPbem: boolean;
+}
+
+export interface JamieLannisterPowerTokensGained {
+  type: "jamie-lannister-power-tokens-gained";
+  house: string;
+  powerTokensGained: number;
 }

@@ -111,6 +111,7 @@ const modifyingGameLogTypes = new Set([
   "attack",
   "vassals-claimed",
   "claim-vassals-began",
+  "jamie-lannister-power-tokens-gained"
 ]);
 
 const relatedCombatResultTypes = new Set([
@@ -120,7 +121,7 @@ const relatedCombatResultTypes = new Set([
   "arianne-martell-prevent-movement",
   "arianne-martell-force-retreat",
   "retreat-casualties-suffered",
-  "renly-baratheon-footman-upgraded-to-knight",
+  "renly-baratheon-footman-upgraded-to-knight"
 ]);
 
 const combatTerminationLogTypes = new Set([
@@ -130,7 +131,7 @@ const combatTerminationLogTypes = new Set([
   "action-phase-resolve-consolidate-power-began",
   "winner-declared",
   "turn-begin",
-  "westeros-phase-began",
+  "westeros-phase-began"
 ]);
 
 const replacementLogTypes = new Set(["player-replaced", "vassal-replaced"]);

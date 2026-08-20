@@ -3379,6 +3379,18 @@ export default class GameLogListComponent extends Component<GameLogListComponent
         );
         break;
       }
+      case "jamie-lannister-power-tokens-gained": {
+        const house = this.game.houses.get(data.house);
+        const powerTokensGained = data.powerTokensGained;
+
+        return (
+          <p>
+            <b>Jamie Lannister</b>: House <b>{house.name}</b> gained{" "}
+            <b>{powerTokensGained}</b> Power&nbsp;token
+            {powerTokensGained != 1 ? "s" : ""}.
+          </p>
+        );
+      }
     }
   }
 

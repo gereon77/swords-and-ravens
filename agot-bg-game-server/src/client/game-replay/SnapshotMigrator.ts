@@ -1016,7 +1016,8 @@ export default class SnapshotMigrator {
         toRegion.order = order;
         return snap;
       }
-      case "tywin-lannister-power-tokens-gained": {
+      case "tywin-lannister-power-tokens-gained":
+      case "jamie-lannister-power-tokens-gained": {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         house.addPowerTokens(log.powerTokensGained);
