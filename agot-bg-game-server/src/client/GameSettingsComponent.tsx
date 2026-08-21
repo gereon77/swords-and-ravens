@@ -1854,14 +1854,12 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                     overlay={
                       <Tooltip id="first-edition-deck-setting-tooltip">
                         This option adds the decks from the{" "}
-                        <b>1st&nbsp;edition</b> base game and the{" "}
-                        <b>Mother&nbsp;of&nbsp;Dragons&nbsp;A</b> decks for{" "}
-                        <b>Arryn</b> and <b>Targaryen</b>.
+                        <b>1st&nbsp;edition</b> base game.
                       </Tooltip>
                     }
                   >
                     <label htmlFor="first-edition-deck-setting">
-                      1st ed and MoD A
+                      1st edition
                     </label>
                   </OverlayTrigger>
                 }
