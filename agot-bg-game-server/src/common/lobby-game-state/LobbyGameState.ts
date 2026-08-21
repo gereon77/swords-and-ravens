@@ -456,21 +456,36 @@ export default class LobbyGameState extends GameState<EntireGame> {
   }
 
   isValidDraftDeckChoice(settings: GameSettings): boolean {
-    if (settings.thematicDraft || settings.perpetuumRandom) {
-      return this.hasAtLeastTwoBitsSet(settings.selectedDraftDecks);
+    const firstEditionDeckSelected =
+      (settings.selectedDraftDecks & HouseCardDecks.FirstEdition) != 0;
+
+    if (firstEditionDeckSelected && settings.thematicDraft) {
+      return this.hasEnoughBitsSet(settings.selectedDraftDecks, 2);
+    }
+
+    if (firstEditionDeckSelected && settings.perpetuumRandom) {
+      return this.hasEnoughBitsSet(settings.selectedDraftDecks, 3);
+    }
+
+    if (
+      firstEditionDeckSelected ||
+      settings.thematicDraft ||
+      settings.perpetuumRandom
+    ) {
+      return this.hasEnoughBitsSet(settings.selectedDraftDecks, 2);
     }
 
     return settings.selectedDraftDecks >= 1;
   }
 
-  hasAtLeastTwoBitsSet(num: number): boolean {
+  hasEnoughBitsSet(num: number, minBits: number): boolean {
     let count = 0;
     while (num > 0) {
       if ((num & 1) === 1) {
         count++;
       }
       num >>= 1;
-      if (count >= 2) {
+      if (count >= minBits) {
         return true;
       }
     }

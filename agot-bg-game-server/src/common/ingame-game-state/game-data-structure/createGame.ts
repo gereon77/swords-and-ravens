@@ -519,9 +519,6 @@ export default function createGame(
       HouseCardDecks.FirstEdition
     ) {
       firstEditionHouseCards.forEach((hc) => selectedHouseCards.set(hc.id, hc));
-      baseGameHouseCards
-        .filter((hc) => hc.houseId == "arryn" || hc.houseId == "targaryen")
-        .forEach((hc) => selectedHouseCards.set(hc.id, hc));
     }
 
     if (gameSettings.limitedDraft) {
