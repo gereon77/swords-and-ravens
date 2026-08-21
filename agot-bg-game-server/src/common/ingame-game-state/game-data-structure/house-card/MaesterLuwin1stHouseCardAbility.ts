@@ -10,12 +10,17 @@ export default class MaesterLuwin1stHouseCardAbility extends HouseCardAbility {
     house: House,
     _houseCard: HouseCard
   ): void {
-    afterWinnerDetermination.childGameState
-      .setChildGameState(
-        new MaesterLuwinAbilityGameState(
-          afterWinnerDetermination.childGameState
+    if (afterWinnerDetermination.postCombatGameState.winner == house) {
+      afterWinnerDetermination.childGameState
+        .setChildGameState(
+          new MaesterLuwinAbilityGameState(
+            afterWinnerDetermination.childGameState
+          )
         )
-      )
-      .firstStart(house);
+        .firstStart(house);
+      return;
+    }
+
+    afterWinnerDetermination.childGameState.onHouseCardResolutionFinish(house);
   }
 }
