@@ -1,7 +1,7 @@
 import PlayerMusteringGameState, {
   Mustering,
   MusteringRule,
-  PlayerMusteringType,
+  PlayerMusteringType
 } from "../../common/ingame-game-state/westeros-game-state/mustering-game-state/player-mustering-game-state/PlayerMusteringGameState";
 import { observer } from "mobx-react";
 import React, { Component, ReactElement, ReactNode } from "react";
@@ -17,7 +17,7 @@ import Col from "react-bootstrap/Col";
 import {
   OrderOnMapProperties,
   RegionOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "../MapControls";
 import PartialRecursive from "../../utils/PartialRecursive";
 import Unit from "../../common/ingame-game-state/game-data-structure/Unit";
@@ -209,7 +209,7 @@ export default class PlayerMusteringComponent extends Component<
       } else {
         removedMustering.region.newUnits =
           removedMustering.region.newUnits.filter(
-            (u) => u != removedMustering.affectedUnit,
+            (u) => u != removedMustering.affectedUnit
           );
       }
     }
@@ -241,14 +241,14 @@ export default class PlayerMusteringComponent extends Component<
   private addMustering(initiatingRegion: Region, rule: Mustering): void {
     const musterings: Mustering[] = this.musterings.tryGet(
       initiatingRegion,
-      [],
+      []
     );
 
     if (rule.from) {
       const potentialUnit = this.props.gameState.getPotentialUnitForUpgrading(
         this.musterings,
         rule.region,
-        rule.from.type,
+        rule.from.type
       );
       if (!potentialUnit) {
         throw new Error("An upgrade was added but there is no unit to upgrade");
@@ -259,7 +259,7 @@ export default class PlayerMusteringComponent extends Component<
       rule.affectedUnit = this.props.gameState.game.createUnit(
         rule.region,
         rule.to,
-        this.house,
+        this.house
       );
       rule.region.newUnits.push(rule.affectedUnit);
     }
@@ -280,7 +280,7 @@ export default class PlayerMusteringComponent extends Component<
     if (this.props.gameState.anyUsablePointsLeft(this.musterings)) {
       if (
         !confirm(
-          "You have not used all of your mustering points. Continue anyway?",
+          "You have not used all of your mustering points. Continue anyway?"
         )
       ) {
         return;
@@ -293,15 +293,15 @@ export default class PlayerMusteringComponent extends Component<
 
   private modifyRegionsOnMap(): [
     Region,
-    PartialRecursive<RegionOnMapProperties>,
+    PartialRecursive<RegionOnMapProperties>
   ][] {
     if (this.doesControlCurrentHouse) {
       let regionsToModify = this.props.gameState.regions.filter(
         (r) =>
           this.props.gameState.getValidMusteringRulesForRegion(
             r,
-            this.musterings,
-          ).length > 0,
+            this.musterings
+          ).length > 0
       );
 
       if (
@@ -310,7 +310,7 @@ export default class PlayerMusteringComponent extends Component<
       ) {
         if (this.musterings.size == 1) {
           regionsToModify = regionsToModify.filter(
-            (r) => r == this.musterings.keys[0],
+            (r) => r == this.musterings.keys[0]
           );
         }
       }
@@ -321,7 +321,7 @@ export default class PlayerMusteringComponent extends Component<
         this.props.gameState.ingame.isVassalHouse(this.house)
       ) {
         regionsToModify = regionsToModify.filter(
-          (r) => r.superControlPowerToken == this.house,
+          (r) => r.superControlPowerToken == this.house
         );
       }
 
@@ -338,8 +338,8 @@ export default class PlayerMusteringComponent extends Component<
             >
               {child}
             </OverlayTrigger>
-          ),
-        },
+          )
+        }
       ]);
     }
 
@@ -360,7 +360,7 @@ export default class PlayerMusteringComponent extends Component<
                 (
                 {this.props.gameState.getUsedPointsForRegion(
                   modifiedRegion,
-                  this.musterings,
+                  this.musterings
                 )}{" "}
                 / {modifiedRegion.castleLevel})
               </small>
@@ -385,7 +385,7 @@ export default class PlayerMusteringComponent extends Component<
           <>
             {this.props.gameState.getValidMusteringRulesForRegion(
               modifiedRegion,
-              this.musterings,
+              this.musterings
             ).length > 0 && (
               <>
                 {this.props.gameState
@@ -405,7 +405,7 @@ export default class PlayerMusteringComponent extends Component<
                           {this.renderMusteringButton(modifiedRegion, rule)}
                         </Button>
                       </Col>
-                    )),
+                    ))
                   )}
               </>
             )}
@@ -417,7 +417,7 @@ export default class PlayerMusteringComponent extends Component<
 
   renderMusteringButton(
     initiatingRegion: Region,
-    rule: MusteringRule,
+    rule: MusteringRule
   ): React.ReactNode {
     return (
       <div className="d-flex flex-nowrap overflow-x-auto">
@@ -444,7 +444,7 @@ export default class PlayerMusteringComponent extends Component<
 
   private modifyOrdersOnMap(): [
     Region,
-    PartialRecursive<OrderOnMapProperties>,
+    PartialRecursive<OrderOnMapProperties>
   ][] {
     if (this.doesControlCurrentHouse) {
       if (
@@ -464,8 +464,8 @@ export default class PlayerMusteringComponent extends Component<
               >
                 {child}
               </OverlayTrigger>
-            ),
-          },
+            )
+          }
         ]);
       }
     }
@@ -476,15 +476,15 @@ export default class PlayerMusteringComponent extends Component<
   private modifyUnitsOnMap(): [Unit, PartialRecursive<UnitOnMapProperties>][] {
     if (this.doesControlCurrentHouse) {
       const allMusteredToRegions = _.uniq(
-        _.flatMap(this.musterings.values).map((m) => m.region),
+        _.flatMap(this.musterings.values).map((m) => m.region)
       );
       const allMusteredUnitsOfHouse = _.flatMap(
         allMusteredToRegions.map((r) =>
           _.concat(
             r.newUnits,
-            r.units.values.filter((u) => u.upgradedType != undefined),
-          ),
-        ),
+            r.units.values.filter((u) => u.upgradedType != undefined)
+          )
+        )
       );
 
       return allMusteredUnitsOfHouse.map((u) => [
@@ -492,12 +492,12 @@ export default class PlayerMusteringComponent extends Component<
         {
           highlight: {
             active: true,
-            color: u.upgradedType ? "yellow" : "green",
+            color: u.upgradedType ? "yellow" : "green"
           },
           onClick: () => {
             this.onUnitClick(u);
-          },
-        },
+          }
+        }
       ]);
     }
 
@@ -506,13 +506,13 @@ export default class PlayerMusteringComponent extends Component<
 
   componentDidMount(): void {
     this.props.mapControls.modifyRegionsOnMap.push(
-      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap()),
+      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap())
     );
     this.props.mapControls.modifyOrdersOnMap.push(
-      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap()),
+      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap())
     );
     this.props.mapControls.modifyUnitsOnMap.push(
-      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap()),
+      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap())
     );
 
     if (
@@ -524,7 +524,7 @@ export default class PlayerMusteringComponent extends Component<
 
     setTimeout(() => {
       const orderElem = document.getElementById(
-        `map-order-container_${this.props.gameState.regions[0]?.id}`,
+        `map-order-container_${this.props.gameState.regions[0]?.id}`
       );
       if (orderElem != null) {
         orderElem.click();
@@ -535,15 +535,15 @@ export default class PlayerMusteringComponent extends Component<
   componentWillUnmount(): void {
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
-      this.modifyOrdersOnMapCallback,
+      this.modifyOrdersOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
-      this.modifyRegionsOnMapCallback,
+      this.modifyRegionsOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyUnitsOnMap,
-      this.modifyUnitsOnMapCallback,
+      this.modifyUnitsOnMapCallback
     );
   }
 
