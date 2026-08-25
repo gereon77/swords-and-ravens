@@ -10,11 +10,11 @@ export default class ViserysTargaryenHouseCardAbility extends HouseCardAbility {
   beforeCombatResolution(
     beforeCombat: BeforeCombatHouseCardAbilitiesGameState,
     house: House,
-    _houseCard: HouseCard,
+    _houseCard: HouseCard
   ): void {
     beforeCombat.childGameState
       .setChildGameState(
-        new ViserysTargaryenAbilityGameState(beforeCombat.childGameState),
+        new ViserysTargaryenAbilityGameState(beforeCombat.childGameState)
       )
       .firstStart(house);
   }
@@ -23,7 +23,7 @@ export default class ViserysTargaryenHouseCardAbility extends HouseCardAbility {
     combat: CombatGameState,
     _house: House,
     houseCard: HouseCard,
-    affectedHouseCard: HouseCard,
+    affectedHouseCard: HouseCard
   ): number {
     const houseCardModifier = combat.houseCardModifiers.tryGet(this.id, null);
     return houseCardModifier && houseCard == affectedHouseCard
@@ -34,35 +34,31 @@ export default class ViserysTargaryenHouseCardAbility extends HouseCardAbility {
   afterWinnerDetermination(
     afterWinnerDetermination: AfterWinnerDeterminationGameState,
     house: House,
-    houseCard: HouseCard,
+    houseCard: HouseCard
   ): void {
-    // Due to HC evo, Viserys may not be longer present in the players house card deck, so let's check this
-    if (
-      afterWinnerDetermination.postCombatGameState.loser == house &&
-      house.houseCards.has(houseCard.id)
-    ) {
+    if (afterWinnerDetermination.postCombatGameState.loser == house) {
       afterWinnerDetermination.game.deletedHouseCards.set(
         houseCard.id,
-        houseCard,
+        houseCard
       );
       afterWinnerDetermination.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",
         houseCards: afterWinnerDetermination.game.deletedHouseCards.values.map(
-          (hc) => hc.id,
-        ),
+          (hc) => hc.id
+        )
       });
 
       house.houseCards.delete(houseCard.id);
       afterWinnerDetermination.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: house.id,
-        houseCards: house.houseCards.values.map((hc) => hc.id),
+        houseCards: house.houseCards.values.map((hc) => hc.id)
       });
 
       afterWinnerDetermination.combatGameState.ingameGameState.log({
         type: "house-card-removed-from-game",
         house: house.id,
-        houseCard: houseCard.id,
+        houseCard: houseCard.id
       });
     }
 

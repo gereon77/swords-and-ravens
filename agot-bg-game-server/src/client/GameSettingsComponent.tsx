@@ -350,7 +350,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
             </h5>
             This is a community-created variant and combines{" "}
             <i>A&nbsp;Dance&nbsp;with&nbsp;Dragons</i> and
-            Mother&nbsp;with&nbsp;Dragons.
+            Mother&nbsp;of&nbsp;Dragons.
             <br />
             So it also{" "}
             <i>

@@ -40,6 +40,16 @@ export default class StannisBaratheonASoSAbilityGameState extends GameState<
   onSimpleChoiceGameStateEnd(choice: number): void {
     const house = this.childGameState.house;
 
+    if (choice == 1) {
+      this.combatGameState.ingameGameState.log({
+        type: "house-card-ability-not-used",
+        house: house.id,
+        houseCard: stannisBaratheonASoS.id
+      });
+      this.parentGameState.onHouseCardResolutionFinish(house);
+      return;
+    }
+
     const houseCardModifier = new HouseCardModifier();
     houseCardModifier.swordIcons = 1;
 
@@ -53,16 +63,6 @@ export default class StannisBaratheonASoSAbilityGameState extends GameState<
       id: stannisBaratheonASoS.id,
       modifier: houseCardModifier
     });
-
-    if (choice == 1) {
-      this.combatGameState.ingameGameState.log({
-        type: "house-card-ability-not-used",
-        house: house.id,
-        houseCard: stannisBaratheonASoS.id
-      });
-      this.parentGameState.onHouseCardResolutionFinish(house);
-      return;
-    }
 
     const oldThroneOwner = this.game.ironThroneHolder;
     this.game.overwrittenIronThroneHolder = house;
