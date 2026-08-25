@@ -37,10 +37,17 @@ export default class DoranMartellAbilityGameState extends GameState<
     // Remember the house that currently would resolve next march order
     const nextHouse = this.getHouseThatWouldResolveNextMarchOrder();
 
+    // Remember current ValyrianSteelBladeHolder
+    const vsbHolder = this.game.valyrianSteelBladeHolder;
+
     // Put the enemy at the end of the influence track
     const influenceTrack = this.game.getInfluenceTrackByI(choice);
     const newInfluenceTrack = _.concat(_.without(influenceTrack, enemy), enemy);
     this.ingame.setInfluenceTrack(choice, newInfluenceTrack);
+
+    if (choice == 1 && vsbHolder != this.game.valyrianSteelBladeHolder) {
+      this.combatGameState.dontSkipVsbQuestion = true;
+    }
 
     if (choice == 0) {
       // Add the skippedTurnForHouse property if next player in order loses their turn.
