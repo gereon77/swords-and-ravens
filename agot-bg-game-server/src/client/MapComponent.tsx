@@ -870,10 +870,12 @@ export default class MapComponent extends Component<MapComponentProps> {
     modifyPropertiesFunctions: (() => [Entity, PartialRecursive<Property>][])[],
     defaultProperties: Property
   ): BetterMap<Entity, Property> {
-    // Create a Map of properties for all regions that will be shown
+    // Create a Map of properties for all regions that will be shown.
+    // Every entity needs its own copy as _.merge mutates its target which would leak
+    // properties (onClick, wrap, highlight, ...) of one entity to all the others.
     const propertiesForEntities = new BetterMap<Entity, Property>();
     entities.forEach((entity) => {
-      propertiesForEntities.set(entity, defaultProperties);
+      propertiesForEntities.set(entity, _.cloneDeep(defaultProperties));
     });
 
     modifyPropertiesFunctions.forEach((modifyPropertiesFunction) => {
@@ -999,7 +1001,7 @@ export default class MapComponent extends Component<MapComponentProps> {
           })}
           style={{ left: region.orderSlot.x, top: region.orderSlot.y }}
           onClick={properties.onClick}
-          key={`map-order-container_${region.id}`}
+          key={`map-order-container-key_${region.id}`}
           id={`map-order-container_${region.id}`}
         >
           <div

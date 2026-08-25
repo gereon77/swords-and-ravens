@@ -37,6 +37,7 @@ export default class PlayerMusteringComponent extends Component<
   modifyRegionsOnMapCallback: any;
   modifyUnitsOnMapCallback: any;
   modifyOrdersOnMapCallback: any;
+  autoOpenPopoverTimeout: number | null = null;
 
   get house(): House {
     return this.props.gameState.house;
@@ -522,17 +523,47 @@ export default class PlayerMusteringComponent extends Component<
       return;
     }
 
-    setTimeout(() => {
-      const orderElem = document.getElementById(
-        `map-order-container_${this.props.gameState.regions[0]?.id}`
-      );
-      if (orderElem != null) {
-        orderElem.click();
-      }
-    }, 100);
+    if (
+      this.props.gameState.type ==
+        PlayerMusteringType.STARRED_CONSOLIDATE_POWER ||
+      this.props.gameState.type == PlayerMusteringType.DEFENSE_MUSTER_ORDER
+    ) {
+      this.tryOpenMusteringPopover(this.props.gameState.regions[0]);
+    }
+  }
+
+  /**
+   * The order's popover is owned by MapComponent which only knows about our popover
+   * after our modifyOrdersOnMap callback has been registered and the map re-rendered.
+   * Therefore we retry until the popover is actually in the DOM.
+   */
+  private tryOpenMusteringPopover(region: Region, attempt = 0): void {
+    if (attempt > 10) {
+      return;
+    }
+
+    const popoverOpen =
+      document.getElementById(`region-mustering-popover-${region.id}`) != null;
+
+    if (popoverOpen) {
+      this.autoOpenPopoverTimeout = null;
+      return;
+    }
+
+    document.getElementById(`map-order-container_${region.id}`)?.click();
+
+    this.autoOpenPopoverTimeout = window.setTimeout(
+      () => this.tryOpenMusteringPopover(region, attempt + 1),
+      100
+    );
   }
 
   componentWillUnmount(): void {
+    if (this.autoOpenPopoverTimeout != null) {
+      window.clearTimeout(this.autoOpenPopoverTimeout);
+      this.autoOpenPopoverTimeout = null;
+    }
+
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
       this.modifyOrdersOnMapCallback
