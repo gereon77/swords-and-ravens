@@ -63,13 +63,13 @@ jobs:
         name: front-end-game-server
         path: agot-bg-game-server/dist
         retention-days: 1
-  upload-game-server-to-dokku:
-    name: Upload Game Server Image to Dokku
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
-    needs: [game-server-docker-build]
+    needs: [game-server-docker-build, website-docker-build, build-assets]
     env:
       SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
     steps:
@@ -79,50 +79,18 @@ jobs:
       run: mkdir -p ~/.ssh && echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
     - name: Pulling Game Server Docker Image
       run: docker pull $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE
-    - name: Tagging Game Server Docker Image
-      run: docker tag $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE $DOKKU_GAME_SERVER_DOCKER_IMAGE
-    - name: Upload Game Server Docker Image to Dokku
-      run: docker save $DOKKU_GAME_SERVER_DOCKER_IMAGE | bzip2 | ssh -o StrictHostKeyChecking=no $DOKKU_HOST "bunzip2 | docker load"
-  upload-website-to-dokku:
-    name: Upload Website Image to Dokku
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    needs: [website-docker-build]
-    env:
-      SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
-    steps:
-    - name: Login to GitHub Container Registry
-      run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-    - name: Setup SSH Key
-      run: mkdir -p ~/.ssh && echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
     - name: Pulling Website Docker Image
       run: docker pull $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE
+    - name: Tagging Game Server Docker Image
+      run: docker tag $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE $DOKKU_GAME_SERVER_DOCKER_IMAGE
     - name: Tagging Website Docker Image
       run: docker tag $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE $DOKKU_WEBSITE_DOCKER_IMAGE
+    - name: Upload Game Server Docker Image to Dokku
+      run: docker save $DOKKU_GAME_SERVER_DOCKER_IMAGE | bzip2 | ssh -o StrictHostKeyChecking=no $DOKKU_HOST "bunzip2 | docker load"
     - name: Upload Website Docker Image to Dokku
       run: docker save $DOKKU_WEBSITE_DOCKER_IMAGE | bzip2 | ssh -o StrictHostKeyChecking=no $DOKKU_HOST "bunzip2 | docker load"
-  deploy-game-server:
-    name: Deploy Game Server
-    runs-on: ubuntu-latest
-    needs: [upload-game-server-to-dokku]
-    env:
-      SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
-    steps:
-    - name: Setup SSH Key
-      run: mkdir -p ~/.ssh && echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
     - name: Deploy Game Server
       run: ssh -o StrictHostKeyChecking=no $DOKKU_HOST "dokku tags:deploy play ${{ github.sha }}"
-  deploy-website:
-    name: Deploy Website
-    runs-on: ubuntu-latest
-    needs: [upload-website-to-dokku, deploy-game-server]
-    env:
-      SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
-    steps:
-    - name: Setup SSH Key
-      run: mkdir -p ~/.ssh && echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
     - name: Deploy Website
       run: ssh -o StrictHostKeyChecking=no $DOKKU_HOST "dokku tags:deploy swordsandravens.net ${{ github.sha }}"
     - name: Clean Host
