@@ -244,7 +244,7 @@ def rules(request):
 @login_required
 def my_games(request):
     now = timezone.now()
-    thirty_minutes_past = now - timedelta(minutes=30)
+    ten_minutes_past = now - timedelta(minutes=10)
     two_days_past = now - timedelta(days=2)
     eight_days_past = now - timedelta(days=8)
 
@@ -259,7 +259,7 @@ def my_games(request):
 
     # QUERY RUNNING LIVE GAMES
     running_live_games = games_query_base.annotate(pbem=Cast(KeyTextTransform('pbem', KeyTextTransform('settings', 'view_of_game')), BooleanField()),\
-                                                    still_active=ExpressionWrapper(Q(last_active_at__gt=thirty_minutes_past), output_field=BooleanField()))\
+                                                    still_active=ExpressionWrapper(Q(last_active_at__gt=ten_minutes_past), output_field=BooleanField()))\
         .filter(Q(state=ONGOING) & Q(pbem=False) & Q(still_active=True))
 
     games_query = games_query_base.annotate(user_is_in_game=Count('players', filter=Q(players__user=request.user)),\
@@ -299,11 +299,11 @@ def games(request):
         # Pre-fetch the PlayerInGame entry related to the authenticated player
         # This means that "game.players" will only contain one entry, the one related to the authenticated player.
         now = timezone.now()
-        thirty_minutes_past = now - timedelta(minutes=30)
+        ten_minutes_past = now - timedelta(minutes=10)
         two_days_past = now - timedelta(days=2)
         five_days_past = now - timedelta(days=5)
         eight_days_past = now - timedelta(days=8)
-        three_weeks_past = now - timedelta(days=21)
+        two_weeks_past = now - timedelta(days=14)
 
         if (request.user.is_authenticated):
             games_query_base = Game.objects.prefetch_related(Prefetch('players', queryset=PlayerInGame.objects.filter(user=request.user), to_attr="player_in_game"))
@@ -325,7 +325,7 @@ def games(request):
 
         # QUERY RUNNING LIVE GAMES
         running_live_games = games_query_base.annotate(pbem=Cast(KeyTextTransform('pbem', KeyTextTransform('settings', 'view_of_game')), BooleanField()),\
-                                                       still_active=ExpressionWrapper(Q(last_active_at__gt=thirty_minutes_past), output_field=BooleanField()))\
+                                                       still_active=ExpressionWrapper(Q(last_active_at__gt=ten_minutes_past), output_field=BooleanField()))\
             .filter(Q(state=ONGOING) & Q(pbem=False) & Q(still_active=True))
 
         # QUERY REPLACEMENT NEEDED GAMES
@@ -371,7 +371,7 @@ def games(request):
         if request.user.has_perm("agotboardgame_main.cancel_game"):
             # QUERY INACTIVE PRIVATE GAMES
             games_query = games_query_base\
-                .annotate(inactive_21=ExpressionWrapper(Q(last_active_at__lt=three_weeks_past), output_field=BooleanField()),\
+                .annotate(inactive_21=ExpressionWrapper(Q(last_active_at__lt=two_weeks_past), output_field=BooleanField()),\
                           is_private=Cast(KeyTextTransform('private', KeyTextTransform('settings', 'view_of_game')), BooleanField()))
 
             inactive_private_games = games_query.filter(Q(state=ONGOING) & Q(inactive_21=True) & Q(is_private=True)).order_by("state", "-last_active_at")
