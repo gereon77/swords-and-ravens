@@ -45,22 +45,20 @@ export default class KhalDrogoHouseCardAbility extends HouseCardAbility {
       afterCombat.game.deletedHouseCards.set(houseCard.id, houseCard);
       afterCombat.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",
-        houseCards: afterCombat.game.deletedHouseCards.values.map(
-          (hc) => hc.id
-        ),
+        houseCards: afterCombat.game.deletedHouseCards.values.map((hc) => hc.id)
       });
 
       house.houseCards.delete(houseCard.id);
       afterCombat.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: house.id,
-        houseCards: house.houseCards.keys,
+        houseCards: house.houseCards.keys
       });
 
       afterCombat.combatGameState.ingameGameState.log({
         type: "house-card-removed-from-game",
         house: house.id,
-        houseCard: houseCard.id,
+        houseCard: houseCard.id
       });
     }
 

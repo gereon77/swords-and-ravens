@@ -8,15 +8,15 @@ import CombatGameState from "../../../CombatGameState";
 import Game from "../../../../../../game-data-structure/Game";
 import IngameGameState from "../../../../../../IngameGameState";
 import SimpleChoiceGameState, {
-  SerializedSimpleChoiceGameState,
+  SerializedSimpleChoiceGameState
 } from "../../../../../../simple-choice-game-state/SimpleChoiceGameState";
 import { robertArryn } from "../../../../../../game-data-structure/house-card/houseCardAbilities";
 import HouseCard, {
-  HouseCardState,
+  HouseCardState
 } from "../../../../../../game-data-structure/house-card/HouseCard";
 import _ from "lodash";
 import SelectHouseCardGameState, {
-  SerializedSelectHouseCardGameState,
+  SerializedSelectHouseCardGameState
 } from "../../../../../../../ingame-game-state/select-house-card-game-state/SelectHouseCardGameState";
 
 export default class RobertArrynAbilityGameState extends GameState<
@@ -82,7 +82,7 @@ export default class RobertArrynAbilityGameState extends GameState<
       this.ingame.log({
         type: "house-card-ability-not-used",
         house: this.house.id,
-        houseCard: robertArryn.id,
+        houseCard: robertArryn.id
       });
     }
 
@@ -98,7 +98,7 @@ export default class RobertArrynAbilityGameState extends GameState<
       affectedHouse: enemy.id,
       removedHouseCard: enemyHouseCardToRemove
         ? enemyHouseCardToRemove.id
-        : null,
+        : null
     });
 
     if (enemyHouseCardToRemove) {
@@ -108,14 +108,14 @@ export default class RobertArrynAbilityGameState extends GameState<
       );
       this.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",
-        houseCards: this.game.deletedHouseCards.values.map((hc) => hc.id),
+        houseCards: this.game.deletedHouseCards.values.map((hc) => hc.id)
       });
 
       enemy.houseCards.delete(enemyHouseCardToRemove.id);
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: enemy.id,
-        houseCards: enemy.houseCards.values.map((hc) => hc.id),
+        houseCards: enemy.houseCards.values.map((hc) => hc.id)
       });
     }
 
@@ -128,14 +128,14 @@ export default class RobertArrynAbilityGameState extends GameState<
       this.game.deletedHouseCards.set(robertArrynHc.id, robertArrynHc);
       this.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",
-        houseCards: this.game.deletedHouseCards.values.map((hc) => hc.id),
+        houseCards: this.game.deletedHouseCards.values.map((hc) => hc.id)
       });
 
       this.house.houseCards.delete(robertArrynHc.id);
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: this.house.id,
-        houseCards: this.house.houseCards.values.map((hc) => hc.id),
+        houseCards: this.house.houseCards.values.map((hc) => hc.id)
       });
     }
   }
@@ -160,7 +160,7 @@ export default class RobertArrynAbilityGameState extends GameState<
     return {
       type: "robert-arryn-ability",
       house: this.house.id,
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
