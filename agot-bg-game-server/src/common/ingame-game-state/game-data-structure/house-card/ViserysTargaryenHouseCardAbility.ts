@@ -36,11 +36,7 @@ export default class ViserysTargaryenHouseCardAbility extends HouseCardAbility {
     house: House,
     houseCard: HouseCard
   ): void {
-    // Due to HC evo, Viserys may not be longer present in the players house card deck, so let's check this
-    if (
-      afterWinnerDetermination.postCombatGameState.loser == house &&
-      house.houseCards.has(houseCard.id)
-    ) {
+    if (afterWinnerDetermination.postCombatGameState.loser == house) {
       afterWinnerDetermination.game.deletedHouseCards.set(
         houseCard.id,
         houseCard

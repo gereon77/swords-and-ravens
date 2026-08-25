@@ -63,10 +63,13 @@ export default class HouseCardResolutionGameState<
     const houseCard =
       this.combatGameState.houseCombatDatas.get(nextHouse).houseCard;
 
+    // Due to House Card Evolution or Robert Arryn's ability,
+    // other afterCombat-ability cards may not be longer present in the houses' deck,
+    // and then we have to skip the ability resolution.
     if (
       houseCard == null ||
       houseCard.ability == null ||
-      this.game.deletedHouseCards.has(houseCard.id)
+      !nextHouse.houseCards.has(houseCard.id)
     ) {
       this.resolvedHouses.push(nextHouse);
       this.resolveNextHouseCard();

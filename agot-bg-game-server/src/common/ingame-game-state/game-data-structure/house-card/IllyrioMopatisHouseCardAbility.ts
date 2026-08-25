@@ -27,9 +27,7 @@ export default class IllyrioMopatisHouseCardAbility extends HouseCardAbility {
       powerTokensGained: powerTokensGained
     });
 
-    // Due to HC evo, Illyrio may not be longer present in the players house card deck, so let's check this
-    if (house.powerTokens >= 5 && house.houseCards.has(houseCard.id)) {
-      // Opponent house card may have been removed from game already
+    if (house.powerTokens >= 5) {
       afterCombat.game.deletedHouseCards.set(houseCard.id, houseCard);
       afterCombat.entireGame.broadcastToClients({
         type: "update-deleted-house-cards",

@@ -36,7 +36,9 @@ export default class BranStarkAbilityGameState extends GameState<
   }
 
   firstStart(house: House): void {
-    // Though Bran Stark should always be discarded here, very theoretical it might happen that Robert Arryn has removed him.
+    // Since we ensure not to execute abilities of house cards that have been removed from game
+    // at least Bran Stark must be discarded at that point and we should never reach no choosable cards path.
+    // We keep it here as a safeguard anyways and log it if this happens.
     if (this.getChoosableHouseCards(house).length == 0) {
       this.ingame.log(
         {

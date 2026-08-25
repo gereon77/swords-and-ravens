@@ -40,27 +40,24 @@ export default class KhalDrogoHouseCardAbility extends HouseCardAbility {
     house: House,
     houseCard: HouseCard
   ): void {
-    // Due to HC evo, Drogo may not be longer present in the players house card deck, so let's check this
-    if (house.houseCards.has(houseCard.id)) {
-      afterCombat.game.deletedHouseCards.set(houseCard.id, houseCard);
-      afterCombat.entireGame.broadcastToClients({
-        type: "update-deleted-house-cards",
-        houseCards: afterCombat.game.deletedHouseCards.values.map((hc) => hc.id)
-      });
+    afterCombat.game.deletedHouseCards.set(houseCard.id, houseCard);
+    afterCombat.entireGame.broadcastToClients({
+      type: "update-deleted-house-cards",
+      houseCards: afterCombat.game.deletedHouseCards.values.map((hc) => hc.id)
+    });
 
-      house.houseCards.delete(houseCard.id);
-      afterCombat.entireGame.broadcastToClients({
-        type: "update-house-cards",
-        house: house.id,
-        houseCards: house.houseCards.keys
-      });
+    house.houseCards.delete(houseCard.id);
+    afterCombat.entireGame.broadcastToClients({
+      type: "update-house-cards",
+      house: house.id,
+      houseCards: house.houseCards.keys
+    });
 
-      afterCombat.combatGameState.ingameGameState.log({
-        type: "house-card-removed-from-game",
-        house: house.id,
-        houseCard: houseCard.id
-      });
-    }
+    afterCombat.combatGameState.ingameGameState.log({
+      type: "house-card-removed-from-game",
+      house: house.id,
+      houseCard: houseCard.id
+    });
 
     afterCombat.childGameState.onHouseCardResolutionFinish(house);
   }

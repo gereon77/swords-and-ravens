@@ -72,7 +72,14 @@ export default class AfterCombatHouseCardAbilitiesGameState extends GameState<
   }
 
   resolveHouseCard(house: House, houseCard: HouseCard): void {
-    houseCard.ability?.afterCombat(this, house, houseCard);
+    // Due to House Card Evolution or Robert Arryn's ability,
+    // other afterCombat-ability cards may not be longer present in the houses' deck,
+    // and then we have to skip the ability resolution.
+    if (house.houseCards.has(houseCard.id)) {
+      houseCard.ability?.afterCombat(this, house, houseCard);
+    } else {
+      this.childGameState.onHouseCardResolutionFinish(house);
+    }
   }
 
   onPlayerMessage(player: Player, message: ClientMessage): void {

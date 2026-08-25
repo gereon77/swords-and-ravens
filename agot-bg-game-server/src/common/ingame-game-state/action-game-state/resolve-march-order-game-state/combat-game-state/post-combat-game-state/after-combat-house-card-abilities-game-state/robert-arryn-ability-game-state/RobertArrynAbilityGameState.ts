@@ -123,7 +123,6 @@ export default class RobertArrynAbilityGameState extends GameState<
       (hc) => hc.ability?.id == robertArryn.id
     );
 
-    // Due to HC evo, Robert Arryn may no longer be present in players house card deck
     if (robertArrynHc) {
       this.game.deletedHouseCards.set(robertArrynHc.id, robertArrynHc);
       this.entireGame.broadcastToClients({
