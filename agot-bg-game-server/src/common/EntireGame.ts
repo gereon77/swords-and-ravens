@@ -9,7 +9,7 @@ import IngameGameState, {
 import { ServerMessage } from "../messages/ServerMessage";
 import { ClientMessage } from "../messages/ClientMessage";
 import User, { SerializedUser } from "../server/User";
-import { observable } from "mobx";
+import { observable, runInAction } from "mobx";
 import * as _ from "lodash";
 import BetterMap from "../utils/BetterMap";
 import GameEndedGameState from "./ingame-game-state/game-ended-game-state/GameEndedGameState";
@@ -581,9 +581,13 @@ export default class EntireGame extends GameState<
 
       this.checkGameStatesFastTracked(parentGameState, newChildGameState);
 
-      parentGameState.childGameState = newChildGameState;
+      // Must be applied in one batch, otherwise the game state panel is rendered
+      // with the new child game state but the old leafStateId and remounts afterwards
+      runInAction(() => {
+        parentGameState.childGameState = newChildGameState;
+        this.leafStateId = message.newLeafId;
+      });
 
-      this.leafStateId = message.newLeafId;
       if (this.onClientGameStateChange) {
         this.onClientGameStateChange();
       }

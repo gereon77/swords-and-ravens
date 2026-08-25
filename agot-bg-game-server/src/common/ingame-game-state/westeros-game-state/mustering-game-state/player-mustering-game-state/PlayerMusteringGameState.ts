@@ -8,7 +8,7 @@ import Region from "../../../game-data-structure/Region";
 import UnitType from "../../../game-data-structure/UnitType";
 import Unit from "../../../game-data-structure/Unit";
 import unitMusteringRules, {
-  getCostOfMusteringRule,
+  getCostOfMusteringRule
 } from "../../../game-data-structure/unitMusteringRules";
 import BetterMap from "../../../../../utils/BetterMap";
 import * as _ from "lodash";
@@ -34,7 +34,7 @@ export enum PlayerMusteringType {
   STARRED_CONSOLIDATE_POWER = 1,
   THE_HORDE_DESCENDS_WILDLING_CARD = 2,
   DEFENSE_MUSTER_ORDER = 3,
-  RALLY_THE_MEN_WESTEROS_CARD = 4,
+  RALLY_THE_MEN_WESTEROS_CARD = 4
 }
 
 interface ParentGameState extends GameState<any, any> {
@@ -66,7 +66,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
       this.type != PlayerMusteringType.DEFENSE_MUSTER_ORDER
     ) {
       throw new Error(
-        "ResolveConsolidatePowerGameState requested but type != STARRED_CONSOLIDATE_POWER and type != DEFENSE_MUSTER_ORDER",
+        "ResolveConsolidatePowerGameState requested but type != STARRED_CONSOLIDATE_POWER and type != DEFENSE_MUSTER_ORDER"
       );
     }
 
@@ -86,11 +86,11 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
       case PlayerMusteringType.MUSTERING_WESTEROS_CARD:
       case PlayerMusteringType.THE_HORDE_DESCENDS_WILDLING_CARD: {
         const regionsWithCastles = this.ingame.world.regions.values.filter(
-          (r) => r.castleLevel > 0 && r.getController() == this.house,
+          (r) => r.castleLevel > 0 && r.getController() == this.house
         );
         return this.ingame.isVassalHouse(this.house)
           ? regionsWithCastles.filter(
-              (r) => r.superControlPowerToken == this.house,
+              (r) => r.superControlPowerToken == this.house
             )
           : regionsWithCastles;
       }
@@ -105,11 +105,11 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
           .map(([r, _ot]) => r);
       case PlayerMusteringType.RALLY_THE_MEN_WESTEROS_CARD: {
         const regionsWithCastles = this.ingame.world.regions.values.filter(
-          (r) => r.castleLevel == 1 && r.getController() == this.house,
+          (r) => r.castleLevel == 1 && r.getController() == this.house
         );
         return this.ingame.isVassalHouse(this.house)
           ? regionsWithCastles.filter(
-              (r) => r.superControlPowerToken == this.house,
+              (r) => r.superControlPowerToken == this.house
             )
           : regionsWithCastles;
       }
@@ -126,16 +126,16 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
         this.resolveConsolidatePowerGameState.resolveConsolidatePowerOrderForPt(
           this.regions[0],
           this.house,
-          true,
+          true
         );
       } else {
         this.parentGameState.ingame.log(
           {
             type: "player-mustered",
             house: house.id,
-            musterings: [],
+            musterings: []
           },
-          true,
+          true
         );
       }
 
@@ -163,11 +163,11 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
               return {
                 from: from ? musteringRegion.units.get(from) : null,
                 region: musteringRegion,
-                to: unitTypes.get(to),
+                to: unitTypes.get(to)
               };
-            }),
+            })
           ] as [Region, Mustering[]];
-        }),
+        })
       );
 
       if (
@@ -203,7 +203,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
         // Check that the originating region is controlled by the house
         if (
           this.ingame.getControllerOfHouse(
-            originatingRegion.getController() as House,
+            originatingRegion.getController() as House
           ) != player
         ) {
           return;
@@ -259,7 +259,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
       ) {
         this.resolveConsolidatePowerGameState.resolveConsolidatePowerOrderForPt(
           this.regions[0],
-          this.house,
+          this.house
         );
       } else {
         this.parentGameState.ingame.log({
@@ -270,9 +270,9 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
             musterings.map((m) => ({
               region: m.region.id,
               from: m.from ? m.from.type.id : null,
-              to: m.to.id,
-            })),
-          ]),
+              to: m.to.id
+            }))
+          ])
         });
       }
 
@@ -297,9 +297,9 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
         recruitements.map(({ from, to, region }) => ({
           from: from ? from.id : null,
           to: to.id,
-          region: region.id,
-        })),
-      ]),
+          region: region.id
+        }))
+      ])
     });
   }
 
@@ -319,12 +319,12 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
           const previousMusterings = new BetterMap(
             musterings.entries
               .slice(0, mi)
-              .concat([[originatingRegion, recruitements.slice(0, ri)]]),
+              .concat([[originatingRegion, recruitements.slice(0, ri)]])
           );
 
           const validMusteringRules = this.getValidMusteringRules(
             originatingRegion,
-            previousMusterings,
+            previousMusterings
           );
           // Check if the valid mustering rules contains this recruitement,
           // if not, then this rule is invalid
@@ -333,18 +333,18 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
               (r) =>
                 r.region == recruitement.region &&
                 r.rules.find(
-                  (r) => r.from == recruitement.from && r.to == recruitement.to,
-                ) != null,
+                  (r) => r.from == recruitement.from && r.to == recruitement.to
+                ) != null
             ) != null
           );
         });
-      },
+      }
     );
   }
 
   getValidMusteringRules(
     originatingRegion: Region,
-    musterings: BetterMap<Region, Mustering[]>,
+    musterings: BetterMap<Region, Mustering[]>
   ): { region: Region; rules: MusteringRule[] }[] {
     if (originatingRegion.castleLevel <= 0) {
       return [];
@@ -354,11 +354,11 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
       .concat(
         this.game.world
           .getNeighbouringRegions(originatingRegion)
-          .filter((r) => r.type.kind == RegionKind.SEA),
+          .filter((r) => r.type.kind == RegionKind.SEA)
       )
       // Can't recruit in a enemy-controled territory
       .filter(
-        (r) => r.getController() == null || r.getController() == this.house,
+        (r) => r.getController() == null || r.getController() == this.house
       )
       // Can't recruit into a blocked region, e.g. an adjacent blocked sea
       .filter((r) => (r.garrison > 0 ? r.getController() == this.house : true));
@@ -379,20 +379,20 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
               ? this.getPotentialUnitForUpgrading(
                   musterings,
                   recruitmentRegion,
-                  rule.from,
+                  rule.from
                 ) != null
-              : true,
+              : true
           )
           // Check that the mustering doesn't hit unit limits
           .filter((rule) => {
             const flattenedMusterings = _.flatMap(musterings.values);
             // Take into accounts units that have already been mustered
             const alreadyMusteredUnits = flattenedMusterings.filter(
-              (m) => m.to == rule.to,
+              (m) => m.to == rule.to
             ).length;
             // Musterings might have freed units that can be used to realize musterings
             const freedUnits = flattenedMusterings.filter(
-              (m) => m.from && m.from.type == rule.to,
+              (m) => m.from && m.from.type == rule.to
             ).length;
             return (
               this.game.getAvailableUnitsOfType(this.house, rule.to) +
@@ -415,7 +415,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
               recruitmentRegion,
               addedUnits
                 .tryGet(recruitmentRegion, [] as UnitType[])
-                .concat([to]),
+                .concat([to])
             );
 
             // Check the supply of the new units
@@ -429,28 +429,28 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
                 ? (this.getPotentialUnitForUpgrading(
                     musterings,
                     recruitmentRegion,
-                    rule.from,
+                    rule.from
                   ) as Unit)
                 : null,
               to: rule.to,
-              cost: rule.cost,
+              cost: rule.cost
             };
-          }),
+          })
       };
     });
   }
 
   getValidMusteringRulesForRegion(
     region: Region,
-    musterings: BetterMap<Region, Mustering[]>,
+    musterings: BetterMap<Region, Mustering[]>
   ): MusteringRule[] {
     return _.flatMap(
-      this.getValidMusteringRules(region, musterings).map(({ rules }) => rules),
+      this.getValidMusteringRules(region, musterings).map(({ rules }) => rules)
     );
   }
 
   getAddedUnitsOfMustering(
-    musterings: BetterMap<Region, Mustering[]>,
+    musterings: BetterMap<Region, Mustering[]>
   ): BetterMap<Region, UnitType[]> {
     const addedUnits = new BetterMap<Region, UnitType[]>();
 
@@ -462,9 +462,9 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
 
         addedUnits.set(
           region,
-          addedUnits.tryGet(region, [] as UnitType[]).concat([to]),
+          addedUnits.tryGet(region, [] as UnitType[]).concat([to])
         );
-      }),
+      })
     );
 
     return addedUnits;
@@ -472,7 +472,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
 
   getPointsLeft(
     region: Region,
-    musterings: BetterMap<Region, Mustering[]>,
+    musterings: BetterMap<Region, Mustering[]>
   ): number {
     return region.castleLevel - this.getUsedPointsForRegion(region, musterings);
   }
@@ -487,8 +487,8 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
         return (
           _.flatMap(
             this.regions.map((c) =>
-              this.getValidMusteringRulesForRegion(c, musterings),
-            ),
+              this.getValidMusteringRulesForRegion(c, musterings)
+            )
           ).length > 0
         );
       case PlayerMusteringType.THE_HORDE_DESCENDS_WILDLING_CARD:
@@ -497,8 +497,8 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
           return (
             _.flatMap(
               this.regions.map((c) =>
-                this.getValidMusteringRulesForRegion(c, musterings),
-              ),
+                this.getValidMusteringRulesForRegion(c, musterings)
+              )
             ).length > 0
           );
         } else {
@@ -512,7 +512,7 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
 
   getUsedPointsForRegion(
     region: Region,
-    musterings: BetterMap<Region, Mustering[]>,
+    musterings: BetterMap<Region, Mustering[]>
   ): number {
     return this.getUsedPoints(musterings.tryGet(region, []));
   }
@@ -520,15 +520,15 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
   getUsedPoints(musterings: Mustering[]): number {
     return _.sum(
       musterings.map((m) =>
-        getCostOfMusteringRule(m.from ? m.from.type : null, m.to),
-      ),
+        getCostOfMusteringRule(m.from ? m.from.type : null, m.to)
+      )
     );
   }
 
   getPotentialUnitForUpgrading(
     musterings: BetterMap<Region, Mustering[]>,
     region: Region,
-    fromType: UnitType,
+    fromType: UnitType
   ): Unit | null {
     const units = this.getUnitsLeftToUpgrade(musterings, region);
     const potentialUnit = units.find((u) => u.type == fromType);
@@ -539,14 +539,14 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
 
   getUnitsLeftToUpgrade(
     musterings: BetterMap<Region, Mustering[]>,
-    region: Region,
+    region: Region
   ): Unit[] {
     const recruitments: Mustering[] = musterings.tryGet(region, []);
 
     // Null values are filtered, thus allowing the cast to Unit[].
     return _.difference(
       region.units.values,
-      recruitments.map(({ from }) => from).filter((f) => f) as Unit[],
+      recruitments.map(({ from }) => from).filter((f) => f) as Unit[]
     );
   }
 
@@ -559,9 +559,9 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
         {
           type: "player-mustered",
           house: this.house.id,
-          musterings: [],
+          musterings: []
         },
-        true,
+        true
       );
 
       this.proceedToParentGameState();
@@ -570,18 +570,18 @@ export default class PlayerMusteringGameState extends GameState<ParentGameState>
 
   serializeToClient(
     _: boolean,
-    __: Player | null,
+    __: Player | null
   ): SerializedPlayerMusteringGameState {
     return {
       type: "player-mustering",
       house: this.house.id,
-      musteringType: this.type,
+      musteringType: this.type
     };
   }
 
   static deserializeFromServer(
     parent: ParentGameState,
-    data: SerializedPlayerMusteringGameState,
+    data: SerializedPlayerMusteringGameState
   ): PlayerMusteringGameState {
     const playerMustering = new PlayerMusteringGameState(parent);
 
