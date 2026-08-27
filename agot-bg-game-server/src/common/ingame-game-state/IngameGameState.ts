@@ -50,7 +50,7 @@ import { v4 } from "uuid";
 import CancelledGameState, {
   SerializedCancelledGameState
 } from "../cancelled-game-state/CancelledGameState";
-import { computed, observable } from "mobx";
+import { computed, observable, runInAction } from "mobx";
 import _ from "lodash";
 import DraftGameState, {
   SerializedDraftGameState
@@ -1384,7 +1384,9 @@ export default class IngameGameState extends GameState<
         ([houseId, supply]) => [this.game.houses.get(houseId), supply]
       );
 
-      supplies.forEach(([house, supply]) => (house.supplyLevel = supply));
+      runInAction(() => {
+        supplies.forEach(([house, supply]) => (house.supplyLevel = supply));
+      });
     } else if (message.type == "change-control-power-token") {
       const region = this.world.regions.get(message.regionId);
       const house = message.houseId
@@ -1490,12 +1492,14 @@ export default class IngameGameState extends GameState<
 
       house.powerTokens = message.powerTokenCount;
     } else if (message.type == "new-turn") {
-      this.game.turn++;
-      this.game.valyrianSteelBladeUsed = false;
-      this.unitVisibilityRangeModifier = 0;
-      this.world.regions.forEach((r) =>
-        r.units.forEach((u) => (u.wounded = false))
-      );
+      runInAction(() => {
+        this.game.turn++;
+        this.game.valyrianSteelBladeUsed = false;
+        this.unitVisibilityRangeModifier = 0;
+        this.world.regions.forEach((r) =>
+          r.units.forEach((u) => (u.wounded = false))
+        );
+      });
     } else if (message.type == "add-game-log") {
       this.gameLogManager.logs.push({
         data: message.data,
@@ -1516,16 +1520,22 @@ export default class IngameGameState extends GameState<
         this.game.kingsCourtTrack = newOrder;
       }
     } else if (message.type == "update-westeros-decks") {
-      this.game.westerosDecks = message.westerosDecks.map((wd) =>
-        wd.map((wc) => WesterosCard.deserializeFromServer(wc))
-      );
-      this.game.winterIsComingHappened = message.winterIsComingHappened;
+      runInAction(() => {
+        this.game.westerosDecks = message.westerosDecks.map((wd) =>
+          wd.map((wc) => WesterosCard.deserializeFromServer(wc))
+        );
+        this.game.winterIsComingHappened = message.winterIsComingHappened;
+      });
     } else if (message.type == "hide-top-wildling-card") {
-      this.game.houses.forEach((h) => (h.knowsNextWildlingCard = false));
-      this.game.clientNextWildlingCardId = null;
+      runInAction(() => {
+        this.game.houses.forEach((h) => (h.knowsNextWildlingCard = false));
+        this.game.clientNextWildlingCardId = null;
+      });
     } else if (message.type == "reveal-top-wildling-card") {
-      this.game.houses.get(message.houseId).knowsNextWildlingCard = true;
-      this.game.clientNextWildlingCardId = message.cardId;
+      runInAction(() => {
+        this.game.houses.get(message.houseId).knowsNextWildlingCard = true;
+        this.game.clientNextWildlingCardId = message.cardId;
+      });
     } else if (message.type == "vote-started") {
       const vote = Vote.deserializeFromServer(this, message.vote);
       this.votes.set(vote.id, vote);
@@ -1616,37 +1626,38 @@ export default class IngameGameState extends GameState<
       const allHouseCardsInGame = this.game.getAllHouseCardsInGame();
       const [hid, hcids] = message.houseCards;
       const house = this.game.houses.get(hid);
-      const oldHouseCards = house.houseCards;
-      house.houseCards = new BetterMap(
-        hcids.map((hcid) => {
-          const hc = allHouseCardsInGame.get(hcid);
-          return [hcid, hc];
-        })
-      );
 
-      oldHouseCards.forEach((hc) => {
-        allHouseCardsInGame.set(hc.id, hc);
+      runInAction(() => {
+        house.houseCards = new BetterMap(
+          hcids.map((hcid) => {
+            const hc = allHouseCardsInGame.get(hcid);
+            return [hcid, hc];
+          })
+        );
+
+        this.game.draftPool = new BetterMap(
+          message.draftPool.map((hcid) => {
+            const hc = allHouseCardsInGame.get(hcid);
+            return [hcid, hc];
+          })
+        );
       });
-
-      this.game.draftPool = new BetterMap(
-        message.draftPool.map((hcid) => {
-          const hc = allHouseCardsInGame.get(hcid);
-          return [hcid, hc];
-        })
-      );
     } else if (message.type == "later-house-cards-applied") {
       const house = this.game.houses.get(message.house);
-      this.game.previousPlayerHouseCards.set(house, new BetterMap());
-      house.houseCards.values.forEach((hc) => {
-        this.game.previousPlayerHouseCards.get(house).set(hc.id, hc);
-        house.houseCards.delete(hc.id);
-      });
 
-      house.laterHouseCards?.values.forEach((hc) => {
-        house.houseCards.set(hc.id, hc);
-      });
+      runInAction(() => {
+        this.game.previousPlayerHouseCards.set(house, new BetterMap());
+        house.houseCards.values.forEach((hc) => {
+          this.game.previousPlayerHouseCards.get(house).set(hc.id, hc);
+          house.houseCards.delete(hc.id);
+        });
 
-      house.laterHouseCards = null;
+        house.laterHouseCards?.values.forEach((hc) => {
+          house.houseCards.set(hc.id, hc);
+        });
+
+        house.laterHouseCards = null;
+      });
     } else if (message.type == "update-deleted-house-cards") {
       const allHouseCardsInGame = this.game.getAllHouseCardsInGame();
       this.game.deletedHouseCards = new BetterMap(
@@ -1672,26 +1683,32 @@ export default class IngameGameState extends GameState<
       this.game.maxTurns = message.maxTurns;
     } else if (message.type == "loyalty-token-gained") {
       const region = this.world.regions.get(message.region);
-      if (this.game.targaryen) {
-        this.game.targaryen.victoryPoints = message.newLoyaltyTokenCount;
-      }
-      region.loyaltyTokens = 0;
+      runInAction(() => {
+        if (this.game.targaryen) {
+          this.game.targaryen.victoryPoints = message.newLoyaltyTokenCount;
+        }
+        region.loyaltyTokens = 0;
+      });
     } else if (message.type == "loyalty-token-placed") {
       const region = this.world.regions.get(message.region);
       region.loyaltyTokens = message.newLoyaltyTokenCount;
     } else if (message.type == "dragon-strength-token-removed") {
-      _.pull(this.game.dragonStrengthTokens, message.fromRound);
-      this.game.removedDragonStrengthTokens.push(message.fromRound);
+      runInAction(() => {
+        _.pull(this.game.dragonStrengthTokens, message.fromRound);
+        this.game.removedDragonStrengthTokens.push(message.fromRound);
+      });
     } else if (message.type == "update-loan-cards") {
-      this.game.theIronBank.loanCardDeck = message.loanCardDeck.map((lc) =>
-        LoanCard.deserializeFromServer(this.game, lc)
-      );
-      this.game.theIronBank.purchasedLoans = message.purchasedLoans.map((lc) =>
-        LoanCard.deserializeFromServer(this.game, lc)
-      );
-      this.game.theIronBank.loanSlots = message.loanSlots.map((lc) =>
-        lc ? LoanCard.deserializeFromServer(this.game, lc) : null
-      );
+      runInAction(() => {
+        this.game.theIronBank.loanCardDeck = message.loanCardDeck.map((lc) =>
+          LoanCard.deserializeFromServer(this.game, lc)
+        );
+        this.game.theIronBank.purchasedLoans = message.purchasedLoans.map(
+          (lc) => LoanCard.deserializeFromServer(this.game, lc)
+        );
+        this.game.theIronBank.loanSlots = message.loanSlots.map((lc) =>
+          lc ? LoanCard.deserializeFromServer(this.game, lc) : null
+        );
+      });
     } else if (message.type == "update-region-modifiers") {
       const region = this.game.world.regions.get(message.region);
 
@@ -1705,14 +1722,16 @@ export default class IngameGameState extends GameState<
         region.crownModifier = message.crownModifier;
       }
     } else if (message.type == "update-completed-objectives") {
-      message.objectives.forEach(([hid, objectives]) => {
-        this.game.houses.get(hid).completedObjectives = objectives.map((ocid) =>
-          objectiveCards.get(ocid)
-        );
-      });
+      runInAction(() => {
+        message.objectives.forEach(([hid, objectives]) => {
+          this.game.houses.get(hid).completedObjectives = objectives.map(
+            (ocid) => objectiveCards.get(ocid)
+          );
+        });
 
-      message.victoryPointCount.forEach(([hid, vpc]) => {
-        this.game.houses.get(hid).victoryPoints = vpc;
+        message.victoryPointCount.forEach(([hid, vpc]) => {
+          this.game.houses.get(hid).victoryPoints = vpc;
+        });
       });
     } else if (message.type == "update-secret-objectives") {
       this.game.houses.get(message.house).secretObjectives =
@@ -1737,34 +1756,41 @@ export default class IngameGameState extends GameState<
         this.entireGame.users.get(message.userId)
       );
 
-      if (!player.liveClockData) {
-        throw new Error("LiveClockData must be present in start-player-clock");
-      }
-
-      player.liveClockData.remainingSeconds = message.remainingSeconds;
-      player.liveClockData.timerStartedAt = new Date(message.timerStartedAt);
+      runInAction(() => {
+        if (!player.liveClockData) {
+          throw new Error(
+            "LiveClockData must be present in start-player-clock"
+          );
+        }
+        player.liveClockData.remainingSeconds = message.remainingSeconds;
+        player.liveClockData.timerStartedAt = new Date(message.timerStartedAt);
+      });
     } else if (message.type == "stop-player-clock") {
       const player = this.players.get(
         this.entireGame.users.get(message.userId)
       );
 
-      if (!player.liveClockData) {
-        throw new Error("LiveClockData must be present stop-player-clock");
-      }
+      runInAction(() => {
+        if (!player.liveClockData) {
+          throw new Error("LiveClockData must be present stop-player-clock");
+        }
 
-      player.liveClockData.remainingSeconds = message.remainingSeconds;
-      player.liveClockData.timerStartedAt = null;
+        player.liveClockData.remainingSeconds = message.remainingSeconds;
+        player.liveClockData.timerStartedAt = null;
+      });
     } else if (message.type == "game-paused") {
-      this.paused = new Date();
-      if (message.willBeAutoResumedAt) {
-        this.willBeAutoResumedAt = new Date(message.willBeAutoResumedAt);
-      }
-
+      runInAction(() => {
+        this.paused = new Date();
+        if (message.willBeAutoResumedAt) {
+          this.willBeAutoResumedAt = new Date(message.willBeAutoResumedAt);
+        }
+      });
       if (this.onGamePaused) this.onGamePaused();
     } else if (message.type == "game-resumed") {
-      this.paused = null;
-      this.willBeAutoResumedAt = null;
-
+      runInAction(() => {
+        this.paused = null;
+        this.willBeAutoResumedAt = null;
+      });
       if (this.onGameResumed) this.onGameResumed();
     } else if (
       message.type == "preemptive-raid-new-attack" &&
