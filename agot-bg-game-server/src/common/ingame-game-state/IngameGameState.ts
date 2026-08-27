@@ -50,7 +50,7 @@ import { v4 } from "uuid";
 import CancelledGameState, {
   SerializedCancelledGameState
 } from "../cancelled-game-state/CancelledGameState";
-import { observable } from "mobx";
+import { computed, observable } from "mobx";
 import _ from "lodash";
 import DraftGameState, {
   SerializedDraftGameState
@@ -137,7 +137,7 @@ export default class IngameGameState extends GameState<
   gameLogManager: GameLogManager = new GameLogManager(this);
   replayManager: GameReplayManager;
   @observable ordersOnBoard: BetterMap<Region, Order> = new BetterMap();
-  unitVisibilityRangeModifier = 0;
+  @observable unitVisibilityRangeModifier = 0;
 
   votes: BetterMap<string, Vote> = new BetterMap();
   @observable paused: Date | null = null;
@@ -188,20 +188,20 @@ export default class IngameGameState extends GameState<
       .map((h) => this.getControllerOfHouse(h));
   }
 
-  get isEnded(): boolean {
+  @computed get isEnded(): boolean {
     return this.childGameState instanceof GameEndedGameState;
   }
 
-  get isCancelled(): boolean {
+  @computed get isCancelled(): boolean {
     return this.childGameState instanceof CancelledGameState;
   }
 
-  get isEndedOrCancelled(): boolean {
+  @computed get isEndedOrCancelled(): boolean {
     return this.isEnded || this.isCancelled;
   }
 
-  get fogOfWar(): boolean {
-    return this.entireGame.gameSettings.fogOfWar;
+  @computed get fogOfWar(): boolean {
+    return this.entireGame.gameSettings.fogOfWar && !this.isEndedOrCancelled;
   }
 
   constructor(entireGame: EntireGame) {
@@ -414,6 +414,7 @@ export default class IngameGameState extends GameState<
   }
 
   beginNewRound(): void {
+    this.unitVisibilityRangeModifier = 0;
     if (this.checkVictoryConditions(true)) {
       return;
     }
@@ -1484,6 +1485,7 @@ export default class IngameGameState extends GameState<
     } else if (message.type == "new-turn") {
       this.game.turn++;
       this.game.valyrianSteelBladeUsed = false;
+      this.unitVisibilityRangeModifier = 0;
       this.world.regions.forEach((r) =>
         r.units.forEach((u) => (u.wounded = false))
       );
