@@ -4,7 +4,7 @@ import { observable } from "mobx";
 
 export enum HouseCardState {
   AVAILABLE,
-  USED,
+  USED
 }
 
 export default class HouseCard {
@@ -27,7 +27,7 @@ export default class HouseCard {
     swordIcons: number,
     towerIcons: number,
     ability: HouseCardAbility | null,
-    houseId: string | undefined = undefined,
+    houseId: string | undefined = undefined
   ) {
     this.id = id;
     this.name = name;
@@ -53,7 +53,7 @@ export default class HouseCard {
       extraAbilityId: this.extraAbility ? this.extraAbility.id : null,
       disabled: this.disabled,
       state: this.state,
-      houseId: this.houseId,
+      houseId: this.houseId
     };
   }
 
@@ -65,7 +65,7 @@ export default class HouseCard {
       data.swordIcons,
       data.towerIcons,
       data.abilityId ? houseCardAbilities.get(data.abilityId) : null,
-      data.houseId,
+      data.houseId
     );
 
     houseCard.state = data.state;

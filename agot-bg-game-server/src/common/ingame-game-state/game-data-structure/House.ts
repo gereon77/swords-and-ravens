@@ -6,12 +6,12 @@ import unitTypes from "./unitTypes";
 import Game from "./Game";
 import {
   ObjectiveCard,
-  SpecialObjectiveCard,
+  SpecialObjectiveCard
 } from "./static-data-structure/ObjectiveCard";
 import Player from "../Player";
 import {
   objectiveCards,
-  specialObjectiveCards,
+  specialObjectiveCards
 } from "./static-data-structure/objectiveCards";
 
 export default class House {
@@ -42,7 +42,7 @@ export default class House {
     houseCards: BetterMap<string, HouseCard>,
     laterHouseCards: BetterMap<string, HouseCard> | null = null,
     victoryPoints = 0,
-    hasBeenReplacedByVassal = false,
+    hasBeenReplacedByVassal = false
   ) {
     this.id = id;
     this.name = name;
@@ -71,7 +71,7 @@ export default class House {
   serializeToClient(
     admin: boolean,
     player: Player | null,
-    game: Game,
+    game: Game
   ): SerializedHouse {
     // Only serialize house cards to all clients if house is no vassal house to not reveal the created hand of vassals during combat
     return {
@@ -85,8 +85,8 @@ export default class House {
               ([houseCardId, houseCard]) =>
                 [houseCardId, houseCard.serializeToClient()] as [
                   string,
-                  SerializedHouseCard,
-                ],
+                  SerializedHouseCard
+                ]
             )
           : [],
       laterHouseCards:
@@ -95,13 +95,13 @@ export default class House {
               ([houseCardId, houseCard]) =>
                 [houseCardId, houseCard.serializeToClient()] as [
                   string,
-                  SerializedHouseCard,
-                ],
+                  SerializedHouseCard
+                ]
             )
           : null,
       unitLimits: this.unitLimits.map((unitType, limit) => [
         unitType.id,
-        limit,
+        limit
       ]),
       powerTokens: this.powerTokens,
       maxPowerTokens: this.maxPowerTokens,
@@ -113,7 +113,7 @@ export default class House {
       secretObjectives:
         admin || player?.house == this
           ? this.secretObjectives.map((oc) => oc.id)
-          : [],
+          : []
     };
   }
 
@@ -123,7 +123,7 @@ export default class House {
       data.name,
       data.color,
       new BetterMap<UnitType, number>(
-        data.unitLimits.map(([utid, limit]) => [unitTypes.get(utid), limit]),
+        data.unitLimits.map(([utid, limit]) => [unitTypes.get(utid), limit])
       ),
       data.powerTokens,
       data.maxPowerTokens,
@@ -134,18 +134,18 @@ export default class House {
             return [hcid, game.vassalHouseCards.get(hcid)];
           }
           return [hcid, HouseCard.deserializeFromServer(data)];
-        }),
+        })
       ),
       data.laterHouseCards
         ? new BetterMap<string, HouseCard>(
             data.laterHouseCards.map(([string, data]) => [
               string,
-              HouseCard.deserializeFromServer(data),
-            ]),
+              HouseCard.deserializeFromServer(data)
+            ])
           )
         : null,
       data.victoryPoints,
-      data.hasBeenReplacedByVassal,
+      data.hasBeenReplacedByVassal
     );
 
     house.knowsNextWildlingCard = data.knowsNextWildlingCard;
@@ -153,10 +153,10 @@ export default class House {
       ? specialObjectiveCards.get(data.specialObjective)
       : null;
     house.completedObjectives = data.completedObjectives.map((ocid) =>
-      objectiveCards.get(ocid),
+      objectiveCards.get(ocid)
     );
     house.secretObjectives = data.secretObjectives.map((ocid) =>
-      objectiveCards.get(ocid),
+      objectiveCards.get(ocid)
     );
     return house;
   }
