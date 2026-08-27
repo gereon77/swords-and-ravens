@@ -46,12 +46,12 @@ export default class HouseCard {
       id: this.id,
       name: this.name,
       combatStrength: this.combatStrength,
-      swordIcons: this.swordIcons,
-      towerIcons: this.towerIcons,
-      abilityId: this.ability ? this.ability.id : null,
-      disabledAbilityId: this.disabledAbility ? this.disabledAbility.id : null,
-      extraAbilityId: this.extraAbility ? this.extraAbility.id : null,
-      disabled: this.disabled,
+      swordIcons: this.swordIcons > 0 ? this.swordIcons : undefined,
+      towerIcons: this.towerIcons > 0 ? this.towerIcons : undefined,
+      abilityId: this.ability?.id,
+      disabledAbilityId: this.disabledAbility?.id,
+      extraAbilityId: this.extraAbility?.id,
+      disabled: this.disabled ? true : undefined,
       state: this.state,
       houseId: this.houseId
     };
@@ -62,8 +62,8 @@ export default class HouseCard {
       data.id,
       data.name,
       data.combatStrength,
-      data.swordIcons,
-      data.towerIcons,
+      data.swordIcons ? data.swordIcons : 0,
+      data.towerIcons ? data.towerIcons : 0,
       data.abilityId ? houseCardAbilities.get(data.abilityId) : null,
       data.houseId
     );
@@ -75,7 +75,7 @@ export default class HouseCard {
     houseCard.extraAbility = data.extraAbilityId
       ? houseCardAbilities.get(data.extraAbilityId)
       : null;
-    houseCard.disabled = data.disabled;
+    houseCard.disabled = data.disabled ? true : false;
 
     return houseCard;
   }
@@ -85,12 +85,12 @@ export interface SerializedHouseCard {
   id: string;
   name: string;
   combatStrength: number;
-  swordIcons: number;
-  towerIcons: number;
-  abilityId: string | null;
-  disabledAbilityId: string | null;
-  extraAbilityId: string | null;
-  disabled: boolean | false;
+  swordIcons?: number;
+  towerIcons?: number;
+  abilityId?: string;
+  disabledAbilityId?: string;
+  extraAbilityId?: string;
+  disabled?: boolean;
   state: HouseCardState;
   houseId?: string;
 }

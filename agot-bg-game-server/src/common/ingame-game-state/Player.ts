@@ -143,7 +143,7 @@ export default class Player {
             handled: this.waitedForData.handled,
             hasBeenReactivated: this.waitedForData.hasBeenReactivated
           }
-        : null,
+        : undefined,
       liveClockData: this.liveClockData
         ? {
             remainingSeconds: this.liveClockData.remainingSeconds,
@@ -151,7 +151,7 @@ export default class Player {
               ? this.liveClockData.timerStartedAt.getTime()
               : null
           }
-        : null
+        : undefined
     };
   }
 
@@ -186,8 +186,8 @@ export default class Player {
 export interface SerializedPlayer {
   userId: string;
   houseId: string;
-  waitedForData: SerializedWaitedForData | null;
-  liveClockData: SerializedLiveClockData | null;
+  waitedForData?: SerializedWaitedForData;
+  liveClockData?: SerializedLiveClockData;
 }
 
 export interface WaitedForData {

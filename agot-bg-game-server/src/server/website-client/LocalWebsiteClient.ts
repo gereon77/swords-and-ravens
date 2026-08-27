@@ -77,8 +77,8 @@ export default class LocalWebsiteClient implements WebsiteClient {
 
     const ingame = serializedGame.childGameState;
     ingame.players.forEach((player) => {
-      player.liveClockData = null;
-      player.waitedForData = null;
+      player.liveClockData = undefined;
+      player.waitedForData = undefined;
     });
     ingame.votes = [];
     ingame.gameLogManager.lastSeenLogTimes = [];
@@ -95,8 +95,8 @@ export default class LocalWebsiteClient implements WebsiteClient {
       const player = {
         houseId: houses[i],
         userId: `${i + 1}`,
-        liveClockData: null,
-        waitedForData: null
+        liveClockData: undefined,
+        waitedForData: undefined
       };
       ingame.players.push(player);
     }

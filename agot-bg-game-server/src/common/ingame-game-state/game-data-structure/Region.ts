@@ -209,30 +209,32 @@ export default class Region {
   serializeToClient(_admin: boolean, _player: Player | null): SerializedRegion {
     return {
       id: this.id,
-      units: this.units.values.map((u) => u.serializeToClient()),
-      garrison: this.garrison,
-      controlPowerToken: this.controlPowerToken
-        ? this.controlPowerToken.id
-        : null,
-      loyaltyTokens: this.loyaltyTokens,
-      castleModifier: this.castleModifier,
-      barrelModifier: this.barrelModifier,
-      crownModifier: this.crownModifier,
-      overwrittenSuperControlPowerToken: this.overwrittenSuperControlPowerToken
-        ? this.overwrittenSuperControlPowerToken.id
-        : null
+      units:
+        this.units.size > 0
+          ? this.units.values.map((u) => u.serializeToClient())
+          : undefined,
+      garrison: this.garrison > 0 ? this.garrison : undefined,
+      controlPowerToken: this.controlPowerToken?.id,
+      loyaltyTokens: this.loyaltyTokens > 0 ? this.loyaltyTokens : undefined,
+      castleModifier: this.castleModifier > 0 ? this.castleModifier : undefined,
+      barrelModifier: this.barrelModifier > 0 ? this.barrelModifier : undefined,
+      crownModifier: this.crownModifier > 0 ? this.crownModifier : undefined,
+      overwrittenSuperControlPowerToken:
+        this.overwrittenSuperControlPowerToken?.id
     };
   }
 
   static deserializeFromServer(game: Game, data: SerializedRegion): Region {
     const units = new BetterMap<number, Unit>(
-      data.units.map((u) => [u.id, Unit.deserializeFromServer(game, u)])
+      data.units
+        ? data.units.map((u) => [u.id, Unit.deserializeFromServer(game, u)])
+        : []
     );
 
     const region = new Region(
       game,
       data.id,
-      data.garrison,
+      data.garrison ? data.garrison : 0,
       data.overwrittenSuperControlPowerToken
         ? game.houses.get(data.overwrittenSuperControlPowerToken)
         : null,
@@ -252,12 +254,12 @@ export default class Region {
 
 export interface SerializedRegion {
   id: string;
-  units: SerializedUnit[];
-  garrison: number;
-  controlPowerToken: string | null;
-  loyaltyTokens: number;
-  castleModifier: number;
-  barrelModifier: number;
-  crownModifier: number;
-  overwrittenSuperControlPowerToken: string | null;
+  units?: SerializedUnit[];
+  garrison?: number;
+  controlPowerToken?: string;
+  loyaltyTokens?: number;
+  castleModifier?: number;
+  barrelModifier?: number;
+  crownModifier?: number;
+  overwrittenSuperControlPowerToken?: string;
 }

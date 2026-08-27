@@ -216,6 +216,13 @@ export default class IngameGameState extends GameState<
       type: "game-started"
     });
 
+    if (!this.entireGame.gameSettings.faceless) {
+      // If game isn't faceless, no need to store the faceless names
+      this.entireGame.users.forEach((u) => {
+        u.facelessName = undefined;
+      });
+    }
+
     this.game = createGame(this, housesToCreate, futurePlayers.keys);
     this.players = new BetterMap(
       futurePlayers.map((house, user) => [
@@ -527,7 +534,7 @@ export default class IngameGameState extends GameState<
   getFreeFacelessName(): string | null {
     const freeFacelessNames: string[] = _.difference(
       facelessMenNames,
-      this.players.values.map((p) => p.user.facelessName)
+      this.players.values.map((p) => p.user.facelessName ?? p.user.name)
     );
     return popRandom(freeFacelessNames);
   }
@@ -2601,34 +2608,49 @@ export default class IngameGameState extends GameState<
     return {
       type: "ingame",
       players: this.players.values.map((p) => p.serializeToClient()),
-      unitVisibilityRangeModifier: this.unitVisibilityRangeModifier,
-      oldPlayerIds: this.oldPlayerIds,
-      replacerIds: this.replacerIds,
-      timeoutPlayerIds: this.timeoutPlayerIds,
-      housesTimedOut: this.housesTimedOut.map((h) => h.id),
       game: this.game.serializeToClient(admin, player),
-      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
+      unitVisibilityRangeModifier:
+        this.unitVisibilityRangeModifier > 0
+          ? this.unitVisibilityRangeModifier
+          : undefined,
+      oldPlayerIds:
+        this.oldPlayerIds.length > 0 ? this.oldPlayerIds : undefined,
+      replacerIds: this.replacerIds.length > 0 ? this.replacerIds : undefined,
+      timeoutPlayerIds:
+        this.timeoutPlayerIds.length > 0 ? this.timeoutPlayerIds : undefined,
+      housesTimedOut:
+        this.housesTimedOut.length > 0
+          ? this.housesTimedOut.map((h) => h.id)
+          : undefined,
       ordersOnBoard: this.ordersOnBoard.mapOver(
         (r) => r.id,
         (o) => o.id
       ),
-      votes: this.votes.values.map((v) => v.serializeToClient(admin, player)),
-      paused: this.paused ? this.paused.getTime() : null,
+      votes:
+        this.votes.size > 0
+          ? this.votes.values.map((v) => v.serializeToClient(admin, player))
+          : undefined,
+      paused: this.paused ? this.paused.getTime() : undefined,
       willBeAutoResumedAt: this.willBeAutoResumedAt
         ? this.willBeAutoResumedAt.getTime()
-        : null,
-      bannedUsers: Array.from(this.bannedUsers.values()),
+        : undefined,
+      bannedUsers:
+        this.bannedUsers.size > 0 ? Array.from(this.bannedUsers) : undefined,
       childGameStateBeforeCancellation: this.childGameStateBeforeCancellation
         ? this.childGameStateBeforeCancellation.serializeToClient(admin, player)
-        : null,
+        : undefined,
       childGameStateBeforeVassalsModification: this
         .childGameStateBeforeVassalsModification
         ? this.childGameStateBeforeVassalsModification.serializeToClient(
             admin,
             player
           )
-        : null,
-      vassalizedHouses: this.vassalizedHouses.map((h) => h.id),
+        : undefined,
+      vassalizedHouses:
+        this.vassalizedHouses.length > 0
+          ? this.vassalizedHouses.map((h) => h.id)
+          : undefined,
+      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
       childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
@@ -2651,18 +2673,20 @@ export default class IngameGameState extends GameState<
       ])
     );
     ingameGameState.unitVisibilityRangeModifier =
-      data.unitVisibilityRangeModifier;
-    ingameGameState.oldPlayerIds = data.oldPlayerIds;
-    ingameGameState.replacerIds = data.replacerIds;
-    ingameGameState.timeoutPlayerIds = data.timeoutPlayerIds;
-    ingameGameState.housesTimedOut = data.housesTimedOut.map((hid) =>
-      ingameGameState.game.houses.get(hid)
-    );
+      data.unitVisibilityRangeModifier ?? 0;
+    ingameGameState.oldPlayerIds = data.oldPlayerIds ?? [];
+    ingameGameState.replacerIds = data.replacerIds ?? [];
+    ingameGameState.timeoutPlayerIds = data.timeoutPlayerIds ?? [];
+    ingameGameState.housesTimedOut = data.housesTimedOut
+      ? data.housesTimedOut.map((hid) => ingameGameState.game.houses.get(hid))
+      : [];
     ingameGameState.votes = new BetterMap(
-      data.votes.map((sv) => [
-        sv.id,
-        Vote.deserializeFromServer(ingameGameState, sv)
-      ])
+      data.votes
+        ? data.votes.map((sv) => [
+            sv.id,
+            Vote.deserializeFromServer(ingameGameState, sv)
+          ])
+        : []
     );
     ingameGameState.ordersOnBoard = new BetterMap(
       data.ordersOnBoard.map(([regionId, orderId]) => [
@@ -2691,9 +2715,9 @@ export default class IngameGameState extends GameState<
             data.childGameStateBeforeVassalsModification
           )
         : null;
-    ingameGameState.vassalizedHouses = data.vassalizedHouses.map((hid) =>
-      ingameGameState.game.houses.get(hid)
-    );
+    ingameGameState.vassalizedHouses = data.vassalizedHouses
+      ? data.vassalizedHouses.map((hid) => ingameGameState.game.houses.get(hid))
+      : [];
     ingameGameState.childGameState = ingameGameState.deserializeChildGameState(
       data.childGameState
     );
@@ -2733,20 +2757,20 @@ export default class IngameGameState extends GameState<
 export interface SerializedIngameGameState {
   type: "ingame";
   players: SerializedPlayer[];
-  unitVisibilityRangeModifier: number;
-  oldPlayerIds: string[];
-  replacerIds: string[];
-  timeoutPlayerIds: string[];
-  housesTimedOut: string[];
   game: SerializedGame;
-  votes: SerializedVote[];
-  gameLogManager: SerializedGameLogManager;
+  unitVisibilityRangeModifier?: number;
+  oldPlayerIds?: string[];
+  replacerIds?: string[];
+  timeoutPlayerIds?: string[];
+  housesTimedOut?: string[];
+  votes?: SerializedVote[];
   ordersOnBoard: [string, number][];
-  paused: number | null;
-  willBeAutoResumedAt: number | null;
-  bannedUsers: string[];
+  paused?: number;
+  willBeAutoResumedAt?: number;
+  bannedUsers?: string[];
   childGameState: SerializedIngameChildGameState;
-  childGameStateBeforeCancellation: SerializedIngameChildGameState | null;
-  childGameStateBeforeVassalsModification: SerializedIngameChildGameState | null;
-  vassalizedHouses: string[];
+  childGameStateBeforeCancellation?: SerializedIngameChildGameState;
+  childGameStateBeforeVassalsModification?: SerializedIngameChildGameState;
+  vassalizedHouses?: string[];
+  gameLogManager: SerializedGameLogManager;
 }

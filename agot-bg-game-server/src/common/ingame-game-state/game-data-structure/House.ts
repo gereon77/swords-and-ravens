@@ -78,7 +78,7 @@ export default class House {
       id: this.id,
       name: this.name,
       color: this.color,
-      knowsNextWildlingCard: this.knowsNextWildlingCard,
+      knowsNextWildlingCard: this.knowsNextWildlingCard ? true : undefined,
       houseCards:
         admin || !game.ingame.isVassalHouse(this)
           ? this.houseCards.entries.map(
@@ -98,7 +98,7 @@ export default class House {
                   SerializedHouseCard
                 ]
             )
-          : null,
+          : undefined,
       unitLimits: this.unitLimits.map((unitType, limit) => [
         unitType.id,
         limit
@@ -106,14 +106,19 @@ export default class House {
       powerTokens: this.powerTokens,
       maxPowerTokens: this.maxPowerTokens,
       supplyLevel: this.supplyLevel,
-      hasBeenReplacedByVassal: this.hasBeenReplacedByVassal,
-      specialObjective: this.specialObjective ? this.specialObjective.id : null,
-      victoryPoints: this.victoryPoints,
-      completedObjectives: this.completedObjectives.map((oc) => oc.id),
+      hasBeenReplacedByVassal: this.hasBeenReplacedByVassal ? true : undefined,
+      specialObjective: this.specialObjective?.id,
+      victoryPoints: this.victoryPoints > 0 ? this.victoryPoints : undefined,
+      completedObjectives:
+        this.completedObjectives.length > 0
+          ? this.completedObjectives.map((oc) => oc.id)
+          : undefined,
       secretObjectives:
         admin || player?.house == this
-          ? this.secretObjectives.map((oc) => oc.id)
-          : []
+          ? this.secretObjectives.length > 0
+            ? this.secretObjectives.map((oc) => oc.id)
+            : undefined
+          : undefined
     };
   }
 
@@ -148,16 +153,14 @@ export default class House {
       data.hasBeenReplacedByVassal
     );
 
-    house.knowsNextWildlingCard = data.knowsNextWildlingCard;
+    house.knowsNextWildlingCard = data.knowsNextWildlingCard ?? false;
     house.specialObjective = data.specialObjective
       ? specialObjectiveCards.get(data.specialObjective)
       : null;
-    house.completedObjectives = data.completedObjectives.map((ocid) =>
-      objectiveCards.get(ocid)
-    );
-    house.secretObjectives = data.secretObjectives.map((ocid) =>
-      objectiveCards.get(ocid)
-    );
+    house.completedObjectives =
+      data.completedObjectives?.map((ocid) => objectiveCards.get(ocid)) ?? [];
+    house.secretObjectives =
+      data.secretObjectives?.map((ocid) => objectiveCards.get(ocid)) ?? [];
     return house;
   }
 }
@@ -166,16 +169,16 @@ export interface SerializedHouse {
   id: string;
   name: string;
   color: string;
-  knowsNextWildlingCard: boolean;
+  knowsNextWildlingCard?: boolean;
   houseCards: [string, SerializedHouseCard][];
-  laterHouseCards: [string, SerializedHouseCard][] | null;
+  laterHouseCards?: [string, SerializedHouseCard][];
   unitLimits: [string, number][];
   powerTokens: number;
   maxPowerTokens: number;
   supplyLevel: number;
-  victoryPoints: number;
-  hasBeenReplacedByVassal: boolean;
-  specialObjective: string | null;
-  secretObjectives: string[];
-  completedObjectives: string[];
+  victoryPoints?: number;
+  hasBeenReplacedByVassal?: boolean;
+  specialObjective?: string;
+  secretObjectives?: string[];
+  completedObjectives?: string[];
 }

@@ -2,12 +2,12 @@ import { SerializedSeeTopWildlingCardGameState } from "../common/ingame-game-sta
 import { SerializedGameState } from "../common/GameState";
 import { SerializedUnit } from "../common/ingame-game-state/game-data-structure/Unit";
 import { SerializedUser } from "../server/User";
+import SerializedUserSettings from "./SerializedUserSettings";
 import {
   HouseCardState,
   SerializedHouseCard
 } from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import { GameLogData } from "../common/ingame-game-state/game-data-structure/GameLog";
-import { UserSettings } from "./ClientMessage";
 import { SerializedWesterosCard } from "../common/ingame-game-state/game-data-structure/westeros-card/WesterosCard";
 import { SerializedVote } from "../common/ingame-game-state/vote-system/Vote";
 import HouseCardModifier from "../common/ingame-game-state/game-data-structure/house-card/HouseCardModifier";
@@ -323,7 +323,7 @@ interface NewTurn {
 interface SettingsChanged {
   type: "settings-changed";
   user: string;
-  settings: UserSettings;
+  settings: SerializedUserSettings;
 }
 
 interface ChangeValyrianSteelBladeUse {

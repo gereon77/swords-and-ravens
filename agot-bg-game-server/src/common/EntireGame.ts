@@ -8,7 +8,7 @@ import IngameGameState, {
 } from "./ingame-game-state/IngameGameState";
 import { ServerMessage } from "../messages/ServerMessage";
 import { ClientMessage } from "../messages/ClientMessage";
-import User, { SerializedUser } from "../server/User";
+import User, { SerializedUser, UserSettings } from "../server/User";
 import { observable, runInAction } from "mobx";
 import * as _ from "lodash";
 import BetterMap from "../utils/BetterMap";
@@ -361,21 +361,20 @@ export default class EntireGame extends GameState<
     userName: string,
     profileSettings: StoredProfileSettings
   ): User {
+    const settings = new UserSettings();
+    settings.chatHouseNames = profileSettings.houseNamesForChat;
+    settings.muted = profileSettings.muted;
+    settings.gameStateColumnRight = profileSettings.responsiveLayout;
+    settings.mapScrollbar = profileSettings.mapScrollbar;
+    settings.musicVolume = settings.muted ? 0 : 1;
+    settings.notificationsVolume = settings.muted ? 0 : 1;
+    settings.sfxVolume = settings.muted ? 0 : 1;
     const user = new User(
       userId,
       userName,
       `Nobody ${this.users.size + 1}`,
       this,
-      {
-        closedChats: [],
-        chatHouseNames: profileSettings.houseNamesForChat,
-        mapScrollbar: profileSettings.mapScrollbar,
-        gameStateColumnRight: profileSettings.responsiveLayout,
-        muted: profileSettings.muted,
-        musicVolume: profileSettings.muted ? 0 : 1,
-        notificationsVolume: profileSettings.muted ? 0 : 1,
-        sfxVolume: profileSettings.muted ? 0 : 1
-      }
+      settings
     );
     this.users.set(user.id, user);
 
@@ -399,15 +398,15 @@ export default class EntireGame extends GameState<
   onClientMessage(user: User, message: ClientMessage): void {
     let updateLastActive = false;
     if (message.type == "change-settings") {
-      user.settings = message.settings;
+      user.settings = UserSettings.deserializeFromServer(message.settings);
 
       // Ensure user never closes the public game chat
       _.pull(user.settings.closedChats, this.publicChatRoomId);
 
-      this.broadcastToClients({
+      user.send({
         type: "settings-changed",
         user: user.id,
-        settings: user.settings
+        settings: user.settings.serializeToClient()
       });
     } else if (message.type == "change-game-settings") {
       if (!this.canActAsOwner(user)) {
@@ -597,8 +596,7 @@ export default class EntireGame extends GameState<
       this.users.set(user.id, user);
     } else if (message.type == "settings-changed") {
       const user = this.users.get(message.user);
-
-      user.settings = message.settings;
+      user.settings = UserSettings.deserializeFromServer(message.settings);
     } else if (message.type == "game-settings-changed") {
       this.gameSettings = GameSettings.deserializeFromServer(message.settings);
     } else if (message.type == "update-connection-status") {

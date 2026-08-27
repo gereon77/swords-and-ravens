@@ -230,7 +230,7 @@ export default class ActionGameState extends GameState<
         houseCard.ability = shc.abilityId
           ? houseCardAbilities.get(shc.abilityId)
           : null;
-        houseCard.disabled = shc.disabled;
+        houseCard.disabled = shc.disabled ?? false;
         houseCard.disabledAbility = shc.disabledAbilityId
           ? houseCardAbilities.get(shc.disabledAbilityId)
           : null;

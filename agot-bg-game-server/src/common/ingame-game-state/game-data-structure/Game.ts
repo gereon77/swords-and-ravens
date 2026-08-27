@@ -36,9 +36,7 @@ export const MAX_WILDLING_STRENGTH = 12;
 export const MAX_LOYALTY_TOKEN_COUNT = 20;
 export default class Game {
   ingame: IngameGameState;
-
   lastUnitId = 0;
-
   world: World;
   houses: BetterMap<string, House> = new BetterMap<string, House>();
   @observable turn = 0;
@@ -52,10 +50,8 @@ export default class Game {
   wildlingDeck: WildlingCard[];
   supplyRestrictions: number[][];
   starredOrderRestrictions: number[];
-  westerosDecks: WesterosCard[][];
-  // No need to declare this as @observable. It will be set by WiC card and then transmitted with
-  // game-state-changed and won't change until next time we draw Westeros cards...
-  winterIsComingHappened: boolean[];
+  @observable westerosDecks: WesterosCard[][];
+  @observable winterIsComingHappened: boolean[];
   victoryPointsCountNeededToWin: number;
   loyaltyTokenCountNeededToWin: number;
   @observable maxTurns: number;
@@ -696,12 +692,12 @@ export default class Game {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const forceDragonStrengthValidation = this.currentDragonStrength;
     return {
+      turn: this.turn,
       lastUnitId: this.lastUnitId,
       houses: this.houses.values.map((h) =>
         h.serializeToClient(admin, player, this)
       ),
       world: this.world.serializeToClient(admin, player),
-      turn: this.turn,
       ironThroneTrack: this.ironThroneTrack.map((h) => h.id),
       fiefdomsTrack: this.fiefdomsTrack.map((h) => h.id),
       kingsCourtTrack: this.kingsCourtTrack.map((h) => h.id),
@@ -731,12 +727,12 @@ export default class Game {
       clientNextWildlingCardId:
         admin || player?.house.knowsNextWildlingCard
           ? this.wildlingDeck[0].id
-          : null,
+          : undefined,
       revealedWesterosCards: this.revealedWesterosCards,
-      vassalRelations: this.vassalRelations.map((key, value) => [
-        key.id,
-        value.id
-      ]),
+      vassalRelations:
+        this.vassalRelations.size > 0
+          ? this.vassalRelations.map((key, value) => [key.id, value.id])
+          : undefined,
       vassalHouseCards: this.vassalHouseCards.entries.map(([hcid, hc]) => [
         hcid,
         hc.serializeToClient()
@@ -744,41 +740,67 @@ export default class Game {
       // The game state tree reveals already chosen cards by other houses during Thematic Draft.
       // But as the info is not super critical and as it's easier this was to reveal all cards once drafting is done,
       // hiding other player cards by the UI must be sufficient.
-      draftPool: this.draftPool.entries.map(([hcid, hc]) => [
-        hcid,
-        hc.serializeToClient()
-      ]),
-      deletedHouseCards: this.deletedHouseCards.entries.map(([hcid, hc]) => [
-        hcid,
-        hc.serializeToClient()
-      ]),
-      oldPlayerHouseCards: this.oldPlayerHouseCards.entries.map(([h, hcs]) => [
-        h.id,
-        hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
-      ]),
-      previousPlayerHouseCards: this.previousPlayerHouseCards.entries.map(
-        ([h, hcs]) => [
-          h.id,
-          hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
-        ]
-      ),
-      draftMapRegionsPerHouse: this.draftMapRegionsPerHouse.entries.map(
-        ([h, regions]) => [h.id, regions.map((r) => r.id)]
-      ),
-      dragonStrengthTokens: this.dragonStrengthTokens,
-      removedDragonStrengthTokens: this.removedDragonStrengthTokens,
-      ironBank: this.ironBank ? this.ironBank.serializeToClient(admin) : null,
-      objectiveDeck: admin ? this.objectiveDeck.map((oc) => oc.id) : [],
+      draftPool:
+        this.draftPool.size > 0
+          ? this.draftPool.entries.map(([hcid, hc]) => [
+              hcid,
+              hc.serializeToClient()
+            ])
+          : undefined,
+      deletedHouseCards:
+        this.deletedHouseCards.size > 0
+          ? this.deletedHouseCards.entries.map(([hcid, hc]) => [
+              hcid,
+              hc.serializeToClient()
+            ])
+          : undefined,
+      oldPlayerHouseCards:
+        this.oldPlayerHouseCards.size > 0
+          ? this.oldPlayerHouseCards.entries.map(([h, hcs]) => [
+              h.id,
+              hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
+            ])
+          : undefined,
+      previousPlayerHouseCards:
+        this.previousPlayerHouseCards.size > 0
+          ? this.previousPlayerHouseCards.entries.map(([h, hcs]) => [
+              h.id,
+              hcs.entries.map(([hcid, hc]) => [hcid, hc.serializeToClient()])
+            ])
+          : undefined,
+      draftMapRegionsPerHouse:
+        this.draftMapRegionsPerHouse.size > 0
+          ? this.draftMapRegionsPerHouse.entries.map(([h, regions]) => [
+              h.id,
+              regions.map((r) => r.id)
+            ])
+          : undefined,
+      dragonStrengthTokens:
+        this.dragonStrengthTokens.length > 0
+          ? this.dragonStrengthTokens
+          : undefined,
+      removedDragonStrengthTokens:
+        this.removedDragonStrengthTokens.length > 0
+          ? this.removedDragonStrengthTokens
+          : undefined,
+      ironBank: this.ironBank
+        ? this.ironBank.serializeToClient(admin)
+        : undefined,
+      objectiveDeck: admin
+        ? this.objectiveDeck.length > 0
+          ? this.objectiveDeck.map((oc) => oc.id)
+          : undefined
+        : undefined,
       overwrittenIronThroneHolder: this.overwrittenIronThroneHolder
         ? this.overwrittenIronThroneHolder.id
-        : null,
+        : undefined,
       overwrittenValyrianSteelBladeHolder: this
         .overwrittenValyrianSteelBladeHolder
         ? this.overwrittenValyrianSteelBladeHolder.id
-        : null,
+        : undefined,
       overwrittenRavenHolder: this.overwrittenRavenHolder
         ? this.overwrittenRavenHolder.id
-        : null
+        : undefined
     };
   }
 
@@ -822,55 +844,79 @@ export default class Game {
     game.loyaltyTokenCountNeededToWin = data.loyaltyTokenCountNeededToWin;
     game.maxTurns = data.maxTurns;
     game.revealedWesterosCards = data.revealedWesterosCards;
-    game.clientNextWildlingCardId = data.clientNextWildlingCardId;
+    game.clientNextWildlingCardId = data.clientNextWildlingCardId
+      ? data.clientNextWildlingCardId
+      : null;
     game.vassalRelations = new BetterMap(
-      data.vassalRelations.map(([vid, hid]) => [
-        game.houses.get(vid),
-        game.houses.get(hid)
-      ])
+      data.vassalRelations
+        ? data.vassalRelations.map(([vid, hid]) => [
+            game.houses.get(vid),
+            game.houses.get(hid)
+          ])
+        : []
     );
     game.draftPool = new BetterMap(
-      data.draftPool.map(([hcid, hc]) => [
-        hcid,
-        HouseCard.deserializeFromServer(hc)
-      ])
+      data.draftPool
+        ? data.draftPool.map(([hcid, hc]) => [
+            hcid,
+            HouseCard.deserializeFromServer(hc)
+          ])
+        : []
     );
     game.deletedHouseCards = new BetterMap(
-      data.deletedHouseCards.map(([hcid, hc]) => [
-        hcid,
-        HouseCard.deserializeFromServer(hc)
-      ])
+      data.deletedHouseCards
+        ? data.deletedHouseCards.map(([hcid, hc]) => [
+            hcid,
+            HouseCard.deserializeFromServer(hc)
+          ])
+        : []
     );
     game.oldPlayerHouseCards = new BetterMap(
-      data.oldPlayerHouseCards.map(([hid, hcs]) => [
-        game.houses.get(hid),
-        new BetterMap(
-          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)])
-        )
-      ])
+      data.oldPlayerHouseCards
+        ? data.oldPlayerHouseCards.map(([hid, hcs]) => [
+            game.houses.get(hid),
+            new BetterMap(
+              hcs.map(([hcid, hc]) => [
+                hcid,
+                HouseCard.deserializeFromServer(hc)
+              ])
+            )
+          ])
+        : []
     );
     game.previousPlayerHouseCards = new BetterMap(
-      data.previousPlayerHouseCards.map(([hid, hcs]) => [
-        game.houses.get(hid),
-        new BetterMap(
-          hcs.map(([hcid, hc]) => [hcid, HouseCard.deserializeFromServer(hc)])
-        )
-      ])
+      data.previousPlayerHouseCards
+        ? data.previousPlayerHouseCards.map(([hid, hcs]) => [
+            game.houses.get(hid),
+            new BetterMap(
+              hcs.map(([hcid, hc]) => [
+                hcid,
+                HouseCard.deserializeFromServer(hc)
+              ])
+            )
+          ])
+        : []
     );
     game.draftMapRegionsPerHouse = new BetterMap(
-      data.draftMapRegionsPerHouse.map(([hid, rIds]) => [
-        game.houses.get(hid),
-        rIds.map((rid) => game.world.regions.get(rid))
-      ])
+      data.draftMapRegionsPerHouse
+        ? data.draftMapRegionsPerHouse.map(([hid, rIds]) => [
+            game.houses.get(hid),
+            rIds.map((rid) => game.world.regions.get(rid))
+          ])
+        : []
     );
-    game.dragonStrengthTokens = data.dragonStrengthTokens;
-    game.removedDragonStrengthTokens = data.removedDragonStrengthTokens;
+    game.dragonStrengthTokens = data.dragonStrengthTokens
+      ? data.dragonStrengthTokens
+      : [];
+    game.removedDragonStrengthTokens = data.removedDragonStrengthTokens
+      ? data.removedDragonStrengthTokens
+      : [];
     game.ironBank = data.ironBank
       ? IronBank.deserializeFromServer(game, data.ironBank)
       : null;
-    game.objectiveDeck = data.objectiveDeck.map((ocid) =>
-      objectiveCards.get(ocid)
-    );
+    game.objectiveDeck = data.objectiveDeck
+      ? data.objectiveDeck.map((ocid) => objectiveCards.get(ocid))
+      : [];
     game.overwrittenIronThroneHolder = data.overwrittenIronThroneHolder
       ? game.houses.get(data.overwrittenIronThroneHolder)
       : null;
@@ -887,16 +933,16 @@ export default class Game {
 }
 
 export interface SerializedGame {
+  turn: number;
   lastUnitId: number;
   houses: SerializedHouse[];
   world: SerializedWorld;
-  turn: number;
   ironThroneTrack: string[];
   fiefdomsTrack: string[];
   kingsCourtTrack: string[];
-  overwrittenIronThroneHolder: string | null;
-  overwrittenValyrianSteelBladeHolder: string | null;
-  overwrittenRavenHolder: string | null;
+  overwrittenIronThroneHolder?: string;
+  overwrittenValyrianSteelBladeHolder?: string;
+  overwrittenRavenHolder?: string;
   westerosDecks: SerializedWesterosCard[][];
   winterIsComingHappened: boolean[];
   starredOrderRestrictions: number[];
@@ -908,16 +954,16 @@ export interface SerializedGame {
   loyaltyTokenCountNeededToWin: number;
   maxTurns: number;
   revealedWesterosCards: number;
-  clientNextWildlingCardId: number | null;
-  vassalRelations: [string, string][];
+  clientNextWildlingCardId?: number;
+  vassalRelations?: [string, string][];
   vassalHouseCards: [string, SerializedHouseCard][];
-  draftPool: [string, SerializedHouseCard][];
-  draftMapRegionsPerHouse: [string, string[]][];
-  deletedHouseCards: [string, SerializedHouseCard][];
-  oldPlayerHouseCards: [string, [string, SerializedHouseCard][]][];
-  previousPlayerHouseCards: [string, [string, SerializedHouseCard][]][];
-  dragonStrengthTokens: number[];
-  removedDragonStrengthTokens: number[];
-  ironBank: SerializedIronBank | null;
-  objectiveDeck: string[];
+  draftPool?: [string, SerializedHouseCard][];
+  draftMapRegionsPerHouse?: [string, string[]][];
+  deletedHouseCards?: [string, SerializedHouseCard][];
+  oldPlayerHouseCards?: [string, [string, SerializedHouseCard][]][];
+  previousPlayerHouseCards?: [string, [string, SerializedHouseCard][]][];
+  dragonStrengthTokens?: number[];
+  removedDragonStrengthTokens?: number[];
+  ironBank?: SerializedIronBank;
+  objectiveDeck?: string[];
 }
