@@ -1,14 +1,14 @@
 import { ServerMessage } from "../messages/ServerMessage";
+import SerializedUserSettings from "../messages/SerializedUserSettings";
 import * as WebSocket from "ws";
 import EntireGame from "../common/EntireGame";
-import { UserSettings } from "../messages/ClientMessage";
 import { observable } from "mobx";
 import _ from "lodash";
 
 export default class User {
   id: string;
   @observable name: string;
-  @observable facelessName: string;
+  facelessName?: string;
   @observable settings: UserSettings;
   entireGame: EntireGame;
   connectedClients: WebSocket[] = [];
@@ -21,7 +21,7 @@ export default class User {
     () => {
       this.entireGame.sendMessageToServer({
         type: "change-settings",
-        settings: this.settings
+        settings: this.settings.serializeToClient()
       });
     },
     500,
@@ -81,47 +81,103 @@ export default class User {
     const hideUserName = this.entireGame.gameSettings.faceless;
     return {
       id: this.id,
-      name: admin ? this.name : hideUserName ? this.facelessName : this.name,
-      facelessName: this.facelessName,
-      settings: admin || user == this ? this.settings : undefined,
-      connected: this.connected,
-      otherUsersFromSameNetwork: Array.from(this.otherUsersFromSameNetwork),
-      note: admin || user == this ? this.note : ""
+      name: admin
+        ? this.name
+        : hideUserName
+          ? (this.facelessName ?? this.name)
+          : this.name,
+      facelessName: admin ? this.facelessName : undefined,
+      settings:
+        admin || user == this ? this.settings.serializeToClient() : undefined,
+      connected: this.connected ? true : undefined,
+      otherUsersFromSameNetwork:
+        this.otherUsersFromSameNetwork.size > 0
+          ? Array.from(this.otherUsersFromSameNetwork)
+          : undefined,
+      note:
+        admin || user == this
+          ? this.note != ""
+            ? this.note
+            : undefined
+          : undefined
     };
   }
 
   static deserializeFromServer(game: EntireGame, data: SerializedUser): User {
-    const emptySettings: UserSettings = {
-      closedChats: [],
-      chatHouseNames: false,
-      // Todo: Get rid of this as well and define two layouts for mobile and desktop
-      mapScrollbar: false,
-      muted: false,
-      gameStateColumnRight: false,
-      musicVolume: 0,
-      notificationsVolume: 0,
-      sfxVolume: 0
-    };
     const user = new User(
       data.id,
       data.name,
-      data.facelessName,
+      data.facelessName ?? data.name,
       game,
-      data.settings ?? emptySettings,
+      data.settings
+        ? UserSettings.deserializeFromServer(data.settings)
+        : new UserSettings(),
       data.connected,
       data.otherUsersFromSameNetwork
     );
-    user.note = data.note;
+    user.note = data.note ?? "";
     return user;
+  }
+}
+
+export class UserSettings implements SerializedUserSettings {
+  mapScrollbar: boolean;
+  chatHouseNames: boolean;
+  lastOpenedTab?: string;
+  closedChats: string[];
+  gameStateColumnRight: boolean;
+  muted: boolean;
+  notificationsVolume: number;
+  musicVolume: number;
+  sfxVolume: number;
+
+  constructor() {
+    this.closedChats = [];
+    this.chatHouseNames = false;
+    this.mapScrollbar = false;
+    this.muted = false;
+    this.gameStateColumnRight = false;
+    this.musicVolume = 1;
+    this.notificationsVolume = 1;
+    this.sfxVolume = 1;
+  }
+
+  serializeToClient(): SerializedUserSettings {
+    return {
+      mapScrollbar: this.mapScrollbar ? true : undefined,
+      chatHouseNames: this.chatHouseNames ? true : undefined,
+      lastOpenedTab: this.lastOpenedTab,
+      closedChats: this.closedChats.length > 0 ? this.closedChats : undefined,
+      gameStateColumnRight: this.gameStateColumnRight ? true : undefined,
+      muted: this.muted ? true : undefined,
+      notificationsVolume:
+        this.notificationsVolume > 0 ? this.notificationsVolume : undefined,
+      musicVolume: this.musicVolume > 0 ? this.musicVolume : undefined,
+      sfxVolume: this.sfxVolume > 0 ? this.sfxVolume : undefined
+    };
+  }
+
+  static deserializeFromServer(data: SerializedUserSettings): UserSettings {
+    const settings = new UserSettings();
+    settings.mapScrollbar = data.mapScrollbar ?? false;
+    settings.chatHouseNames = data.chatHouseNames ?? false;
+    settings.lastOpenedTab = data.lastOpenedTab;
+    settings.closedChats = data.closedChats ?? [];
+    settings.gameStateColumnRight = data.gameStateColumnRight ?? false;
+    settings.muted = data.muted ?? false;
+    settings.notificationsVolume = data.notificationsVolume ?? 0;
+    settings.musicVolume = data.musicVolume ?? 0;
+    settings.sfxVolume = data.sfxVolume ?? 0;
+    return settings;
   }
 }
 
 export interface SerializedUser {
   id: string;
   name: string;
-  facelessName: string;
-  settings?: UserSettings;
-  connected: boolean;
-  otherUsersFromSameNetwork: string[];
-  note: string;
+  facelessName?: string;
+  settings?: SerializedUserSettings;
+  connected?: boolean;
+  otherUsersFromSameNetwork?: string[];
+  note?: string;
 }

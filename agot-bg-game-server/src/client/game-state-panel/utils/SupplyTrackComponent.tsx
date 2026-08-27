@@ -12,7 +12,7 @@ import barrelImage from "../../../../public/images/icons/barrel.svg";
 import Region from "../../../common/ingame-game-state/game-data-structure/Region";
 import PartialRecursive from "../../../utils/PartialRecursive";
 import MapControls, {
-  RegionOnMapProperties,
+  RegionOnMapProperties
 } from "../../../client/MapControls";
 import IngameGameState from "../../../common/ingame-game-state/IngameGameState";
 import { observable } from "mobx";
@@ -23,8 +23,8 @@ interface SupplyTrackComponentProps {
   gameClient: GameClient;
   supplyRestrictions: number[][];
   houses: House[];
-  ingame?: IngameGameState;
-  mapControls?: MapControls;
+  ingame: IngameGameState;
+  mapControls: MapControls;
 }
 
 @observer
@@ -36,11 +36,7 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
   >();
 
   get fogOfWar(): boolean {
-    return (
-      this.props.ingame != null &&
-      !this.props.ingame.isEndedOrCancelled &&
-      this.props.ingame.fogOfWar
-    );
+    return this.props.ingame.fogOfWar;
   }
 
   render(): ReactNode {
@@ -136,14 +132,14 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
                     style={{
                       width: "18px",
                       marginRight: "6px",
-                      marginTop: "10px",
+                      marginTop: "10px"
                     }}
                   >
                     {this.getHousesAtSupplyLevel(i)
                       .filter((h) =>
                         !this.fogOfWar
                           ? h
-                          : this.props.gameClient.doesControlHouse(h),
+                          : this.props.gameClient.doesControlHouse(h)
                       )
                       .map((h) => (
                         <OverlayTrigger
@@ -160,7 +156,7 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
                             className="supply-icon hover-weak-outline"
                             style={{
                               backgroundImage: `url(${houseInfluenceImages.get(h.id)})`,
-                              marginTop: "-5px",
+                              marginTop: "-5px"
                             }}
                             onMouseEnter={() => this.setHighlightedRegions(h)}
                             onMouseLeave={() => this.highlightedRegions.clear()}
@@ -188,12 +184,8 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
   }
 
   setHighlightedRegions(house: House): void {
-    if (!this.props.ingame) {
-      return;
-    }
-
     const regions = this.props.ingame.world.regions.values.filter(
-      (r) => r.supplyIcons > 0 && r.getController() == house,
+      (r) => r.supplyIcons > 0 && r.getController() == house
     );
     this.highlightedRegions.clear();
 
@@ -204,8 +196,8 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
           color: house.getHighlightColor(),
           light: r.type.id == "sea",
           strong: r.type.id == "land",
-          text: r.supplyIcons > 1 ? r.supplyIcons.toString() : undefined,
-        },
+          text: r.supplyIcons > 1 ? r.supplyIcons.toString() : undefined
+        }
       });
     });
 
@@ -225,23 +217,15 @@ export default class SupplyTrackComponent extends Component<SupplyTrackComponent
   }
 
   componentDidMount(): void {
-    if (!this.props.mapControls) {
-      return;
-    }
-
     this.props.mapControls.modifyRegionsOnMap.push(
-      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap()),
+      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap())
     );
   }
 
   componentWillUnmount(): void {
-    if (!this.props.mapControls) {
-      return;
-    }
-
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
-      this.modifyRegionsOnMapCallback,
+      this.modifyRegionsOnMapCallback
     );
   }
 }

@@ -97,7 +97,7 @@ export default class GameLogListComponent extends Component<GameLogListComponent
   }
 
   get fogOfWar(): boolean {
-    return !this.ingame.isEndedOrCancelled && this.ingame.fogOfWar;
+    return this.ingame.fogOfWar;
   }
 
   render(): ReactNode {

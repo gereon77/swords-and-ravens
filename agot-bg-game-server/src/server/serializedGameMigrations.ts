@@ -466,7 +466,7 @@ const serializedGameMigrations: {
         game.houses.forEach((h: SerializedHouse) => {
           h.houseCards.forEach(([hcid, shc]) => {
             if (hcid == "asha-greyjoy-dwd") {
-              shc.abilityId = null;
+              shc.abilityId = undefined;
             }
           });
         });

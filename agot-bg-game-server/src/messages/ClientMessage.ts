@@ -1,4 +1,5 @@
 import { SerializedGameSettings } from "../common/GameSettings";
+import SerializedUserSettings from "./SerializedUserSettings";
 
 export type ClientMessage =
   | Ping
@@ -231,20 +232,7 @@ interface SelectRegion {
 
 interface ChangeSettings {
   type: "change-settings";
-  settings: UserSettings;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface UserSettings {
-  mapScrollbar: boolean;
-  chatHouseNames: boolean;
-  lastOpenedTab?: string;
-  closedChats: string[];
-  gameStateColumnRight: boolean;
-  muted: boolean;
-  notificationsVolume: number;
-  musicVolume: number;
-  sfxVolume: number;
+  settings: SerializedUserSettings;
 }
 
 export interface ChangeGameSettings {
