@@ -108,7 +108,7 @@ export default class House {
       supplyLevel: this.supplyLevel,
       hasBeenReplacedByVassal: this.hasBeenReplacedByVassal ? true : undefined,
       specialObjective: this.specialObjective?.id,
-      victoryPoints: this.victoryPoints > 0 ? this.victoryPoints : undefined,
+      victoryPoints: this.victoryPoints != 0 ? this.victoryPoints : undefined,
       completedObjectives:
         this.completedObjectives.length > 0
           ? this.completedObjectives.map((oc) => oc.id)

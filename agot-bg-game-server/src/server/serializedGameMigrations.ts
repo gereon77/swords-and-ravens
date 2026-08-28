@@ -3080,6 +3080,28 @@ const serializedGameMigrations: {
 
       return serializedGame;
     }
+  },
+  {
+    version: "135",
+    migrate: (serializedGame: any) => {
+      if (serializedGame.childGameState.type == "ingame") {
+        const ingame = serializedGame.childGameState;
+        const logManager = ingame.gameLogManager;
+        const world = ingame.game.world;
+        logManager.logs.forEach((log: any) => {
+          if (log.data.type == "pyromancer-executed") {
+            const region = world.regions.find(
+              (r: any) => r.id == log.data.region
+            );
+            if (region) {
+              region.castleModifier = -1;
+            }
+          }
+        });
+      }
+
+      return serializedGame;
+    }
   }
 ];
 

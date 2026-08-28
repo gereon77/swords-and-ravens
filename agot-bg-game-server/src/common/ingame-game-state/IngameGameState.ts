@@ -2636,7 +2636,7 @@ export default class IngameGameState extends GameState<
       players: this.players.values.map((p) => p.serializeToClient()),
       game: this.game.serializeToClient(admin, player),
       unitVisibilityRangeModifier:
-        this.unitVisibilityRangeModifier > 0
+        this.unitVisibilityRangeModifier != 0
           ? this.unitVisibilityRangeModifier
           : undefined,
       oldPlayerIds:
