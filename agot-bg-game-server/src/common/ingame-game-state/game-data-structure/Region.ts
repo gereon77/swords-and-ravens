@@ -213,12 +213,14 @@ export default class Region {
         this.units.size > 0
           ? this.units.values.map((u) => u.serializeToClient())
           : undefined,
-      garrison: this.garrison > 0 ? this.garrison : undefined,
+      garrison: this.garrison != 0 ? this.garrison : undefined,
       controlPowerToken: this.controlPowerToken?.id,
-      loyaltyTokens: this.loyaltyTokens > 0 ? this.loyaltyTokens : undefined,
-      castleModifier: this.castleModifier > 0 ? this.castleModifier : undefined,
-      barrelModifier: this.barrelModifier > 0 ? this.barrelModifier : undefined,
-      crownModifier: this.crownModifier > 0 ? this.crownModifier : undefined,
+      loyaltyTokens: this.loyaltyTokens != 0 ? this.loyaltyTokens : undefined,
+      castleModifier:
+        this.castleModifier != 0 ? this.castleModifier : undefined,
+      barrelModifier:
+        this.barrelModifier != 0 ? this.barrelModifier : undefined,
+      crownModifier: this.crownModifier != 0 ? this.crownModifier : undefined,
       overwrittenSuperControlPowerToken:
         this.overwrittenSuperControlPowerToken?.id
     };

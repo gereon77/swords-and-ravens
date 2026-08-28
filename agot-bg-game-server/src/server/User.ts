@@ -152,8 +152,8 @@ export class UserSettings implements SerializedUserSettings {
       muted: this.muted ? true : undefined,
       notificationsVolume:
         this.notificationsVolume > 0 ? this.notificationsVolume : undefined,
-      musicVolume: this.musicVolume > 0 ? this.musicVolume : undefined,
-      sfxVolume: this.sfxVolume > 0 ? this.sfxVolume : undefined
+      musicVolume: this.musicVolume != 0 ? this.musicVolume : undefined,
+      sfxVolume: this.sfxVolume != 0 ? this.sfxVolume : undefined
     };
   }
 
