@@ -37,3 +37,7 @@ Temporary Items
 
 
 
+/agot-bg-website-dotnet/.vs
+agot-bg-website-dotnet/agot-bg-website/GameClientTemplates/play.html
+agot-bg-website-dotnet/agot-bg-website/wwwroot/static_game/**
+/.vs/**

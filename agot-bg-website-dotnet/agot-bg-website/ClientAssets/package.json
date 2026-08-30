@@ -1,0 +1,14 @@
+{
+  "name": "agot-bg-website-client-assets",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tailwind CSS + DaisyUI build for the Swords and Ravens ASP.NET Core website (agot-bg-website). Builds ../wwwroot/css/app.css, which is committed like any other static asset — see ../../README.md.",
+  "scripts": {
+    "build": "tailwindcss -i ./src/app.css -o ../wwwroot/css/app.css --minify",
+    "watch": "tailwindcss -i ./src/app.css -o ../wwwroot/css/app.css --watch"
+  },
+  "devDependencies": {
+    "daisyui": "^4.12.24",
+    "tailwindcss": "^3.4.17"
+  }
+}

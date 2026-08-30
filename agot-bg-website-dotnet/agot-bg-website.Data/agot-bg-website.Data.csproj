@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>agot_bg_website.Data</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      This project holds the EF Core model (Domain entities + ApplicationDbContext + Migrations)
+      and nothing else, so tools that only need the database shape — most importantly the future
+      legacy-data migrator (see MIGRATION_PLAN.md §10) — can reference it directly without pulling
+      in the web app (Razor Pages, Minimal API endpoints, OAuth handlers, etc.).
+    -->
+    <PackageReference
+      Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"
+      Version="10.0.11"
+    />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference
+      Include="Microsoft.EntityFrameworkCore.Design"
+      Version="10.0.11"
+      PrivateAssets="all"
+    />
+  </ItemGroup>
+</Project>

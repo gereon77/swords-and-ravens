@@ -13,7 +13,7 @@ export default class LiveWebsiteClient implements WebsiteClient {
     request: RequestAPI<any, any, any>;
 
     constructor() {
-        this.masterApiBaseUrl = process.env.MASTER_API_BASE_URL || "http://localhost:8000/api";
+        this.masterApiBaseUrl = process.env.MASTER_API_BASE_URL || "http://localhost:8001/api";
         this.masterApiUsername = process.env.MASTER_API_USERNAME || "DummyUsername";
         this.masterApiPassword = process.env.MASTER_API_PASSWORD || "DummyPassword";
 

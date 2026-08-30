@@ -1,0 +1,347 @@
+@model agot_bg_website.Pages.Shared.ChatWidgetModel
+@{
+    // Public/issues chat + online-users widget, mirroring Django's dual_chat.html and
+    // online_users.html components (agotboardgame_main/templates/.../components/). Talks the
+    // same JSON wire protocol as ChatWebSocketApi.cs / ChatMessages.cs, so the server side needs
+    // no changes for this widget to work. See MIGRATION_PLAN.md §7.
+}
+
+<div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+            Online users
+            <span class="badge badge-neutral" id="online-users-count">0</span>
+        </h2>
+        <span id="westerosi-time" class="text-sm opacity-70" title="Westerosi time (basically, UTC)"></span>
+    </div>
+    <div id="online-users-container" class="flex flex-wrap gap-x-4 gap-y-2"></div>
+</div>
+
+<div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
+    <div id="dual-chat-container"></div>
+</div>
+
+<script type="module">
+    import { h, Component, render } from "./lib/preact/preact.module.js";
+    import htm from "./lib/preact/htm.module.js";
+    const html = htm.bind(h);
+
+    const publicRoomId = @Json.Serialize(Model.PublicRoomId.ToString());
+    const issuesRoomId = @Json.Serialize(Model.IssuesRoomId.ToString());
+    const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
+
+    // ---- Westerosi (UTC) clock ----
+    const clockEl = document.getElementById("westerosi-time");
+    function updateClock() {
+        const time = new Date();
+        clockEl.textContent = time.getUTCHours().toString().padStart(2, "0") + ":" + time.getUTCMinutes().toString().padStart(2, "0");
+    }
+    updateClock();
+    setInterval(updateClock, 1000 * 30);
+
+    // ---- Online users ----
+    class OnlineUsers extends Component {
+        constructor() {
+            super();
+            this.state = { connectedUsers: {} };
+        }
+
+        componentDidMount() {
+            window.addEventListener("connectedUsersUpdated", e => this.setState({ connectedUsers: e.detail }));
+            if (window.chatConnectedUsers) {
+                this.setState({ connectedUsers: window.chatConnectedUsers });
+            }
+        }
+
+        renderUser(userId, userData) {
+            const { username, is_admin, is_high_member, last_won_tournament } = userData;
+            // Colored username text for admins/high members, matching Django's online_users.html
+            // (no badge pill — just a colored link), instead of DaisyUI badges.
+            const style = { fontSize: "1.05rem" };
+            if (is_admin) {
+                style.color = "brown";
+            } else if (is_high_member) {
+                style.color = "darkgoldenrod";
+            }
+            return html`
+                <a key=${userId} style=${style} class="link link-hover font-medium" href="/User/${userId}" target="_blank" rel="noopener noreferrer">
+                    ${username}
+                    ${last_won_tournament ? html`<span title=${"Winner of " + last_won_tournament} style=${{ color: "goldenrod" }}> \u{1F3C6}</span>` : ""}
+                </a>
+            `;
+        }
+
+        render() {
+            const entries = Object.entries(this.state.connectedUsers).sort((a, b) => a[1].username.localeCompare(b[1].username));
+            document.getElementById("online-users-count").textContent = entries.length.toString();
+            return html`${entries.map(([userId, userData]) => this.renderUser(userId, userData))}`;
+        }
+    }
+    render(h(OnlineUsers), document.getElementById("online-users-container"));
+
+    // ---- Dual (public / issues) chat ----
+    const TABS = ["chat", "issues"];
+    const TAB_LABELS = { chat: "Chat", issues: "Requests / Issues" };
+    const ROOM_IDS = { chat: publicRoomId, issues: issuesRoomId };
+
+    function emptyRoomState() {
+        return { wsState: 0, messages: [], noMoreMessages: false, lastViewedMessageId: null, hasUnread: false };
+    }
+
+    class DualChat extends Component {
+        constructor() {
+            super();
+            this.state = { activeTab: "chat", rooms: { chat: emptyRoomState(), issues: emptyRoomState() } };
+            this.inputRefs = { chat: null, issues: null };
+            this.websockets = {};
+            this._wsConnected = false;
+        }
+
+        componentDidMount() {
+            if (!isAuthenticated) {
+                // The WebSocket endpoint requires an authenticated session (401s otherwise) —
+                // matches Django only rendering message history for logged-in users, but avoids a
+                // failed connection attempt entirely for anonymous visitors.
+                return;
+            }
+            this.reconnectAll();
+            this._onVisibilityChange = () => {
+                if (document.visibilityState === "hidden") {
+                    this.disconnectAll();
+                } else {
+                    this.reconnectAll();
+                }
+            };
+            this._onPageHide = () => this.disconnectAll();
+            this._onPageShow = e => { if (e.persisted) this.reconnectAll(); };
+            document.addEventListener("visibilitychange", this._onVisibilityChange);
+            window.addEventListener("pagehide", this._onPageHide);
+            window.addEventListener("pageshow", this._onPageShow);
+        }
+
+        componentWillUnmount() {
+            document.removeEventListener("visibilitychange", this._onVisibilityChange);
+            window.removeEventListener("pagehide", this._onPageHide);
+            window.removeEventListener("pageshow", this._onPageShow);
+            this.disconnectAll();
+        }
+
+        disconnectAll() {
+            if (!this._wsConnected) return;
+            this._wsConnected = false;
+            window.chatConnectedUsers = {};
+            window.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: {} }));
+            TABS.forEach(tab => {
+                const ws = this.websockets[tab];
+                if (ws) {
+                    ws.onclose = null;
+                    ws.onmessage = null;
+                    ws.close();
+                    this.websockets[tab] = null;
+                }
+                this.patchRoom(tab, { wsState: 0 });
+            });
+        }
+
+        reconnectAll() {
+            if (this._wsConnected) return;
+            this._wsConnected = true;
+            TABS.forEach(tab => {
+                if (ROOM_IDS[tab]) {
+                    this.patchRoom(tab, { messages: [], noMoreMessages: false });
+                    this.connectRoom(tab, ROOM_IDS[tab]);
+                }
+            });
+        }
+
+        connectRoom(tab, roomId) {
+            const existing = this.websockets[tab];
+            if (existing) {
+                existing.onclose = null;
+                existing.close();
+            }
+            const url = window.location;
+            const wsProto = url.protocol === "http:" ? "ws:" : "wss:";
+            const ws = new WebSocket(`${wsProto}//${url.host}/ws/chat/room/${roomId}`);
+            this.websockets[tab] = ws;
+            ws.onopen = () => {
+                this.patchRoom(tab, { wsState: 1 });
+                ws.send(JSON.stringify({ type: "chat_retrieve", count: 20, first_message_id: null, faceless: false }));
+            };
+            ws.onclose = () => this.patchRoom(tab, { wsState: 2 });
+            ws.onmessage = e => this.handleMessage(tab, JSON.parse(e.data));
+        }
+
+        handleMessage(tab, data) {
+            if (tab === "chat" && data.type === "connected_users") {
+                if (!this._wsConnected) return;
+                window.chatConnectedUsers = data.users;
+                window.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: data.users }));
+                return;
+            }
+            if (data.type === "force_disconnect") {
+                this.disconnectAll();
+                return;
+            }
+            if (data.type === "chat_message") {
+                this.addMessage(tab, data, false);
+                if (this.state.activeTab !== tab) {
+                    this.patchRoom(tab, { hasUnread: true });
+                } else {
+                    this.sendViewMessage(tab, data.id);
+                }
+            } else if (data.type === "chat_messages_retrieved") {
+                data.messages.forEach(d => this.addMessage(tab, d, false));
+                const newestId = data.messages.length > 0 ? data.messages[data.messages.length - 1].id : null;
+                const lastViewed = data.last_viewed_message != null ? data.last_viewed_message : null;
+                const isActive = this.state.activeTab === tab;
+                if (newestId && isActive && String(lastViewed) !== String(newestId)) {
+                    this.sendViewMessage(tab, newestId);
+                }
+                const hasUnread = !isActive && newestId != null && String(lastViewed) !== String(newestId);
+                this.patchRoom(tab, { lastViewedMessageId: lastViewed, hasUnread });
+            } else if (data.type === "more_chat_messages_retrieved") {
+                if (data.messages.length === 0) {
+                    this.patchRoom(tab, { noMoreMessages: true });
+                } else {
+                    data.messages.forEach(d => this.addMessage(tab, d, true));
+                }
+            }
+        }
+
+        addMessage(tab, data, prepend) {
+            const msg = {
+                id: data.id,
+                username: data.user_username,
+                user_id: data.user_id,
+                text: data.text,
+                created_at: new Date(Date.parse(data.created_at))
+            };
+            this.setState(s => {
+                const msgs = s.rooms[tab].messages;
+                const updated = prepend ? [msg, ...msgs] : [...msgs, msg];
+                return { rooms: { ...s.rooms, [tab]: { ...s.rooms[tab], messages: updated } } };
+            });
+        }
+
+        patchRoom(tab, patch) {
+            this.setState(s => ({ rooms: { ...s.rooms, [tab]: { ...s.rooms[tab], ...patch } } }));
+        }
+
+        sendViewMessage(tab, messageId) {
+            const ws = this.websockets[tab];
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "chat_view_message", message_id: messageId }));
+            }
+            this.patchRoom(tab, { lastViewedMessageId: messageId, hasUnread: false });
+        }
+
+        switchTab(tab) {
+            this.setState({ activeTab: tab }, () => {
+                const room = this.state.rooms[tab];
+                if (room.messages.length > 0) {
+                    const newestMsg = room.messages[room.messages.length - 1];
+                    if (String(newestMsg.id) !== String(room.lastViewedMessageId)) {
+                        this.sendViewMessage(tab, newestMsg.id);
+                    } else {
+                        this.patchRoom(tab, { hasUnread: false });
+                    }
+                } else {
+                    this.patchRoom(tab, { hasUnread: false });
+                }
+            });
+        }
+
+        sendChatMessage(e, tab) {
+            e.preventDefault();
+            const ref = this.inputRefs[tab];
+            if (!ref) return;
+            const text = ref.value.trim();
+            if (!text) return;
+            const ws = this.websockets[tab];
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "chat_message", text, faceless: false }));
+            }
+            ref.value = "";
+        }
+
+        loadMore(e, tab) {
+            e.preventDefault();
+            const room = this.state.rooms[tab];
+            if (room.messages.length === 0) {
+                this.patchRoom(tab, { noMoreMessages: true });
+                return;
+            }
+            const ws = this.websockets[tab];
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "chat_retrieve", count: 50, first_message_id: room.messages[0].id, faceless: false }));
+            }
+        }
+
+        renderChatPane(tab) {
+            const room = this.state.rooms[tab];
+            const isActive = this.state.activeTab === tab;
+            return html`
+                <div key=${tab} style=${"display:" + (isActive ? "block" : "none")}>
+                    <div class="bg-base-300 rounded-box p-3 mb-3" style="overflow-y: auto; overflow-x: hidden; height: 250px;">
+                        ${isAuthenticated ? html`
+                            <div class="flex flex-col gap-1">
+                                ${room.messages.slice().reverse().map(m => html`
+                                    <div key=${m.id} class="flex items-start gap-2 text-sm flex-wrap">
+                                        <span class="opacity-60 shrink-0" title=${m.created_at.toLocaleString()}>
+                                            ${("0" + m.created_at.getHours()).slice(-2)}:${("0" + m.created_at.getMinutes()).slice(-2)}
+                                        </span>
+                                        <a class="link font-semibold shrink-0" href="/User/${m.user_id}" target="_blank" rel="noopener noreferrer">${m.username}</a>
+                                        <span style="overflow-wrap: anywhere;">${m.text}</span>
+                                    </div>
+                                `)}
+                            </div>
+                        ` : html`<p class="opacity-70">Please log in to chat with others.</p>`}
+                    </div>
+                    ${room.wsState !== 1 ? html`
+                        <div class="alert alert-warning mb-3">Chat connection lost. Please reload the page.</div>
+                    ` : ""}
+                    <form class="flex gap-2" style=${room.wsState !== 1 ? "display:none" : ""} onSubmit=${e => this.sendChatMessage(e, tab)}>
+                        <input type="text"
+                            ref=${el => this.inputRefs[tab] = el}
+                            class="input input-bordered flex-1"
+                            placeholder="Message"
+                            maxlength="200"
+                            disabled=${!isAuthenticated}
+                        />
+                        <button type="submit" class="btn btn-primary" disabled=${!isAuthenticated}>Send</button>
+                        <button type="button" class="btn btn-secondary" disabled=${!isAuthenticated || room.noMoreMessages} onClick=${e => this.loadMore(e, tab)} title="Load older messages">
+                            ${"\u21BB"}
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+
+        render() {
+            const { activeTab, rooms } = this.state;
+            return html`
+                <div>
+                    <div class="flex gap-1 border-b border-base-300 mb-3">
+                        ${TABS.map(tab => html`
+                            <a key=${tab}
+                                href="#"
+                                class=${"px-4 py-2 -mb-px border-b-2 font-semibold transition-colors " +
+                                    (activeTab === tab
+                                        ? "border-primary text-primary"
+                                        : "border-transparent opacity-60 hover:opacity-100") +
+                                    (rooms[tab].hasUnread ? " text-warning opacity-100" : "")}
+                                onClick=${e => { e.preventDefault(); this.switchTab(tab); }}
+                            >
+                                ${TAB_LABELS[tab]}
+                                ${rooms[tab].hasUnread ? html`<span class="badge badge-xs badge-warning align-middle ml-1"></span>` : ""}
+                            </a>
+                        `)}
+                    </div>
+                    ${TABS.map(tab => this.renderChatPane(tab))}
+                </div>
+            `;
+        }
+    }
+    render(h(DualChat), document.getElementById("dual-chat-container"));
+</script>

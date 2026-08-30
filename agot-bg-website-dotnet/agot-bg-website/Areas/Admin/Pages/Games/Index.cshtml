@@ -1,0 +1,47 @@
+@page
+@model agot_bg_website.Areas.Admin.Pages.Games.IndexModel
+@{
+    ViewData["Title"] = "Admin - Games";
+}
+
+<partial name="_AdminNav" />
+
+<h1 class="text-2xl font-bold mb-4">Games</h1>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<form method="get" class="mb-4 flex gap-2">
+    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+    <input type="text" name="Search" value="@Model.Search" class="input input-bordered" placeholder="Search by name or id" />
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+<div class="overflow-x-auto">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>State</th>
+                <th>Last active</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var game in Model.Games)
+            {
+                <tr>
+                    <td>@game.Name</td>
+                    <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
+                    <td>@game.State</td>
+                    <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
+                    <td>
+                        <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@game.Id">View / Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<partial name="_Pager" model="Model.Pager" />

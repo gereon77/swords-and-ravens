@@ -1,0 +1,32 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using agot_bg_website.Domain
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<div class="flex items-center gap-1">
+@if (SignInManager.IsSignedIn(User))
+{
+    <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="nav-link cursor-pointer flex items-center gap-1">
+            Hello @User.Identity?.Name!
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <ul tabindex="0" class="dropdown-content menu z-10 mt-2 w-56 rounded-box border border-base-300 bg-base-200 p-2 shadow-md">
+            <li><a href="/User/@UserManager.GetUserId(User)" target="_blank" rel="noopener noreferrer">View profile</a></li>
+            <li><a asp-area="Identity" asp-page="/Account/Manage/Index">Manage profile</a></li>
+            <li>
+                <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
+                    <button type="submit" class="w-full text-left">Logout</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+}
+else
+{
+    <a class="nav-link" asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Register</a>
+    <a class="btn btn-primary btn-sm" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Login</a>
+}
+</div>

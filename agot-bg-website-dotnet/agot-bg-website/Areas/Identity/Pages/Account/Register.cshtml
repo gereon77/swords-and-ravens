@@ -1,0 +1,109 @@
+﻿@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+            <h2>Create a new account.</h2>
+            <hr />
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="Username" />
+                <label asp-for="Input.UserName">Username</label>
+                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com" />
+                <label asp-for="Input.Email">Email</label>
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label asp-for="Input.Password">Password</label>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </form>
+    </div>
+    <div class="col-md-6 col-md-offset-2">
+        <section class="mt-8 md:mt-0">
+            <h3>Use another service to register.</h3>
+            <hr class="mt-2 border-base-300 opacity-60" />
+            @{
+                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                {
+                    <div class="mt-6">
+                        <p>
+                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
+                            about setting up this ASP.NET application to support logging in via external services</a>.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal mt-6">
+                        <div class="space-y-4">
+                            @foreach (var provider in Model.ExternalLogins!)
+                            {
+                                var providerKey = provider.Name.ToLowerInvariant();
+                                var providerLabel = provider.DisplayName ?? provider.Name;
+                                var brandColor = providerKey switch
+                                {
+                                    "google" => "#DB4437",
+                                    "discord" => "#7289DA",
+                                    "facebook" => "#1877F2",
+                                    _ => "#8a1f2b"
+                                };
+                                var borderColor = providerKey switch
+                                {
+                                    "discord" => "rgba(0,0,0,.2)",
+                                    _ => "rgba(0,0,0,.18)"
+                                };
+                                var iconClass = providerKey switch
+                                {
+                                    "google" => "fa-brands fa-google",
+                                    "discord" => "fa-brands fa-discord",
+                                    "facebook" => "fa-brands fa-facebook",
+                                    _ => "fa-solid fa-right-to-bracket"
+                                };
+                                var buttonText = $"Sign up with {providerLabel}";
+                                var iconContainerClass = providerKey == "google"
+                                    ? "absolute left-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl shadow-sm"
+                                    : "absolute left-5 inline-flex h-8 w-8 items-center justify-center text-2xl";
+                                var iconStyle = providerKey == "google"
+                                    ? "color: #DB4437; top: 50%; transform: translateY(-50%);"
+                                    : "color: #ffffff; top: 50%; transform: translateY(-50%);";
+
+                                <button type="submit"
+                                        class="btn btn-lg relative w-full justify-center px-5 text-white shadow-md transition hover:brightness-90"
+                                        style="background-color: @brandColor; border-color: @borderColor;"
+                                        name="provider"
+                                        value="@provider.Name"
+                                        title="Log in using your @providerLabel account">
+                                    <span class="@iconContainerClass" style="@iconStyle" aria-hidden="true">
+                                        <i class="@iconClass"></i>
+                                    </span>
+                                    <span class="font-semibold normal-case tracking-wide">@buttonText</span>
+                                </button>
+                            }
+                        </div>
+                    </form>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
