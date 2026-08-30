@@ -1,0 +1,14 @@
+# Build artifacts
+bin/
+obj/
+*.user
+
+# Visual Studio
+.vs/
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# EF Core tooling scratch files
+*.designer.cs.new

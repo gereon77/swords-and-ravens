@@ -1,0 +1,49 @@
+using Microsoft.AspNetCore.Identity;
+
+namespace agot_bg_website.Domain;
+
+/// <summary>
+/// Extended Identity user. Mirrors the fields Django's agotboardgame_main.User carries today,
+/// see MIGRATION_PLAN.md §4.2. Uses a Guid key so imported legacy user ids can be preserved
+/// exactly (they are embedded inside game-server serialized_game/view_of_game JSON).
+/// </summary>
+public class ApplicationUser : IdentityUser<Guid>
+{
+    [PersonalData]
+    /// <summary>Bearer token the game server uses to authenticate as this user (~ Django game_token).</summary>
+    public string GameToken { get; set; } = Guid.NewGuid().ToString("N");
+
+    [PersonalData]
+    public string? ProfileText { get; set; }
+
+    [PersonalData]
+    public string? LastWonTournament { get; set; }
+
+    public bool EmailNotificationActive { get; set; } = true;
+
+    public bool MuteGames { get; set; }
+
+    public bool UseHouseNamesForChat { get; set; }
+
+    public bool UseMapScrollbar { get; set; } = true;
+
+    public bool UseResponsiveLayoutOnMobile { get; set; }
+
+    [PersonalData]
+    public DateTimeOffset? LastUsernameUpdateTime { get; set; }
+
+    [PersonalData]
+    public DateTimeOffset LastActivity { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Kept only in case the (currently dead) Vanilla Forum integration is ever revived.</summary>
+    public int VanillaForumUserId { get; set; }
+
+    /// <summary>True for rows created by the Snr.Migration importer from the legacy Django database.</summary>
+    public bool ImportedFromLegacy { get; set; }
+
+    /// <summary>False only for ImportedFromLegacy rows that have not yet been claimed via a real login.</summary>
+    public bool Claimed { get; set; } = true;
+
+    [PersonalData]
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
