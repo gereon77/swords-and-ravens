@@ -67,7 +67,7 @@ export default class GlobalServer {
           this.onClose(client);
         });
         client.on("error", console.error);
-      },
+      }
     );
   }
 
@@ -88,7 +88,7 @@ export default class GlobalServer {
   async onMessage(
     client: WebSocket,
     data: Buffer,
-    clientIp: string,
+    clientIp: string
   ): Promise<void> {
     let message: ClientMessage | null = null;
     try {
@@ -102,7 +102,7 @@ export default class GlobalServer {
     // Validate the JSON
     if (!this.clientMessageValidator(message)) {
       console.warn(
-        `Unvalid schema of JSON message: ${data}, ${this.clientMessageValidator.errors}`,
+        `Unvalid schema of JSON message: ${data}, ${this.clientMessageValidator.errors}`
       );
       return;
     }
@@ -138,7 +138,7 @@ export default class GlobalServer {
       if (entireGame.ingameGameState?.bannedUsers.has(userData.id)) {
         if (client.readyState == WebSocket.OPEN) {
           this.send(client, {
-            type: "banned-response",
+            type: "banned-response"
           });
         }
         return;
@@ -150,7 +150,7 @@ export default class GlobalServer {
         : entireGame.addUser(
             userData.id,
             userData.name,
-            userData.profileSettings,
+            userData.profileSettings
           );
 
       // In case a user plays for another player, make sure to register the original request user
@@ -161,7 +161,7 @@ export default class GlobalServer {
           entireGame.addUser(
             requestUserData.id,
             requestUserData.name,
-            requestUserData.profileSettings,
+            requestUserData.profileSettings
           );
         }
       }
@@ -170,20 +170,20 @@ export default class GlobalServer {
       this.getUsersFromSameNetwork(entireGame, userData.id, clientIp).forEach(
         (userName) => {
           user.otherUsersFromSameNetwork.add(userName);
-        },
+        }
       );
 
       if (oldSize < user.otherUsersFromSameNetwork.size) {
         entireGame.broadcastToClients({
           type: "update-other-users-with-same-ip",
           user: user.id,
-          otherUsers: Array.from(user.otherUsersFromSameNetwork),
+          otherUsers: Array.from(user.otherUsersFromSameNetwork)
         });
       }
 
       // Check that a user cannot be connected to more than 2 games simultaneously
       const allConnectedGamesOfUser = this.clientToUser.values.filter(
-        (u) => u.id == user.id,
+        (u) => u.id == user.id
       );
 
       if (
@@ -203,7 +203,7 @@ export default class GlobalServer {
         this.send(client, {
           type: "authenticate-response",
           userId: user.id,
-          game: entireGame.serializeToClient(user),
+          game: entireGame.serializeToClient(user)
         });
       }
 
@@ -214,7 +214,7 @@ export default class GlobalServer {
 
       if (!user) {
         console.error(
-          'Client sent a message other than "authenticate" but is not authenticated',
+          'Client sent a message other than "authenticate" but is not authenticated'
         );
         return;
       }
@@ -254,7 +254,7 @@ export default class GlobalServer {
           // Create a chat room between these 2 players
           const roomId = await this.websiteClient.createPrivateChatRoom(
             users,
-            `Chat room for ${users.map((u) => u.name).join(" and ")} in game ${user.entireGame.id}`,
+            `Chat room for ${users.map((u) => u.name).join(" and ")} in game ${user.entireGame.id}`
           );
 
           if (!entireGame.privateChatRoomsIds.has(users[0])) {
@@ -268,7 +268,7 @@ export default class GlobalServer {
               type: "new-private-chat-room",
               users: users.map((u) => u.id),
               roomId,
-              initiator: user.id,
+              initiator: user.id
             });
           });
 
@@ -281,7 +281,7 @@ export default class GlobalServer {
           scope.setUser({
             id: user.id,
             username: user.name,
-            ip_address: clientIp,
+            ip_address: clientIp
           });
           scope.setContext("game", {
             id: entireGame.id,
@@ -290,7 +290,7 @@ export default class GlobalServer {
             settings: entireGame.gameSettings.serializeToClient(),
             house: entireGame.ingameGameState?.players.get(user)?.house ?? null,
             message: message,
-            leafState: entireGame.leafState?.constructor?.name,
+            leafState: entireGame.leafState?.constructor?.name
           });
           Sentry.captureException(e);
         });
@@ -320,7 +320,7 @@ export default class GlobalServer {
       players,
       state,
       version,
-      updateLastActive,
+      updateLastActive
     );
   }
 
@@ -351,15 +351,15 @@ export default class GlobalServer {
       // Something really strange happened. Pause game, reinit all live clock datas and return;
       this.onCaptureSentryMessage(
         "Player with liveClockData = null in onlyLive game detected",
-        "error",
+        "error"
       );
       ingame.players.values.forEach(
         (p) =>
           (p.liveClockData = {
             remainingSeconds: entireGame.gameSettings.initialLiveClock * 60,
             timerStartedAt: null,
-            serverTimer: null,
-          }),
+            serverTimer: null
+          })
       );
       ingame.willBeAutoResumedAt = null;
       ingame.paused = now;
@@ -372,17 +372,17 @@ export default class GlobalServer {
           p,
           {
             timerStartedAt: p.liveClockData?.timerStartedAt ?? null,
-            totalRemainingSeconds: p.totalRemainingSeconds,
-          },
+            totalRemainingSeconds: p.totalRemainingSeconds
+          }
         ];
-      }),
+      })
     );
 
     if (
       clockDataPerPlayer.values.some(
         (clockData) =>
           clockData.timerStartedAt != null &&
-          clockData.totalRemainingSeconds == 0,
+          clockData.totalRemainingSeconds == 0
       )
     ) {
       // A clock was started but server was offline for so long, that a clock ran out of time already
@@ -391,7 +391,7 @@ export default class GlobalServer {
       ingame.paused = now;
 
       const playersWithNoActiveTimer = clockDataPerPlayer.entries.filter(
-        ([_p, clockData]) => clockData.timerStartedAt == null,
+        ([_p, clockData]) => clockData.timerStartedAt == null
       );
 
       if (playersWithNoActiveTimer.length == 0) {
@@ -399,8 +399,7 @@ export default class GlobalServer {
         clockDataPerPlayer.keys.forEach((p) => {
           clockDataPerPlayer.set(p, {
             timerStartedAt: null, // We paused the game => Don't restart a timer
-            totalRemainingSeconds:
-              entireGame.gameSettings.initialLiveClock * 60,
+            totalRemainingSeconds: entireGame.gameSettings.initialLiveClock * 60
           });
         });
       } else {
@@ -408,15 +407,15 @@ export default class GlobalServer {
         const avg = Math.round(
           _.sum(
             playersWithNoActiveTimer.map(
-              ([_p, clockData]) => clockData.totalRemainingSeconds,
-            ),
-          ) / playersWithNoActiveTimer.length,
+              ([_p, clockData]) => clockData.totalRemainingSeconds
+            )
+          ) / playersWithNoActiveTimer.length
         );
         clockDataPerPlayer.entries.forEach(([p, clockData]) => {
           if (clockData.timerStartedAt != null) {
             clockDataPerPlayer.set(p, {
               timerStartedAt: null, // We paused the game => Don't restart a timer
-              totalRemainingSeconds: avg,
+              totalRemainingSeconds: avg
             });
           }
         });
@@ -430,9 +429,9 @@ export default class GlobalServer {
         serverTimer: clockData.timerStartedAt
           ? setTimeout(
               () => ingame.onPlayerClockTimeout(p),
-              clockData.totalRemainingSeconds * 1000,
+              clockData.totalRemainingSeconds * 1000
             )
-          : null,
+          : null
       };
     });
   }
@@ -540,27 +539,27 @@ export default class GlobalServer {
     if (gameData.version != this.latestSerializedGameVersion) {
       gameData.serializedGame = this.migrateSerializedGame(
         gameData.serializedGame,
-        gameData.version as string,
+        gameData.version as string
       );
     }
 
     // Check if game needs to be cancelled
     return EntireGame.deserializeFromServer(
-      gameData.serializedGame as SerializedEntireGame,
+      gameData.serializedGame as SerializedEntireGame
     );
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   migrateSerializedGame(serializedGame: any, version: string): any {
     const migrationI = serializedGameMigrations.findIndex(
-      (m) => m.version == version,
+      (m) => m.version == version
     );
 
     const migrationsToApply = serializedGameMigrations.slice(migrationI + 1);
 
     const migratedSerializedGame = migrationsToApply.reduce(
       (serializedGame, migration) => migration.migrate(serializedGame),
-      serializedGame,
+      serializedGame
     );
 
     return migratedSerializedGame;
@@ -569,11 +568,11 @@ export default class GlobalServer {
   async createGame(
     id: string,
     ownedId: string,
-    name: string,
+    name: string
   ): Promise<EntireGame> {
     // Create a public chat room ID
     const publicChatRoomId = await this.websiteClient.createPublicChatRoom(
-      `Chat for game ${id}`,
+      `Chat for game ${id}`
     );
 
     const entireGame = new EntireGame(id, ownedId, name);
@@ -607,7 +606,7 @@ export default class GlobalServer {
   onReadyToStart(game: EntireGame, users: User[]): void {
     this.websiteClient.notifyReadyToStart(
       game.id,
-      users.map((u) => u.id),
+      users.map((u) => u.id)
     );
   }
 
@@ -619,7 +618,7 @@ export default class GlobalServer {
 
     this.websiteClient.notifyYourTurn(
       game.id,
-      offlineUsers.map((u) => u.id),
+      offlineUsers.map((u) => u.id)
     );
   }
 
@@ -631,7 +630,7 @@ export default class GlobalServer {
 
     this.websiteClient.notifyBribeForSupport(
       game.id,
-      offlineUsers.map((u) => u.id),
+      offlineUsers.map((u) => u.id)
     );
   }
 
@@ -643,7 +642,7 @@ export default class GlobalServer {
 
     this.websiteClient.notifyBattleResults(
       game.id,
-      offlineUsers.map((u) => u.id),
+      offlineUsers.map((u) => u.id)
     );
   }
 
@@ -655,14 +654,14 @@ export default class GlobalServer {
 
     this.websiteClient.notifyNewVote(
       game.id,
-      offlineUsers.map((u) => u.id),
+      offlineUsers.map((u) => u.id)
     );
   }
 
   onGameEnded(game: EntireGame, users: User[]): any {
     this.websiteClient.notifyGameEnded(
       game.id,
-      users.map((u) => u.id),
+      users.map((u) => u.id)
     );
   }
 
@@ -676,7 +675,7 @@ export default class GlobalServer {
 
   onCaptureSentryMessage(
     message: string,
-    severity: "info" | "warning" | "error" | "fatal",
+    severity: "info" | "warning" | "error" | "fatal"
   ): void {
     Sentry.captureMessage(message, severity as Sentry.Severity);
   }
@@ -694,7 +693,7 @@ export default class GlobalServer {
   getUsersFromSameNetwork(
     entireGame: EntireGame,
     userId: string,
-    clientIp: string,
+    clientIp: string
   ): string[] {
     if (entireGame.ingameGameState?.isEndedOrCancelled) {
       return [];
@@ -702,7 +701,7 @@ export default class GlobalServer {
 
     const data = entireGame.multiAccountProtectionMap.tryGet(
       userId,
-      new Set<string>(),
+      new Set<string>()
     );
     data.add(clientIp);
     entireGame.multiAccountProtectionMap.set(userId, data);
@@ -713,7 +712,7 @@ export default class GlobalServer {
           id != userId &&
           _.intersection(Array.from(uix), Array.from(data)).length > 0
         );
-      },
+      }
     );
 
     return result.map(([userId, _]) => entireGame.users.get(userId).name);
@@ -722,7 +721,7 @@ export default class GlobalServer {
   unloadGame(entireGame: EntireGame): void {
     if (!this.loadedGames.has(entireGame.id)) {
       console.warn(
-        "Tried to unload game that was not loaded: " + entireGame.id,
+        "Tried to unload game that was not loaded: " + entireGame.id
       );
       return;
     }
@@ -778,7 +777,7 @@ export default class GlobalServer {
         .forEach((game) => {
           const secondsSinceLastIncomingMessage = getTimeDeltaInSeconds(
             now,
-            game.lastMessageReceivedAt as Date,
+            game.lastMessageReceivedAt as Date
           );
           if (
             (game.gameSettings.pbem && secondsSinceLastIncomingMessage >= 60) ||

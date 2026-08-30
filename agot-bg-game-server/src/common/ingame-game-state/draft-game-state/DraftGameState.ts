@@ -2,16 +2,16 @@ import IngameGameState from "../IngameGameState";
 import GameState from "../../GameState";
 import Player from "../Player";
 import DraftHouseCardsGameState, {
-  SerializedDraftHouseCardsGameState,
+  SerializedDraftHouseCardsGameState
 } from "./draft-house-cards-game-state/DraftHouseCardsGameState";
 import ThematicDraftHouseCardsGameState, {
-  SerializedThematicDraftHouseCardsGameState,
+  SerializedThematicDraftHouseCardsGameState
 } from "./thematic-draft-house-cards-game-state/ThematicDraftHouseCardsGameState";
 import AgreeOnGameStartGameState, {
-  SerializedAgreeOnGameStartGameState,
+  SerializedAgreeOnGameStartGameState
 } from "./agree-on-game-start-game-state/AgreeOnGameStartGameState";
 import DraftMapGameState, {
-  SerializedDraftMapGameState,
+  SerializedDraftMapGameState
 } from "./draft-map-game-state/DraftMapGameState";
 import { ServerMessage } from "../../../messages/ServerMessage";
 import { ClientMessage } from "../../../messages/ClientMessage";
@@ -29,25 +29,25 @@ export const draftOrders: number[][][] = [
   [[0]],
   [
     [0, 1],
-    [1, 0],
+    [1, 0]
   ],
   [
     [0, 1, 2],
     [1, 2, 0],
-    [2, 0, 1],
+    [2, 0, 1]
   ],
   [
     [0, 1, 2, 3],
     [2, 3, 1, 0],
     [1, 0, 3, 2],
-    [3, 2, 0, 1],
+    [3, 2, 0, 1]
   ],
   [
     [0, 1, 2, 3, 4],
     [2, 4, 3, 1, 0],
     [1, 0, 4, 2, 3],
     [4, 3, 1, 0, 2],
-    [3, 2, 0, 4, 1],
+    [3, 2, 0, 4, 1]
   ],
   [
     [0, 1, 2, 3, 4, 5],
@@ -55,7 +55,7 @@ export const draftOrders: number[][][] = [
     [2, 0, 1, 4, 5, 3],
     [4, 3, 5, 1, 0, 2],
     [1, 2, 0, 5, 3, 4],
-    [5, 4, 3, 0, 2, 1],
+    [5, 4, 3, 0, 2, 1]
   ],
   [
     [0, 1, 2, 3, 4, 5, 6],
@@ -64,7 +64,7 @@ export const draftOrders: number[][][] = [
     [1, 4, 3, 0, 2, 6, 5],
     [6, 5, 4, 2, 0, 1, 3],
     [4, 3, 1, 5, 6, 0, 2],
-    [5, 2, 0, 6, 3, 4, 1],
+    [5, 2, 0, 6, 3, 4, 1]
   ],
   [
     [0, 1, 2, 3, 4, 5, 6, 7],
@@ -74,8 +74,8 @@ export const draftOrders: number[][][] = [
     [6, 3, 7, 0, 1, 4, 5, 2],
     [5, 2, 4, 1, 7, 0, 3, 6],
     [1, 6, 3, 4, 0, 7, 2, 5],
-    [7, 5, 0, 6, 2, 3, 4, 1],
-  ],
+    [7, 5, 0, 6, 2, 3, 4, 1]
+  ]
 ];
 
 export const houseCardCombatStrengthAllocations = new BetterMap<number, number>(
@@ -84,8 +84,8 @@ export const houseCardCombatStrengthAllocations = new BetterMap<number, number>(
     [1, 2],
     [2, 2],
     [3, 1],
-    [4, 1],
-  ],
+    [4, 1]
+  ]
 );
 
 const influenceTrackIndices: number[][][] = [
@@ -93,33 +93,33 @@ const influenceTrackIndices: number[][][] = [
   [
     [0, 1],
     [1, 0],
-    [0, 1],
+    [0, 1]
   ],
   [
     [0, 1, 2],
     [2, 0, 1],
-    [1, 2, 0],
+    [1, 2, 0]
   ],
   [
     [0, 1, 2, 3],
     [3, 2, 0, 1],
-    [1, 2, 0, 3],
+    [1, 2, 0, 3]
   ],
   [
     [0, 1, 2, 3, 4],
     [4, 3, 2, 0, 1],
-    [1, 2, 3, 0, 4],
+    [1, 2, 3, 0, 4]
   ],
   [
     [0, 1, 2, 3, 4, 5],
     [4, 5, 3, 2, 0, 1],
-    [1, 2, 3, 0, 5, 4],
+    [1, 2, 3, 0, 5, 4]
   ],
   [
     [0, 1, 2, 3, 4, 5, 6],
     [4, 5, 3, 6, 2, 0, 1],
-    [1, 2, 3, 5, 6, 0, 4],
-  ],
+    [1, 2, 3, 5, 6, 0, 4]
+  ]
   // No need to define 8p indices, as Targaryen is always last on all tracks
   // and the 7p indices are used for 8p games
 ];
@@ -191,7 +191,7 @@ export default class DraftGameState extends GameState<
 
     if (this.entireGame.gameSettings.thematicDraft) {
       this.setChildGameState(
-        new ThematicDraftHouseCardsGameState(this),
+        new ThematicDraftHouseCardsGameState(this)
       ).firstStart();
     } else if (this.entireGame.gameSettings.draftHouseCards) {
       this.setChildGameState(new DraftHouseCardsGameState(this)).firstStart();
@@ -230,21 +230,21 @@ export default class DraftGameState extends GameState<
           this.ingame.players.values.forEach((p) => {
             const house = p.house;
             const availableCards = this.game.draftPool.values.filter(
-              (hc) => hc.combatStrength == hcStrength,
+              (hc) => hc.combatStrength == hcStrength
             );
             const houseCard = popRandom(availableCards) as HouseCard;
             house.houseCards.set(houseCard.id, houseCard);
             this.game.draftPool.delete(houseCard.id);
           });
         }
-      },
+      }
     );
 
     if (this.entireGame.gameSettings.draftTracks) {
       // Use the current Iron Throne track as the baseline order to shuffle
       // Filter out Targaryen if present since they're handled separately
       const baseIronThroneOrder = this.game.ironThroneTrack.filter(
-        (h) => h != this.game.targaryen,
+        (h) => h != this.game.targaryen
       );
 
       const influenceIndices =
@@ -299,7 +299,7 @@ export default class DraftGameState extends GameState<
 
     tracks.forEach((track) => {
       const areVassalsInTopThreeSpaces = _.take(track, 3).some(
-        (h) => !playerHouses.includes(h),
+        (h) => !playerHouses.includes(h)
       );
 
       if (areVassalsInTopThreeSpaces) {
@@ -333,16 +333,16 @@ export default class DraftGameState extends GameState<
 
   serializeToClient(
     admin: boolean,
-    player: Player | null,
+    player: Player | null
   ): SerializedDraftGameState {
     return {
       type: "draft",
-      childGameState: this.childGameState.serializeToClient(admin, player),
+      childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
 
   deserializeChildGameState(
-    data: SerializedDraftGameState["childGameState"],
+    data: SerializedDraftGameState["childGameState"]
   ): DraftGameState["childGameState"] {
     switch (data.type) {
       case "draft-house-cards":
@@ -350,7 +350,7 @@ export default class DraftGameState extends GameState<
       case "thematic-draft-house-cards":
         return ThematicDraftHouseCardsGameState.deserializeFromServer(
           this,
-          data,
+          data
         );
       case "draft-map":
         return DraftMapGameState.deserializeFromServer(this, data);
@@ -363,7 +363,7 @@ export default class DraftGameState extends GameState<
 
   static deserializeFromServer(
     ingame: IngameGameState,
-    data: SerializedDraftGameState,
+    data: SerializedDraftGameState
   ): DraftGameState {
     const draft = new DraftGameState(ingame);
     draft.childGameState = draft.deserializeChildGameState(data.childGameState);
