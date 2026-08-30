@@ -50,6 +50,16 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAut
 
 builder.Services.AddScoped<AccountLinkingService>();
 
+// Real SMTP email sending — used by both Identity's own emails (password reset, email
+// confirmation) and NotificationsApi's game-notification endpoints, see MIGRATION_PLAN.md §6/§9.1.
+// Only overrides Identity's built-in no-op IEmailSender when Email:Host is actually configured,
+// same "only wire it up when configured" pattern as the OAuth providers below, so local dev
+// doesn't need a working mail server.
+if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
+{
+    builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, agot_bg_website.Services.SmtpEmailSender>();
+}
+
 builder.Services.AddRazorPages();
 
 // External logins: Google/Discord/Instagram — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic

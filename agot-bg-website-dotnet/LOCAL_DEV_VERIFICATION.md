@@ -124,6 +124,32 @@ logic, and hasn't been written yet (see Known gaps below).
   `auth-data` JSON (`userId`/`requestUserId`/`gameId`/`authToken` all correct); unauthenticated
   request redirects (302) to `/Identity/Account/Login`; unknown `gameId` returns 404.
 
+## Email notifications (`notify*` endpoints, `Services/SmtpEmailSender.cs`)
+
+- `Api/NotificationsApi.cs` maps the 6 real Django `notify*` routes (confirmed from
+  `api/urls.py`/`views.py` — the plan's "5 notify endpoints" summary undercounts by one):
+  `notifyReadyToStart`, `notifyYourTurn`, `notifyBribeForSupport`, `notifyBattleResults`,
+  `notifyNewVote`, `notifyGameEnded`, plus `addPbemResponseTime/{userId}/{responseTime}`. All are
+  `POST /api/...`, gated behind the same `MasterApi` Basic Auth policy as the rest of `/api`
+  (only the game server calls these, mirroring Django's `IsAdminUser`-via-trusted-caller model).
+- Each `notify*` route takes `{ "users": ["<guid>", ...] }`, loads the `Game`, filters the given
+  users to `EmailNotificationActive && Email != null`, and sends one email per qualifying user via
+  `IEmailSender`, with subject/body ported line-for-line from the matching Django
+  `agotboardgame_main/templates/agotboardgame_main/*_notification.html` template. The link embedded
+  in the email is built from the live request (`{scheme}://{host}/play/{gameId}`), not a
+  hardcoded base URL.
+- `Services/SmtpEmailSender.cs` implements `IEmailSender` via a plain `System.Net.Mail.SmtpClient`,
+  configured from an `Email:Host/Port/Username/Password/FromAddress` config section. `Program.cs`
+  only registers it (overriding Identity's built-in no-op `IEmailSender`) when `Email:Host` is
+  non-empty — same "wire up only when configured" pattern already used for OAuth providers — so a
+  fresh local checkout with an empty `Email` section silently no-ops (Identity's default sender)
+  instead of throwing.
+- Verified end-to-end via live `dotnet run` + HTTP against real `snr_dotnet` data: registered a
+  user, inserted a `Games` row via `psql`, then `POST /api/notifyGameEnded/{gameId}` (Basic Auth as
+  `game-server`) with that user's id returned `200 {"status":"ok"}` with no SMTP errors (no
+  `IEmailSender` is even registered locally since `Email:Host` is empty); `addPbemResponseTime`
+  returned `204` and inserted a row; an unknown `gameId` returned `404`. Cleaned up test rows after.
+
 ## GDPR basics
 
 - A cookie-consent banner (`Pages/Shared/_CookieConsentPartial.cshtml`) is rendered on every page
@@ -229,7 +255,6 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 
 - The historical `PreviousPlayerInGame` backfill script (§10.1) lives in `agot-bg-game-server`, not
   here, and hasn't been written yet (needs the TS `GameLogManager`/serialized-game replay logic).
-- The `notify*` email endpoints in `NotificationsApi.cs` are stubbed (logged, not sent).
 - Chat (§7, WebSockets) is not implemented yet.
 - `Snr.Migration` imports Users/Groups/Rooms/Games/PlayerInGame/Messages/PbemResponseTime; it does
   not import `UserInRoom` (deliberately — see §10, these are recreated naturally as users
