@@ -937,8 +937,7 @@ function distributeUnassignedRegions(ingame: IngameGameState): void {
           const controller = r.getController();
           return (
             ((controller == null && r.type.id != "port") || controller == h) &&
-            !allAssignedRegions.includes(r) &&
-            r.garrison == 0
+            !allAssignedRegions.includes(r)
           );
         }, regionsToProcess)
       );
@@ -968,6 +967,15 @@ function distributeUnassignedRegions(ingame: IngameGameState): void {
         blockedRegions.push(r);
       });
   }
+
+  regionsPerHouse.entries.forEach(([h, regions]) => {
+    regions.forEach((r) => {
+      const adjacentPort = ingame.world.getAdjacentPortOfCastle(r);
+      if (adjacentPort) {
+        regionsPerHouse.set(h, _.union(regionsPerHouse.get(h), [adjacentPort]));
+      }
+    });
+  });
 }
 
 function applyChangesForDanceWithMotherOfDragons(

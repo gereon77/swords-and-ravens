@@ -101,8 +101,21 @@ export default class ResolveSingleConsolidatePowerGameState extends GameState<Re
         (r) =>
           [r, this.getPotentialGainedPowerTokens(r, house)] as [Region, number]
       );
+
       const ordered = _.sortBy(
         regionsWithPossibleGains,
+        ([region, _gains]) => {
+          // Single knight or footman units in a region might be destroyed by The Faceless Men
+          // and thus the CP order should be resolved first to avoid losing the CP order.
+          if (region.units.size == 1) {
+            const unit = region.units.values[0].type.id;
+            if (unit == "knight" || unit == "footman") {
+              return 0;
+            }
+          }
+
+          return 1;
+        },
         // Resolve CP orders with highest gain first
         ([_region, gains]) => -gains
       );
@@ -163,46 +176,21 @@ export default class ResolveSingleConsolidatePowerGameState extends GameState<Re
   }
 
   private canCpOrdersBeResolvedAutomatically(
-    ironBankOrders: [
-      Region,
-      ConsolidatePowerOrderType | IronBankOrderType | DefenseMusterOrderType
-    ][],
-    consolidatePowerOrders: BetterMap<
-      Region,
-      ConsolidatePowerOrderType | IronBankOrderType | DefenseMusterOrderType
-    >
+    ironBankOrders: [Region, IronBankOrderType][],
+    consolidatePowerOrders: BetterMap<Region, ConsolidatePowerOrderType>
   ): boolean {
     // When there are Iron Bank orders left, CPs cannot be resolved automatically
     if (ironBankOrders.length > 0) {
       return false;
     }
 
-    // When there are CP* orders on castle areas they can be used for mustering and therefore not resolved automatically
+    // When there are CP* orders on castle areas they can be used for mustering, so they cannot be resolved automatically
     if (
       consolidatePowerOrders.entries.some(
         ([r, ot]) => ot.starred && r.hasStructure
       )
     ) {
       return false;
-    }
-
-    if (
-      consolidatePowerOrders.size > 1 &&
-      this.game.ironBank &&
-      this.game.ironBank.loanSlots.some(
-        (lc) => lc?.type.preventsAutomaticResolutionOfCpOrders
-      )
-    ) {
-      // If Faceless men is present on the loan slots we have to check if someone else has an Iron Bank order to resolve
-      // and then multiple CPs must be resolved manually
-      const otherIronBankOrders =
-        this.actionGameState.ordersOnBoard.entries.filter(
-          ([region, order]) =>
-            order.type instanceof IronBankOrderType &&
-            region.getController() != this.house
-        );
-
-      return otherIronBankOrders.length == 0;
     }
 
     return true;

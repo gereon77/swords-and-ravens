@@ -2,17 +2,18 @@ import ResolveSingleConsolidatePowerGameState from "../../action-game-state/reso
 import House from "../House";
 
 export default abstract class LoanCardType {
-    id: string;
-    name: string;
-    description: string;
-    preventsAutomaticResolutionOfCpOrders: boolean;
+  id: string;
+  name: string;
+  description: string;
 
-    constructor(id: string, name: string, description: string, preventsAutomaticResolutionOfCpOrders = false) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.preventsAutomaticResolutionOfCpOrders = preventsAutomaticResolutionOfCpOrders;
-    }
+  constructor(id: string, name: string, description: string) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+  }
 
-    abstract execute(resolveSingleConsolidate: ResolveSingleConsolidatePowerGameState, house: House): void;
+  abstract execute(
+    resolveSingleConsolidate: ResolveSingleConsolidatePowerGameState,
+    house: House
+  ): void;
 }
