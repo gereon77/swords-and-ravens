@@ -24,6 +24,7 @@ import popRandom from "../../../utils/popRandom";
 import HouseCard from "../game-data-structure/house-card/HouseCard";
 import shuffleInPlace from "../../../utils/shuffleInPlace";
 import _ from "lodash";
+import { findOrphanedShipsAndDestroyThem } from "../port-helper/PortHelper";
 
 export const draftOrders: number[][][] = [
   [[0]],
@@ -316,6 +317,7 @@ export default class DraftGameState extends GameState<
 
   onDraftMapGameStateEnd(): void {
     this.game.draftMapRegionsPerHouse.clear();
+    findOrphanedShipsAndDestroyThem(this.ingame);
     if (this.entireGame.gameSettings.draftHouseCards) {
       this.beginDraftHouseCards();
     } else {

@@ -277,7 +277,7 @@ export default class World {
   }
 
   getAdjacentPortOfCastle(region: Region | null): Region | null {
-    if (!region || !region.hasStructure) {
+    if (!region || region.type != land) {
       return null;
     }
 
