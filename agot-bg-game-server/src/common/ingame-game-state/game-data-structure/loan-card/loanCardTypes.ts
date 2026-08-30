@@ -84,8 +84,7 @@ export const theFacelessMen = new TheFacelessMenLoanCardType(
   "the-faceless-men",
   "The Faceless Men",
   "Destroy one Knight in any one area  and one Footman in any one other area.\n" +
-    "The units may belong to any player or vassal.",
-  true
+    "The units may belong to any player or vassal."
 );
 
 export const vanguardCavalry = new VanguardCavalryLoanCardType(

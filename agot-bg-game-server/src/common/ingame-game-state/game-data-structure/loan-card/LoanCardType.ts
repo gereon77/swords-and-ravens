@@ -5,19 +5,11 @@ export default abstract class LoanCardType {
   id: string;
   name: string;
   description: string;
-  preventsAutomaticResolutionOfCpOrders: boolean;
 
-  constructor(
-    id: string,
-    name: string,
-    description: string,
-    preventsAutomaticResolutionOfCpOrders = false
-  ) {
+  constructor(id: string, name: string, description: string) {
     this.id = id;
     this.name = name;
     this.description = description;
-    this.preventsAutomaticResolutionOfCpOrders =
-      preventsAutomaticResolutionOfCpOrders;
   }
 
   abstract execute(
