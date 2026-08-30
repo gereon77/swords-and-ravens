@@ -294,7 +294,7 @@ export default class GlobalServer {
           });
           Sentry.captureException(e);
         });
-        return;
+        throw e;
       }
     }
 
