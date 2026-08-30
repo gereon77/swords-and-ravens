@@ -12,7 +12,10 @@ of `MIGRATION_PLAN.md`.
   without dragging in the web app's Razor Pages, Minimal API endpoints, or OAuth handlers.
 - **`agot-bg-website`** — the ASP.NET Core web app (Identity UI, Minimal API groups, OAuth). Only
   project that references `agot-bg-website.Data`.
-- **`agot-bg-website.Tests`** — xUnit tests for both of the above (references the web project,
+- **`Snr.Migration`** — a standalone console app (MIGRATION_PLAN.md §10) that imports Users,
+  Groups/Roles, Rooms, Games, PlayerInGame, Messages, and PbemResponseTime from a legacy Django
+  database into this schema. References only `agot-bg-website.Data`, not the web app.
+- **`agot-bg-website.Tests`** — xUnit tests for the web app and `Snr.Migration` (references both,
   which transitively brings in `agot-bg-website.Data`).
 
 ## Status: fully verified against the repo's real Docker Postgres instance
@@ -79,6 +82,47 @@ docker exec swords-and-ravens-db-1 psql -U postgres -c "CREATE DATABASE snr_dotn
 `appsettings.json`'s `ConnectionStrings:DefaultConnection` already points at
 `Host=localhost;Port=5432;Database=snr_dotnet;Username=postgres;Password=example` to match. Start
 the container stack from the repo root first if it isn't already running: `docker-compose up -d`.
+
+## Data migration tool (`Snr.Migration`)
+
+Console app, `dotnet run --project Snr.Migration -- import --legacy "<connection string>" --target
+"<connection string>"` (or `verify` instead of `import` to only print row-count/id-sample checks).
+Idempotent — re-running never duplicates rows, never touches a `Claimed` (already-logged-in-for-
+real) user row, and only ever refreshes settings fields on still-unclaimed imported rows. Verified
+end-to-end in this repo against a throwaway fake-legacy-schema database (real Django table/column
+names, confirmed against `agotboardgame_main/models.py` and `chat/models.py`): first run imports
+everything, second run is a no-op (0 imported, N updated), and marking one user `Claimed = true`
+before a third run confirms that user's row is skipped entirely (`"claimed (skipped)"` count).
+The historical `PreviousPlayerInGame` backfill (§10.1) is **not** part of this tool — it lives in
+`agot-bg-game-server` per the plan, since it needs the TS `GameLogManager`/serialized-game replay
+logic, and hasn't been written yet (see Known gaps below).
+
+## Serving the game client (`/play`, `build_and_place_game_client_into_dotnet.ps1`/`.sh`)
+
+- `build_and_place_game_client_into_dotnet.ps1`/`.sh` (repo root, `D:\_snr`) mirror
+  `build_and_place_game_client_into_django.sh`: they build the game client
+  (`yarn run build-local-client`) and copy `agot-bg-game-server/dist/*` into
+  `agot-bg-website/wwwroot/static_game`, plus `dist/index.html` into
+  `agot-bg-website/GameClientTemplates/play.html`.
+- `agot-bg-game-server/public/index.html`'s Django `{{ auth_data|json_script:"auth-data" }}` tag
+  was replaced with a framework-neutral `<!--AUTH_DATA_JSON-->` HTML comment placeholder (the one
+  required change in the game-server repo per MIGRATION_PLAN.md §8.1).
+- `Api/PlayApi.cs` maps `GET /play/{gameId}/{userId?}` (Minimal API, not an MVC controller, to
+  match the rest of this app's REST surface) — equivalent of Django's `views.play`: bans force a
+  sign-out + redirect to `/games`, users "On probation" can't join new lobby games, and a `userId`
+  route value only takes effect (impersonation) for users in the `Admin`/`High Member` roles who
+  aren't themselves already a player in that game. Reads `GameClientTemplates/play.html` if present,
+  else falls back to the checked-in `play_fake.html`, and substitutes the `<!--AUTH_DATA_JSON-->`
+  placeholder with a `<script id="auth-data" type="application/json">` tag (System.Text.Json's
+  default encoder already escapes `<`/`>`/`&`, equivalent to Django's `json_script`).
+- Roles used by the checks above (`Member`, `Admin`, `High Member`, `Banned`, `On probation`,
+  `Tongueless` — see `Infrastructure/Auth/RoleNames.cs`) are seeded idempotently on every startup
+  (`Infrastructure/Auth/RoleSeeder.cs`), so a fresh `snr_dotnet` database always has them even
+  before `Snr.Migration` has imported anything.
+- Verified end-to-end via live `dotnet run` + HTTP: registered/logged-in user hitting
+  `/play/{gameId}` for a game row inserted directly via `psql` got back 200 with the correct
+  `auth-data` JSON (`userId`/`requestUserId`/`gameId`/`authToken` all correct); unauthenticated
+  request redirects (302) to `/Identity/Account/Login`; unknown `gameId` returns 404.
 
 ## GDPR basics
 
@@ -167,6 +211,10 @@ dotnet test
   provider.
 - `ApplicationDbContextTests` — the `PreviousPlayerInGame` model configuration from §4.4 (multiple
   rows per game, cascade delete), against EF Core's InMemory provider.
+- `ImporterTests` — `Snr.Migration`'s legacy game-state string → `GameState` enum mapping
+  (`internal`, exposed to this test project via `InternalsVisibleTo`).
+- `RoleNamesTests` — the fixed role list and the `Admin`/`High Member`-only
+  `CanPlayAsAnotherPlayer` set that `PlayApi` checks against.
 
 ## 6. Run the app
 
@@ -179,9 +227,10 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 
 ## Known gaps vs. the full plan (left for a follow-up pass)
 
-- `Snr.Migration` (the legacy-DB importer, §10) is not implemented yet — only the target schema is.
 - The historical `PreviousPlayerInGame` backfill script (§10.1) lives in `agot-bg-game-server`, not
-  here, and hasn't been written yet.
+  here, and hasn't been written yet (needs the TS `GameLogManager`/serialized-game replay logic).
 - The `notify*` email endpoints in `NotificationsApi.cs` are stubbed (logged, not sent).
 - Chat (§7, WebSockets) is not implemented yet.
-- The game-client build/serve script (§8) is not implemented yet.
+- `Snr.Migration` imports Users/Groups/Rooms/Games/PlayerInGame/Messages/PbemResponseTime; it does
+  not import `UserInRoom` (deliberately — see §10, these are recreated naturally as users
+  reconnect to chat rooms, which isn't implemented yet since chat itself isn't).

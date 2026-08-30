@@ -21,5 +21,14 @@
     <ProjectReference Include="..\agot-bg-website.Data\agot-bg-website.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      GameClientTemplates/play.html is placed here by build_and_place_game_client_into_dotnet's
+      script (repo root) — see MIGRATION_PLAN.md §8.2. play_fake.html always ships so `dotnet run`
+      alone still serves a usable (if game-less) /play page, same as Django's play_fake.html.
+    -->
+    <Content Include="GameClientTemplates\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
 

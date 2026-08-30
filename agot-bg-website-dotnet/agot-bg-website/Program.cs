@@ -128,6 +128,12 @@ app.MapGamesApi();
 app.MapRoomsApi();
 app.MapPublicApi();
 app.MapNotificationsApi();
+app.MapPlayApi();
+
+using (var scope = app.Services.CreateScope())
+{
+    await agot_bg_website.Infrastructure.Auth.RoleSeeder.SeedAsync(scope.ServiceProvider);
+}
 
 app.Run();
 

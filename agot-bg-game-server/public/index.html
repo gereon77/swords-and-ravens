@@ -8,13 +8,14 @@
 <body>
     <div id="root"></div>
     <!--
-    In production, the Django app will insert the auth data into the HTML
-    via this tag.
-    "display: none" is there to make sure that the "{{...}}" isn't shown
-    during development via webpack-dev-server.
+    In production, the website backend replaces the AUTH_DATA_JSON comment below with a
+    <script id="auth-data" type="application/json"> tag containing the auth payload the client
+    needs to authenticate its own WebSocket connection to the game server (userId, requestUserId,
+    gameId, authToken). "display: none" is there so this placeholder isn't shown during
+    development via webpack-dev-server.
     -->
     <div style="display: none">
-        {{ auth_data|json_script:"auth-data" }}
+        <!--AUTH_DATA_JSON-->
     </div>
     <script async defer src="https://sa.swordsandravens.net/latest.js"></script>
     <noscript><img src="https://sa.swordsandravens.net/noscript.gif" alt=""></noscript>

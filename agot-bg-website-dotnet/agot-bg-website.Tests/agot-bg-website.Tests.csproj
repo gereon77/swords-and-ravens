@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\agot-bg-website\agot-bg-website.csproj" />
+    <ProjectReference Include="..\Snr.Migration\Snr.Migration.csproj" />
   </ItemGroup>
 
 </Project>
