@@ -34,15 +34,28 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
 
         using var client = new SmtpClient(host, port)
         {
+            DeliveryMethod = SmtpDeliveryMethod.Network,
             EnableSsl = enableSsl,
+            UseDefaultCredentials = false,
             Credentials = string.IsNullOrEmpty(username) ? null : new NetworkCredential(username, password)
         };
 
         using var message = new MailMessage(fromAddress, email, subject, htmlMessage)
         {
-            IsBodyHtml = false
+            IsBodyHtml = true
         };
 
-        await client.SendMailAsync(message);
+        try
+        {
+            await client.SendMailAsync(message);
+            logger.LogInformation("Sent email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl})",
+                subject, email, host, port, enableSsl);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl}): {ErrorMessage}",
+                subject, email, host, port, enableSsl, ex.Message);
+            throw;
+        }
     }
 }

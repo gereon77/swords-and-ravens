@@ -42,6 +42,8 @@ namespace agot_bg_website.Data
 
             builder.Entity<ApplicationUser>(user =>
             {
+                user.Ignore(u => u.PhoneNumber);
+                user.Ignore(u => u.PhoneNumberConfirmed);
                 user.Property(u => u.GameToken).HasMaxLength(64).IsRequired();
                 user.HasIndex(u => u.GameToken).IsUnique();
             });
