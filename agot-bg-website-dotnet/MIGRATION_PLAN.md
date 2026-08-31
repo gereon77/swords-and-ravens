@@ -804,8 +804,35 @@ Follow-up work after first getting the app running locally end-to-end:
     `PasswordSignInAsync(Input.Email, ...)`, which only worked because `UserName` used to always
     equal `Email`. Now that users can pick an independent username, it looks the user up by email
     via `UserManager.FindByEmailAsync` first and signs in with the resolved `ApplicationUser`.
-  - Remaining gap: there is no public user-profile page yet at all (see win-rate/profile items
-    elsewhere in this plan) — when one is built, it must return 404 for `IsDeleted` users. Nothing
-    else needs to change: `PlayerInGame`/`PreviousPlayerInGame` resolve normally since the row (and
-    its `Id`) still exists, they'll just join to a `DisplayName` of `"Took the Black"`.
+  - The public user-profile page below correctly returns 404 for `IsDeleted` users. Nothing else
+    needed to change: `PlayerInGame`/`PreviousPlayerInGame` resolve normally since the row (and its
+    `Id`) still exists, they'll just join to a `DisplayName` of `"Took the Black"`.
+
+- **Public user-profile page, implemented** (`Pages/User.cshtml(.cs)`, route `/User/{id:guid}`,
+  mirroring Django's `agotboardgame_main.views.user_profile` / `user_profile.html`):
+  - Returns 404 for a nonexistent or `IsDeleted` user (see above).
+  - Shows role badges (same color mapping as Django's `settings.GROUP_COLORS`), joined date, last
+    activity (via new `Infrastructure/RelativeTimeFormatter.cs`, a hand-rolled port of Django's
+    `naturaltime` filter), ongoing/finished/won/replaced-by-vote-or-timeout counts, win rate, and
+    average PBEM response time.
+  - Win rate reuses the previously-built (and until now unused) `WinRateCalculator.Calculate`
+    unchanged. Games are read from `PlayerInGame.Data` (`{house, is_winner}`, snake_case — matches
+    the TS game server's `EntireGame.ts` wire format exactly) and `Game.ViewOfGame`
+    (`{turn, maxPlayerCount, waitingFor, winner, settings: {setupId, faceless, pbem}}`,
+    camelCase). Faceless games (`settings.faceless == true`) are excluded from the games list
+    entirely; `setupId == "learn-the-game"` games are excluded only from the win-rate numerator/
+    denominator (Django's `.exclude(data__is_winner__isnull=True)` equivalent), still shown in the
+    list. A `PreviousPlayerInGame` row for a `Finished` game always counts as an unconditional loss.
+  - Average PBEM response time: new `Services/PbemResponseTimeCalculator.cs`, a pure/testable port
+    of Django's exact algorithm — take the most recent 100 `PbemResponseTime.ResponseTime` values,
+    and if there are more than 20, sort and drop the 10 fastest/10 slowest before averaging.
+  - House icons: copied the 8 simply-named Django `static/house_icons/{house}.png` files into
+    `wwwroot/house_icons/` — the .NET game-client's webpack-bundled `static_game/*.png` files have
+    content-hashed names, so they aren't usable for a direct by-house-name `<img>` lookup.
+  - Owner/username columns in `Games`/`MyGames`/`Admin/Games`/`Admin/Users` now link to the
+    profile, and the nav's account dropdown got a "Profile" link alongside the existing "Manage"
+    one. Gotcha to remember for future numeric-display work: string interpolation of a `decimal`/
+    `double` with a `:F1`-style format specifier uses the server's current culture (so e.g. a
+    German-locale host would render `33,3 %` instead of `33.3 %`) — always format via
+    `.ToString("F1", CultureInfo.InvariantCulture)` instead for any value shown to users.
 

@@ -46,7 +46,7 @@ else
                         <td>
                             <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
                         </td>
-                        <td>@(game.OwnerUser?.DisplayName)</td>
+                        <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId">@game.OwnerUser.DisplayName</a> }</td>
                         <td>@game.State</td>
                         <td>@game.Players.Count</td>
                         <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>

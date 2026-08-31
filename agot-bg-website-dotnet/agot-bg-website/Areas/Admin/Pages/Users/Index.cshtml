@@ -32,10 +32,14 @@
                 var isBanned = roles.Contains(RoleNames.Banned);
                 <tr>
                     <td>
-                        @user.DisplayName
                         @if (user.IsDeleted)
                         {
+                            @user.DisplayName
                             <span class="badge badge-neutral">Deleted</span>
+                        }
+                        else
+                        {
+                            <a class="link" href="/User/@user.Id">@user.DisplayName</a>
                         }
                     </td>
                     <td>@user.Email @(user.IsDeleted ? "" : user.EmailConfirmed ? "" : "(unconfirmed)")</td>

@@ -29,7 +29,7 @@
             {
                 <tr>
                     <td>@game.Name</td>
-                    <td>@(game.OwnerUser?.DisplayName)</td>
+                    <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId">@game.OwnerUser.DisplayName</a> }</td>
                     <td>@game.State</td>
                     <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
                     <td>
