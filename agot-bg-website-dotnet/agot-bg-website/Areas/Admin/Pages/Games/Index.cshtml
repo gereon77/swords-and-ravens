@@ -29,7 +29,7 @@
             {
                 <tr>
                     <td>@game.Name</td>
-                    <td>@(game.OwnerUser?.UserName)</td>
+                    <td>@(game.OwnerUser?.DisplayName)</td>
                     <td>@game.State</td>
                     <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
                     <td>

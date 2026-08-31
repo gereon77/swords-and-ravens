@@ -21,11 +21,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
     public class LoginModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
+            _userManager = userManager;
             _logger = logger;
         }
 
@@ -110,9 +112,23 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+                // Login is by email, but UserName is a separate, independently-changeable field
+                // now (see MIGRATION_PLAN.md §13 / username selection), so PasswordSignInAsync
+                // can't be called with the email directly - it looks up by (normalized) UserName.
+                var user = await _userManager.FindByEmailAsync(Input.Email);
+                if (user is not null && user.IsDeleted)
+                {
+                    // Defence in depth: PasswordHash is already null for soft-deleted accounts so
+                    // this can't succeed anyway, but fail fast with a clear reason.
+                    ModelState.AddModelError(string.Empty, "This account no longer exists.");
+                    return Page();
+                }
+
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                var result = user is null
+                    ? Microsoft.AspNetCore.Identity.SignInResult.Failed
+                    : await _signInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");

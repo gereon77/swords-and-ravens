@@ -700,15 +700,6 @@ npx ts-node scripts/backfillPreviousPlayers.ts \
 These are deliberately **not** part of the Django→.NET migration itself — noted here so they don't
 get lost, to be picked up as separate follow-up work once the migration is live:
 
-- **Account deletion / GDPR deletion ("Took the Black" soft-delete).** In Django, account deletion
-  was never supported because deleting a user broke `PlayerInGame` queries and rendering for past
-  games they participated in. Design and implement account deletion:
-  - When a user deletes their account, move them to a `DeletedUsers` table (or apply an equivalent
-    soft-delete mechanism), strip all PII (email, hashed password, logins, tokens), and set their
-    display name to `"Took the Black"` (non-unique across all deleted users).
-  - Visiting the user profile page of a deleted user should return 404.
-  - `PlayerInGame` / `PreviousPlayerInGame` queries and game loading must still be able to resolve
-    these deleted players by ID (displaying `"Took the Black"`) so historical games remain intact.
 - **Precomputed statistics tables.** Win rate and average PBEM response time are currently
   calculated on the fly whenever a user profile page is visited (same as Django does today). Now
   that we have a clean EF Core schema, add a `PlayerStatistics` table (one row per user, or per
@@ -785,4 +776,36 @@ Follow-up work after first getting the app running locally end-to-end:
   (and `Email:Port`/`Email:Username`/`Email:Password`/`Email:EnableSsl` if your provider needs them)
   at a real SMTP relay via `dotnet user-secrets set Email:Host ...` etc. (never commit real
   credentials — see README.md "Email" section for the exact commands and provider notes).
+- **Account deletion ("Took the Black" soft-delete), implemented.** In Django, account deletion was
+  never supported because deleting a user broke `PlayerInGame` FK joins/rendering for past games.
+  `PlayerInGame`/`PreviousPlayerInGame`/`Message` all reference `AspNetUsers` with
+  `ON DELETE RESTRICT`, so a real row delete (or moving the row to a separate `DeletedUsers` table
+  and dropping it from `AspNetUsers`) would either be blocked outright or require rewriting every
+  historical game/chat FK to a second table. Instead we keep the `AspNetUsers` row and soft-delete
+  it in place via `Services/AccountDeletionService.cs`:
+  - Adds `ApplicationUser.IsDeleted`/`DeletedAt`, and a `[NotMapped]` `DisplayName` property that
+    returns `"Took the Black"` whenever `IsDeleted` is true (and the real `UserName` otherwise).
+    Every place a username used to be rendered (`Games`/`MyGames`/`Admin/Games` owner column,
+    `Admin/Users` list) now reads `DisplayName` instead of `UserName` directly.
+  - On deletion: removes all roles/external logins/claims, disables 2FA, nulls `Email`/
+    `NormalizedEmail`/`PasswordHash`/`ProfileText`/`LastWonTournament`, regenerates `GameToken` (a
+    `NOT NULL UNIQUE` column, so it can't be nulled), sets `LockoutEnabled`/`LockoutEnd` to
+    permanently lock the row out (belt-and-braces, on top of the password already being gone), and
+    rotates `SecurityStamp` to invalidate any existing auth cookie immediately.
+  - `UserName`/`NormalizedUserName` can't be nulled either — Identity's default `UserValidator`
+    rejects a null/empty username regardless of `RequireUniqueEmail`, and still enforces its own
+    uniqueness check — so they're replaced with the user's own (already-unique, non-PII) `Id`
+    instead. This frees the real email and username up for someone else to register with again,
+    while `DisplayName` still shows the same `"Took the Black"` text for every deleted account.
+  - Self-service via `Areas/Identity/Pages/Account/Manage/DeletePersonalData.cshtml(.cs)` (now
+    calls `AccountDeletionService` instead of the Identity-scaffolded `UserManager.DeleteAsync`),
+    and admin-triggered via a new "Delete" button in `Admin/Users/Index`.
+  - `Login.cshtml.cs` also picked up a related fix here: it used to call
+    `PasswordSignInAsync(Input.Email, ...)`, which only worked because `UserName` used to always
+    equal `Email`. Now that users can pick an independent username, it looks the user up by email
+    via `UserManager.FindByEmailAsync` first and signs in with the resolved `ApplicationUser`.
+  - Remaining gap: there is no public user-profile page yet at all (see win-rate/profile items
+    elsewhere in this plan) — when one is built, it must return 404 for `IsDeleted` users. Nothing
+    else needs to change: `PlayerInGame`/`PreviousPlayerInGame` resolve normally since the row (and
+    its `Id`) still exists, they'll just join to a `DisplayName` of `"Took the Black"`.
 

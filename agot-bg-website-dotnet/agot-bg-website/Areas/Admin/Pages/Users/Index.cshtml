@@ -31,17 +31,29 @@
                 var roles = Model.RolesByUserId.GetValueOrDefault(user.Id, []);
                 var isBanned = roles.Contains(RoleNames.Banned);
                 <tr>
-                    <td>@user.UserName</td>
-                    <td>@user.Email @(user.EmailConfirmed ? "" : "(unconfirmed)")</td>
+                    <td>
+                        @user.DisplayName
+                        @if (user.IsDeleted)
+                        {
+                            <span class="badge badge-neutral">Deleted</span>
+                        }
+                    </td>
+                    <td>@user.Email @(user.IsDeleted ? "" : user.EmailConfirmed ? "" : "(unconfirmed)")</td>
                     <td>@string.Join(", ", roles)</td>
                     <td>@user.CreatedAt.ToLocalTime().ToString("g")</td>
                     <td class="flex gap-2">
-                        <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@user.Id">Edit roles</a>
-                        <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search">
-                            <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
-                                @(isBanned ? "Unban" : "Ban")
-                            </button>
-                        </form>
+                        @if (!user.IsDeleted)
+                        {
+                            <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@user.Id">Edit roles</a>
+                            <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search">
+                                <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
+                                    @(isBanned ? "Unban" : "Ban")
+                                </button>
+                            </form>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" asp-route-Search="@Model.Search" onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-error">Delete</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }

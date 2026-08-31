@@ -46,4 +46,21 @@ public class ApplicationUser : IdentityUser<Guid>
 
     [PersonalData]
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Soft-delete flag ("Took the Black"). We deliberately keep the AspNetUsers row instead of
+    /// hard-deleting or moving it to a separate table: PlayerInGame/PreviousPlayerInGame/Message
+    /// all reference UserId with ON DELETE RESTRICT, so a real delete would either be blocked or
+    /// require rewriting every historical game/chat row. Instead AccountDeletionService strips all
+    /// PII from this row in place (UserName becomes the user's own Id - Identity's UserValidator
+    /// rejects null/duplicate usernames, and the Id is already unique and not PII) and flips this
+    /// flag. DisplayName below is what actually shows "Took the Black" to users. See MIGRATION_PLAN.md §13.
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    /// <summary>Name to show anywhere a username would normally be displayed (games, chat, admin).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string DisplayName => IsDeleted ? "Took the Black" : (UserName ?? "Unknown");
 }

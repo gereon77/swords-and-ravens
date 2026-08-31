@@ -1,5 +1,6 @@
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Areas.Admin.Pages.Users;
 
-public class IndexModel(UserManager<ApplicationUser> userManager) : PageModel
+public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletionService accountDeletionService) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
@@ -59,6 +60,21 @@ public class IndexModel(UserManager<ApplicationUser> userManager) : PageModel
             await userManager.UpdateSecurityStampAsync(user);
             StatusMessage = $"{user.UserName} has been banned.";
         }
+
+        return RedirectToPage(new { Search });
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        var displayName = user.DisplayName;
+        await accountDeletionService.DeleteAccountAsync(user);
+        StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
 
         return RedirectToPage(new { Search });
     }
