@@ -10,12 +10,17 @@ export default class MelisandreOfAsshai1stHouseCardAbility extends HouseCardAbil
     house: House,
     _houseCard: HouseCard
   ): void {
-    afterWinnerDetermination.childGameState
-      .setChildGameState(
-        new MelisandreOfAsshai1stAbilityGameState(
-          afterWinnerDetermination.childGameState
+    if (afterWinnerDetermination.postCombatGameState.winner == house) {
+      afterWinnerDetermination.childGameState
+        .setChildGameState(
+          new MelisandreOfAsshai1stAbilityGameState(
+            afterWinnerDetermination.childGameState
+          )
         )
-      )
-      .firstStart(house);
+        .firstStart(house);
+      return;
+    }
+
+    afterWinnerDetermination.childGameState.onHouseCardResolutionFinish(house);
   }
 }
