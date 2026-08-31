@@ -620,8 +620,11 @@ those are embedded inside `serialized_game` JSON the TS server still owns).
 
 Unlike every other table above, this one **cannot** be populated by a straight column copy — the
 legacy DB never stored it, and computing it requires replaying `GameLogManager.logs` (§4.4), whose
-shape is owned by `agot-bg-game-server`, not `Snr.Migration`. So this step deliberately does not
-live in the .NET importer:
+shape is owned by `agot-bg-game-server`, not `Snr.Migration`. **This is fully feasible, not a hard
+gap**: the serialized game has tracked player-vote-out/replacement and clock-timeout-replacement
+log entries for ~3 years now, so every historical game since then has enough information in
+`serialized_game.logs` to reconstruct who was removed, when, and why — this backfill script just
+hasn't been *written* yet. So this step deliberately does not live in the .NET importer:
 
 ```
 # run once, from agot-bg-game-server, against a restored copy of the production Django DB
@@ -691,3 +694,32 @@ npx ts-node scripts/backfillPreviousPlayers.ts \
   (§10.1) should walk `CANCELLED` games too (currently: yes, included, but excluded from win-rate
   scope like today) and (2) whether win-rate should stay `FINISHED`-only as assumed in §10.2, or be
   widened now that removal tracking exists.
+
+## 13. Future improvements (out of scope for this migration, noted for later)
+
+These are deliberately **not** part of the Django→.NET migration itself — noted here so they don't
+get lost, to be picked up as separate follow-up work once the migration is live:
+
+- **Precomputed statistics tables.** Win rate and average PBEM response time are currently
+  calculated on the fly whenever a user profile page is visited (same as Django does today). Now
+  that we have a clean EF Core schema, add a `PlayerStatistics` table (one row per user, or per
+  user+game-mode) that's updated incrementally whenever a game finishes (in the same transaction
+  that sets `Game.State = FINISHED` / writes `PlayerInGame.IsWinner`), rather than recomputed from
+  scratch per profile view.
+- **Public game statistics.** With a real relational schema (vs. Django's `view_of_game` JSON
+  blobs), it becomes easy to add a public stats page/API answering things like "which house wins
+  which game mode most often, broken down by settings (PBEM vs. live, Mother of Dragons on/off,
+  player count, etc.)". Needs a bit of design work on what "game mode"/"settings" should mean as
+  stable, queryable dimensions (today they're free-form JSON inside `ViewOfGame.settings`) — likely
+  its own `GameStatistics`/`HouseWinBySettings` summary table(s), populated the same
+  incrementally-on-finish way as `PlayerStatistics` above.
+- **UI library / dark Game-of-Thrones theme.** The current Razor Pages UI still uses whatever
+  Identity's default scaffolded markup looks like. Recommendation: **Tailwind CSS + DaisyUI**
+  rather than Bootstrap or a Material component kit — it's the most-recommended current pick for
+  server-rendered Razor Pages (no SPA framework lock-in, works fine with plain `.cshtml`), gives
+  full utility-first control over a custom dark palette/typography instead of fighting a
+  Bootstrap-flavored default look, and DaisyUI's theming system (CSS custom properties) makes it
+  straightforward to build one cohesive "Swords and Ravens" dark/parchment-accented theme instead
+  of a generic admin-dashboard look. (Commercial alternative if a fully polished component suite
+  is preferred over hand-rolling every component: Telerik UI for ASP.NET Core, which also ships a
+  visual theme builder for custom dark themes.)

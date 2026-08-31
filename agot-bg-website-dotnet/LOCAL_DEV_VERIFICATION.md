@@ -139,16 +139,55 @@ logic, and hasn't been written yet (see Known gaps below).
   in the email is built from the live request (`{scheme}://{host}/play/{gameId}`), not a
   hardcoded base URL.
 - `Services/SmtpEmailSender.cs` implements `IEmailSender` via a plain `System.Net.Mail.SmtpClient`,
-  configured from an `Email:Host/Port/Username/Password/FromAddress` config section. `Program.cs`
-  only registers it (overriding Identity's built-in no-op `IEmailSender`) when `Email:Host` is
-  non-empty — same "wire up only when configured" pattern already used for OAuth providers — so a
-  fresh local checkout with an empty `Email` section silently no-ops (Identity's default sender)
-  instead of throwing.
+  configured from an `Email:Host/Port/EnableSsl/Username/Password/FromAddress` config section.
+  `Program.cs` only registers it (overriding Identity's built-in no-op `IEmailSender`) when
+  `Email:Host` is non-empty — same "wire up only when configured" pattern already used for OAuth
+  providers — so a fresh local checkout with an empty `Email` section silently no-ops (Identity's
+  default sender) instead of throwing. `Email:EnableSsl` defaults to `true` (safe for a real
+  external SMTP provider) but should be set to `false` for a local plain-SMTP test catcher — see
+  below.
 - Verified end-to-end via live `dotnet run` + HTTP against real `snr_dotnet` data: registered a
   user, inserted a `Games` row via `psql`, then `POST /api/notifyGameEnded/{gameId}` (Basic Auth as
   `game-server`) with that user's id returned `200 {"status":"ok"}` with no SMTP errors (no
   `IEmailSender` is even registered locally since `Email:Host` is empty); `addPbemResponseTime`
   returned `204` and inserted a row; an unknown `gameId` returned `404`. Cleaned up test rows after.
+
+### Email (local testing) — no real SMTP account needed
+
+The maintainer running this locally may not have (or want to use) the original production SMTP
+credentials, and nothing SMTP-related should ever be committed to `appsettings.json`. The
+recommended local setup uses a throwaway SMTP *catcher* instead of a real mail provider, so
+registration/password-reset/notify* emails can be tested end-to-end without sending real mail or
+needing any account/secret at all:
+
+1. **`smtp4dev`** (`rnwood/smtp4dev`) is already wired into the repo root `docker-compose.yml` —
+   `docker compose up -d smtp4dev` (or just `docker compose up -d` for everything) starts it
+   alongside `db`/`redis`. It exposes a web UI at **http://localhost:5099** (view every email the
+   app sends, no real inbox needed) and a plain SMTP listener on **2525** with no
+   authentication/TLS required.
+2. Point the app at it via **`dotnet user-secrets`** (from the `agot-bg-website` project folder) —
+   this only writes to a per-user secrets file outside the repo, never to `appsettings.json`:
+   ```powershell
+   cd agot-bg-website
+   dotnet user-secrets set "Email:Host" "localhost"
+   dotnet user-secrets set "Email:Port" "2525"
+   dotnet user-secrets set "Email:EnableSsl" "false"
+   dotnet user-secrets set "Email:Username" ""
+   dotnet user-secrets set "Email:Password" ""
+   dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
+   ```
+3. `dotnet run`, then register a new account at `/Identity/Account/Register` — the confirmation
+   email shows up immediately in the smtp4dev web UI (http://localhost:5099), no real mailbox
+   involved.
+4. If you'd rather test against a *real* SMTP provider (e.g. your own mailbox with an app
+   password, or a service like Mailtrap/SendGrid) instead of the local catcher, set the same
+   `Email:*` keys via `dotnet user-secrets` with your provider's host/port/credentials and leave
+   `Email:EnableSsl` at its default `true` — the app doesn't need any code changes either way.
+
+Verified: with the above `smtp4dev` user-secrets, a live `dotnet run` + `POST
+/Identity/Account/Register` produced a real SMTP send (plain, no TLS/auth) that smtp4dev's REST
+API (`GET http://localhost:5099/api/Messages`) confirmed receiving, with the exact `From`/`To`/
+`Subject` expected (`"Confirm your email"`). Test user cleaned up afterwards.
 
 ## Chat (WebSockets + Redis, `Infrastructure/Chat/*`, `Api/ChatWebSocketApi.cs`)
 
@@ -221,7 +260,8 @@ logic, and hasn't been written yet (see Known gaps below).
   containers are running — this app shares both with the Django app (see above). Redis is
   required at startup (`ConnectionStrings:Redis`, default `localhost:6379`), not optional — it
   backs the chat WebSocket endpoint's cross-instance fan-out and presence tracking (see Chat
-  above).
+  above). `docker-compose.yml` also has an optional `smtp4dev` service for local email testing
+  with zero real SMTP credentials — see "Email (local testing)" above.
 
 ## 2. Restore & build
 
@@ -299,10 +339,15 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 ## Known gaps vs. the full plan (left for a follow-up pass)
 
 - The historical `PreviousPlayerInGame` backfill script (§10.1) lives in `agot-bg-game-server`, not
-  here, and hasn't been written yet (needs the TS `GameLogManager`/serialized-game replay logic).
+  here, and hasn't been written yet — but it's fully feasible, not an actual gap in the data: the
+  serialized game has tracked vote-out/replacement and clock-timeout-replacement log entries for
+  ~3 years now, so `serialized_game.logs` already has everything needed to reconstruct removal
+  history for that whole period once the script is written.
 - `Snr.Migration` imports Users/Groups/Rooms/Games/PlayerInGame/Messages/PbemResponseTime; it does
   not import `UserInRoom` (deliberate — these rows are recreated naturally as users reconnect to
   chat rooms post-migration, same as a user's first-ever connect to a room today).
 - Chat's tongueless rate-limiting and private-message email notification paths were code-reviewed
   line-for-line against `chat/consumers.py` but not separately exercised live (no `Tongueless`-role
   test user / pbem game fixture was set up) — see the Chat section above.
+- See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
+  (precomputed statistics tables, public game statistics, UI library/theme).
