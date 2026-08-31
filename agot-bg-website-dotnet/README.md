@@ -46,6 +46,15 @@ Postgres/Redis/SMTP.
    > double check `ConnectionStrings:DefaultConnection`/`ConnectionStrings:Redis` in
    > `appsettings.json` and any `Email:Host` user-secret are `127.0.0.1`, not `localhost`.
 
+   > **Visual Studio launch profiles:** there are two debug targets in the F5 dropdown — `http`
+   > (runs `dotnet run` natively on Windows; uses `127.0.0.1` as above) and
+   > `Container (Dockerfile)` (builds/runs the app inside its own Docker container, closer to the
+   > production build). Inside that container, `127.0.0.1`/`localhost` refer to the container
+   > itself, not the host, so the `Container (Dockerfile)` profile instead points at
+   > `host.docker.internal` (Docker Desktop's DNS name for the host machine) via environment
+   > variable overrides already set in `Properties/launchSettings.json` — no extra setup needed,
+   > just pick either profile from the dropdown.
+
 2. **Apply EF Core migrations** (creates the `snr_dotnet` database and schema). This uses the
    `dotnet-ef` global tool (`dotnet tool install --global dotnet-ef` if you don't have it yet):
 

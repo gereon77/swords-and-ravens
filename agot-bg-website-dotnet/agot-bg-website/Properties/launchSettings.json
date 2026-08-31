@@ -14,7 +14,10 @@
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "ASPNETCORE_HTTP_PORTS": "8080"
+        "ASPNETCORE_HTTP_PORTS": "8080",
+        "ConnectionStrings__DefaultConnection": "Host=host.docker.internal;Port=5432;Database=snr_dotnet;Username=postgres;Password=example",
+        "ConnectionStrings__Redis": "host.docker.internal:6379",
+        "Email__Host": "host.docker.internal"
       },
       "publishAllPorts": true,
       "useSSL": false

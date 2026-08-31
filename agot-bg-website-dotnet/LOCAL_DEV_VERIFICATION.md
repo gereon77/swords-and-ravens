@@ -376,6 +376,46 @@ from `localhost` to `127.0.0.1`, and the local `Email:Host` user-secret from `lo
 build`/`dotnet test` (29/29) re-confirmed after the change. See README.md's "Windows/Docker
 Desktop note" for the same guidance.
 
+## 9. Fixed: "Connection refused" when launching via VS's "Container (Dockerfile)" profile
+
+After the fix above, running via the plain `http` (Project) launch profile worked, but Visual
+Studio's other launch profile — **"Container (Dockerfile)"**, which builds and runs the app inside
+its own Docker container instead of natively — then failed differently:
+
+```
+Npgsql.NpgsqlException: Failed to connect to 127.0.0.1:5432
+System.Net.Sockets.SocketException (111): Connection refused
+```
+
+Root cause: inside that container, `127.0.0.1` refers to the *container itself*, not the Windows
+host — so it can never reach the `db`/`redis` containers, which are published on the host's
+loopback interface, not inside the app's own container network namespace.
+
+Fix: `Properties/launchSettings.json`'s `"Container (Dockerfile)"` profile now sets
+`ConnectionStrings__DefaultConnection`, `ConnectionStrings__Redis`, and `Email__Host` environment
+variables pointing at **`host.docker.internal`** (Docker Desktop's built-in DNS name for the host
+machine, reachable from any container) instead of leaving them to fall back to
+`appsettings.json`'s `127.0.0.1`. This only affects the container launch profile — the plain
+`http` profile (native `dotnet run`/F5 without Docker) still uses `appsettings.json`'s
+`127.0.0.1`, which is correct for that case since it isn't sandboxed inside a container network.
+
+Verified by building the Docker image (`docker build -f agot-bg-website/Dockerfile .`) and running
+it standalone with the same environment variables the profile now sets: role/room seeding queries
+succeeded (no connection errors) and `/` returned 200.
+
+**If you don't know which profile you're using:** in Visual Studio, check the debug target
+dropdown next to the green "Run" button/F5 — it should say `http` (native, recommended for normal
+day-to-day debugging) or `Container (Dockerfile)` (containerized, closer to the production
+`website.Dockerfile` build, slower iteration). Both now work against the same Docker Postgres/Redis
+containers described in §1/§7 without further configuration.
+
+Fix: changed `appsettings.json`'s `ConnectionStrings:DefaultConnection`/`ConnectionStrings:Redis`
+from `localhost` to `127.0.0.1`, and the local `Email:Host` user-secret from `localhost` to
+`127.0.0.1` (same underlying issue, would have hit smtp4dev the same way). Re-verified with
+`dotnet run`: app starts cleanly, role/room seeding queries succeed, `/` returns 200. `dotnet
+build`/`dotnet test` (29/29) re-confirmed after the change. See README.md's "Windows/Docker
+Desktop note" for the same guidance.
+
 ## 7. UI theme (Tailwind CSS + DaisyUI dark rebrand)
 
 Verified live via `dotnet run` + `curl`/`Invoke-WebRequest` against `http://localhost:5280`:
