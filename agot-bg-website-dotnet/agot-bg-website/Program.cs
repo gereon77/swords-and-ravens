@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -152,6 +153,23 @@ app.UseHttpsRedirection();
 app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
+
+// The game client's webpack bundle is built with publicPath "/static/" (matching Django's
+// STATIC_URL, since webpack.client.local.js is shared between both website rewrites — see
+// MIGRATION_PLAN.md §8), but build_and_place_game_client_into_dotnet.ps1/.sh places the built
+// assets under wwwroot/static_game/ (kept distinct from ASP.NET Core's own wwwroot-relative
+// MapStaticAssets mapping below). Re-expose that folder under the "/static" request path so the
+// generated play.html's absolute script/asset URLs resolve without editing the shared webpack
+// config.
+var staticGameDir = Path.Combine(app.Environment.WebRootPath, "static_game");
+if (Directory.Exists(staticGameDir))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(staticGameDir),
+        RequestPath = "/static"
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

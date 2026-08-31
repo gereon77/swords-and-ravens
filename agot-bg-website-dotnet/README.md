@@ -171,6 +171,16 @@ falling back to `play_fake.html`. This mirrors how `build_and_place_game_client_
 worked for the Django app: it's a manual step for local dev, not part of `dotnet build`/`dotnet
 run`, so you only need to re-run it when the game client changes.
 
+> **Why the bundle is requested from `/static/...` but the files live in `wwwroot/static_game/`:**
+> `webpack.client.local.js` hardcodes `output.publicPath = "/static/"` (matching Django's
+> `STATIC_URL`, since that webpack config is shared between both website rewrites), so the
+> generated `play.html` always references absolute URLs like `/static/bundle.<hash>.js` no matter
+> which backend serves it. `Program.cs` re-exposes `wwwroot/static_game/` under the `/static`
+> request path (a second `app.UseStaticFiles(...)` alongside the default `MapStaticAssets()` call)
+> specifically so those URLs resolve without having to fork the webpack config. If you ever see a
+> 404 for `/static/bundle.*.js`, check that `wwwroot/static_game/` actually contains the built
+> assets (re-run the build script above) rather than assuming the routing is wrong.
+
 ## Migrating data from the legacy Django database
 
 `Snr.Migration` is a console tool that reads directly from the legacy Django Postgres database and
