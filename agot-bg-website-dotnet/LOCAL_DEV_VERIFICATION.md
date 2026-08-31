@@ -300,7 +300,9 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 
 - The historical `PreviousPlayerInGame` backfill script (§10.1) lives in `agot-bg-game-server`, not
   here, and hasn't been written yet (needs the TS `GameLogManager`/serialized-game replay logic).
-- Chat (§7, WebSockets) is not implemented yet.
 - `Snr.Migration` imports Users/Groups/Rooms/Games/PlayerInGame/Messages/PbemResponseTime; it does
-  not import `UserInRoom` (deliberately — see §10, these are recreated naturally as users
-  reconnect to chat rooms, which isn't implemented yet since chat itself isn't).
+  not import `UserInRoom` (deliberate — these rows are recreated naturally as users reconnect to
+  chat rooms post-migration, same as a user's first-ever connect to a room today).
+- Chat's tongueless rate-limiting and private-message email notification paths were code-reviewed
+  line-for-line against `chat/consumers.py` but not separately exercised live (no `Tongueless`-role
+  test user / pbem game fixture was set up) — see the Chat section above.
