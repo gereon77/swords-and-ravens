@@ -6,22 +6,24 @@
 }
 @if (showBanner)
 {
-    <div id="cookieConsent" class="alert alert-info alert-dismissible fade show" role="alert">
+    <div id="cookieConsent" class="alert alert-info alert-dismissible" role="alert">
         <span>
             We use cookies to keep you signed in and remember your game/site preferences (no
             advertising or third-party tracking cookies). Choosing to sign in via Google, Discord,
             or Instagram also involves those providers' own cookies once you're redirected to them.
-            See our <a asp-page="/Privacy">Privacy Policy</a> for details.
+            See our <a class="link link-hover" asp-page="/Privacy">Privacy Policy</a> for details.
         </span>
-        <button type="button" class="accept-policy close" data-bs-dismiss="alert" aria-label="Close" data-cookie-string="@cookieString">
+        <button type="button" class="accept-policy close" aria-label="Close" data-cookie-string="@cookieString">
             <span aria-hidden="true">Accept</span>
         </button>
     </div>
     <script>
         (function () {
-            var button = document.querySelector("#cookieConsent button[data-cookie-string]");
+            var banner = document.querySelector("#cookieConsent");
+            var button = banner.querySelector("button[data-cookie-string]");
             button.addEventListener("click", function (event) {
                 document.cookie = button.dataset.cookieString;
+                banner.classList.add("hidden");
             }, false);
         })();
     </script>

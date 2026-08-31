@@ -12,3 +12,6 @@ obj/
 
 # EF Core tooling scratch files
 *.designer.cs.new
+
+# Node / Tailwind build tooling (ClientAssets)
+node_modules/

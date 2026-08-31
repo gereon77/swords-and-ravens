@@ -4,7 +4,39 @@
     ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="hero bg-base-200 rounded-box mt-6">
+    <div class="hero-content text-center py-16">
+        <div class="max-w-2xl">
+            <h1 class="display-4 text-primary">Swords and Ravens</h1>
+            <p class="py-4 text-base-content/80">
+                Play <em>A Game of Thrones: The Board Game</em> (2nd &amp; Mother of Dragons editions)
+                online, in real time or play-by-email, against friends and strangers alike.
+            </p>
+            <div class="flex items-center justify-center gap-3">
+                <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Create an account</a>
+                <a class="btn btn-outline" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+    <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+            <h2 class="card-title text-secondary">Real-time &amp; PBEM</h2>
+            <p>Join a live game, or play at your own pace with play-by-email style turns.</p>
+        </div>
+    </div>
+    <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+            <h2 class="card-title text-secondary">In-game chat</h2>
+            <p>Coordinate, negotiate, and betray your way to the Iron Throne with built-in chat.</p>
+        </div>
+    </div>
+    <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+            <h2 class="card-title text-secondary">Sign in your way</h2>
+            <p>Use a username and password, or sign in with Google, Discord, or Instagram.</p>
+        </div>
+    </div>
 </div>

@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Bootstrap-compatibility shim layer.
+ *
+ * The ASP.NET Core Identity scaffolding (Areas/Identity/Pages/**) generates ~40 Razor pages
+ * hard-coded against Bootstrap 5 class names (form-control, row/col-md-*, text-danger, ...).
+ * Rewriting every scaffolded file by hand for DaisyUI would be high-risk for low value, since
+ * these pages are rarely touched. Instead we map every legacy Bootstrap-only class name used
+ * anywhere under Pages/ or Areas/ to its DaisyUI/Tailwind equivalent here, so the whole app
+ * (including Identity) picks up the "swordsandravens" dark theme automatically.
+ *
+ * Hand-written pages (_Layout, Index, Privacy, _LoginPartial, _CookieConsentPartial) use native
+ * DaisyUI/Tailwind classes directly and do not rely on this shim.
+ */
+@layer components {
+  /* Bootstrap grid --------------------------------------------------- */
+  .container {
+    @apply mx-auto w-full max-w-5xl px-4;
+  }
+  .row {
+    @apply flex flex-wrap -mx-2;
+  }
+  .row > div[class*="col-"] {
+    @apply px-2 w-full box-border;
+  }
+  @media (min-width: 768px) {
+    .col-md-3 { width: 25%; }
+    .col-md-4 { width: 33.3333%; }
+    .col-md-6 { width: 50%; }
+    .col-md-9 { width: 75%; }
+    .col-md-12 { width: 100%; }
+    .col-md-offset-2 { margin-left: 16.6667%; }
+  }
+
+  /* Forms -------------------------------------------------------------- */
+  .form-control {
+    @apply input input-bordered w-full bg-base-200 text-base-content placeholder:text-base-content/40;
+  }
+  .form-select {
+    @apply select select-bordered w-full;
+  }
+  .form-label,
+  .control-label {
+    @apply block mb-1 text-sm font-medium text-base-content/80;
+  }
+  .form-floating {
+    @apply flex flex-col gap-1;
+  }
+  .form-floating > label {
+    @apply order-first;
+  }
+  .form-check,
+  .form-horizontal .checkbox {
+    @apply flex items-center gap-2 mb-3;
+  }
+  .form-check-input {
+    @apply checkbox checkbox-sm;
+  }
+  .form-check-label {
+    @apply text-sm text-base-content/80;
+  }
+  .form-inline {
+    @apply flex flex-wrap items-center gap-2;
+  }
+  .form-horizontal {
+    @apply space-y-4;
+  }
+  .input-group {
+    @apply flex items-stretch gap-2;
+  }
+  .input-group-append {
+    @apply flex items-center;
+  }
+  .input-group-text {
+    @apply px-2 inline-flex items-center;
+  }
+
+  /* Buttons & alerts ---------------------------------------------------- */
+  .btn-danger {
+    @apply btn-error;
+  }
+  .btn-close,
+  .close {
+    @apply btn btn-circle btn-ghost btn-xs;
+  }
+  .alert-danger {
+    @apply alert-error;
+  }
+  .alert-dismissible {
+    @apply relative pr-12;
+  }
+  .alert-dismissible .btn-close,
+  .alert-dismissible .close {
+    @apply absolute top-2 right-2;
+  }
+
+  /* Text / misc utilities ------------------------------------------------ */
+  .text-danger {
+    @apply text-error;
+  }
+  .text-muted {
+    @apply text-base-content/60;
+  }
+  .text-dark {
+    @apply text-base-content;
+  }
+  .font-weight-bold {
+    @apply font-bold;
+  }
+  .flex-column {
+    @apply flex-col;
+  }
+  .flex-grow-1 {
+    @apply grow;
+  }
+  .justify-content-between {
+    @apply justify-between;
+  }
+  .w-100 {
+    @apply w-full;
+  }
+  .h-100 {
+    @apply h-full;
+  }
+  .display-4 {
+    @apply text-4xl md:text-5xl font-bold tracking-tight;
+  }
+  .box-shadow {
+    @apply shadow-md;
+  }
+  .border-bottom {
+    @apply border-b border-base-300;
+  }
+  .border-top {
+    @apply border-t border-base-300;
+  }
+  .footer {
+    @apply mt-10 py-6 text-center text-sm;
+  }
+
+  /* Nav (used by the Manage-account side navigation) ---------------------- */
+  .nav {
+    @apply flex flex-col gap-1;
+  }
+  .nav-pills {
+    @apply gap-1;
+  }
+  .nav-item {
+    @apply list-none;
+  }
+  .nav-link {
+    @apply block px-3 py-2 rounded-btn text-base-content/80 hover:bg-base-200 hover:text-base-content transition-colors no-underline;
+  }
+  .nav-link.active {
+    @apply bg-primary text-primary-content hover:bg-primary hover:text-primary-content;
+  }
+
+  /* Misc scaffolded-page hooks --------------------------------------------- */
+  .glyphicon {
+    @apply inline-block;
+  }
+  .glyphicon-warning-sign::before {
+    content: "\26A0\FE0F";
+  }
+  .list {
+    @apply list-decimal list-inside space-y-2;
+  }
+  .recovery-code {
+    @apply font-mono bg-base-200 px-2 py-1 rounded;
+  }
+}

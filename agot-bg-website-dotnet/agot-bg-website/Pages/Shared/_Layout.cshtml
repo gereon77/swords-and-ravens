@@ -1,38 +1,30 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="swordsandravens">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - agot_bg_website</title>
+    <title>@ViewData["Title"] - Swords and Ravens</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/agot_bg_website.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="min-h-screen bg-base-100 text-base-content flex flex-col">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">agot_bg_website</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+        <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
+            <div class="container flex items-center justify-between">
+                <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide" asp-area="" asp-page="/Index">
+                    &#x1F426; Swords and Ravens
+                </a>
+                <div class="flex items-center gap-1">
+                    <a class="nav-link" asp-area="" asp-page="/Index">Home</a>
+                    <a class="nav-link" asp-area="" asp-page="/Privacy">Privacy</a>
                     <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+    <div class="container flex-1">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
@@ -40,13 +32,12 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 - agot_bg_website - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2026 - Swords and Ravens - <a class="link link-hover" asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
     <partial name="_CookieConsentPartial" />
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

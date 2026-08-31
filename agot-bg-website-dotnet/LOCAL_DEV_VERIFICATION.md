@@ -351,3 +351,25 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
   test user / pbem game fixture was set up) — see the Chat section above.
 - See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
   (precomputed statistics tables, public game statistics, UI library/theme).
+
+## 7. UI theme (Tailwind CSS + DaisyUI dark rebrand)
+
+Verified live via `dotnet run` + `curl`/`Invoke-WebRequest` against `http://localhost:5280`:
+
+- `wwwroot/css/app.css` (Tailwind v3.4 + DaisyUI v4.12, custom `swordsandravens` dark theme) builds
+  cleanly with `npm install && npm run build` inside `agot-bg-website/ClientAssets/` under this
+  environment's Node 16.19.1 — confirmed the compiled CSS actually carries the custom theme's
+  colors (e.g. `--p: 42.0802% 0.141541 20.035294`, the oklch conversion of the `#8a1f2b` crimson
+  primary) rather than DaisyUI's stock palette.
+- `/`, `/Privacy`, `/Identity/Account/Login`, `/Identity/Account/Register` all return 200, link
+  `~/css/app.css`, set `<html data-theme="swordsandravens">`, and contain no remaining references
+  to `bootstrap` (the vendor folder `wwwroot/lib/bootstrap/` was deleted; `wwwroot/lib/jquery*`
+  kept, since `jquery-validation-unobtrusive` is unrelated to the visual framework).
+  - Register/Login pages render scaffolded Identity markup (`form-control`, `row`/`col-md-*`,
+    `text-danger`, etc.) through the Bootstrap-compatibility shim in `ClientAssets/src/app.css`,
+    without any structural changes to the 40 scaffolded `Areas/Identity/Pages/**` files.
+  - All user-visible "agot_bg_website"/"agot-bg-website" branding was replaced with
+    "Swords and Ravens" in `_Layout.cshtml` and `Privacy.cshtml` (the only two files where it
+    appeared as visible text — all other occurrences are `@using`/`@namespace` code references,
+    intentionally left unchanged).
+- `dotnet build` (0 errors) and `dotnet test` (29/29 passing) re-verified after all UI changes.
