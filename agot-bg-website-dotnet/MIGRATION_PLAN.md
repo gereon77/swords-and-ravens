@@ -713,6 +713,14 @@ get lost, to be picked up as separate follow-up work once the migration is live:
   stable, queryable dimensions (today they're free-form JSON inside `ViewOfGame.settings`) — likely
   its own `GameStatistics`/`HouseWinBySettings` summary table(s), populated the same
   incrementally-on-finish way as `PlayerStatistics` above.
+- **Extended Admin entity browsing & chat moderation.** The initial Admin area provides User
+  search/ban/role-assignment and Game search/raw-JSON-edit. As a follow-up, expand the Admin panel
+  to support browsing and editing across all database entities:
+  - Chat rooms and messages: browse active/historical rooms, search chat messages, delete/moderate
+    inappropriate messages.
+  - User details: edit user profile fields (ProfileText, MuteGames, settings flags) directly from
+    admin UI.
+  - PBEM response times, user room memberships, and previous players in game inspection.
 - **UI library / dark Game-of-Thrones theme.** The current Razor Pages UI still uses whatever
   Identity's default scaffolded markup looks like. Recommendation: **Tailwind CSS + DaisyUI**
   rather than Bootstrap or a Material component kit — it's the most-recommended current pick for

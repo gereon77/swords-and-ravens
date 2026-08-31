@@ -11,11 +11,24 @@
     <div class="col-md-6">
         <form id="profile-form" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Username" class="form-control" placeholder="Please choose your username." disabled />
-                <label asp-for="Username" class="form-label"></label>
-            </div>
-            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            @if (Model.CanChangeUsername)
+            {
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.NewUsername" class="form-control" placeholder="Please choose your username." />
+                    <label asp-for="Input.NewUsername" class="form-label"></label>
+                    <span asp-validation-for="Input.NewUsername" class="text-danger"></span>
+                    <div class="form-text text-muted">You can change your username once. After updating, it cannot be changed again.</div>
+                </div>
+                <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            }
+            else
+            {
+                <div class="form-floating mb-3">
+                    <input asp-for="Username" class="form-control" disabled />
+                    <label asp-for="Username" class="form-label"></label>
+                    <div class="form-text text-muted">Username was changed on @(Model.LastUsernameUpdateTime?.ToLocalTime().ToString("g") ?? "a previous date") and cannot be modified again.</div>
+                </div>
+            }
         </form>
     </div>
 </div>

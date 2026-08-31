@@ -6,6 +6,22 @@
 
 <h1 class="text-2xl font-bold mb-4">All Games</h1>
 
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error mb-4">@Model.ErrorMessage</div>
+}
+
+@if (Model.CanCreateGame)
+{
+    <div class="card bg-base-200 shadow-md p-4 mb-6">
+        <h2 class="text-lg font-semibold mb-2">Create a new game</h2>
+        <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row gap-2">
+            <input type="text" name="name" class="input input-bordered flex-1" placeholder="Enter game name..." maxlength="200" required />
+            <button type="submit" class="btn btn-primary">Create Game</button>
+        </form>
+    </div>
+}
+
 <section class="mb-8">
     <h2 class="text-xl font-semibold mb-2">Open games <span class="badge">@Model.OpenGames.Count</span></h2>
     @if (Model.OpenGames.Count == 0)
@@ -28,7 +44,9 @@
                     @foreach (var game in Model.OpenGames)
                     {
                         <tr>
-                            <td>@game.Name</td>
+                            <td>
+                                <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
+                            </td>
                             <td>@(game.OwnerUser?.UserName)</td>
                             <td>@game.Players.Count</td>
                             <td>@game.CreatedAt.ToLocalTime().ToString("g")</td>
@@ -62,7 +80,9 @@
                     @foreach (var game in Model.OngoingGames)
                     {
                         <tr>
-                            <td>@game.Name</td>
+                            <td>
+                                <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
+                            </td>
                             <td>@(game.OwnerUser?.UserName)</td>
                             <td>@game.Players.Count</td>
                             <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>

@@ -32,6 +32,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         /// </summary>
         public string Username { get; set; }
 
+        public bool CanChangeUsername { get; set; }
+
+        public DateTimeOffset? LastUsernameUpdateTime { get; set; }
+
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -52,6 +56,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         /// </summary>
         public class InputModel
         {
+            [StringLength(30, MinimumLength = 3, ErrorMessage = "The {0} must be between {2} and {1} characters long.")]
+            [RegularExpression(@"^[a-zA-Z0-9_\-\. ]+$", ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes.")]
+            [Display(Name = "Username")]
+            public string NewUsername { get; set; }
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -59,8 +67,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             var userName = await _userManager.GetUserNameAsync(user);
 
             Username = userName;
+            LastUsernameUpdateTime = user.LastUsernameUpdateTime;
+            CanChangeUsername = user.LastUsernameUpdateTime == null;
 
-            Input = new InputModel();
+            Input = new InputModel
+            {
+                NewUsername = userName
+            };
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -87,6 +100,36 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             {
                 await LoadAsync(user);
                 return Page();
+            }
+
+            if (user.LastUsernameUpdateTime == null &&
+                !string.IsNullOrWhiteSpace(Input.NewUsername) &&
+                Input.NewUsername != user.UserName)
+            {
+                var existing = await _userManager.FindByNameAsync(Input.NewUsername);
+                if (existing != null && existing.Id != user.Id)
+                {
+                    ModelState.AddModelError("Input.NewUsername", "This username is already taken.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                var setUserNameResult = await _userManager.SetUserNameAsync(user, Input.NewUsername);
+                if (!setUserNameResult.Succeeded)
+                {
+                    foreach (var error in setUserNameResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                user.LastUsernameUpdateTime = DateTimeOffset.UtcNow;
+                await _userManager.UpdateAsync(user);
+                await _signInManager.RefreshSignInAsync(user);
+                StatusMessage = "Your username has been updated. (Username can only be changed once.)";
+                return RedirectToPage();
             }
 
             await _signInManager.RefreshSignInAsync(user);
