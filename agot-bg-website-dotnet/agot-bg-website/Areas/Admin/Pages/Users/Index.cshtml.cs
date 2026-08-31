@@ -1,0 +1,65 @@
+using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Auth;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
+namespace agot_bg_website.Areas.Admin.Pages.Users;
+
+public class IndexModel(UserManager<ApplicationUser> userManager) : PageModel
+{
+    [BindProperty(SupportsGet = true)]
+    public string? Search { get; set; }
+
+    public List<ApplicationUser> Users { get; set; } = [];
+
+    public Dictionary<Guid, IList<string>> RolesByUserId { get; set; } = [];
+
+    [TempData]
+    public string? StatusMessage { get; set; }
+
+    public async Task OnGetAsync()
+    {
+        var query = userManager.Users.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            var normalized = Search.Trim();
+            query = query.Where(u =>
+                EF.Functions.ILike(u.UserName!, $"%{normalized}%") ||
+                EF.Functions.ILike(u.Email!, $"%{normalized}%") ||
+                u.Id.ToString() == normalized);
+        }
+
+        Users = await query.OrderBy(u => u.UserName).Take(100).ToListAsync();
+
+        foreach (var user in Users)
+        {
+            RolesByUserId[user.Id] = await userManager.GetRolesAsync(user);
+        }
+    }
+
+    public async Task<IActionResult> OnPostToggleBanAsync(Guid id)
+    {
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        if (await userManager.IsInRoleAsync(user, RoleNames.Banned))
+        {
+            await userManager.RemoveFromRoleAsync(user, RoleNames.Banned);
+            StatusMessage = $"{user.UserName} has been unbanned.";
+        }
+        else
+        {
+            await userManager.AddToRoleAsync(user, RoleNames.Banned);
+            // Force the user out of any active session immediately, mirroring the PlayApi banned check.
+            await userManager.UpdateSecurityStampAsync(user);
+            StatusMessage = $"{user.UserName} has been banned.";
+        }
+
+        return RedirectToPage(new { Search });
+    }
+}

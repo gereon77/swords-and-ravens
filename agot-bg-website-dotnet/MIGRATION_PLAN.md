@@ -723,3 +723,49 @@ get lost, to be picked up as separate follow-up work once the migration is live:
   of a generic admin-dashboard look. (Commercial alternative if a fully polished component suite
   is preferred over hand-rolling every component: Telerik UI for ASP.NET Core, which also ships a
   visual theme builder for custom dark themes.)
+
+## 14. Admin area, nav, and auth-flow hardening (implemented)
+
+Follow-up work after first getting the app running locally end-to-end:
+
+- **Email confirmation is now always required** (`options.SignIn.RequireConfirmedAccount = true`
+  unconditionally in `Program.cs`, no longer skipped in Development) so local testing exercises the
+  same confirm-email gate production has. `Login.cshtml.cs` now gives a specific message for the
+  `SignInResult.IsNotAllowed` case (unconfirmed email) instead of a generic "Invalid login attempt"
+  — that generic message was the actual root cause of "I logged in but the nav still shows
+  Login/Register": the sign-in was silently refused, not a caching/rendering bug.
+- **`options.User.RequireUniqueEmail = true`** — two `ApplicationUser`s can no longer share an
+  email, which both `Register.cshtml.cs` and `ExternalLogin.cshtml.cs` now rely on.
+- **Register with an OAuth-linked email is forbidden**, with a clear message telling the visitor to
+  sign in with the linked provider instead (and that they can add a password afterwards from
+  `Manage/SetPassword`, already provided by scaffolded Identity UI).
+- **External login auto-links by email** instead of erroring/duplicating: `ExternalLogin.cshtml.cs`
+  now calls `AccountLinkingService.TryLinkByEmailAsync` before creating a new user; both the
+  legacy-import "Linked" outcome and a plain "already claimed" existing account are treated as
+  "add this login to that existing user" for this flow specifically (the service's own
+  `ConflictAlreadyClaimed` semantics are otherwise unchanged/still tested for the legacy-migration
+  use case in `AccountLinkingServiceTests`).
+- **Phone number field removed** from `Manage/Index.cshtml` (unused, never collected by Django).
+- **Nav rebuilt to match Django's production bar**: All Games / My Games (signed-in only) / Rules /
+  About / FAQ (external link) / Admin (Admin role only), replacing the scaffolded Home/Privacy
+  links. New pages: `Pages/Games.cshtml` (open + ongoing games), `Pages/MyGames.cshtml`
+  (`[Authorize]`, games the current user is a player in), `Pages/Rules.cshtml`, `Pages/About.cshtml`
+  (static content mirroring Django's `rules.html`/`about.html`).
+- **New `Areas/Admin` Razor Pages area** — the .NET equivalent of Django Admin (ASP.NET Core has no
+  built-in one). Gated by an `"AdminArea"` authorization policy (`RequireRole(RoleNames.Admin)`)
+  applied via `options.Conventions.AuthorizeAreaFolder("Admin", "/", "AdminArea")`. Provides:
+  - `Admin/Users` — search by username/email/id, ban/unban (toggles the `Banned` role and bumps the
+    security stamp so it takes effect immediately), and `Admin/Users/Edit` for full role editing.
+  - `Admin/Games` — search by name/id, and `Admin/Games/Edit` for viewing/editing the raw
+    `SerializedGame`/`ViewOfGame` JSON directly and cancelling a game — the direct equivalent of
+    what this maintainer previously had to do by hand-editing the Django database.
+  - Note the same caveat that applied in Django: editing `SerializedGame` only sticks if the game
+    server doesn't have that game loaded in memory (it will overwrite on its next save).
+- **Real SMTP vs. smtp4dev**: smtp4dev (already wired up per §6/§9) is a local catcher — it really
+  receives the SMTP transaction so confirmation/reset emails show up in its web UI at
+  `http://localhost:5099`, but it never delivers anywhere else by design, so it's normal to not see
+  mail in a real inbox while using it. To test genuine end-to-end delivery, point `Email:Host`
+  (and `Email:Port`/`Email:Username`/`Email:Password`/`Email:EnableSsl` if your provider needs them)
+  at a real SMTP relay via `dotnet user-secrets set Email:Host ...` etc. (never commit real
+  credentials — see README.md "Email" section for the exact commands and provider notes).
+

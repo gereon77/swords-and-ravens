@@ -437,3 +437,51 @@ Verified live via `dotnet run` + `curl`/`Invoke-WebRequest` against `http://loca
     appeared as visible text — all other occurrences are `@using`/`@namespace` code references,
     intentionally left unchanged).
 - `dotnet build` (0 errors) and `dotnet test` (29/29 passing) re-verified after all UI changes.
+
+## 10. Fixed: auth-flow gaps found after real end-to-end usage (email confirm, duplicate/OAuth registration, nav, Admin area)
+
+After actually using the running app, several real issues surfaced (not just cosmetic): email
+confirmation wasn't gating login in Development, registering with an email already tied to an
+external-login account wasn't blocked, the top nav was missing the Django site's main links, and
+there was no way to manage users/games short of a raw SQL client. All fixed and verified live
+against the real `swords-and-ravens-db-1`/`swords-and-ravens-redis-1`/`snr-smtp4dev-1` containers
+via `dotnet run` + `curl` with a cookie jar (not just unit tests), end to end:
+
+1. **Registered** a new local account (`POST /Identity/Account/Register`) → redirected to
+   `RegisterConfirmation` (not signed in), confirming `RequireConfirmedAccount = true` now applies
+   in Development too.
+2. **Logged in before confirming** → got the new specific error message ("You need to confirm your
+   email address before you can log in...") instead of the old generic "Invalid login attempt" —
+   this was the actual root cause the maintainer originally reported as "logged in but nav still
+   shows Login/Register": the sign-in was silently refused (`SignInResult.IsNotAllowed`), not a
+   caching/rendering bug in `_LoginPartial.cshtml`.
+3. **Fetched the confirmation email from smtp4dev's REST API** (`GET
+   http://localhost:5099/api/Messages`, then `/plaintext` for the body) and followed the
+   `ConfirmEmail` link → confirmed successfully.
+4. **Logged in again** → `Set-Cookie: .AspNetCore.Identity.Application=...` issued, and `GET /`
+   with that cookie now correctly rendered `Hello <email>!` / `Logout` instead of Login/Register —
+   confirming the nav bug really was the unconfirmed-email case above, not a real rendering defect.
+5. **Registered again with the same email** → blocked with "An account with this email already
+   exists. Please log in instead." (the new `RegisterModel.BuildDuplicateAccountErrorMessage`
+   logic, unit-tested in `RegisterModelTests.cs`).
+6. **Granted the `Admin` role directly via SQL** (`INSERT INTO "AspNetUserRoles" ...`) to the test
+   account, re-logged in (role claims are baked into the auth cookie at sign-in, so a DB-only role
+   change needs a fresh sign-in or `RefreshSignInAsync` to take effect), then confirmed:
+   - Anonymous `GET /Admin` → `302` redirect to login (blocked, as expected).
+   - Signed-in non-admin would get the same block (the policy is role-based, not just
+     "authenticated") — verified by testing before granting the role.
+   - Signed-in admin: `GET /Admin`, `/Admin/Users`, `/Admin/Games` all returned `200` with the
+     expected content (user list with a working Ban/Unban button, game list with a working
+     View/Edit link).
+   - Fixed one real bug found during this step: `options.Conventions.AuthorizeAreaFolder("Admin",
+     "/", RoleNames.Admin)` doesn't take a role name — its third argument is an *authorization
+     policy name*, so passing `"Admin"` directly threw `InvalidOperationException: The
+     AuthorizationPolicy named: 'Admin' was not found` on first request. Fixed by registering a
+     named `"AdminArea"` policy (`RequireRole(RoleNames.Admin)`) in `Program.cs` and referencing
+     that policy name instead.
+7. Cleaned up the test account (`DELETE FROM "AspNetUsers" WHERE "UserName"=...`) after
+   verification.
+
+`dotnet build` (0 errors) and `dotnet test` (33/33 passing, 4 new `RegisterModelTests`) both
+re-verified after these changes.
+

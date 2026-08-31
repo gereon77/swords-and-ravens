@@ -13,7 +13,7 @@ Postgres/Redis/SMTP.
 
 | Project | Purpose |
 |---|---|
-| `agot-bg-website/` | The ASP.NET Core app itself: Razor Pages UI, Identity (username/password + Google/Discord/Instagram OIDC), Minimal API groups under `Api/` (`GamesApi`, `RoomsApi`, `UsersApi`, `PublicApi`, `NotificationsApi`, `PlayApi`, `ChatWebSocketApi`), and `Infrastructure/` (chat, email, website-client contract implementation for the game server). `ClientAssets/` is a small npm project (Tailwind CSS + DaisyUI) that builds `wwwroot/css/app.css`. |
+| `agot-bg-website/` | The ASP.NET Core app itself: Razor Pages UI (top nav: All Games / My Games / Rules / About / FAQ / Admin), Identity (username/password + Google/Discord/Instagram OIDC), a Django-Admin-style `Areas/Admin` Razor Pages area (user search/ban/roles, raw game JSON view/edit — gated by the `Admin` role, see `MIGRATION_PLAN.md` §14), Minimal API groups under `Api/` (`GamesApi`, `RoomsApi`, `UsersApi`, `PublicApi`, `NotificationsApi`, `PlayApi`, `ChatWebSocketApi`), and `Infrastructure/` (chat, email, website-client contract implementation for the game server). `ClientAssets/` is a small npm project (Tailwind CSS + DaisyUI) that builds `wwwroot/css/app.css`. |
 | `agot-bg-website.Data/` | EF Core `DbContext`, entities, and migrations — the persistence layer, shared by the website and by `Snr.Migration`. |
 | `Snr.Migration/` | One-off console tool that imports the legacy Django database (users, games, rooms, ...) into the new schema. Not part of the running website. |
 | `agot-bg-website.Tests/` | xUnit test project covering domain/service logic. |
@@ -78,6 +78,30 @@ Postgres/Redis/SMTP.
 
    View captured emails at http://localhost:5099. To test Google/Discord/Instagram sign-in
    locally you'll also need your own OAuth app credentials, set the same way (`Authentication:Google:ClientId` / `:ClientSecret`, etc. — see `MIGRATION_PLAN.md` for the OIDC provider setup notes).
+
+   **smtp4dev never delivers to a real inbox — that's by design** (it's a local catcher so no real
+   mail server/credentials are needed for day-to-day dev). If you want to actually test the
+   end-to-end delivery experience (e.g. what the confirm-email flow feels like landing in a real
+   inbox), point `Email:*` at a real SMTP relay instead, using your own credentials — **type the
+   password directly into the `dotnet user-secrets set` command yourself** rather than pasting it
+   into chat/a file, since user-secrets are stored unencrypted in your local profile
+   (`%APPDATA%\Microsoft\UserSecrets\<id>\secrets.json`) but at least never get committed:
+
+   ```powershell
+   cd agot-bg-website
+   dotnet user-secrets set "Email:Host" "smtp.gmail.com"
+   dotnet user-secrets set "Email:Port" "587"
+   dotnet user-secrets set "Email:EnableSsl" "true"
+   dotnet user-secrets set "Email:Username" "yourname@gmail.com"
+   dotnet user-secrets set "Email:Password" "<an app password, not your normal account password>"
+   dotnet user-secrets set "Email:FromAddress" "yourname@gmail.com"
+   ```
+
+   For Gmail, generate an [App Password](https://myaccount.google.com/apppasswords) (requires
+   2-Step Verification) rather than using your normal account password — plain-password SMTP auth
+   is disabled by Google for third-party apps. Any other SMTP relay you have credentials for (a
+   personal domain's mailbox, Mailtrap, SendGrid, etc.) works the same way — just fill in its
+   host/port/username/password.
 
 4. **Run the website**:
 

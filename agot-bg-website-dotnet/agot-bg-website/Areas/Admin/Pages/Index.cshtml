@@ -1,0 +1,17 @@
+@page
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<h1 class="text-2xl font-bold mb-4">Admin</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <a class="card bg-base-200 shadow p-4 hover:bg-base-300" asp-area="Admin" asp-page="/Users/Index">
+        <h2 class="text-lg font-semibold">Users</h2>
+        <p class="opacity-70">Search users, ban/unban, edit roles.</p>
+    </a>
+    <a class="card bg-base-200 shadow p-4 hover:bg-base-300" asp-area="Admin" asp-page="/Games/Index">
+        <h2 class="text-lg font-semibold">Games</h2>
+        <p class="opacity-70">Search games, view/edit the raw serialized game, cancel a game.</p>
+    </a>
+</div>

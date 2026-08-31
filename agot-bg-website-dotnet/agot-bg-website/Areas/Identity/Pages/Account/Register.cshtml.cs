@@ -113,6 +113,22 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             if (ModelState.IsValid)
             {
+                // If this email already belongs to an account, don't let CreateAsync fail with a
+                // generic "email already taken" error — tell the visitor exactly what to do next,
+                // per the requirement that duplicate registration must be forbidden in favor of
+                // signing in with the already-linked method.
+                var existingUser = await _userManager.FindByEmailAsync(Input.Email);
+                if (existingUser is not null)
+                {
+                    var hasPassword = await _userManager.HasPasswordAsync(existingUser);
+                    var providerNames = hasPassword
+                        ? []
+                        : (await _userManager.GetLoginsAsync(existingUser))
+                            .Select(l => l.ProviderDisplayName ?? l.LoginProvider).ToArray();
+                    ModelState.AddModelError(string.Empty, BuildDuplicateAccountErrorMessage(hasPassword, providerNames));
+                    return Page();
+                }
+
                 var user = CreateUser();
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
@@ -176,6 +192,27 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 throw new NotSupportedException("The default UI requires a user store with email support.");
             }
             return (IUserEmailStore<ApplicationUser>)_userStore;
+        }
+
+        /// <summary>
+        /// Builds the error shown when registering with an email that already belongs to an
+        /// account — a local-password account gets a plain "log in instead" message, while an
+        /// external-login-only account is told exactly which provider(s) to sign in with instead
+        /// (registration must be forbidden here, not silently merged/duplicated). Extracted as a
+        /// pure function so it's unit-testable without a live UserManager/database.
+        /// </summary>
+        internal static string BuildDuplicateAccountErrorMessage(bool hasPassword, IReadOnlyList<string> externalProviderNames)
+        {
+            if (hasPassword)
+            {
+                return "An account with this email already exists. Please log in instead.";
+            }
+
+            var providerNames = externalProviderNames.Count > 0
+                ? string.Join(" or ", externalProviderNames)
+                : "an external provider";
+            return $"This email is already linked to an account via {providerNames}. Please sign in with {providerNames} instead — " +
+                "you can add a password to your account afterwards from your profile settings.";
         }
     }
 }

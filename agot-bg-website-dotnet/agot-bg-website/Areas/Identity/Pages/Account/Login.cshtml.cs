@@ -127,6 +127,18 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     _logger.LogWarning("User account locked out.");
                     return RedirectToPage("./Lockout");
                 }
+                if (result.IsNotAllowed)
+                {
+                    // The most common reason SignInManager refuses an otherwise-correct password is
+                    // RequireConfirmedAccount: the email hasn't been confirmed yet. Say so plainly
+                    // instead of the generic "Invalid login attempt" — that's what made it look like
+                    // login silently did nothing while the nav kept showing Login/Register.
+                    ModelState.AddModelError(string.Empty,
+                        "You need to confirm your email address before you can log in. Check your inbox " +
+                        "(or your local SMTP catcher during development) for the confirmation link we sent " +
+                        "when you registered, or use \"Resend email confirmation\" below.");
+                    return Page();
+                }
                 else
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");

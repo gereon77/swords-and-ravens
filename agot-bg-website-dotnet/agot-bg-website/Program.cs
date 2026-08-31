@@ -28,16 +28,22 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
 });
 
-// Locally there is usually no mail sender configured and no OAuth app secrets, so:
-//  - email confirmation is only required outside Development (so local individual/password
-//    accounts can log in immediately after registering), and
-//  - each external OAuth provider below is only wired up when its ClientId/ClientSecret are
-//    actually configured (via appsettings/user-secrets/env vars), so local debugging can run
-//    with individual (username/password) accounts only, with no OAuth app registrations needed.
+// Email confirmation is always required, in every environment (matches production and lets
+// local testing exercise the real confirm-email flow instead of silently skipping it). Locally
+// there is usually no mail sender configured, so unconfirmed accounts simply can't log in until
+// either a real SMTP relay is configured (see README.md "Email" section) or the confirmation link
+// is grabbed from smtp4dev's web UI at http://localhost:5099. Each external OAuth provider below
+// is only wired up when its ClientId/ClientSecret are actually configured (via
+// appsettings/user-secrets/env vars), so local debugging can run with individual
+// (username/password) accounts only, with no OAuth app registrations needed.
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = !builder.Environment.IsDevelopment();
+        options.SignIn.RequireConfirmedAccount = true;
+        // Two different ApplicationUsers must never share an email: Register.cshtml.cs and
+        // ExternalLogin.cshtml.cs both rely on FindByEmailAsync returning at most one match so
+        // local-password and external-login accounts can be told apart/linked correctly.
+        options.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders()
@@ -73,7 +79,13 @@ if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
     builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, agot_bg_website.Services.SmtpEmailSender>();
 }
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    // The Admin area is the .NET equivalent of Django Admin (there's no built-in one) — gate the
+    // whole area behind the Admin role instead of any-authenticated-user, mirroring Django's
+    // `user.is_staff` gate on /admin.
+    options.Conventions.AuthorizeAreaFolder("Admin", "/", "AdminArea");
+});
 
 // External logins: Google/Discord/Instagram — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
 // Auth scheme for the game server's service-to-service calls, see MIGRATION_PLAN.md §6.
@@ -120,7 +132,8 @@ authenticationBuilder.AddScheme<MasterApiAuthenticationOptions, MasterApiAuthent
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(MasterApiAuthenticationHandler.SchemeName, policy =>
-        policy.AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName).RequireAuthenticatedUser());
+        policy.AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName).RequireAuthenticatedUser())
+    .AddPolicy("AdminArea", policy => policy.RequireRole(RoleNames.Admin));
 
 var app = builder.Build();
 

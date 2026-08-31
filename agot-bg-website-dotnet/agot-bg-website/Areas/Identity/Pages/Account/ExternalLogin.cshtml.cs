@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using agot_bg_website.Services;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -30,13 +31,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
+        private readonly AccountLinkingService _accountLinkingService;
 
         public ExternalLoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             ILogger<ExternalLoginModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            AccountLinkingService accountLinkingService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -44,6 +47,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             _emailStore = GetEmailStore();
             _logger = logger;
             _emailSender = emailSender;
+            _accountLinkingService = accountLinkingService;
         }
 
         /// <summary>
@@ -152,6 +156,43 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+                // Never create a second ApplicationUser for an email that's already registered
+                // (local password account, previously-imported legacy account, or a different
+                // OAuth provider): the external provider vouches for owning this email address, so
+                // it's safe to just add this login to the existing account instead of erroring out
+                // on a duplicate-email conflict or silently creating a duplicate identity. See the
+                // "existing OAuth-linked / existing local account" note in MIGRATION_PLAN.md §5.3.
+                var normalizedEmail = _userManager.NormalizeEmail(Input.Email);
+                var linkResult = await _accountLinkingService.TryLinkByEmailAsync(normalizedEmail);
+                var existingUser = linkResult.Outcome switch
+                {
+                    AccountLinkOutcome.Linked => linkResult.User,
+                    AccountLinkOutcome.ConflictAlreadyClaimed => linkResult.User,
+                    _ => null
+                };
+
+                if (existingUser is not null)
+                {
+                    var addLoginResult = await _userManager.AddLoginAsync(existingUser, info);
+                    if (addLoginResult.Succeeded)
+                    {
+                        _logger.LogInformation(
+                            "Linked existing account {UserId} to new {Provider} login.",
+                            existingUser.Id, info.LoginProvider);
+                        await _signInManager.SignInAsync(existingUser, isPersistent: false, info.LoginProvider);
+                        return LocalRedirect(returnUrl);
+                    }
+
+                    foreach (var error in addLoginResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+
+                    ProviderDisplayName = info.ProviderDisplayName;
+                    ReturnUrl = returnUrl;
+                    return Page();
+                }
+
                 var user = CreateUser();
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
