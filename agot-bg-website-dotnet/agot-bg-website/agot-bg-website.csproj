@@ -15,10 +15,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.1-preview.1" />
+    <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\agot-bg-website.Data\agot-bg-website.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="agot-bg-website.Tests" />
   </ItemGroup>
 
   <ItemGroup>

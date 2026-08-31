@@ -21,7 +21,7 @@ of `MIGRATION_PLAN.md`.
 ## Status: fully verified against the repo's real Docker Postgres instance
 
 `dotnet build` (solution-wide), `dotnet ef migrations add InitialCreate` + `dotnet ef database
-update` (against the `swords-and-ravens-db-1` container), `dotnet test` (9/9 passing), and a live
+update` (against the `swords-and-ravens-db-1` container), `dotnet test` (29/29 passing), and a live
 `dotnet run` with an actual HTTP register → login round trip have all been run and verified in this
 repo. Bugs found and fixed along the way:
 
@@ -150,6 +150,48 @@ logic, and hasn't been written yet (see Known gaps below).
   `IEmailSender` is even registered locally since `Email:Host` is empty); `addPbemResponseTime`
   returned `204` and inserted a row; an unknown `gameId` returned `404`. Cleaned up test rows after.
 
+## Chat (WebSockets + Redis, `Infrastructure/Chat/*`, `Api/ChatWebSocketApi.cs`)
+
+- Replaces Django Channels' `ChatConsumer` (`chat/consumers.py`) with raw ASP.NET Core WebSockets
+  (`app.UseWebSockets()` + `context.WebSockets.AcceptWebSocketAsync()`) and Redis pub/sub for
+  cross-instance fan-out — `ChatClient.ts`/`games_chat.html` needed **zero** changes, the wire
+  JSON protocol (message types, snake_case field names) is preserved exactly.
+- `RoomSeeder.SeedAsync` (called from `Program.cs` at startup, alongside `RoleSeeder`) idempotently
+  creates/caches the two well-known `public`/`issues` rooms, mirroring Django's
+  `get_public_room_id`/`get_issues_room_id`.
+- `GET /ws/chat/room/{roomId}` (`Api/ChatWebSocketApi.cs`): checks `context.User.Identity
+  .IsAuthenticated` (401 if not), 404s on an unknown room, 403s on a private room the caller has no
+  `UserInRoom` row for yet (auto-creates one on first connect to public/issues or any room the
+  caller is otherwise allowed into), then accepts the socket. Handles `chat_message` (persists +
+  broadcasts via Redis, tongueless rate-limit/regex enforcement, private-room email notification),
+  `chat_view_message` (updates `UserInRoom.LastViewedMessageId`), and `chat_retrieve`
+  (`chat_messages_retrieved`/`more_chat_messages_retrieved`, same pagination semantics as Django's
+  `get_and_transform_messages`).
+- `ChatConnectionManager` (singleton) tracks this process's live sockets per room;
+  `ChatBroadcaster` (singleton + `IHostedService`) subscribes to a Redis pub/sub pattern
+  (`chat:room:*`) and relays incoming messages to the matching local sockets — this is the
+  cross-instance equivalent of Django Channels' `channel_layer.group_send`.
+  `ChatPresenceService` stores the public room's "who's online" list as one JSON blob per room in
+  Redis (`chat:room:{roomId}:connected_users`), with 1-hour staleness pruning; pruned users get a
+  personalized `force_disconnect` via an internal `__prune_check__` pub/sub message type that's
+  never forwarded to browsers verbatim.
+- Private-message email notifications: only for non-public rooms, only when the game's
+  `ViewOfGame.settings.pbem == true`, only to the other `UserInRoom` occupant (not the sender),
+  only if `EmailNotificationActive`, de-duped per `(roomId, recipientId)` for 7 minutes via
+  `IMemoryCache` — ported from `notify_chat_partner` in `chat/consumers.py`.
+- Verified end-to-end via live `dotnet run` + a small Node.js `ws` test script against the real
+  `snr_dotnet` Postgres + the repo's Redis container: registered a user, connected to the seeded
+  `public` room, received an initial `connected_users` broadcast and an empty
+  `chat_messages_retrieved`, sent a `chat_message` and received it back; a second concurrent
+  connection as the same user received the first connection's broadcast message live, and closing
+  it produced a `connected_users` update showing the remaining connection; connecting without an
+  auth cookie got a `401`. Test rows/user cleaned up afterwards.
+- Not yet covered by this pass: tongueless rate-limiting and the private-message email path were
+  code-reviewed against `chat/consumers.py` line-for-line but not separately exercised live (no
+  `Tongueless`-role test user / pbem game fixture was set up) — both reuse already-verified building
+  blocks (`RoleNames`/`UserManager.IsInRoleAsync`, `IEmailSender`) so the risk is low, but worth a
+  manual pass before relying on them in production.
+
 ## GDPR basics
 
 - A cookie-consent banner (`Pages/Shared/_CookieConsentPartial.cshtml`) is rendered on every page
@@ -175,8 +217,11 @@ logic, and hasn't been written yet (see Known gaps below).
 ## 1. Prerequisites
 
 - .NET 10 SDK (`dotnet --version` should print `10.0.x`)
-- `docker-compose up -d` from the repo root (`D:\_snr`), so the `db` (Postgres) container is
-  running — this app shares it with the Django app (see above).
+- `docker-compose up -d` from the repo root (`D:\_snr`), so the `db` (Postgres) *and* `redis`
+  containers are running — this app shares both with the Django app (see above). Redis is
+  required at startup (`ConnectionStrings:Redis`, default `localhost:6379`), not optional — it
+  backs the chat WebSocket endpoint's cross-instance fan-out and presence tracking (see Chat
+  above).
 
 ## 2. Restore & build
 

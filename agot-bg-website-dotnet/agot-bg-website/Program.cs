@@ -2,11 +2,13 @@ using agot_bg_website.Api;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +51,17 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAut
     IdentityConstants.ExternalScheme, options => options.Cookie.IsEssential = true);
 
 builder.Services.AddScoped<AccountLinkingService>();
+
+// Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
+// Channels, so ChatClient.ts/games_chat.html don't need any changes.
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString));
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ChatConnectionManager>();
+builder.Services.AddSingleton<ChatPresenceService>();
+builder.Services.AddSingleton<ChatBroadcaster>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatBroadcaster>());
 
 // Real SMTP email sending — used by both Identity's own emails (password reset, email
 // confirmation) and NotificationsApi's game-notification endpoints, see MIGRATION_PLAN.md §6/§9.1.
@@ -123,6 +136,7 @@ else
 
 app.UseHttpsRedirection();
 app.UseCookiePolicy();
+app.UseWebSockets();
 app.UseRouting();
 
 app.UseAuthentication();
@@ -139,10 +153,12 @@ app.MapRoomsApi();
 app.MapPublicApi();
 app.MapNotificationsApi();
 app.MapPlayApi();
+app.MapChatWebSocket();
 
 using (var scope = app.Services.CreateScope())
 {
     await agot_bg_website.Infrastructure.Auth.RoleSeeder.SeedAsync(scope.ServiceProvider);
+    await RoomSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.Run();
