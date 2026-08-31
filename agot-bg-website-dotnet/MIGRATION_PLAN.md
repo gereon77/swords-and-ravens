@@ -700,6 +700,15 @@ npx ts-node scripts/backfillPreviousPlayers.ts \
 These are deliberately **not** part of the Django→.NET migration itself — noted here so they don't
 get lost, to be picked up as separate follow-up work once the migration is live:
 
+- **Account deletion / GDPR deletion ("Took the Black" soft-delete).** In Django, account deletion
+  was never supported because deleting a user broke `PlayerInGame` queries and rendering for past
+  games they participated in. Design and implement account deletion:
+  - When a user deletes their account, move them to a `DeletedUsers` table (or apply an equivalent
+    soft-delete mechanism), strip all PII (email, hashed password, logins, tokens), and set their
+    display name to `"Took the Black"` (non-unique across all deleted users).
+  - Visiting the user profile page of a deleted user should return 404.
+  - `PlayerInGame` / `PreviousPlayerInGame` queries and game loading must still be able to resolve
+    these deleted players by ID (displaying `"Took the Black"`) so historical games remain intact.
 - **Precomputed statistics tables.** Win rate and average PBEM response time are currently
   calculated on the fly whenever a user profile page is visited (same as Django does today). Now
   that we have a clean EF Core schema, add a `PlayerStatistics` table (one row per user, or per
