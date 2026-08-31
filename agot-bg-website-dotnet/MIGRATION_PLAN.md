@@ -442,7 +442,7 @@ Because the JSON shapes are unchanged, **`ChatClient.ts` needs no changes.**
 
 ### 8.1 One small required change in `agot-bg-game-server/`
 
-`public/index.html` currently hardcodes a **Django template tag**:
+`public/index.html` used to hardcode a **Django template tag**:
 
 ```html
 <div style="display: none">
@@ -450,13 +450,28 @@ Because the JSON shapes are unchanged, **`ChatClient.ts` needs no changes.**
 </div>
 ```
 
-Replace it with a framework-neutral placeholder so any backend can inject the auth payload:
+It's now a framework-neutral placeholder so any backend can inject the auth payload:
 
 ```html
-<div style="display: none">
-    <!--AUTH_DATA_JSON-->
-</div>
+<script id="auth-data" type="application/json">AUTH_DATA_JSON</script>
 ```
+
+**Important, learned the hard way:** the placeholder must be literal *text* inside a real
+element, not an HTML comment. An earlier version of this placeholder was
+`<div style="display: none"><!--AUTH_DATA_JSON--></div>`, which looked more "neutral" but is
+wrong: `webpack.client.js`/`webpack.client.local.js` build with `HtmlWebpackPlugin` in production
+mode, whose default minify preset (`removeComments: true`) strips *all* HTML comments from the
+built `dist/index.html` — including this one — before the file ever reaches either backend. The
+placeholder would silently disappear from the real built asset (while still looking correct in
+`public/index.html` and in any manual review), so `PlayApi.cs`'s string replace found nothing to
+replace, and the client threw "No auth data available, can't authenticate to the server" at
+runtime. The current `<script id="auth-data" type="application/json">AUTH_DATA_JSON</script>`
+placeholder survives minification because it's a real, non-empty text node — and
+`type="application/json"` keeps `minifyJS`/the browser from touching or executing it before the
+backend substitutes real JSON in. `agot-bg-website.Tests/Api/PlayApiAuthDataPlaceholderTests.cs`
+pins this contract down. If this ever needs to change again, verify against the actual *built*
+`agot-bg-game-server/dist/index.html` (via `yarn run build-local-client`), not just the
+`public/index.html` source.
 
 This is the only change needed in the game-server repo for this migration.
 

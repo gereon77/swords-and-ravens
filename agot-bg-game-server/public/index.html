@@ -8,15 +8,16 @@
 <body>
     <div id="root"></div>
     <!--
-    In production, the website backend replaces the AUTH_DATA_JSON comment below with a
-    <script id="auth-data" type="application/json"> tag containing the auth payload the client
-    needs to authenticate its own WebSocket connection to the game server (userId, requestUserId,
-    gameId, authToken). "display: none" is there so this placeholder isn't shown during
-    development via webpack-dev-server.
+    In production, the website backend replaces the AUTH_DATA_JSON text below with the actual
+    JSON auth payload (userId, requestUserId, gameId, authToken) the client needs to authenticate
+    its own WebSocket connection to the game server. This has to be a real element with literal
+    placeholder *text* (not an HTML comment) because html-webpack-plugin's production minifier
+    strips HTML comments entirely, which would silently delete an HTML-comment-based placeholder
+    from the built bundle before any backend ever gets to replace it. type="application/json"
+    keeps html-minifier-terser from touching/minifying it as JS, and browsers never execute or
+    parse a non-JS <script> tag, so this is inert until the backend substitutes real JSON into it.
     -->
-    <div style="display: none">
-        <!--AUTH_DATA_JSON-->
-    </div>
+    <script id="auth-data" type="application/json">AUTH_DATA_JSON</script>
     <script async defer src="https://sa.swordsandravens.net/latest.js"></script>
     <noscript><img src="https://sa.swordsandravens.net/noscript.gif" alt=""></noscript>
 </body>

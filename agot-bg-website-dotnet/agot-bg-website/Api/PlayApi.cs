@@ -23,7 +23,7 @@ public static class PlayApi
     private static readonly string RealTemplatePath = Path.Combine(TemplatesDir, "play.html");
     private static readonly string FakeTemplatePath = Path.Combine(TemplatesDir, "play_fake.html");
 
-    private const string AuthDataPlaceholder = "<!--AUTH_DATA_JSON-->";
+    private const string AuthDataPlaceholder = "AUTH_DATA_JSON";
 
     public static RouteGroupBuilder MapPlayApi(this IEndpointRouteBuilder app)
     {
@@ -116,9 +116,7 @@ public static class PlayApi
                 ? await File.ReadAllTextAsync(RealTemplatePath)
                 : await File.ReadAllTextAsync(FakeTemplatePath);
 
-            var html = template.Replace(
-                AuthDataPlaceholder,
-                $"""<script id="auth-data" type="application/json">{json}</script>""");
+            var html = template.Replace(AuthDataPlaceholder, json);
 
             return Results.Content(html, "text/html");
         });
