@@ -34,9 +34,17 @@ Postgres/Redis/SMTP.
    docker compose up -d db redis smtp4dev
    ```
 
-   `db` listens on `localhost:5432` (user `postgres`, password `example`, matching
+   `db` listens on `127.0.0.1:5432` (user `postgres`, password `example`, matching
    `appsettings.json`'s `ConnectionStrings:DefaultConnection`, database `snr_dotnet`). `redis`
-   listens on `localhost:6379`. `smtp4dev` is a local SMTP catcher — see "Email" below.
+   listens on `127.0.0.1:6379`. `smtp4dev` is a local SMTP catcher — see "Email" below.
+
+   > **Windows/Docker Desktop note:** connection strings in this repo use `127.0.0.1` rather than
+   > `localhost` on purpose. On Windows, `localhost` often resolves to the IPv6 loopback (`::1`)
+   > first, and Docker Desktop's port-forwarding proxy for published ports can intermittently
+   > refuse IPv6 loopback connections with `SocketException: Cannot assign requested address`,
+   > surfacing as an EF Core "transient failure" on startup (role/room seeding). If you hit that,
+   > double check `ConnectionStrings:DefaultConnection`/`ConnectionStrings:Redis` in
+   > `appsettings.json` and any `Email:Host` user-secret are `127.0.0.1`, not `localhost`.
 
 2. **Apply EF Core migrations** (creates the `snr_dotnet` database and schema). This uses the
    `dotnet-ef` global tool (`dotnet tool install --global dotnet-ef` if you don't have it yet):
@@ -53,7 +61,7 @@ Postgres/Redis/SMTP.
 
    ```powershell
    cd agot-bg-website
-   dotnet user-secrets set "Email:Host" "localhost"
+   dotnet user-secrets set "Email:Host" "127.0.0.1"
    dotnet user-secrets set "Email:Port" "2525"
    dotnet user-secrets set "Email:EnableSsl" "false"
    dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"

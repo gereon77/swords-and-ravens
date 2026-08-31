@@ -352,6 +352,30 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 - See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
   (precomputed statistics tables, public game statistics, UI library/theme).
 
+## 8. Fixed: intermittent Npgsql "Cannot assign requested address" on startup (Windows)
+
+Symptom (reported after running the built app from Visual Studio on Windows):
+
+```
+System.InvalidOperationException: An exception has been raised that is likely due to a transient failure.
+ ---> Npgsql.NpgsqlException: Failed to connect to [::1]:5432
+ ---> System.Net.Sockets.SocketException: Cannot assign requested address
+   at ... RoleManager.RoleExistsAsync ... RoleSeeder.SeedAsync ... Program.<Main>
+```
+
+Root cause: `appsettings.json`'s connection strings used `Host=localhost`, which on Windows
+resolves to the IPv6 loopback address `::1` first. Docker Desktop's port-forwarding proxy for
+`0.0.0.0:5432`-published container ports does not reliably accept IPv6-loopback connections on
+Windows, so the very first EF Core query (role seeding in `Program.cs`, via `RoleSeeder`) fails
+before the app finishes starting.
+
+Fix: changed `appsettings.json`'s `ConnectionStrings:DefaultConnection`/`ConnectionStrings:Redis`
+from `localhost` to `127.0.0.1`, and the local `Email:Host` user-secret from `localhost` to
+`127.0.0.1` (same underlying issue, would have hit smtp4dev the same way). Re-verified with
+`dotnet run`: app starts cleanly, role/room seeding queries succeed, `/` returns 200. `dotnet
+build`/`dotnet test` (29/29) re-confirmed after the change. See README.md's "Windows/Docker
+Desktop note" for the same guidance.
+
 ## 7. UI theme (Tailwind CSS + DaisyUI dark rebrand)
 
 Verified live via `dotnet run` + `curl`/`Invoke-WebRequest` against `http://localhost:5280`:
