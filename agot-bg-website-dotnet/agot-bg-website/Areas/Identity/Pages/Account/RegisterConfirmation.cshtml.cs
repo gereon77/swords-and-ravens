@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -20,11 +21,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _sender;
+        private readonly IConfiguration _configuration;
 
-        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender, IConfiguration configuration)
         {
             _userManager = userManager;
             _sender = sender;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -60,8 +63,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             }
 
             Email = email;
-            // Once you add a real email sender, you should remove this code that lets you confirm the account
-            DisplayConfirmAccountLink = true;
+            // Only show the dev "click here to confirm" shortcut when no real SMTP sender is
+            // configured (Program.cs registers SmtpEmailSender only when Email:Host is set) — the
+            // scaffolded default hardcoded this to true unconditionally, which kept showing the
+            // fake-email-sender notice even after a real sender was wired up. See MIGRATION_PLAN.md §6/§9.1.
+            DisplayConfirmAccountLink = string.IsNullOrEmpty(_configuration["Email:Host"]);
             if (DisplayConfirmAccountLink)
             {
                 var userId = await _userManager.GetUserIdAsync(user);
