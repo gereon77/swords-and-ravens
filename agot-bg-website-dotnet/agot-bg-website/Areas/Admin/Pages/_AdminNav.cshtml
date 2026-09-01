@@ -1,0 +1,12 @@
+@{
+    var path = Context.Request.Path.Value ?? "";
+    string LinkClass(string match) => path.Contains(match, StringComparison.OrdinalIgnoreCase)
+        ? "btn btn-sm btn-primary"
+        : "btn btn-sm btn-ghost";
+}
+<div class="flex flex-wrap gap-2 mb-4">
+    <a class="@LinkClass("/Admin/Users")" asp-area="Admin" asp-page="/Users/Index">Users</a>
+    <a class="@LinkClass("/Admin/Games")" asp-area="Admin" asp-page="/Games/Index">Games</a>
+    <a class="@LinkClass("/Admin/Rooms")" asp-area="Admin" asp-page="/Rooms/Index">Rooms</a>
+    <a class="@LinkClass("/Admin/Messages")" asp-area="Admin" asp-page="/Messages/Index">Messages</a>
+</div>

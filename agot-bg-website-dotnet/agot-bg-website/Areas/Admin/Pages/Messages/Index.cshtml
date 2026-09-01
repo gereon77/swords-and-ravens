@@ -1,0 +1,57 @@
+@page
+@model agot_bg_website.Areas.Admin.Pages.Messages.IndexModel
+@{
+    ViewData["Title"] = "Admin - Messages";
+}
+
+<partial name="_AdminNav" />
+
+<h1 class="text-2xl font-bold mb-4">Messages</h1>
+
+<form method="get" class="mb-4 flex flex-wrap gap-2 items-center">
+    <select name="RoomId" class="select select-bordered" onchange="this.form.submit()">
+        <option value="">-- Select a room --</option>
+        @foreach (var room in Model.RecentRooms)
+        {
+            <option value="@room.Id" selected="@(room.Id == Model.RoomId)">@room.Name (@room.CreatedAt.ToLocalTime().ToString("g"))</option>
+        }
+    </select>
+    <input type="text" name="Search" value="@Model.Search" class="input input-bordered" placeholder="Search message text" />
+    <button type="submit" class="btn btn-primary">Go</button>
+</form>
+
+@if (Model.RoomId is null)
+{
+    <p class="opacity-70">Select a room above to browse its messages.</p>
+}
+else if (Model.SelectedRoom is null)
+{
+    <p class="text-error">Room not found.</p>
+}
+else
+{
+    <h2 class="text-lg font-semibold mb-2">@Model.SelectedRoom.Name</h2>
+    <div class="overflow-x-auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Text</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var message in Model.Messages)
+                {
+                    <tr>
+                        <td>@if (message.User is not null) { <a class="link" href="/User/@message.UserId" target="_blank" rel="noopener noreferrer">@message.User.DisplayName</a> }</td>
+                        <td class="whitespace-pre-wrap break-words max-w-xl">@message.Text</td>
+                        <td>@message.CreatedAt.ToLocalTime().ToString("g")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_Pager" model="Model.Pager" />
+}

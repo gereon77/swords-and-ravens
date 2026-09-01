@@ -1,0 +1,41 @@
+@model agot_bg_website.Infrastructure.Paging.PagerInfo
+@using Microsoft.AspNetCore.Http
+@using Microsoft.Extensions.Primitives
+@{
+    string Href(int page)
+    {
+        var query = new Dictionary<string, StringValues>(Context.Request.Query) { ["page"] = page.ToString() };
+        var pairs = query.Select(kv => new KeyValuePair<string, string?>(kv.Key, kv.Value.ToString()));
+        return Context.Request.Path + QueryString.Create(pairs);
+    }
+}
+
+@if (Model.TotalPages > 1)
+{
+    <div class="flex flex-wrap items-center justify-between gap-2 mt-4 text-sm">
+        <span class="opacity-70">Page @Model.PageNumber of @Model.TotalPages (@Model.TotalCount.ToString("N0") total)</span>
+        <div class="join">
+            @if (Model.HasPrevious)
+            {
+                <a class="join-item btn btn-sm" href="@Href(1)">« First</a>
+                <a class="join-item btn btn-sm" href="@Href(Model.PageNumber - 1)">‹ Prev</a>
+            }
+            else
+            {
+                <span class="join-item btn btn-sm btn-disabled">« First</span>
+                <span class="join-item btn btn-sm btn-disabled">‹ Prev</span>
+            }
+            <span class="join-item btn btn-sm btn-disabled">@Model.PageNumber / @Model.TotalPages</span>
+            @if (Model.HasNext)
+            {
+                <a class="join-item btn btn-sm" href="@Href(Model.PageNumber + 1)">Next ›</a>
+                <a class="join-item btn btn-sm" href="@Href(Model.TotalPages)">Last »</a>
+            }
+            else
+            {
+                <span class="join-item btn btn-sm btn-disabled">Next ›</span>
+                <span class="join-item btn btn-sm btn-disabled">Last »</span>
+            }
+        </div>
+    </div>
+}

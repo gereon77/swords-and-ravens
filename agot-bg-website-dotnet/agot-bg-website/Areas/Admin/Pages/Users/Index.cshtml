@@ -5,6 +5,8 @@
     ViewData["Title"] = "Admin - Users";
 }
 
+<partial name="_AdminNav" />
+
 <h1 class="text-2xl font-bold mb-4">Users</h1>
 
 <partial name="_StatusMessage" for="StatusMessage" />
@@ -49,12 +51,12 @@
                         @if (!user.IsDeleted)
                         {
                             <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@user.Id">Edit roles</a>
-                            <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search">
+                            <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-Page="@Model.Page">
                                 <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
                                     @(isBanned ? "Unban" : "Ban")
                                 </button>
                             </form>
-                            <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" asp-route-Search="@Model.Search" onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-Page="@Model.Page" onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
                                 <button type="submit" class="btn btn-sm btn-error">Delete</button>
                             </form>
                         }
@@ -64,3 +66,5 @@
         </tbody>
     </table>
 </div>
+
+<partial name="_Pager" model="Model.Pager" />

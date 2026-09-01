@@ -1,5 +1,6 @@
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Infrastructure.Paging;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +11,17 @@ namespace agot_bg_website.Areas.Admin.Pages.Users;
 
 public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletionService accountDeletionService) : PageModel
 {
+    private const int PageSize = 50;
+
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public int Page { get; set; } = 1;
+
     public List<ApplicationUser> Users { get; set; } = [];
+
+    public PagerInfo Pager { get; set; } = null!;
 
     public Dictionary<Guid, IList<string>> RolesByUserId { get; set; } = [];
 
@@ -32,7 +40,9 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
                 u.Id.ToString() == normalized);
         }
 
-        Users = await query.OrderBy(u => u.UserName).Take(100).ToListAsync();
+        var paged = await query.OrderBy(u => u.UserName).ToPagedResultAsync(Page, PageSize);
+        Users = paged.Items;
+        Pager = paged.Pager;
 
         foreach (var user in Users)
         {
@@ -61,7 +71,7 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
             StatusMessage = $"{user.UserName} has been banned.";
         }
 
-        return RedirectToPage(new { Search });
+        return RedirectToPage(new { Search, Page });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
@@ -76,6 +86,6 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
         await accountDeletionService.DeleteAccountAsync(user);
         StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
 
-        return RedirectToPage(new { Search });
+        return RedirectToPage(new { Search, Page });
     }
 }
