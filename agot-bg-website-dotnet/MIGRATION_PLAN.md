@@ -459,6 +459,111 @@ exception, but is worth keeping since it's a real possible race on the delete si
 only works for a single-process deployment; a horizontally-scaled deployment would need a
 distributed lock instead (e.g. a Postgres advisory lock).
 
+### 6.2 Network-isolating the private API from the public port (implemented)
+
+The service-to-service endpoints in §6 (`Api/UsersApi.cs`, `GamesApi.cs`, `RoomsApi.cs`,
+`NotificationsApi.cs` — everything gated by `MasterApiAuthenticationHandler`, i.e. Basic Auth
+against `MASTER_API_USERNAME`/`MASTER_API_PASSWORD`) are, in the current Django deployment,
+reachable on the same public port as the rest of the website and rely solely on that Basic Auth
+credential for protection. Since a Docker Compose network already lets sibling containers reach
+any port a container listens on via its service DNS name — whether or not that port is
+`ports:`-published to the host — we can add network-level isolation as defense-in-depth without
+Kubernetes, by giving these routes their own **internal-only** Kestrel endpoint that is simply
+never published to the host.
+
+**Two named Kestrel endpoints**, configured in `appsettings.json`'s `Kestrel:Endpoints` section, in
+base config so the same values apply identically to plain `dotnet run` and to the Docker container
+(this matters — see the pitfall below):
+- `Public` — `http://0.0.0.0:8000` (everything user-facing: Razor Pages, `PublicApi`, `PlayApi`,
+  chat WebSocket, static assets). Matches the Dockerfile's `EXPOSE 8000` and the "Container
+  (Dockerfile)" launch profile's `httpPort`, and the old Django dev port for familiarity.
+- `GameServerApi` — `http://0.0.0.0:8001` (only the four private route groups above). Only this
+  port needs to be reachable by the game-server container; in production compose, only `Public`
+  should be listed under `ports:`, leaving `GameServerApi` reachable solely from sibling containers
+  on the same compose network (point the game server's `MASTER_API_BASE_URL` at
+  `http://<website-service-name>:8001` there).
+
+  **⚠️ Staging/production deployment note:** the local `launchSettings.json` Container profile
+  publishes `8001` to the host too (see pitfall #3 below) purely so a host-run `yarn run
+  run-server` game server can reach it in local dev. **Do not carry that over to the staging/
+  production `docker-compose.yml`** — there, `GameServerApi` (`8001`) must be left out of
+  `ports:` entirely, since both the website and game server run as sibling containers on the same
+  compose network there and can already reach each other by service name without any host
+  publishing. Publishing `8001` to the host in production would defeat the whole point of this
+  feature (network-level isolation of the Basic-Auth-only API).
+
+**Pitfall #1 found & fixed: don't put an environment-specific override on `Kestrel:Endpoints` for a
+port VS's Docker profile also relies on.** The first version of this had `Public` bound to
+`0.0.0.0:8080` in base config, overridden to `localhost:8000` only in
+`appsettings.Development.json` for local `dotnet run` convenience. But `ASPNETCORE_ENVIRONMENT=
+Development` is *also* the environment VS's "Container (Dockerfile)" debug profile runs with, so
+that override silently applied inside the container too, on top of being loopback-only. Fixed by
+putting the real, final port values (`8000`/`8001`) directly in the environment-agnostic base
+`appsettings.json` instead of layering a dev-only override on top — one value, used identically
+everywhere.
+
+**Pitfall #2 found & fixed: VS's own Docker debug port mapping doesn't read `appsettings.json` at
+all.** Even after fixing pitfall #1, F5-debugging via the "Container (Dockerfile)" profile still
+produced `ERR_EMPTY_RESPONSE`. Root cause, found by inspecting the actual running debug container
+with `docker inspect`: Visual Studio's Docker debug tooling decides which **container-side** port
+to map `httpPort` (the host port, `8000` in `launchSettings.json`) to based on its own
+`ASPNETCORE_HTTP_PORTS` environment variable — defaulting to `80` if that variable isn't set in the
+launch profile — regardless of the Dockerfile's `EXPOSE` directives or anything in
+`appsettings.json`'s `Kestrel:Endpoints`. Since our Kestrel config always overrides
+`ASPNETCORE_HTTP_PORTS` for the app's *own* binding (see below), the app inside the container was
+correctly listening on `8000`/`8001` the whole time — but VS was mapping host `8000` to container
+`80`, where nothing listens, producing an empty response. The original (pre-port-split)
+`launchSettings.json` had an explicit `"ASPNETCORE_HTTP_PORTS": "8080"` in the Container profile
+for exactly this reason; it was mistakenly removed as "redundant" when the port split was first
+implemented, since it has no effect on the app's actual Kestrel binding once `Kestrel:Endpoints` is
+configured — but VS's own port-mapping decision still needs it. Fixed by restoring
+`"ASPNETCORE_HTTP_PORTS": "8000"` in the Container profile's `environmentVariables` (updated to the
+new port number). Verified by inspecting a real `docker run`/`docker inspect` reproduction of VS's
+mapping behavior end-to-end, not just a bare `dotnet run`.
+
+**Kestrel endpoint config replaces, not merges with, URL-based binding** — confirmed empirically:
+the moment `Kestrel:Endpoints` (or `ConfigureKestrel`/`ListenAnyIP` in code) is present, Kestrel
+logs `Overriding address(es) '...'. Binding to endpoints defined via IConfiguration and/or
+UseKestrel() instead.` and stops honoring `ASPNETCORE_URLS`/launchSettings' `applicationUrl`/
+`ASPNETCORE_HTTP_PORTS` entirely for the app's own binding — but see pitfall #2 above, VS's own
+Docker port-mapping tooling still reads `ASPNETCORE_HTTP_PORTS` independently of that.
+
+**Pitfall #3 found & fixed: local (non-Docker) game-server dev needs `GameServerApi` published
+too.** `docker-compose`'s "sibling containers can reach unpublished ports" story (the whole
+premise of this feature) only holds when the game server *also* runs inside the same Compose
+network. For local development the game server normally runs directly on the host via
+`yarn run run-server` (see root README), not inside a container, so it needs to reach the website's
+container the same way a browser does — through a published host port. With only `Public` (`8000`)
+published, `LiveWebsiteClient.ts`'s calls to `MASTER_API_BASE_URL` (default
+`http://localhost:8001`) failed with `ECONNREFUSED`. Fixed by adding
+`"containerRunArguments": "-p 8001:8001"` to the Container launch profile — this is purely a local
+convenience for VS's Docker debug profile and has **no effect on the production docker-compose
+file**, where `GameServerApi` must stay unpublished (see the staging/production deployment note in
+§6.2 above the profiles). If a real Docker Compose–orchestrated local setup is used instead
+(game server + website both as Compose services), this isn't needed — the game server would reach
+`GameServerApi` via the service's internal DNS name/port directly, same as production.
+
+**Enforcement (`Infrastructure/EndpointRoutingExtensions.cs`):** the private route groups call
+`.RequireLocalPort(gameServerApiPort)`, which attaches `RequireLocalPortMetadata` rather than
+enforcing anything itself. A single `app.UseLocalPortRestriction()` middleware — registered after
+`UseRouting()` (so `HttpContext.GetEndpoint()` resolves) but **before** `UseAuthentication()`/
+`UseAuthorization()` — reads that metadata off the matched endpoint and returns a bare 404
+immediately if `HttpContext.Connection.LocalPort` doesn't match. Two deliberate design choices,
+both found by testing rather than assumed:
+- **`Connection.LocalPort`, not `RequireHost`.** `RequireHost("*:8001")` matches the client-supplied
+  `Host` header, not the physical port a connection was accepted on — a request that connects to
+  the public port but sends a forged `Host: internal:8001` header would satisfy it. `LocalPort`
+  reflects the real accepting socket and can't be spoofed.
+- **Plain middleware before `UseAuthentication()`, not an `AddEndpointFilter`.** Endpoint filters
+  run as part of terminal endpoint invocation, which is *after* the authentication/authorization
+  middleware. A filter-based first attempt at this was live-tested and found to leak the 401 Basic
+  Auth challenge (proving the endpoint exists and is Basic-Auth-gated) to the public port before
+  the filter ever ran. Moving the same port check into middleware ahead of `UseAuthentication()`
+  closes that: a wrong-port request now gets an indistinguishable-from-nonexistent 404 with no
+  `WWW-Authenticate` challenge, confirmed via a live curl test matrix (public port + private path,
+  with and without a spoofed `Host` header, both 404; private port + private path without auth,
+  401 as expected; both ports still serve their legitimate public routes with 200).
+
 ## 7. Chat (`Snr.Web/Chat`) — WebSocket handler mirroring `consumers.py`
 
 Implement a raw `app.Map("/ws/chat/room/{roomId}", ...)` WebSocket endpoint that:
@@ -962,5 +1067,6 @@ re-derive it. Update this section whenever priorities shift or an item is comple
 ### Already done, no longer on the list
 Pagination for Admin Users/Games/Rooms/Messages; CoreAdmin comparison tab; dead phone-number field
 cleanup; `GameStateColumnRight` rename; enhanced Games/MyGames lists with badges + inactive-game
-lists (all documented under §14 above).
+lists (all documented under §14 above); private game-server API split onto its own internal-only
+Kestrel endpoint, not just Basic Auth (see §6.2).
 

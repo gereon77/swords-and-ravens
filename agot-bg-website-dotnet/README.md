@@ -112,10 +112,12 @@ Postgres/Redis/SMTP.
 
    By default this listens at **http://localhost:8000**. Both the normal project profile and the
    Visual Studio Docker profile pin the host port to 8000 in `Properties/launchSettings.json`
-   (the container itself still listens on port 8080). This deliberately matches the old Django
-   development URL and the game server's default `MASTER_API_BASE_URL=http://localhost:8000/api`,
-   so restarting from Visual Studio won't require changing `.env`. You can still pass
-   `--urls "http://localhost:<other-port>"` to override the project profile temporarily.
+   (the container itself also listens on port 8000, and 8001 for the internal game-server API —
+   see `appsettings.json`'s `Kestrel:Endpoints` and MIGRATION_PLAN.md §6.2). This deliberately
+   matches the old Django development URL; the game server's `MASTER_API_BASE_URL` must point at
+   the *8001* port instead (`http://localhost:8001/api`), since the private, Basic-Auth-only API
+   routes are no longer reachable on 8000 — see `agot-bg-game-server/.env.dev.live`. You can still
+   pass `--urls "http://localhost:<other-port>"` to override the project profile temporarily.
    Without the real game client built (see next section), `/play/<gameId>` serves the placeholder
    `GameClientTemplates/play_fake.html` so the rest of the site (registration, login, rooms, game
    list) can still be exercised end-to-end.

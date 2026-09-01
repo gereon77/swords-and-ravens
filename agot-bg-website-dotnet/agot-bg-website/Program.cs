@@ -2,6 +2,7 @@ using System.Text.Json;
 using agot_bg_website.Api;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
@@ -195,6 +196,10 @@ app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
 
+// Enforce RequireLocalPort restrictions (see EndpointRoutingExtensions.cs) before authentication
+// so a request to the wrong port gets a plain 404 instead of reaching the Basic Auth challenge.
+app.UseLocalPortRestriction();
+
 // CoreAdmin (see registration comment above) serves its own embedded static assets outside of
 // MapStaticAssets's manifest-based approach, so it needs the classic static files middleware too.
 app.UseStaticFiles();
@@ -225,11 +230,23 @@ app.MapRazorPages()
 app.MapDefaultControllerRoute();
 
 // Minimal API groups — the REST contract the game server speaks, see MIGRATION_PLAN.md §6.
-app.MapUsersApi();
-app.MapGamesApi();
-app.MapRoomsApi();
+//
+// UsersApi/GamesApi/RoomsApi/NotificationsApi are the private, service-to-service REST contract
+// (Basic Auth via MasterApiAuthenticationHandler) that only the TS game server should ever be
+// able to reach. They're additionally restricted to the "GameServerApi" Kestrel endpoint (see
+// appsettings.json's Kestrel:Endpoints section) so that, in docker-compose, only the "Public"
+// port needs to be published to the host/internet — the GameServerApi port stays reachable only
+// from sibling containers on the same compose network (i.e. the game server), giving
+// defense-in-depth beyond the Basic Auth credentials alone even if those ever leaked. PublicApi
+// (session-cookie-authenticated, used by the browser client) and PlayApi/ChatWebSocket (used by
+// signed-in users directly) are intentionally left reachable on every configured endpoint.
+var gameServerApiPort = new Uri(
+    builder.Configuration["Kestrel:Endpoints:GameServerApi:Url"] ?? "http://0.0.0.0:8001").Port;
+app.MapUsersApi().RequireLocalPort(gameServerApiPort);
+app.MapGamesApi().RequireLocalPort(gameServerApiPort);
+app.MapRoomsApi().RequireLocalPort(gameServerApiPort);
 app.MapPublicApi();
-app.MapNotificationsApi();
+app.MapNotificationsApi().RequireLocalPort(gameServerApiPort);
 app.MapPlayApi();
 app.MapChatWebSocket();
 

@@ -4,7 +4,13 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8080
+# 8000: the public site (Razor Pages, PublicApi, PlayApi, chat websocket) — publish this port.
+# 8001: the private Basic-Auth-only game-server REST API (UsersApi/GamesApi/RoomsApi/
+# NotificationsApi) — see appsettings.json's Kestrel:Endpoints:GameServerApi and Program.cs.
+# Only bind/publish this on the docker-compose network the game server runs on, never to the host
+# or internet.
+EXPOSE 8000
+EXPOSE 8001
 
 
 # This stage is used to build the service project
