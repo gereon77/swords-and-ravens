@@ -93,9 +93,11 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// <summary>
     /// Ongoing, public games with no move for 5+ days that are NOT already covered by
     /// <see cref="GetReplacementNeededGamesAsync"/> (that one takes priority - a game only needs
-    /// showing once). Mirrors Django's `inactive_games`.
+    /// showing once). Mirrors Django's `inactive_games`. <paramref name="viewerId"/> (if given) is
+    /// used only to populate the row's own MyHouse/MyTurn so the UI can hide the "Join as ..."
+    /// action when the viewer is already a player in that particular game.
     /// </summary>
-    public async Task<List<GameListItem>> GetInactiveGamesAsync(int take = 200)
+    public async Task<List<GameListItem>> GetInactiveGamesAsync(Guid? viewerId = null, int take = 200)
     {
         var fiveDaysAgo = DateTimeOffset.UtcNow - FiveDays;
 
@@ -106,7 +108,7 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             .ToListAsync();
 
         return rows
-            .Select(r => Build(r, currentUserId: null, computeReplacementNeeded: true))
+            .Select(r => Build(r, currentUserId: viewerId, computeReplacementNeeded: true, computeJoinAsWaiting: true))
             .Where(item => !item.IsPrivate && item.ReplacementNeededFor is null)
             .ToList();
     }
@@ -114,9 +116,11 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// <summary>
     /// Ongoing, public games where the last move was 2+ days ago and at least one currently
     /// waited-for player hasn't logged in for 8+ days, and no replace-player vote is already
-    /// running. Mirrors Django's `replacement_needed_games`.
+    /// running. Mirrors Django's `replacement_needed_games`. <paramref name="viewerId"/> (if given)
+    /// is used only to populate the row's own MyHouse/MyTurn so the UI can hide the
+    /// "Join as ..." action when the viewer is already a player in that particular game.
     /// </summary>
-    public async Task<List<GameListItem>> GetReplacementNeededGamesAsync(int take = 200)
+    public async Task<List<GameListItem>> GetReplacementNeededGamesAsync(Guid? viewerId = null, int take = 200)
     {
         var twoDaysAgo = DateTimeOffset.UtcNow - TwoDays;
 
@@ -127,7 +131,7 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             .ToListAsync();
 
         return rows
-            .Select(r => Build(r, currentUserId: null, computeReplacementNeeded: true))
+            .Select(r => Build(r, currentUserId: viewerId, computeReplacementNeeded: true))
             .Where(item => !item.IsPrivate && item.ReplacementNeededFor is not null)
             .ToList();
     }
@@ -166,7 +170,7 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             .ToList();
     }
 
-    private GameListItem Build(GameProjection row, Guid? currentUserId, bool computeReplacementNeeded = false)
+    private GameListItem Build(GameProjection row, Guid? currentUserId, bool computeReplacementNeeded = false, bool computeJoinAsWaiting = false)
     {
         var view = ViewOfGameInfo.Parse(row.ViewOfGame);
 
@@ -182,23 +186,34 @@ public sealed class GameListQueryService(ApplicationDbContext db)
 
         string? replacementNeededFor = null;
         Guid? joinAsUserId = null;
-        if (computeReplacementNeeded && row.State == GameState.Ongoing && !view.ReplacePlayerVoteOngoing && view.WaitingForIds.Count > 0)
+        if (row.State == GameState.Ongoing && view.WaitingForIds.Count > 0)
         {
-            var eightDaysAgo = DateTimeOffset.UtcNow - EightDays;
-            var inactiveWaitedPlayers = row.Players
-                .Where(p => view.WaitingForIds.Contains(p.UserId) && p.UserLastActivity < eightDaysAgo)
-                .ToList();
-
-            if (inactiveWaitedPlayers.Count > 0)
+            if (computeReplacementNeeded && !view.ReplacePlayerVoteOngoing)
             {
-                var parts = inactiveWaitedPlayers.Select(p =>
+                var eightDaysAgo = DateTimeOffset.UtcNow - EightDays;
+                var inactiveWaitedPlayers = row.Players
+                    .Where(p => view.WaitingForIds.Contains(p.UserId) && p.UserLastActivity < eightDaysAgo)
+                    .ToList();
+
+                if (inactiveWaitedPlayers.Count > 0)
                 {
-                    var info = PlayerInGameInfo.Parse(p.Data);
-                    var house = info.House is not null ? Capitalize(info.House) : "Unknown House";
-                    return view.IsFaceless ? house : $"{house} ({p.UserDisplayName})";
-                });
-                replacementNeededFor = string.Join(", ", parts);
-                joinAsUserId = inactiveWaitedPlayers[0].UserId;
+                    var parts = inactiveWaitedPlayers.Select(p =>
+                    {
+                        var info = PlayerInGameInfo.Parse(p.Data);
+                        var house = info.House is not null ? Capitalize(info.House) : "Unknown House";
+                        return view.IsFaceless ? house : $"{house} ({p.UserDisplayName})";
+                    });
+                    replacementNeededFor = string.Join(", ", parts);
+                    joinAsUserId = inactiveWaitedPlayers[0].UserId;
+                }
+            }
+
+            // High Members/Admins may impersonate the currently waited-for player on a stalled
+            // game to keep it moving, even if that player isn't (yet) inactive long enough to
+            // trigger the stricter "replacement needed" badge above - see GetInactiveGamesAsync.
+            if (computeJoinAsWaiting && joinAsUserId is null)
+            {
+                joinAsUserId = row.Players.FirstOrDefault(p => view.WaitingForIds.Contains(p.UserId))?.UserId;
             }
         }
 

@@ -107,7 +107,7 @@ else
                                     @(isOpen ? (iAmPlaying ? "Rejoin" : "Join") : (iAmPlaying ? "Rejoin" : "Spectate"))
                                 </a>
                             }
-                            @if (Model.ShowJoinAsWaited && Model.CanPlayAsAnotherPlayer && game.JoinAsUserId is not null)
+                            @if (Model.ShowJoinAsWaited && Model.CanPlayAsAnotherPlayer && game.JoinAsUserId is not null && !iAmPlaying)
                             {
                                 <a class="btn btn-secondary btn-sm" href="/play/@game.Id/@game.JoinAsUserId" target="_blank" rel="noopener noreferrer" title="Join as the waited-for player">
                                     Join as ...

@@ -45,19 +45,21 @@ public class GamesModel(ApplicationDbContext db, GameListQueryService gameLists,
         CanPlayAsAnotherPlayer = RoleNames.CanPlayAsAnotherPlayer.Any(User.IsInRole);
         CanCancelGame = User.IsInRole(RoleNames.Admin);
 
+        var userId = userManager.GetUserId(User);
+        var viewerId = userId is not null ? Guid.Parse(userId) : (Guid?)null;
+
         OpenGames = await gameLists.GetOpenGamesAsync();
         OngoingGames = await gameLists.GetOngoingGamesAsync();
-        ReplacementNeededGames = await gameLists.GetReplacementNeededGamesAsync();
+        ReplacementNeededGames = await gameLists.GetReplacementNeededGamesAsync(viewerId);
 
-        var userId = userManager.GetUserId(User);
-        if (userId is not null)
+        if (viewerId is not null)
         {
-            MyGames = await gameLists.GetMyGamesAsync(Guid.Parse(userId));
+            MyGames = await gameLists.GetMyGamesAsync(viewerId.Value);
         }
 
         if (CanPlayAsAnotherPlayer)
         {
-            InactiveGames = await gameLists.GetInactiveGamesAsync();
+            InactiveGames = await gameLists.GetInactiveGamesAsync(viewerId);
             InactiveTournamentGames = await gameLists.GetInactiveTournamentGamesAsync();
         }
 
