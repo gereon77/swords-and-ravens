@@ -1,6 +1,7 @@
 using System.Text.Json;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Api;
@@ -8,7 +9,14 @@ namespace agot_bg_website.Api;
 /// <summary>
 /// GET/PATCH /api/game/{id} and GET /api/game/{id}/isCancelled. The PATCH handler implements the
 /// "delete all + recreate" idempotent replace pattern for both Players and PreviousPlayers, same
-/// as Django's GameSerializer.update — see MIGRATION_PLAN.md §6/§6.1.
+/// as Django's GameSerializer.update — see MIGRATION_PLAN.md §6/§6.1. New Players/PreviousPlayers
+/// rows are explicitly added via <c>AddRange</c> rather than just assigned to the navigation
+/// collection: since their <c>Id</c> is a client-set (non-default) Guid, EF Core's automatic graph
+/// fixup otherwise assumes the row already exists and generates an UPDATE instead of an INSERT,
+/// which affects 0 rows and throws <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/>
+/// on every save that adds a player — see GamesApiPlayerReplacementTests for a pinned repro. PATCH
+/// also acquires a per-game <see cref="GameSaveLock"/> first, as defense-in-depth against the
+/// game server's saves for the same game genuinely overlapping — see that type's doc comment.
 /// </summary>
 public static class GamesApi
 {
@@ -44,6 +52,11 @@ public static class GamesApi
 
         group.MapPatch("/{id:guid}", async (Guid id, GamePatchDto patch, ApplicationDbContext db) =>
         {
+            // See GameSaveLock's doc comment: the game server can (and does, in practice) fire
+            // multiple overlapping saves for the same game in quick succession, which otherwise
+            // races on the delete-then-recreate Players/PreviousPlayers replace below.
+            using var _ = await GameSaveLock.AcquireAsync(id);
+
             var game = await db.Games
                 .Include(g => g.Players)
                 .Include(g => g.PreviousPlayers)
@@ -77,13 +90,21 @@ public static class GamesApi
             if (patch.Players is not null)
             {
                 db.PlayersInGame.RemoveRange(game.Players);
-                game.Players = patch.Players.Select(p => new PlayerInGame
+                var newPlayers = patch.Players.Select(p => new PlayerInGame
                 {
                     Id = Guid.NewGuid(),
                     GameId = game.Id,
                     UserId = p.User,
                     Data = JsonDocument.Parse(p.Data.GetRawText())
                 }).ToList();
+                // Explicitly Add these: assigning a brand-new object to a tracked navigation
+                // collection is NOT enough for EF Core to know it's an INSERT. Because Id is a
+                // client-set (non-default) Guid, EF's automatic graph fixup otherwise assumes the
+                // entity already exists and generates an UPDATE instead of an INSERT — which then
+                // affects 0 rows and throws DbUpdateConcurrencyException on every single save that
+                // adds a player, not just under concurrent requests.
+                db.PlayersInGame.AddRange(newPlayers);
+                game.Players = newPlayers;
             }
 
             // See MIGRATION_PLAN.md §6.1/§4.4 — the one new field. Full-replace, same idempotent
@@ -91,7 +112,7 @@ public static class GamesApi
             if (patch.PreviousPlayers is not null)
             {
                 db.PreviousPlayersInGame.RemoveRange(game.PreviousPlayers);
-                game.PreviousPlayers = patch.PreviousPlayers.Select(p => new PreviousPlayerInGame
+                var newPreviousPlayers = patch.PreviousPlayers.Select(p => new PreviousPlayerInGame
                 {
                     Id = Guid.NewGuid(),
                     GameId = game.Id,
@@ -104,6 +125,9 @@ public static class GamesApi
                     SequenceNumber = p.SequenceNumber,
                     ReplacedAt = p.ReplacedAt
                 }).ToList();
+                // Same explicit-Add reasoning as Players above.
+                db.PreviousPlayersInGame.AddRange(newPreviousPlayers);
+                game.PreviousPlayers = newPreviousPlayers;
             }
 
             game.UpdatedAt = DateTimeOffset.UtcNow;

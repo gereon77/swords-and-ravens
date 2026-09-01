@@ -439,6 +439,23 @@ getPreviousPlayersInGame() {
   — mirroring the existing "delete all + recreate" idempotent pattern `GameSerializer.update`
   already uses for `players[]`. This makes repeated saves of the same ongoing game safe to retry.
 
+**Post-implementation fix (local dev, live-tested):** the first real save-after-seating hit a
+`DbUpdateConcurrencyException` ("expected to affect 1 row(s), but actually affected 0 row(s)") on
+every single PATCH that added a player, not just under concurrent requests. Root cause: the new
+`PlayerInGame`/`PreviousPlayerInGame` rows were assigned straight to the tracked `Game`'s
+navigation collection (`game.Players = newList`) without ever calling
+`db.PlayersInGame.AddRange(...)`. Because each row's `Id` is a client-set (non-default) `Guid`, EF
+Core's automatic graph fixup assumed the row already existed and issued an `UPDATE` instead of an
+`INSERT` — which affects 0 rows for a row that was never inserted. Fixed in `GamesApi.cs` by
+explicitly calling `AddRange` for both replacement lists before assigning them to the navigation
+properties; pinned down by `GamesApiPlayerReplacementTests`. Separately, `GamesApi.cs`'s PATCH
+handler also acquires a per-game `Infrastructure.GameSaveLock` (an in-memory `SemaphoreSlim` keyed
+by game id) as defense-in-depth, since the game server's fire-and-forget `saveGame()` can
+genuinely fire overlapping saves for the same game — this wasn't the cause of the reported
+exception, but is worth keeping since it's a real possible race on the delete side. Note this lock
+only works for a single-process deployment; a horizontally-scaled deployment would need a
+distributed lock instead (e.g. a Postgres advisory lock).
+
 ## 7. Chat (`Snr.Web/Chat`) — WebSocket handler mirroring `consumers.py`
 
 Implement a raw `app.Map("/ws/chat/room/{roomId}", ...)` WebSocket endpoint that:
