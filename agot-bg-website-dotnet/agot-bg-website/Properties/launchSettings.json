@@ -7,7 +7,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5021"
+      "applicationUrl": "http://localhost:8000"
     },
     "Container (Dockerfile)": {
       "commandName": "Docker",
@@ -18,7 +18,8 @@
         "ConnectionStrings__DefaultConnection": "Host=host.docker.internal;Port=5432;Database=snr_dotnet;Username=postgres;Password=example",
         "ConnectionStrings__Redis": "host.docker.internal:6379"
       },
-      "publishAllPorts": true,
+      "httpPort": 8000,
+      "publishAllPorts": false,
       "useSSL": false
     }
   },

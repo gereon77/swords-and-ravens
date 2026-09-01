@@ -110,10 +110,15 @@ Postgres/Redis/SMTP.
    dotnet run
    ```
 
-   By default this listens on the URL(s) in `Properties/launchSettings.json` (or pass
-   `--urls "http://localhost:5280"` to override). Without the real game client built (see next
-   section), `/play/<gameId>` serves the placeholder `GameClientTemplates/play_fake.html` so the
-   rest of the site (registration, login, rooms, game list) can still be exercised end-to-end.
+   By default this listens at **http://localhost:8000**. Both the normal project profile and the
+   Visual Studio Docker profile pin the host port to 8000 in `Properties/launchSettings.json`
+   (the container itself still listens on port 8080). This deliberately matches the old Django
+   development URL and the game server's default `MASTER_API_BASE_URL=http://localhost:8000/api`,
+   so restarting from Visual Studio won't require changing `.env`. You can still pass
+   `--urls "http://localhost:<other-port>"` to override the project profile temporarily.
+   Without the real game client built (see next section), `/play/<gameId>` serves the placeholder
+   `GameClientTemplates/play_fake.html` so the rest of the site (registration, login, rooms, game
+   list) can still be exercised end-to-end.
 
 5. **Run the tests**:
 
