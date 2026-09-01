@@ -9,6 +9,20 @@ namespace agot_bg_website.Domain;
 /// </summary>
 public class ApplicationUser : IdentityUser<Guid>
 {
+    /// <summary>
+    /// We never use phone-number verification and the columns were dropped by the
+    /// RemovePhoneNumberFields migration (see ApplicationDbContext's Ignore() calls). Reflection-based
+    /// tooling (CoreAdmin's grid generator, Identity's scaffolded "Download personal data" page) reads
+    /// CLR properties directly instead of respecting EF's Ignore() mapping or attribute inheritance, so
+    /// simply ignoring/overriding the inherited IdentityUser members is not enough to hide them there.
+    /// Shadowing with an internal "new" property removes them entirely from public reflection
+    /// (GetProperties()) while leaving the still-virtual base members untouched for anything that
+    /// references IdentityUser&lt;Guid&gt; directly (e.g. EF Core's UserStore). Internal (rather than
+    /// private) so ApplicationDbContext's Ignore() calls below can still reference them by name.
+    /// </summary>
+    internal new string? PhoneNumber { get; set; }
+    internal new bool PhoneNumberConfirmed { get; set; }
+
     [PersonalData]
     /// <summary>Bearer token the game server uses to authenticate as this user (~ Django game_token).</summary>
     public string GameToken { get; set; } = Guid.NewGuid().ToString("N");
