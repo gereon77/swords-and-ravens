@@ -1,5 +1,8 @@
 @model agot_bg_website.Pages.Shared.GamesTableViewModel
 @using agot_bg_website.Domain
+@{
+    var anyOngoing = Model.Games.Any(g => g.State == GameState.Ongoing);
+}
 
 @if (Model.Games.Count == 0)
 {
@@ -16,6 +19,11 @@ else
                         <th></th>
                     }
                     <th>Name</th>
+                    @if (anyOngoing)
+                    {
+                        <th class="text-center">Round</th>
+                        <th>Waiting for</th>
+                    }
                     <th class="text-center">Players</th>
                     <th></th>
                 </tr>
@@ -84,6 +92,11 @@ else
                             }
                             <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                         </td>
+                        @if (anyOngoing)
+                        {
+                            <td class="text-center whitespace-nowrap" title="@tooltip">@(isOngoing ? (game.Turn?.ToString() ?? "?") : "-")</td>
+                            <td title="@tooltip">@(isOngoing ? (string.IsNullOrEmpty(game.WaitingFor) ? "-" : game.WaitingFor) : "-")</td>
+                        }
                         <td class="text-center">
                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
                         </td>
@@ -107,3 +120,4 @@ else
         </table>
     </div>
 }
+
