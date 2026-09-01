@@ -4,7 +4,19 @@
     ViewData["Title"] = "All Games";
 }
 
-<h1 class="text-2xl font-bold mb-6">All Games</h1>
+@{
+    var noGamesAtAll = Model.OpenGames.Count == 0 && Model.OngoingGames.Count == 0;
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">All Games</h1>
+    @if (Model.CanCreateGame)
+    {
+        <button type="button" id="toggle-create-game" class="btn btn-circle btn-primary" title="Create a new game" aria-expanded="@(noGamesAtAll ? "true" : "false")" aria-controls="create-game-panel">
+            <span class="text-xl leading-none">+</span>
+        </button>
+    }
+</div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -18,13 +30,24 @@
 
 @if (Model.CanCreateGame)
 {
-    <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
+    <div id="create-game-panel" class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8 @(noGamesAtAll ? "" : "hidden")">
         <h2 class="text-lg font-semibold mb-3">Create a new game</h2>
         <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row sm:items-center gap-3">
             <input type="text" name="name" class="input input-bordered flex-1" placeholder="Enter game name..." maxlength="200" required />
             <button type="submit" class="btn btn-primary w-full sm:w-auto px-8">Create Game</button>
         </form>
     </div>
+    <script>
+        document.getElementById('toggle-create-game')?.addEventListener('click', () => {
+            const panel = document.getElementById('create-game-panel');
+            const btn = document.getElementById('toggle-create-game');
+            const isHidden = panel.classList.toggle('hidden');
+            btn.setAttribute('aria-expanded', (!isHidden).toString());
+            if (!isHidden) {
+                panel.querySelector('input[name="name"]')?.focus();
+            }
+        });
+    </script>
 }
 
 <section class="mb-10">
