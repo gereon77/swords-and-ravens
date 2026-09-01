@@ -34,10 +34,12 @@
             </div>
         </nav>
     </header>
-    <div class="container flex-1 min-h-0 overflow-y-auto">
-        <main role="main" class="pb-3 pt-6">
-            @RenderBody()
-        </main>
+    <div class="flex-1 min-h-0 overflow-y-auto">
+        <div class="container">
+            <main role="main" class="pb-3 pt-6">
+                @RenderBody()
+            </main>
+        </div>
     </div>
 
     <footer class="border-t border-base-300 py-3 text-sm opacity-70 shrink-0">
