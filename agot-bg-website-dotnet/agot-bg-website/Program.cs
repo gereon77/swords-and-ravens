@@ -38,12 +38,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Third-party "CoreAdmin" NuGet package, added purely for side-by-side comparison against the
-// hand-built Admin area above (Users/Games/Rooms/Messages). It auto-scans ApplicationDbContext
-// and generates generic CRUD grids for every DbSet — the closest off-the-shelf equivalent to
-// Django's built-in admin site. It needs classic MVC controllers (AddControllersWithViews +
+// Third-party "CoreAdmin" NuGet package, kept alongside the hand-built Admin area
+// (Users/Games/Rooms/Messages) rather than replacing it. It auto-scans ApplicationDbContext and
+// generates generic CRUD grids for every DbSet — the closest off-the-shelf equivalent to Django's
+// built-in admin site — which makes it handy for ad-hoc poking at tables nobody has built a
+// dedicated screen for. It needs classic MVC controllers (AddControllersWithViews +
 // MapDefaultControllerRoute below), unlike the rest of this app which is Razor Pages only.
 // Gated to the same Admin role as the custom Admin area via the "Admin" role name argument.
+//
+// It does NOT replace Areas/Admin/Pages/Games/Edit.cshtml: CoreAdmin can't edit JsonDocument
+// columns, so Game.SerializedGame/ViewOfGame — the whole reason an admin ever needs to touch a
+// Game row — are read-only there. The custom Admin area stays the only way to repair a broken
+// serialized game, and is also the base for the planned High Member operations screens.
 builder.Services.AddControllersWithViews();
 builder.Services.AddCoreAdmin(RoleNames.Admin);
 
