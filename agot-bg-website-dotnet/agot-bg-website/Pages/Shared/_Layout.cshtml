@@ -17,14 +17,14 @@
                     &#x1F426; Swords and Ravens
                 </a>
                 <div class="flex items-center gap-1">
-                    <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
+                        <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
                         <a class="nav-link" asp-area="" asp-page="/MyGames">My Games</a>
+                        <a class="nav-link" asp-area="" asp-page="/Rules">Rules</a>
+                        <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
                     }
-                    <a class="nav-link" asp-area="" asp-page="/Rules">Rules</a>
                     <a class="nav-link" asp-area="" asp-page="/About">About</a>
-                    <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
                     @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
                     {
                         <a class="nav-link" asp-area="Admin" asp-page="/Index">Admin</a>

@@ -7,12 +7,14 @@
 }
 
 <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
-    <h2 class="text-lg font-semibold mb-3 flex items-center gap-2 flex-wrap">
-        Online users
-        <span class="badge badge-neutral" id="online-users-count">0</span>
-        <span id="westerosi-time" class="badge badge-ghost ml-auto" title="Westerosi time (basically, UTC)"></span>
-    </h2>
-    <div id="online-users-container" class="flex flex-wrap gap-3"></div>
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+            Online users
+            <span class="badge badge-neutral" id="online-users-count">0</span>
+        </h2>
+        <span id="westerosi-time" class="text-sm opacity-70" title="Westerosi time (basically, UTC)"></span>
+    </div>
+    <div id="online-users-container" class="flex flex-wrap gap-x-4 gap-y-2"></div>
 </div>
 
 <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
@@ -53,16 +55,18 @@
 
         renderUser(userId, userData) {
             const { username, is_admin, is_high_member, last_won_tournament } = userData;
-            let badgeClass = "badge";
+            // Colored username text for admins/high members, matching Django's online_users.html
+            // (no badge pill — just a colored link), instead of DaisyUI badges.
+            const style = { fontSize: "1.05rem" };
             if (is_admin) {
-                badgeClass = "badge badge-error";
+                style.color = "brown";
             } else if (is_high_member) {
-                badgeClass = "badge badge-info";
+                style.color = "darkgoldenrod";
             }
             return html`
-                <a key=${userId} class="badge badge-lg ${is_admin || is_high_member ? badgeClass : "badge-outline"} gap-1" href="/User/${userId}" target="_blank" rel="noopener noreferrer">
+                <a key=${userId} style=${style} class="link link-hover font-medium" href="/User/${userId}" target="_blank" rel="noopener noreferrer">
                     ${username}
-                    ${last_won_tournament ? html`<span title=${"Winner of " + last_won_tournament}>\uD83C\uDFC6</span>` : ""}
+                    ${last_won_tournament ? html`<span title=${"Winner of " + last_won_tournament} style=${{ color: "goldenrod" }}> \u{1F3C6}</span>` : ""}
                 </a>
             `;
         }
@@ -282,7 +286,7 @@
                     <div class="bg-base-300 rounded-box p-3 mb-3" style="overflow-y: auto; overflow-x: hidden; height: 250px;">
                         ${isAuthenticated ? html`
                             <div class="flex flex-col gap-1">
-                                ${room.messages.map(m => html`
+                                ${room.messages.slice().reverse().map(m => html`
                                     <div key=${m.id} class="flex items-start gap-2 text-sm flex-wrap">
                                         <span class="opacity-60 shrink-0" title=${m.created_at.toLocaleString()}>
                                             ${("0" + m.created_at.getHours()).slice(-2)}:${("0" + m.created_at.getMinutes()).slice(-2)}
@@ -306,8 +310,8 @@
                             disabled=${!isAuthenticated}
                         />
                         <button type="submit" class="btn btn-primary" disabled=${!isAuthenticated}>Send</button>
-                        <button type="button" class="btn btn-secondary" disabled=${!isAuthenticated || room.noMoreMessages} onClick=${e => this.loadMore(e, tab)}>
-                            &#8635;
+                        <button type="button" class="btn btn-secondary" disabled=${!isAuthenticated || room.noMoreMessages} onClick=${e => this.loadMore(e, tab)} title="Load older messages">
+                            ${"\u21BB"}
                         </button>
                     </form>
                 </div>
@@ -318,16 +322,19 @@
             const { activeTab, rooms } = this.state;
             return html`
                 <div>
-                    <div role="tablist" class="tabs tabs-boxed mb-3">
+                    <div class="flex gap-1 border-b border-base-300 mb-3">
                         ${TABS.map(tab => html`
                             <a key=${tab}
-                                role="tab"
-                                class=${"tab" + (activeTab === tab ? " tab-active" : "") + (rooms[tab].hasUnread ? " tab-active !border-2 !border-warning" : "")}
                                 href="#"
+                                class=${"px-4 py-2 -mb-px border-b-2 font-semibold transition-colors " +
+                                    (activeTab === tab
+                                        ? "border-primary text-primary"
+                                        : "border-transparent opacity-60 hover:opacity-100") +
+                                    (rooms[tab].hasUnread ? " text-warning opacity-100" : "")}
                                 onClick=${e => { e.preventDefault(); this.switchTab(tab); }}
                             >
                                 ${TAB_LABELS[tab]}
-                                ${rooms[tab].hasUnread ? html`<span class="badge badge-xs badge-warning ml-1"></span>` : ""}
+                                ${rooms[tab].hasUnread ? html`<span class="badge badge-xs badge-warning align-middle ml-1"></span>` : ""}
                             </a>
                         `)}
                     </div>

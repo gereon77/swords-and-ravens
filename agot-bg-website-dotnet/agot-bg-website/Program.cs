@@ -105,6 +105,12 @@ builder.Services.AddRazorPages(options =>
     // whole area behind the Admin role instead of any-authenticated-user, mirroring Django's
     // `user.is_staff` gate on /admin.
     options.Conventions.AuthorizeAreaFolder("Admin", "/", "AdminArea");
+
+    // All Games / My Games / Rules require a logged-in user — matches nav links only being shown
+    // to authenticated users (FAQ is an external link so it's just hidden, not gated server-side).
+    options.Conventions.AuthorizePage("/Games");
+    options.Conventions.AuthorizePage("/MyGames");
+    options.Conventions.AuthorizePage("/Rules");
 });
 
 // External logins: Google/Discord/Instagram — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
