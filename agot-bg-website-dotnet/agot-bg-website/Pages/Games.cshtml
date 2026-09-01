@@ -11,6 +11,11 @@
     <div class="alert alert-error mb-4">@Model.ErrorMessage</div>
 }
 
+@await Html.PartialAsync("_ChatWidget", new agot_bg_website.Pages.Shared.ChatWidgetModel(
+    agot_bg_website.Infrastructure.Chat.RoomSeeder.PublicRoomId,
+    agot_bg_website.Infrastructure.Chat.RoomSeeder.IssuesRoomId,
+    User.Identity?.IsAuthenticated ?? false))
+
 @if (Model.CanCreateGame)
 {
     <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
