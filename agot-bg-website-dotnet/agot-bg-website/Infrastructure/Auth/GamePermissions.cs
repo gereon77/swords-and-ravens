@@ -52,6 +52,12 @@ public static class GamePermissions
     /// </summary>
     public const string CancelGame = "CancelGame";
 
+    /// <summary>
+    /// All known permission values, for admin UI (<c>Areas/Admin/Pages/Roles</c> and
+    /// <c>Areas/Admin/Pages/Users/Edit</c>) to render as a checkbox list.
+    /// </summary>
+    public static readonly string[] All = [CreateGame, ImpersonateOtherPlayers, CancelGame];
+
     public static AuthorizationBuilder AddGamePermissionPolicies(this AuthorizationBuilder builder) => builder
         .AddPolicy(CreateGame, policy => policy.RequireAssertion(context =>
             context.User.Identity?.IsAuthenticated == true &&

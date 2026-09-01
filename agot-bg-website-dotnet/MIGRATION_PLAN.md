@@ -1048,6 +1048,20 @@ Follow-up work after first getting the app running locally end-to-end:
   columns (`Game.SerializedGame`/`ViewOfGame`), so the hand-built `Admin/Games/Edit` raw-JSON editor
   remains the only way to edit those. Longer-term idea (not started): reuse the hand-built admin
   panel's UI/permissions model so High Members (not just Admins) can use a subset of it.
+- **Permission ↔ role and role ↔ user admin UI, implemented via hand-built pages, not CoreAdmin.**
+  CoreAdmin's "foreign key navigation" dropdown feature (see its README) only kicks in for entities
+  with an explicit `[ForeignKey]` + CLR navigation property; ASP.NET Core Identity's built-in
+  `IdentityRoleClaim<Guid>`/`IdentityUserClaim<Guid>`/`IdentityUserRole<Guid>` have none (just raw
+  `RoleId`/`UserId` Guid columns configured through Fluent API), so editing them via CoreAdmin would
+  mean hand-typing/copy-pasting a Role or User GUID with no name shown — usable in the most literal
+  sense, but error-prone enough (silently grants the wrong user on a typo) that it doesn't meet a
+  reasonable bar for a real admin workflow. Added `Areas/Admin/Pages/Roles/Index.cshtml`+`Edit.cshtml`
+  (grant/revoke a `GamePermissions` value on a whole role via `RoleManager.AddClaimAsync`/
+  `RemoveClaimAsync`) and extended `Areas/Admin/Pages/Users/Edit.cshtml` with a second checkbox list
+  for direct per-user permission overrides via `UserManager.AddClaimAsync`/`RemoveClaimAsync` (Django's
+  `auth_user_user_permissions` equivalent). Both bump the affected user(s)' security stamp on change,
+  same convention as the existing role-assignment code, so the change takes effect on the user's very
+  next request instead of waiting for their session's normal cookie revalidation interval.
 - **Dead `PhoneNumber`/`PhoneNumberConfirmed` fields, fixed.** These were still visible via
   CoreAdmin and in the "download my private data" JSON export despite the `RemovePhoneNumberField`
   EF migration having already dropped the columns — the migration only removed the *database*

@@ -7,6 +7,7 @@
 <h1 class="text-2xl font-bold mb-4">Edit roles — @Model.TargetUser.UserName</h1>
 
 <form method="post">
+    <h2 class="text-lg font-semibold mb-2">Roles</h2>
     <div class="flex flex-col gap-2 mb-4">
         @foreach (var role in Model.AllRoles)
         {
@@ -17,6 +18,24 @@
             </label>
         }
     </div>
+
+    <h2 class="text-lg font-semibold mb-2">Direct permission overrides</h2>
+    <p class="text-sm opacity-70 mb-2">
+        Granted to this user only, on top of whatever their roles above already grant. Prefer
+        <a class="link" asp-area="Admin" asp-page="/Roles/Index">editing a role's permissions</a>
+        instead when the grant should apply to everyone with that role.
+    </p>
+    <div class="flex flex-col gap-2 mb-4">
+        @foreach (var permission in Model.AllPermissions)
+        {
+            <label class="label cursor-pointer justify-start gap-2">
+                <input type="checkbox" name="SelectedPermissions" value="@permission" class="checkbox"
+                       checked="@(Model.SelectedPermissions.Contains(permission))" />
+                <span>@permission</span>
+            </label>
+        }
+    </div>
+
     <button type="submit" class="btn btn-primary">Save</button>
     <a class="btn" asp-page="./Index">Cancel</a>
 </form>

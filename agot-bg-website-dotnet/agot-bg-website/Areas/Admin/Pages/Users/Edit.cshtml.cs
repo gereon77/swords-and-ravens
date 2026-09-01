@@ -17,6 +17,16 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
     [BindProperty]
     public List<string> SelectedRoles { get; set; } = [];
 
+    /// <summary>
+    /// Permissions granted directly to this user, on top of whatever their roles already grant
+    /// (Django's <c>auth_user_user_permissions</c> one-off, per-user override) — see
+    /// <see cref="Areas.Admin.Pages.Roles.EditModel"/> for the role-wide equivalent.
+    /// </summary>
+    public IReadOnlyList<string> AllPermissions => GamePermissions.All;
+
+    [BindProperty]
+    public List<string> SelectedPermissions { get; set; } = [];
+
     [TempData]
     public string? StatusMessage { get; set; }
 
@@ -31,6 +41,9 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
         TargetUser = user;
         CurrentRoles = await userManager.GetRolesAsync(user);
         SelectedRoles = [.. CurrentRoles];
+
+        var userClaims = await userManager.GetClaimsAsync(user);
+        SelectedPermissions = [.. userClaims.Where(c => c.Type == GamePermissions.ClaimType).Select(c => c.Value)];
         return Page();
     }
 
@@ -45,26 +58,46 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
         TargetUser = user;
         var currentRoles = await userManager.GetRolesAsync(user);
         SelectedRoles ??= [];
+        SelectedPermissions ??= [];
 
-        var toAdd = SelectedRoles.Except(currentRoles).ToArray();
-        var toRemove = currentRoles.Except(SelectedRoles).ToArray();
+        var rolesToAdd = SelectedRoles.Except(currentRoles).ToArray();
+        var rolesToRemove = currentRoles.Except(SelectedRoles).ToArray();
 
-        if (toAdd.Length > 0)
+        if (rolesToAdd.Length > 0)
         {
-            await userManager.AddToRolesAsync(user, toAdd);
+            await userManager.AddToRolesAsync(user, rolesToAdd);
         }
-        if (toRemove.Length > 0)
+        if (rolesToRemove.Length > 0)
         {
-            await userManager.RemoveFromRolesAsync(user, toRemove);
+            await userManager.RemoveFromRolesAsync(user, rolesToRemove);
         }
-        if (toAdd.Length > 0 || toRemove.Length > 0)
+
+        var currentUserClaims = await userManager.GetClaimsAsync(user);
+        var currentPermissions = currentUserClaims
+            .Where(c => c.Type == GamePermissions.ClaimType)
+            .Select(c => c.Value)
+            .ToArray();
+        var permissionsToAdd = SelectedPermissions.Except(currentPermissions).ToArray();
+        var permissionsToRemove = currentPermissions.Except(SelectedPermissions).ToArray();
+
+        foreach (var permission in permissionsToAdd)
         {
-            // Force role changes (e.g. Banned/On probation) to take effect on the user's next
-            // request instead of only after their session cookie naturally expires.
+            await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+        }
+        foreach (var permission in permissionsToRemove)
+        {
+            await userManager.RemoveClaimAsync(user, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+        }
+
+        if (rolesToAdd.Length > 0 || rolesToRemove.Length > 0 || permissionsToAdd.Length > 0 || permissionsToRemove.Length > 0)
+        {
+            // Force role/permission changes (e.g. Banned/On probation, or a direct permission
+            // grant) to take effect on the user's next request instead of only after their
+            // session cookie naturally expires.
             await userManager.UpdateSecurityStampAsync(user);
         }
 
-        StatusMessage = $"Roles for {user.UserName} updated.";
+        StatusMessage = $"Roles and permissions for {user.UserName} updated.";
         return RedirectToPage("./Index");
     }
 }
