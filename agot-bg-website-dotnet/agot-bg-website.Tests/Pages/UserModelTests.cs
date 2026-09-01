@@ -2,7 +2,9 @@ using System.Security.Claims;
 using System.Text.Json;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Pages;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -24,6 +26,7 @@ public class UserModelTests : IDisposable
     private readonly ServiceProvider _provider;
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
 
     public UserModelTests()
     {
@@ -34,15 +37,17 @@ public class UserModelTests : IDisposable
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        services.AddAuthorizationBuilder().AddGamePermissionPolicies();
 
         _provider = services.BuildServiceProvider();
         _db = _provider.GetRequiredService<ApplicationDbContext>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
+        _authorizationService = _provider.GetRequiredService<IAuthorizationService>();
     }
 
     private UserModel CreatePageModel(ClaimsPrincipal? viewer = null)
     {
-        var model = new UserModel(_db, _userManager)
+        var model = new UserModel(_db, _userManager, _authorizationService)
         {
             PageContext = new PageContext
             {

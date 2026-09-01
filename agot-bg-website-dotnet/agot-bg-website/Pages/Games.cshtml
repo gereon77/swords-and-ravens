@@ -57,6 +57,7 @@
     {
         Games = Model.MyGames,
         ShowStateBadge = true,
+        CanCancelGame = Model.CanCancelGame,
         IsAuthenticated = true,
         EmptyMessage = "You are not currently part of any game."
     })
@@ -68,6 +69,9 @@
     {
         Games = Model.OpenGames,
         ShowStateBadge = false,
+        ShowJoinAsOwner = true,
+        CanPlayAsAnotherPlayer = Model.CanPlayAsAnotherPlayer,
+        CanCancelGame = Model.CanCancelGame,
         IsAuthenticated = true,
         EmptyMessage = "No open games right now."
     })
@@ -79,6 +83,7 @@
     {
         Games = Model.OngoingGames,
         ShowStateBadge = false,
+        CanCancelGame = Model.CanCancelGame,
         IsAuthenticated = true,
         EmptyMessage = "No ongoing games right now."
     })
@@ -96,6 +101,7 @@
             ShowStateBadge = false,
             ShowJoinAsWaited = true,
             CanPlayAsAnotherPlayer = Model.CanPlayAsAnotherPlayer,
+            CanCancelGame = Model.CanCancelGame,
             IsAuthenticated = true
         })
     </section>
@@ -111,6 +117,7 @@
             ShowStateBadge = false,
             ShowJoinAsWaited = true,
             CanPlayAsAnotherPlayer = Model.CanPlayAsAnotherPlayer,
+            CanCancelGame = Model.CanCancelGame,
             IsAuthenticated = true
         })
     </section>
@@ -124,6 +131,7 @@
         {
             Games = Model.InactiveTournamentGames,
             ShowStateBadge = false,
+            CanCancelGame = Model.CanCancelGame,
             IsAuthenticated = true
         })
     </section>
@@ -137,6 +145,7 @@
         {
             Games = Model.InactivePrivateGames,
             ShowStateBadge = false,
+            CanCancelGame = Model.CanCancelGame,
             IsAuthenticated = true
         })
     </section>

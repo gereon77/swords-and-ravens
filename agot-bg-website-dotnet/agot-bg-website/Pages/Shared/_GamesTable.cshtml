@@ -20,6 +20,10 @@ else
                         <th></th>
                     }
                     <th>Name</th>
+                    @if (allOpen)
+                    {
+                        <th>Owner</th>
+                    }
                     @if (anyOngoing)
                     {
                         <th class="text-center">Round</th>
@@ -89,6 +93,10 @@ else
                             }
                             <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                         </td>
+                        @if (allOpen)
+                        {
+                            <td>@(game.OwnerDisplayName ?? "-")</td>
+                        }
                         @if (anyOngoing)
                         {
                             <td class="text-center whitespace-nowrap">@(isOngoing ? (game.Turn?.ToString() ?? "?") : "-")</td>
@@ -112,6 +120,19 @@ else
                                 <a class="btn btn-secondary btn-sm" href="/play/@game.Id/@game.JoinAsUserId" target="_blank" rel="noopener noreferrer" title="Join as the waited-for player">
                                     Join as ...
                                 </a>
+                            }
+                            @if (Model.ShowJoinAsOwner && Model.CanPlayAsAnotherPlayer && isOpen && !iAmPlaying)
+                            {
+                                <a class="btn btn-secondary btn-sm" href="/play/@game.Id/@game.OwnerUserId" target="_blank" rel="noopener noreferrer" title="Join as the game's owner - use this to resolve a stuck/dead lobby">
+                                    Join as host
+                                </a>
+                            }
+                            @if (Model.CanCancelGame)
+                            {
+                                <form method="post" asp-page-handler="CancelGame" onsubmit="return confirm('Are you sure you want to cancel this game? This cannot be undone.');" class="inline">
+                                    <input type="hidden" name="gameId" value="@game.Id" />
+                                    <button type="submit" class="btn btn-error btn-sm" title="Cancel this game">Cancel</button>
+                                </form>
                             }
                         </td>
                     </tr>

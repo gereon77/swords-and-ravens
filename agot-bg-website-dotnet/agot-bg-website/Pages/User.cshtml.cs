@@ -5,6 +5,7 @@ using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -16,7 +17,7 @@ namespace agot_bg_website.Pages;
 /// Public user profile, mirroring Django's agotboardgame_main.views.user_profile (route
 /// "/user/&lt;uuid:user_id&gt;", template user_profile.html) — see MIGRATION_PLAN.md §10.2/§13/§14.
 /// </summary>
-public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager) : PageModel
+public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService) : PageModel
 {
     /// <summary>Badge color per role, mirroring Django's settings.GROUP_COLORS (bootstrap contextual
     /// names mapped onto their DaisyUI badge-* equivalents).</summary>
@@ -85,7 +86,7 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
         var currentUserId = userManager.GetUserId(User);
         IsOwnProfile = currentUserId is not null && Guid.TryParse(currentUserId, out var currentUserGuid) && currentUserGuid == id;
         OnProbation = User.IsInRole(RoleNames.OnProbation);
-        CanPlayAsAnotherPlayer = RoleNames.CanPlayAsAnotherPlayer.Any(User.IsInRole);
+        CanPlayAsAnotherPlayer = (await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
 
         var viewedUserRoles = await userManager.GetRolesAsync(viewedUser);
         UserGroups = GroupBadgeClasses

@@ -178,7 +178,8 @@ authenticationBuilder.AddScheme<MasterApiAuthenticationOptions, MasterApiAuthent
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(MasterApiAuthenticationHandler.SchemeName, policy =>
         policy.AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName).RequireAuthenticatedUser())
-    .AddPolicy("AdminArea", policy => policy.RequireRole(RoleNames.Admin));
+    .AddPolicy("AdminArea", policy => policy.RequireRole(RoleNames.Admin))
+    .AddGamePermissionPolicies();
 
 // Built-in ASP.NET Core OpenAPI (Microsoft.AspNetCore.OpenApi), not Swashbuckle/Swagger, generates
 // the underlying document; Scalar.AspNetCore renders an interactive "try it out" UI on top of it
@@ -289,6 +290,7 @@ app.MapScalarApiReference("/api/docs", options => options.WithTitle("Swords and 
 using (var scope = app.Services.CreateScope())
 {
     await agot_bg_website.Infrastructure.Auth.RoleSeeder.SeedAsync(scope.ServiceProvider);
+    await agot_bg_website.Infrastructure.Auth.PermissionSeeder.SeedAsync(scope.ServiceProvider);
     await RoomSeeder.SeedAsync(scope.ServiceProvider);
 }
 

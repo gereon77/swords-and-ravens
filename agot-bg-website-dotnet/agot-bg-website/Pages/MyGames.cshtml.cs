@@ -15,7 +15,11 @@ namespace agot_bg_website.Pages;
 /// <see cref="GameListQueryService"/>, which never loads Game.SerializedGame - see its doc comment.
 /// </summary>
 [Authorize]
-public class MyGamesModel(ApplicationDbContext db, GameListQueryService gameLists, UserManager<ApplicationUser> userManager) : PageModel
+public class MyGamesModel(
+    ApplicationDbContext db,
+    GameListQueryService gameLists,
+    UserManager<ApplicationUser> userManager,
+    IAuthorizationService authorizationService) : PageModel
 {
     public List<GameListItem> MyGames { get; set; } = [];
 
@@ -26,7 +30,7 @@ public class MyGamesModel(ApplicationDbContext db, GameListQueryService gameList
 
     public async Task OnGetAsync()
     {
-        CanCreateGame = RoleNames.CanCreateGame(User);
+        CanCreateGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded;
 
         var userId = userManager.GetUserId(User);
         if (userId is null)
@@ -39,7 +43,7 @@ public class MyGamesModel(ApplicationDbContext db, GameListQueryService gameList
 
     public async Task<IActionResult> OnPostCreateGameAsync([FromForm] string name)
     {
-        if (!RoleNames.CanCreateGame(User))
+        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded)
         {
             return Forbid();
         }

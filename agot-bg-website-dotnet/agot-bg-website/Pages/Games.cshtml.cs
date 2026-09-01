@@ -2,6 +2,7 @@ using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Services.GameListing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -14,7 +15,12 @@ namespace agot_bg_website.Pages;
 /// is built from <see cref="GameListQueryService"/>, which never loads Game.SerializedGame - see
 /// its doc comment.
 /// </summary>
-public class GamesModel(ApplicationDbContext db, GameListQueryService gameLists, UserManager<ApplicationUser> userManager) : PageModel
+public class GamesModel(
+    ApplicationDbContext db,
+    GameListQueryService gameLists,
+    UserManager<ApplicationUser> userManager,
+    IAuthorizationService authorizationService,
+    ILogger<GamesModel> logger) : PageModel
 {
     public List<GameListItem> MyGames { get; set; } = [];
 
@@ -41,9 +47,9 @@ public class GamesModel(ApplicationDbContext db, GameListQueryService gameLists,
 
     public async Task OnGetAsync()
     {
-        CanCreateGame = RoleNames.CanCreateGame(User);
-        CanPlayAsAnotherPlayer = RoleNames.CanPlayAsAnotherPlayer.Any(User.IsInRole);
-        CanCancelGame = User.IsInRole(RoleNames.Admin);
+        CanCreateGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded;
+        CanPlayAsAnotherPlayer = (await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
+        CanCancelGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded;
 
         var userId = userManager.GetUserId(User);
         var viewerId = userId is not null ? Guid.Parse(userId) : (Guid?)null;
@@ -71,7 +77,7 @@ public class GamesModel(ApplicationDbContext db, GameListQueryService gameLists,
 
     public async Task<IActionResult> OnPostCreateGameAsync([FromForm] string name)
     {
-        if (!RoleNames.CanCreateGame(User))
+        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded)
         {
             return Forbid();
         }
@@ -103,5 +109,38 @@ public class GamesModel(ApplicationDbContext db, GameListQueryService gameLists,
         await db.SaveChangesAsync();
 
         return Redirect($"/play/{game.Id}");
+    }
+
+    /// <summary>
+    /// Directly writes <c>Game.State = Cancelled</c>, bypassing the game server entirely —
+    /// mirrors Django's <c>agotboardgame_main.views.cancel_game</c> (gated on the
+    /// <c>cancel_game</c> permission there, <see cref="GamePermissions.CancelGame"/> here). If the
+    /// game server still has this game loaded in memory, a subsequent save from it can overwrite
+    /// this — same caveat Django always had; "Join as host" is the more reliable way to actually
+    /// resolve a stuck/dead lobby rather than merely marking it cancelled.
+    /// </summary>
+    public async Task<IActionResult> OnPostCancelGameAsync([FromForm] Guid gameId)
+    {
+        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        var game = await db.Games.FindAsync(gameId);
+        if (game is not null)
+        {
+            game.State = GameState.Cancelled;
+            game.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+
+            logger.LogInformation(
+                "{Username} ({UserId}) cancelled game {GameName} ({GameId})",
+                User.Identity?.Name,
+                userManager.GetUserId(User),
+                game.Name,
+                game.Id);
+        }
+
+        return RedirectToPage();
     }
 }

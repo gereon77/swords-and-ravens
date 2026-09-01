@@ -2,6 +2,7 @@ using System.Text.Json;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,7 +36,8 @@ public static class PlayApi
             HttpContext ctx,
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager) =>
+            SignInManager<ApplicationUser> signInManager,
+            IAuthorizationService authorizationService) =>
         {
             var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
             if (game is null)
@@ -70,15 +72,7 @@ public static class PlayApi
             var effectiveUser = requestUser;
             if (userId is { } impersonateId)
             {
-                var canImpersonate = false;
-                foreach (var role in RoleNames.CanPlayAsAnotherPlayer)
-                {
-                    if (await userManager.IsInRoleAsync(requestUser, role))
-                    {
-                        canImpersonate = true;
-                        break;
-                    }
-                }
+                var canImpersonate = (await authorizationService.AuthorizeAsync(ctx.User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
 
                 if (canImpersonate)
                 {
