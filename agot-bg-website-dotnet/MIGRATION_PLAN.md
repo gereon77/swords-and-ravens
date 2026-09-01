@@ -893,3 +893,74 @@ Follow-up work after first getting the app running locally end-to-end:
     German-locale host would render `33,3 %` instead of `33.3 %`) — always format via
     `.ToString("F1", CultureInfo.InvariantCulture)` instead for any value shown to users.
 
+- **CoreAdmin comparison tab, implemented.** Added the `CoreAdmin` NuGet package alongside the
+  hand-built `Areas/Admin` area (kept, not replaced — see its doc comment/nav entry) purely so the
+  maintainer can compare the two side by side. Known CoreAdmin limitation: it cannot edit `jsonb`
+  columns (`Game.SerializedGame`/`ViewOfGame`), so the hand-built `Admin/Games/Edit` raw-JSON editor
+  remains the only way to edit those. Longer-term idea (not started): reuse the hand-built admin
+  panel's UI/permissions model so High Members (not just Admins) can use a subset of it.
+- **Dead `PhoneNumber`/`PhoneNumberConfirmed` fields, fixed.** These were still visible via
+  CoreAdmin and in the "download my private data" JSON export despite the `RemovePhoneNumberField`
+  EF migration having already dropped the columns — the migration only removed the *database*
+  columns, but `ApplicationUser` still inherited them from `IdentityUser<Guid>` in memory (EF Core's
+  reflection-based CoreAdmin scaffolding and the data-export code both read off the CLR type, not
+  the DB schema). Fixed by shadowing both with `internal new` no-op properties on `ApplicationUser`.
+- **`GameStateColumnRight` rename, implemented.** The user setting that used to be named
+  `UseResponsiveLayoutOnMobile` (legacy/unused Django name, never actually wired to a Django
+  migration) is now really used for "load the game with the game-state column aligned to the
+  right", so the EF Core column/property was renamed via a data-preserving `RenameColumn`
+  migration. The public user-settings API still emits/accepts the JSON key
+  `use_responsive_layout_on_mobile` (via `[JsonPropertyName]`) so the TypeScript game server needs
+  no corresponding change.
+- **Enhanced Games/MyGames lists, implemented** (`Services/GameListing/GameListQueryService.cs` +
+  `Pages/Shared/_GamesTable.cshtml`, mirroring Django's `views.py`/`views_helpers.py`
+  `games()`/`enrich_games()`): round/waiting-for tooltip, live/PBEM badge, house icon +
+  your-turn/playing badge, unread public/private message badges (batched into 2 queries total,
+  not one per room), replacement-needed badge + admin "Join as ..." action, password-protected
+  lock badge, X/Y player count, and four extra lists (games waiting for inactive players /
+  without a move for 5 days / inactive tournament games / inactive private games), gated behind
+  the same `CanPlayAsAnotherPlayer`/`CanCancelGame` permissions as the existing admin features.
+  Every query projects into a DTO that never selects `SerializedGame` (the .NET equivalent of
+  Django's `.defer('serialized_game')`, done to avoid the same OOM issue that pattern was
+  originally added for). **EF Core gotcha found here**: `OrderBy`/`Take` must be applied to the
+  `IQueryable<Game>` *before* the record-projecting `.Select(...)`, not after — ordering after a
+  projection containing a nested collection subquery (`Players.Select(...).ToList()`) fails to
+  translate against Npgsql, even though it silently "works" against the EF Core InMemory provider
+  used by this repo's unit tests. Always spot-check new EF Core projection code against the real
+  `snr_dotnet` Postgres dev database, not just the InMemory-provider test suite.
+
+## 15. Roadmap / follow-ups (as of 2026-09-01)
+
+Kept up to date here so a fresh session can answer "what's next" immediately without having to
+re-derive it. Update this section whenever priorities shift or an item is completed.
+
+### Before go-live (blocking rollout, see §11/§12)
+1. **Instagram OIDC** — needs a Meta developer app + app review for the "Instagram API with
+   Instagram Login" product before it works for real (non-test) users; start the review process
+   early, it can take days/weeks.
+2. **Full data-migration dry run** — restore a production DB snapshot, run `Snr.Migration` against
+   it, and smoke-test end-to-end: login via all 3 OIDC providers + local, the account-claiming
+   flow, chat, and game create/join — not just spot-checked tables.
+3. **Static asset hosting decision** — serve `static_game` directly from Kestrel (simplest) vs.
+   keep the S3/CDN split Django uses in production (`ASSET_PATH` already supports a CDN prefix
+   either way, so this is low-risk to defer).
+4. **Two small open questions from §12** — should `PreviousPlayerInGame` backfill include
+   `CANCELLED` games, and should win-rate stay `FINISHED`-only now that removal tracking exists.
+
+### Deferred / nice-to-have (see §13), suggested rough order
+1. **Precomputed `PlayerStatistics` table** — win-rate/PBEM response time are recomputed on every
+   profile view today; update incrementally when a game finishes instead.
+2. **Public game statistics page** — house win-rates by game mode/settings, now that data is
+   relational instead of Django's free-form `ViewOfGame.settings` JSON.
+3. **Extended Admin: chat moderation** — browse/search/delete chat messages, edit user profile
+   fields (`ProfileText`, `MuteGames`, settings flags) directly from the admin UI.
+4. **CoreAdmin → hand-built admin reuse for High Members** — expose a subset of the hand-built
+   `Areas/Admin` UI/permissions to High Members (not just Admins), once it's more battle-tested.
+5. **UI theme pass** — Tailwind/DaisyUI dark "Swords and Ravens" theme instead of today's default
+   Identity-scaffold look, once functionality is stable.
+
+### Already done, no longer on the list
+Pagination for Admin Users/Games/Rooms/Messages; CoreAdmin comparison tab; dead phone-number field
+cleanup; `GameStateColumnRight` rename; enhanced Games/MyGames lists with badges + inactive-game
+lists (all documented under §14 above).
+
