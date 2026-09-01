@@ -1,3 +1,4 @@
+using System.Text.Json;
 using agot_bg_website.Api;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
@@ -12,6 +13,23 @@ using Microsoft.Extensions.FileProviders;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The /api/* Minimal API endpoints (Api/UsersApi.cs, GamesApi.cs, RoomsApi.cs,
+// NotificationsApi.cs) are the private REST contract the TS game server's
+// WebsiteClient.ts/LiveWebsiteClient.ts speak — a straight port of Django's snake_case DRF
+// serializers (see MIGRATION_PLAN.md §6). The DTOs in Api/Dtos.cs were written assuming this
+// naming policy was configured, but it never actually was, so every response silently serialized
+// with ASP.NET Core's Minimal API default (camelCase) instead of snake_case — e.g. UserDto's
+// GameToken came back as "gameToken", not "game_token", which is why
+// GlobalServer.ts's `userData.token != authToken` check (userData.token being undefined) always
+// failed once real credentials were wired up. PropertyNamingPolicy affects both directions
+// (serializing responses AND binding incoming PATCH/POST bodies), so this single fix also makes
+// GamesApi's PATCH body (serialized_game/view_of_game/update_last_active/...) and RoomsApi's
+// CreateRoomDto (max_retrieve_count) bind correctly, which likely never worked either.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+});
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

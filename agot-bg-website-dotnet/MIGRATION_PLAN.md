@@ -375,6 +375,28 @@ credentials against `MASTER_API_USERNAME`/`MASTER_API_PASSWORD` config values (t
 vars the game server already sends — see `LiveWebsiteClient.ts`). No code changes needed on the
 Node side.
 
+**Bug found & fixed while first testing against the real `LiveWebsiteClient`:** the DTOs in
+`Api/Dtos.cs` were written assuming a global `JsonNamingPolicy.SnakeCaseLower` was configured (its
+header comment says so), but that configuration was never actually added to `Program.cs`. Every
+response therefore serialized with ASP.NET Core Minimal API's default (camelCase) instead —
+`UserDto.GameToken` came back as `"gameToken"`, not `"game_token"`, which is the exact field
+`LiveWebsiteClient.ts`'s `getUser()` reads (`response.game_token`). That silently produced
+`undefined` on the TS side, so `GlobalServer.ts`'s `userData.token != authToken` authentication
+check always failed once real (non-default) `MASTER_API_USERNAME`/`MASTER_API_PASSWORD`
+credentials were configured on both sides — this had gone unnoticed until then because nothing
+had exercised the real HTTP round-trip before. Fixed with a single
+`builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy =
+JsonNamingPolicy.SnakeCaseLower)` in `Program.cs`; `PropertyNamingPolicy` applies to both
+directions, so this also fixes `GamesController.Patch`'s body binding (`serialized_game`,
+`view_of_game`, `update_last_active`, ...) and `RoomsController.Create`'s `max_retrieve_count`,
+neither of which had been exercised end-to-end before either. One endpoint needed an explicit
+override on top of this: `GET /api/game/{id}/isCancelled` returns a bare `{ "cancelled": bool }`
+(not `{ "is_cancelled": bool }`), matching `LiveWebsiteClient.ts`'s `isGameCancelled()` which reads
+`response.cancelled` — that property is named `cancelled` directly in the anonymous response
+object rather than relying on the naming policy to derive it from `IsCancelled`.
+`agot-bg-website.Tests/Api/ApiJsonNamingPolicyTests.cs` pins the snake_case wire format down for
+`UserDto`/`GameDto`/`CreateRoomDto` so this can't silently regress back to camelCase again.
+
 ### 6.1 `previous_players` — the one deliberate TS change in this whole plan
 
 Every other endpoint above needs **zero** game-server code changes. This one field is the single

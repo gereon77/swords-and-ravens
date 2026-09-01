@@ -35,7 +35,11 @@ public static class GamesApi
         group.MapGet("/{id:guid}/isCancelled", async (Guid id, ApplicationDbContext db) =>
         {
             var state = await db.Games.Where(g => g.Id == id).Select(g => (GameState?)g.State).FirstOrDefaultAsync();
-            return state is null ? Results.NotFound() : Results.Ok(new { isCancelled = state == GameState.Cancelled });
+            // LiveWebsiteClient.ts's isGameCancelled() reads `response.cancelled` specifically
+            // (not `response.is_cancelled`/`isCancelled`), matching Django's exact response shape
+            // for this one endpoint — keep the property named "cancelled" even though the
+            // snake_case naming policy would otherwise turn "IsCancelled" into "is_cancelled".
+            return state is null ? Results.NotFound() : Results.Ok(new { cancelled = state == GameState.Cancelled });
         });
 
         group.MapPatch("/{id:guid}", async (Guid id, GamePatchDto patch, ApplicationDbContext db) =>
