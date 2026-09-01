@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Scalar.AspNetCore;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -179,6 +180,32 @@ builder.Services.AddAuthorizationBuilder()
         policy.AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName).RequireAuthenticatedUser())
     .AddPolicy("AdminArea", policy => policy.RequireRole(RoleNames.Admin));
 
+// Built-in ASP.NET Core OpenAPI (Microsoft.AspNetCore.OpenApi), not Swashbuckle/Swagger, generates
+// the underlying document; Scalar.AspNetCore renders an interactive "try it out" UI on top of it
+// at /api/docs (see MapOpenApi/MapScalarApiReference below) — deliberately Scalar rather than
+// Swagger UI, per preference. A single document (the default name "v1", left unnamed here on
+// purpose) describes only PublicApi (api/public/game/{id}, api/PUBLIC_API.md), the one JSON REST
+// endpoint meant for outside consumption. PlayApi returns HTML rather than JSON, and
+// UsersApi/GamesApi/RoomsApi/NotificationsApi are the private, Basic-Auth-only, port-restricted
+// game-server contract (see MIGRATION_PLAN.md §6.2) that only the TS game server should ever call,
+// so both are deliberately left out of the generated document via ShouldInclude, filtering on the
+// "public" endpoint-group name PublicApi.cs tags its group with (not to be confused with this
+// document's own "v1" name) so any endpoint added later without a group name doesn't leak into
+// /api/docs by accident.
+builder.Services.AddOpenApi(options =>
+{
+    options.ShouldInclude = description => description.GroupName == "public";
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info.Title = "Swords and Ravens Public API";
+        document.Info.Description =
+            "Read-only public REST endpoints for outside consumption. Anonymous/unauthenticated " +
+            "— no login or credentials required.";
+        document.Info.Version = "v1";
+        return Task.CompletedTask;
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -238,7 +265,7 @@ app.MapDefaultControllerRoute();
 // port needs to be published to the host/internet — the GameServerApi port stays reachable only
 // from sibling containers on the same compose network (i.e. the game server), giving
 // defense-in-depth beyond the Basic Auth credentials alone even if those ever leaked. PublicApi
-// (session-cookie-authenticated, used by the browser client) and PlayApi/ChatWebSocket (used by
+// (anonymous, used by third-party sites/front-end tooling) and PlayApi/ChatWebSocket (used by
 // signed-in users directly) are intentionally left reachable on every configured endpoint.
 var gameServerApiPort = new Uri(
     builder.Configuration["Kestrel:Endpoints:GameServerApi:Url"] ?? "http://0.0.0.0:8001").Port;
@@ -249,6 +276,15 @@ app.MapPublicApi();
 app.MapNotificationsApi().RequireLocalPort(gameServerApiPort);
 app.MapPlayApi();
 app.MapChatWebSocket();
+
+// Generated OpenAPI document for the "public" group only (see AddOpenApi/ShouldInclude above),
+// raw JSON at the framework's own default route (/openapi/v1.json, since the document was left
+// unnamed so it gets the default name "v1") plus an interactive, "try it out"-capable UI on top of
+// it via Scalar.AspNetCore (https://github.com/scalar/scalar) — deliberately not Swagger UI, per
+// preference — browsable at /api/docs, e.g. https://localhost:8000/api/docs.
+app.MapOpenApi();
+app.MapScalarApiReference("/api/docs", options => options.WithTitle("Swords and Ravens Public API"));
+
 
 using (var scope = app.Services.CreateScope())
 {

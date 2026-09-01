@@ -364,7 +364,7 @@ Goal: **the TypeScript `WebsiteClient`/`LiveWebsiteClient.ts` contract in `agot-
 | `POST /api/addPbemResponseTime/{userId}/{responseTime}` | `NotificationsController.AddPbemResponseTime` | |
 | `DELETE /api/clearChatRoom/{roomId}` | `ChatAdminController.ClearRoom` | |
 | `GET /api/game/{id}/isCancelled` | `GamesController.IsCancelled` | |
-| `GET /api/public/game/{id}` | `PublicController.GetGameView` | Same sanitization: strip `replacerIds, oldPlayerIds, waitingForIds, publicChatRoomId, timeoutPlayerIds`; rename `turn` → `round`. Session-cookie-authenticated per `api/PUBLIC_API.md`. |
+| `GET /api/public/game/{id}` | `PublicController.GetGameView` | Same sanitization: strip `replacerIds, oldPlayerIds, waitingForIds, publicChatRoomId, timeoutPlayerIds`; rename `turn` → `round`. Anonymous/unauthenticated (matches Django's actual `@permission_classes([])`/AllowAny — `api/PUBLIC_API.md`'s "Authentication Required: Yes" is stale docs, contradicted by the view's own docstring), so third-party sites can fetch live game state directly without forwarding cookies or hitting CORS/credentials issues. Documented at `/api/docs` via the built-in ASP.NET Core OpenAPI generator (`Microsoft.AspNetCore.OpenApi`, not Swashbuckle) — see §6.3. |
 
 Implementation note: these endpoints are implemented as **Minimal API** endpoint groups
 (`MapGroup("/api")...MapGet/MapPost/MapPatch`), not MVC controllers — no `[ApiController]` classes,
@@ -563,6 +563,50 @@ both found by testing rather than assumed:
   `WWW-Authenticate` challenge, confirmed via a live curl test matrix (public port + private path,
   with and without a spoofed `Host` header, both 404; private port + private path without auth,
   401 as expected; both ports still serve their legitimate public routes with 200).
+
+### 6.3 `/api/docs` — interactive OpenAPI UI for the public API only (implemented)
+
+`Microsoft.AspNetCore.OpenApi` (the framework's own built-in generator, **not** Swashbuckle/Swagger
+— see [the ASP.NET Core OpenAPI docs](https://learn.microsoft.com/aspnet/core/fundamentals/openapi/aspnetcore-openapi))
+is wired up in `Program.cs` to publish a single OpenAPI document at the framework's default route,
+`GET /openapi/v1.json`. `Scalar.AspNetCore` (https://github.com/scalar/scalar) renders an
+interactive, "try it out"-capable UI on top of that document at `GET /api/docs` — deliberately
+Scalar rather than Swagger UI, per preference. Both are reachable on any configured Kestrel
+endpoint. The document describes **only** `PublicApi` (`/api/public/game/{id}`) — the one JSON REST
+endpoint meant for outside/third-party consumption. `PlayApi` returns HTML, not JSON, and
+`UsersApi`/`GamesApi`/`RoomsApi`/`NotificationsApi` are the private, Basic-Auth-only,
+port-restricted game-server contract from §6.2 that only the TS game server should ever call — both
+are deliberately excluded from the generated document, not merely undocumented.
+
+**How the filtering works:** `PublicApi.MapPublicApi()` tags its route group with
+`.WithGroupName("public")`. `AddOpenApi`'s `options.ShouldInclude` is set explicitly to
+`description => description.GroupName == "public"` rather than relying on the framework's default
+"include endpoints with no group name too" behavior, so any future endpoint added without a group
+name doesn't silently leak into `/api/docs`.
+
+**Why the raw document stays at the default `/openapi/v1.json` route instead of `/api/docs`
+itself:** the document is left **unnamed** (so it gets the framework's own default name, `"v1"`)
+and mapped with a plain `app.MapOpenApi()` (no custom route). `app.MapScalarApiReference("/api/docs", ...)`
+is a separate endpoint that serves the interactive UI's HTML/JS and, by default, already knows to
+fetch the OpenAPI document from `/openapi/{documentName}.json` for whichever document(s) are
+registered — no extra wiring needed to point it at the right JSON. (An early attempt served the raw
+JSON itself directly at `/api/docs` via `MapOpenApi("/api/docs")` with an explicitly-named "public"
+document; that mismatch between the document's registered name and the query-less fallback's
+hardcoded expectation of `"v1"` made `/api/docs` 404 every time — found by testing, not assumed.
+Switching to the default unnamed/"v1" document and letting Scalar own the `/api/docs` route instead
+sidesteps that whole class of route-vs-document-name mismatch.)
+
+**Anonymous access, matching Django:** `PublicApi`'s route group has no
+`.RequireAuthorization()` at all. This matches Django's *actual* behavior — `api/views.py`'s
+`get_game_view` uses `@permission_classes([])` (`AllowAny`), and its own docstring says "Public API
+endpoint for anonymous access to view_of_game" — even though `api/PUBLIC_API.md` claims
+"Authentication Required: Yes" (stale docs, contradicted by the code). An earlier version of this
+port required a session cookie here, which was a bug: requiring auth defeats the point of a
+"public" endpoint for third-party sites embedding live game state, since they have neither a
+same-site session cookie to forward nor any interest in an OAuth login flow, and since a
+credentialed cross-origin request also runs into CORS preflight/credentials complications that a
+plain, anonymous, cookie-less GET avoids entirely. Fixed to have no authorization requirement,
+matching Django.
 
 ## 7. Chat (`Snr.Web/Chat`) — WebSocket handler mirroring `consumers.py`
 
