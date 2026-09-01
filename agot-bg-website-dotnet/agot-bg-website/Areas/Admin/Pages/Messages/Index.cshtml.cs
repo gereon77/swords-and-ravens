@@ -24,7 +24,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public int Page { get; set; } = 1;
+    public int PageNumber { get; set; } = 1;
 
     public List<Message> Messages { get; set; } = [];
 
@@ -53,7 +53,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
             query = query.Where(m => EF.Functions.ILike(m.Text, $"%{normalized}%"));
         }
 
-        var paged = await query.OrderByDescending(m => m.CreatedAt).ToPagedResultAsync(Page, PageSize);
+        var paged = await query.OrderByDescending(m => m.CreatedAt).ToPagedResultAsync(PageNumber, PageSize);
         Messages = paged.Items;
         Pager = paged.Pager;
     }

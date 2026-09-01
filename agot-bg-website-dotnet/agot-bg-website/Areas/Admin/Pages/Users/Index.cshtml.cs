@@ -17,7 +17,7 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public int Page { get; set; } = 1;
+    public int PageNumber { get; set; } = 1;
 
     public List<ApplicationUser> Users { get; set; } = [];
 
@@ -40,7 +40,7 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
                 u.Id.ToString() == normalized);
         }
 
-        var paged = await query.OrderBy(u => u.UserName).ToPagedResultAsync(Page, PageSize);
+        var paged = await query.OrderBy(u => u.UserName).ToPagedResultAsync(PageNumber, PageSize);
         Users = paged.Items;
         Pager = paged.Pager;
 
@@ -71,7 +71,7 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
             StatusMessage = $"{user.UserName} has been banned.";
         }
 
-        return RedirectToPage(new { Search, Page });
+        return RedirectToPage(new { Search, PageNumber });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
@@ -86,6 +86,6 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
         await accountDeletionService.DeleteAccountAsync(user);
         StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
 
-        return RedirectToPage(new { Search, Page });
+        return RedirectToPage(new { Search, PageNumber });
     }
 }

@@ -51,12 +51,12 @@
                         @if (!user.IsDeleted)
                         {
                             <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@user.Id">Edit roles</a>
-                            <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-Page="@Model.Page">
+                            <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
                                 <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
                                     @(isBanned ? "Unban" : "Ban")
                                 </button>
                             </form>
-                            <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-Page="@Model.Page" onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber" onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
                                 <button type="submit" class="btn btn-sm btn-error">Delete</button>
                             </form>
                         }

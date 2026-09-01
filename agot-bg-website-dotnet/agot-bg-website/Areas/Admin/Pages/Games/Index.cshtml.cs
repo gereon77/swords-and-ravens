@@ -15,7 +15,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public int Page { get; set; } = 1;
+    public int PageNumber { get; set; } = 1;
 
     public List<Game> Games { get; set; } = [];
 
@@ -35,7 +35,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
                 g.Id.ToString() == normalized);
         }
 
-        var paged = await query.OrderByDescending(g => g.LastActiveAt).ToPagedResultAsync(Page, PageSize);
+        var paged = await query.OrderByDescending(g => g.LastActiveAt).ToPagedResultAsync(PageNumber, PageSize);
         Games = paged.Items;
         Pager = paged.Pager;
     }

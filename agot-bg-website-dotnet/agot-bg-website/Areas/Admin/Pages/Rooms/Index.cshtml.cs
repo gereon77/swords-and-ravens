@@ -15,7 +15,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public int Page { get; set; } = 1;
+    public int PageNumber { get; set; } = 1;
 
     public List<Room> Rooms { get; set; } = [];
 
@@ -34,7 +34,7 @@ public class IndexModel(ApplicationDbContext db) : PageModel
                 r.Id.ToString() == normalized);
         }
 
-        var paged = await query.OrderByDescending(r => r.CreatedAt).ToPagedResultAsync(Page, PageSize);
+        var paged = await query.OrderByDescending(r => r.CreatedAt).ToPagedResultAsync(PageNumber, PageSize);
         Rooms = paged.Items;
         Pager = paged.Pager;
 

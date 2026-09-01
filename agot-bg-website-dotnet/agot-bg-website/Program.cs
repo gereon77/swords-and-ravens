@@ -38,6 +38,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+// Third-party "CoreAdmin" NuGet package, added purely for side-by-side comparison against the
+// hand-built Admin area above (Users/Games/Rooms/Messages). It auto-scans ApplicationDbContext
+// and generates generic CRUD grids for every DbSet — the closest off-the-shelf equivalent to
+// Django's built-in admin site. It needs classic MVC controllers (AddControllersWithViews +
+// MapDefaultControllerRoute below), unlike the rest of this app which is Razor Pages only.
+// Gated to the same Admin role as the custom Admin area via the "Admin" role name argument.
+builder.Services.AddControllersWithViews();
+builder.Services.AddCoreAdmin(RoleNames.Admin);
+
+
 // GDPR: require explicit cookie consent (via _CookieConsentPartial.cshtml) before any
 // non-essential cookie is written. Identity's own auth cookies are marked "Essential" by the
 // framework, so signing in/out keeps working even before a visitor accepts the banner.
@@ -178,6 +188,10 @@ app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
 
+// CoreAdmin (see registration comment above) serves its own embedded static assets outside of
+// MapStaticAssets's manifest-based approach, so it needs the classic static files middleware too.
+app.UseStaticFiles();
+
 // The game client's webpack bundle is built with publicPath "/static/" (matching Django's
 // STATIC_URL, since webpack.client.local.js is shared between both website rewrites — see
 // MIGRATION_PLAN.md §8), but build_and_place_game_client_into_dotnet.ps1/.sh places the built
@@ -201,6 +215,7 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+app.MapDefaultControllerRoute();
 
 // Minimal API groups — the REST contract the game server speaks, see MIGRATION_PLAN.md §6.
 app.MapUsersApi();
