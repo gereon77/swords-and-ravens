@@ -5,13 +5,13 @@
     ViewData["Title"] = Model.ViewedUser.DisplayName;
 }
 
-<div class="mb-4">
+<div class="mb-6">
     <h1 class="text-2xl font-bold flex items-center gap-2 flex-wrap">
         @foreach (var (name, badgeClass) in Model.UserGroups)
         {
-            <span class="badge @badgeClass">@name</span>
+            <span class="badge @badgeClass badge-lg">@name</span>
         }
-        @Model.ViewedUser.DisplayName
+        <span>@Model.ViewedUser.DisplayName</span>
         @if (!string.IsNullOrEmpty(Model.ViewedUser.LastWonTournament))
         {
             <span class="tooltip text-warning" data-tip="Winner of @Model.ViewedUser.LastWonTournament">🏆</span>
@@ -23,58 +23,56 @@
     }
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
     <div class="lg:col-span-3">
-        <div class="card bg-base-200 shadow-md p-4">
-            <table class="table">
-                <tbody>
-                    <tr>
-                        <td><b>Last activity</b></td>
-                        <td>@Model.RelativeLastActivity</td>
-                    </tr>
-                    <tr>
-                        <td><b>Joined on</b></td>
-                        <td>@Model.ViewedUser.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
-                    </tr>
-                    <tr>
-                        <td><b>Ongoing games</b></td>
-                        <td>@Model.OngoingCount</td>
-                    </tr>
-                    <tr>
-                        <td><b>Finished games</b></td>
-                        <td>@Model.FinishedCount</td>
-                    </tr>
-                    <tr>
-                        <td><b>Won games</b></td>
-                        <td>@Model.WonCount</td>
-                    </tr>
-                    <tr>
-                        <td><b>Replaced/left early</b></td>
-                        <td>@Model.RemovedFromGameCount</td>
-                    </tr>
-                    <tr>
-                        <td><b>Win rate</b></td>
-                        <td>@Model.WinRateDisplay</td>
-                    </tr>
-                    <tr>
-                        <td><b>Average PBEM<br />response time</b></td>
-                        <td>@Model.AveragePbemResponseTimeDisplay</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="card bg-base-200 shadow-md border border-base-300 p-6">
+            <ul class="flex flex-col divide-y divide-base-300">
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Last activity</span>
+                    <span class="text-base-content/80 text-right">@Model.RelativeLastActivity</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Joined on</span>
+                    <span class="text-base-content/80 text-right">@Model.ViewedUser.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Ongoing games</span>
+                    <span class="badge badge-warning badge-lg">@Model.OngoingCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Finished games</span>
+                    <span class="badge badge-neutral badge-lg">@Model.FinishedCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Won games</span>
+                    <span class="badge badge-success badge-lg">@Model.WonCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Replaced/left early</span>
+                    <span class="badge badge-error badge-lg">@Model.RemovedFromGameCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Win rate</span>
+                    <span class="badge badge-info badge-lg">@Model.WinRateDisplay</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Average PBEM<br />response time</span>
+                    <span class="text-base-content/80 text-right">@Model.AveragePbemResponseTimeDisplay</span>
+                </li>
+            </ul>
         </div>
     </div>
 
     <div class="lg:col-span-9">
-        <div class="card bg-base-200 shadow-md p-4">
-            <h2 class="text-lg font-semibold mb-2">Games</h2>
+        <div class="card bg-base-200 shadow-md border border-base-300 p-6">
+            <h2 class="text-lg font-semibold mb-3">Games</h2>
             @if (Model.GamesOfUser.Count == 0)
             {
                 <p class="opacity-70">No games</p>
             }
             else
             {
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto rounded-box border border-base-300">
                     <table class="table table-zebra">
                         <thead>
                             <tr>
@@ -113,7 +111,7 @@
                                                 <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
                                             </span>
                                         }
-                                        <a class="link link-primary font-semibold" href="/play/@game.GameId">@game.Name</a>
+                                        <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                     </td>
                                     <td class="text-center">
                                         @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
@@ -144,9 +142,9 @@
 
         @if (Model.CancelledGames.Count > 0)
         {
-            <div class="card bg-base-200 shadow-md p-4 mt-4">
-                <h2 class="text-lg font-semibold mb-2">Cancelled games</h2>
-                <div class="overflow-x-auto">
+            <div class="card bg-base-200 shadow-md border border-base-300 p-6 mt-6">
+                <h2 class="text-lg font-semibold mb-3">Cancelled games</h2>
+                <div class="overflow-x-auto rounded-box border border-base-300">
                     <table class="table table-zebra">
                         <thead>
                             <tr>

@@ -4,7 +4,7 @@
     ViewData["Title"] = "All Games";
 }
 
-<h1 class="text-2xl font-bold mb-4">All Games</h1>
+<h1 class="text-2xl font-bold mb-6">All Games</h1>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -13,25 +13,25 @@
 
 @if (Model.CanCreateGame)
 {
-    <div class="card bg-base-200 shadow-md p-4 mb-6">
-        <h2 class="text-lg font-semibold mb-2">Create a new game</h2>
-        <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row gap-2">
+    <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
+        <h2 class="text-lg font-semibold mb-3">Create a new game</h2>
+        <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row sm:items-center gap-3">
             <input type="text" name="name" class="input input-bordered flex-1" placeholder="Enter game name..." maxlength="200" required />
-            <button type="submit" class="btn btn-primary">Create Game</button>
+            <button type="submit" class="btn btn-primary w-full sm:w-auto px-8">Create Game</button>
         </form>
     </div>
 }
 
-<section class="mb-8">
-    <h2 class="text-xl font-semibold mb-2">Open games <span class="badge">@Model.OpenGames.Count</span></h2>
+<section class="mb-10">
+    <h2 class="text-xl font-semibold mb-3">Open games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.OpenGames.Count</span></h2>
     @if (Model.OpenGames.Count == 0)
     {
         <p class="opacity-70">No open games right now.</p>
     }
     else
     {
-        <div class="overflow-x-auto">
-            <table class="table">
+        <div class="overflow-x-auto rounded-box border border-base-300">
+            <table class="table table-zebra">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -45,9 +45,9 @@
                     {
                         <tr>
                             <td>
-                                <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
+                                <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                             </td>
-                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId">@game.OwnerUser.DisplayName</a> }</td>
+                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
                             <td>@game.Players.Count</td>
                             <td>@game.CreatedAt.ToLocalTime().ToString("g")</td>
                         </tr>
@@ -59,15 +59,15 @@
 </section>
 
 <section>
-    <h2 class="text-xl font-semibold mb-2">Ongoing games <span class="badge">@Model.OngoingGames.Count</span></h2>
+    <h2 class="text-xl font-semibold mb-3">Ongoing games <span class="badge badge-warning badge-lg align-middle ml-1">@Model.OngoingGames.Count</span></h2>
     @if (Model.OngoingGames.Count == 0)
     {
         <p class="opacity-70">No ongoing games right now.</p>
     }
     else
     {
-        <div class="overflow-x-auto">
-            <table class="table">
+        <div class="overflow-x-auto rounded-box border border-base-300">
+            <table class="table table-zebra">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -81,9 +81,9 @@
                     {
                         <tr>
                             <td>
-                                <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
+                                <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                             </td>
-                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId">@game.OwnerUser.DisplayName</a> }</td>
+                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
                             <td>@game.Players.Count</td>
                             <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
                         </tr>

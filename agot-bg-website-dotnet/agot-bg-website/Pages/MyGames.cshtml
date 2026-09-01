@@ -4,7 +4,7 @@
     ViewData["Title"] = "My Games";
 }
 
-<h1 class="text-2xl font-bold mb-4">My Games</h1>
+<h1 class="text-2xl font-bold mb-6">My Games</h1>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -13,11 +13,11 @@
 
 @if (Model.CanCreateGame)
 {
-    <div class="card bg-base-200 shadow-md p-4 mb-6">
-        <h2 class="text-lg font-semibold mb-2">Create a new game</h2>
-        <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row gap-2">
+    <div class="card bg-base-200 shadow-md border border-base-300 p-6 mb-8">
+        <h2 class="text-lg font-semibold mb-3">Create a new game</h2>
+        <form method="post" asp-page-handler="CreateGame" class="flex flex-col sm:flex-row sm:items-center gap-3">
             <input type="text" name="name" class="input input-bordered flex-1" placeholder="Enter game name..." maxlength="200" required />
-            <button type="submit" class="btn btn-primary">Create Game</button>
+            <button type="submit" class="btn btn-primary w-full sm:w-auto px-8">Create Game</button>
         </form>
     </div>
 }
@@ -28,8 +28,8 @@
 }
 else
 {
-    <div class="overflow-x-auto">
-        <table class="table">
+    <div class="overflow-x-auto rounded-box border border-base-300">
+        <table class="table table-zebra">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -44,9 +44,9 @@ else
                 {
                     <tr>
                         <td>
-                            <a class="link link-primary font-semibold" href="/play/@game.Id">@game.Name</a>
+                            <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                         </td>
-                        <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId">@game.OwnerUser.DisplayName</a> }</td>
+                        <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
                         <td>@game.State</td>
                         <td>@game.Players.Count</td>
                         <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>

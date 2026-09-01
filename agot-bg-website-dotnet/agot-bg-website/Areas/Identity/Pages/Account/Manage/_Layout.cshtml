@@ -9,17 +9,20 @@
     }
 }
 
-<h1>Manage your account</h1>
+<h1 class="text-2xl font-bold mb-1">Manage your account</h1>
 
 <div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-md-3">
-            <partial name="_ManageNav" />
+    <h2 class="text-lg font-semibold text-base-content/80 mb-4">Change your account settings</h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div class="md:col-span-3">
+            <div class="card bg-base-200 shadow-md border border-base-300 p-4">
+                <partial name="_ManageNav" />
+            </div>
         </div>
-        <div class="col-md-9">
-            @RenderBody()
+        <div class="md:col-span-9">
+            <div class="card bg-base-200 shadow-md border border-base-300 p-6">
+                @RenderBody()
+            </div>
         </div>
     </div>
 </div>
