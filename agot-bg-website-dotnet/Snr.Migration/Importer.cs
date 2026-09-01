@@ -95,7 +95,7 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
                     MuteGames = legacyUser.MuteGames,
                     UseHouseNamesForChat = legacyUser.UseHouseNamesForChat,
                     UseMapScrollbar = legacyUser.UseMapScrollbar,
-                    UseResponsiveLayoutOnMobile = legacyUser.UseResponsiveLayoutOnMobile,
+                    GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile,
                     LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime,
                     LastActivity = legacyUser.LastActivity,
                     VanillaForumUserId = legacyUser.VanillaForumUserId,
@@ -116,7 +116,7 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
                 existing.MuteGames = legacyUser.MuteGames;
                 existing.UseHouseNamesForChat = legacyUser.UseHouseNamesForChat;
                 existing.UseMapScrollbar = legacyUser.UseMapScrollbar;
-                existing.UseResponsiveLayoutOnMobile = legacyUser.UseResponsiveLayoutOnMobile;
+                existing.GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile;
                 existing.LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime;
                 existing.LastActivity = legacyUser.LastActivity;
                 existing.VanillaForumUserId = legacyUser.VanillaForumUserId;

@@ -41,7 +41,15 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public bool UseMapScrollbar { get; set; } = true;
 
-    public bool UseResponsiveLayoutOnMobile { get; set; }
+    /// <summary>
+    /// Renders the in-game state column on the right instead of the left. Named
+    /// UseResponsiveLayoutOnMobile in the legacy Django schema/column (never migrated there - see
+    /// MIGRATION_PLAN.md §4.2) but that name no longer matches what the setting actually controls; the
+    /// game server's ClientMessage/API contract still needs the old `use_responsive_layout_on_mobile`
+    /// JSON key though (see UserDto in agot-bg-website/Api/Dtos.cs), so only the DB column/CLR property
+    /// were renamed here, not the wire format.
+    /// </summary>
+    public bool GameStateColumnRight { get; set; }
 
     [PersonalData]
     public DateTimeOffset? LastUsernameUpdateTime { get; set; }

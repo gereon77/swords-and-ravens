@@ -33,7 +33,7 @@ public static class UsersApi
                 user.MuteGames,
                 user.UseHouseNamesForChat,
                 user.UseMapScrollbar,
-                user.UseResponsiveLayoutOnMobile,
+                user.GameStateColumnRight,
                 (IReadOnlyList<string>)roles.ToList());
 
             return Results.Ok(dto);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace agot_bg_website.Api;
 
@@ -14,7 +15,10 @@ public record UserDto(
     bool MuteGames,
     bool UseHouseNamesForChat,
     bool UseMapScrollbar,
-    bool UseResponsiveLayoutOnMobile,
+    // Renamed to GameStateColumnRight on ApplicationUser (see its doc comment) - the game server's
+    // wire contract still expects the legacy `use_responsive_layout_on_mobile` JSON key, so pin it
+    // explicitly rather than let it follow the new CLR/property name.
+    [property: JsonPropertyName("use_responsive_layout_on_mobile")] bool GameStateColumnRight,
     IReadOnlyList<string> Groups);
 
 public record PlayerInGamePatchDto(Guid User, JsonElement Data);

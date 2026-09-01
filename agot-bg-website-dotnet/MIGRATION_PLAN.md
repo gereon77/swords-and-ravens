@@ -125,7 +125,10 @@ User (Identity user, extended)
   MuteGames                      bool  default false
   UseHouseNamesForChat           bool  default false
   UseMapScrollbar                bool  default true
-  UseResponsiveLayoutOnMobile    bool  default false
+  GameStateColumnRight           bool  default false // renders in-game state column on right; named
+                                                       // UseResponsiveLayoutOnMobile in the legacy
+                                                       // Django column/API JSON (never renamed there
+                                                       // - see MIGRATION_PLAN.md §6 for the API translation)
   LastUsernameUpdateTime         DateTimeOffset?
   LastActivity                   DateTimeOffset
   VanillaForumUserId             int   default 0   // kept only if the forum integration is still wanted
@@ -354,7 +357,7 @@ Goal: **the TypeScript `WebsiteClient`/`LiveWebsiteClient.ts` contract in `agot-
 
 | Django route (`api/urls.py`) | ASP.NET Core equivalent | Notes |
 |---|---|---|
-| `GET /api/user/{id}` | `UsersController.Get(Guid id)` | Same fields: `id, username, game_token, is_staff, mute_games, use_house_names_for_chat, use_map_scrollbar, use_responsive_layout_on_mobile, groups`. |
+| `GET /api/user/{id}` | `UsersController.Get(Guid id)` | Same fields: `id, username, game_token, is_staff, mute_games, use_house_names_for_chat, use_map_scrollbar, use_responsive_layout_on_mobile, groups`. The DB column/CLR property backing the last one is `GameStateColumnRight` (renamed to match what it actually controls - see §4.2); `UserDto` pins the JSON key back to `use_responsive_layout_on_mobile` via `[JsonPropertyName]` so the game server needs no change. |
 | `GET/PATCH /api/game/{id}` | `GamesController.Get/Patch` | `PATCH` body: `serialized_game, state, version, view_of_game, players[], update_last_active` — same partial-update semantics as `GameSerializer.update`. **Plus new optional `previous_players[]` field, see §6.1.** |
 | `POST /api/room` | `RoomsController.Create` | Same body shape (`name, public, users, max_retrieve_count`). |
 | `POST /api/notifyReadyToStart/{gameId}` etc. (5 notify endpoints) | `NotificationsController` actions | Same mail templates, same "only email users with notifications enabled" filter. |
