@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Swords and Ravens</title>
+    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/fontawesome/css/solid.min.css" asp-append-version="true" />
@@ -16,7 +17,8 @@
         <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
             <div class="container flex items-center justify-between">
                 <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide" asp-area="" asp-page="/Index">
-                    &#x1F426; Swords and Ravens
+                    <img src="~/raven.svg" asp-append-version="true" alt="" width="24" height="24" class="inline-block" />
+                    Swords and Ravens
                 </a>
                 <div class="flex items-center gap-1">
                     @if (User.Identity?.IsAuthenticated ?? false)
