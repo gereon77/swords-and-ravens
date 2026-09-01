@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/agot_bg_website.styles.css" asp-append-version="true" />
 </head>
-<body class="min-h-screen bg-base-100 text-base-content flex flex-col">
-    <header>
+<body class="h-screen bg-base-100 text-base-content flex flex-col overflow-hidden">
+    <header class="shrink-0">
         <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
             <div class="container flex items-center justify-between">
                 <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide" asp-area="" asp-page="/Index">
@@ -34,13 +34,13 @@
             </div>
         </nav>
     </header>
-    <div class="container flex-1">
+    <div class="container flex-1 min-h-0 overflow-y-auto">
         <main role="main" class="pb-3 pt-6">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-t border-base-300 py-3 text-sm opacity-70">
+    <footer class="border-t border-base-300 py-3 text-sm opacity-70 shrink-0">
         <div class="container flex items-center justify-center gap-1">
             <span>&copy; 2026 - Swords and Ravens -</span>
             <a class="link link-hover" asp-area="" asp-page="/Privacy">Privacy</a>
