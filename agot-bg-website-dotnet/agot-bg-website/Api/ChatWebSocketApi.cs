@@ -274,7 +274,10 @@ public static class ChatWebSocketApi
         }
     }
 
-    private static async Task NotifyChatPartnerAsync(
+    // Internal (not private) so ChatWebSocketApiTests can exercise the private-message email
+    // notification path directly against an in-memory DbContext/cache/fake IEmailSender, without
+    // needing a live WebSocket/Redis connection.
+    internal static async Task NotifyChatPartnerAsync(
         HttpContext context, ApplicationDbContext db, IMemoryCache memoryCache, IEmailSender emailSender,
         Guid roomId, ApplicationUser sender, Message message, Guid gameId, string fromHouse)
     {

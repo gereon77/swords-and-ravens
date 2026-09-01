@@ -225,11 +225,15 @@ API (`GET http://localhost:5099/api/Messages`) confirmed receiving, with the exa
   connection as the same user received the first connection's broadcast message live, and closing
   it produced a `connected_users` update showing the remaining connection; connecting without an
   auth cookie got a `401`. Test rows/user cleaned up afterwards.
-- Not yet covered by this pass: tongueless rate-limiting and the private-message email path were
-  code-reviewed against `chat/consumers.py` line-for-line but not separately exercised live (no
-  `Tongueless`-role test user / pbem game fixture was set up) — both reuse already-verified building
-  blocks (`RoleNames`/`UserManager.IsInRoleAsync`, `IEmailSender`) so the risk is low, but worth a
-  manual pass before relying on them in production.
+- Tongueless rate-limiting/regex enforcement and the private-message email path
+  (`ChatWebSocketApi.NotifyChatPartnerAsync`) are now covered by unit tests
+  (`agot-bg-website.Tests/Api/ChatWebSocketApiTests.cs`) against an in-memory DbContext/cache and a
+  fake `IEmailSender` — PBEM-only sending, opted-out/no-other-player/missing-game no-ops, and the
+  7-minute per-room/recipient dedupe window are all asserted directly, closing the "code-reviewed
+  but not exercised" gap noted below from the initial WebSocket-chat pass. Still not separately
+  exercised live end-to-end (no `Tongueless`-role test user / pbem game fixture was set up against a
+  real socket/SMTP relay), but the underlying logic itself is now test-verified rather than just
+  reviewed.
 
 ## GDPR basics
 
@@ -346,9 +350,9 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 - `Snr.Migration` imports Users/Groups/Rooms/Games/PlayerInGame/Messages/PbemResponseTime; it does
   not import `UserInRoom` (deliberate — these rows are recreated naturally as users reconnect to
   chat rooms post-migration, same as a user's first-ever connect to a room today).
-- Chat's tongueless rate-limiting and private-message email notification paths were code-reviewed
-  line-for-line against `chat/consumers.py` but not separately exercised live (no `Tongueless`-role
-  test user / pbem game fixture was set up) — see the Chat section above.
+- Chat's tongueless rate-limiting and private-message email notification paths are now covered by
+  unit tests (see the Chat section above) rather than only code-reviewed; still no live end-to-end
+  pass with a real `Tongueless`-role test user / pbem game fixture against a real socket/SMTP relay.
 - See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
   (precomputed statistics tables, public game statistics, UI library/theme).
 
