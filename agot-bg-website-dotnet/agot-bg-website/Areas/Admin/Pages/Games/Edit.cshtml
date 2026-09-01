@@ -11,21 +11,21 @@
 <div asp-validation-summary="All" class="text-error mb-4"></div>
 
 <form method="post" asp-page-handler="Save">
-    <div class="form-control mb-3">
+    <div class="flex flex-col gap-1 mb-3">
         <label class="label" asp-for="Name"></label>
-        <input asp-for="Name" class="input input-bordered" />
+        <input asp-for="Name" class="input input-bordered w-full" />
     </div>
-    <div class="form-control mb-3">
+    <div class="flex flex-col gap-1 mb-3">
         <label class="label" asp-for="State"></label>
-        <select asp-for="State" class="select select-bordered" asp-items="Html.GetEnumSelectList<GameState>()"></select>
+        <select asp-for="State" class="select select-bordered w-full" asp-items="Html.GetEnumSelectList<GameState>()"></select>
     </div>
-    <div class="form-control mb-3">
+    <div class="flex flex-col gap-1 mb-3">
         <label class="label" asp-for="SerializedGameJson">Serialized game (raw JSON)</label>
-        <textarea asp-for="SerializedGameJson" rows="20" class="textarea textarea-bordered font-mono text-xs"></textarea>
+        <textarea asp-for="SerializedGameJson" rows="20" class="textarea textarea-bordered font-mono text-xs w-full"></textarea>
     </div>
-    <div class="form-control mb-3">
+    <div class="flex flex-col gap-1 mb-3">
         <label class="label" asp-for="ViewOfGameJson">View of game (raw JSON)</label>
-        <textarea asp-for="ViewOfGameJson" rows="10" class="textarea textarea-bordered font-mono text-xs"></textarea>
+        <textarea asp-for="ViewOfGameJson" rows="10" class="textarea textarea-bordered font-mono text-xs w-full"></textarea>
     </div>
     <div class="flex gap-2">
         <button type="submit" class="btn btn-primary">Save</button>
