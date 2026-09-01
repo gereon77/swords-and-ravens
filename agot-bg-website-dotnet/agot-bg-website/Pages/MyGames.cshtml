@@ -1,5 +1,6 @@
 @page
 @model MyGamesModel
+@using agot_bg_website.Pages.Shared
 @{
     ViewData["Title"] = "My Games";
 }
@@ -50,37 +51,10 @@
     </script>
 }
 
-@if (Model.MyGames.Count == 0)
+@await Html.PartialAsync("_GamesTable", new GamesTableViewModel
 {
-    <p class="opacity-70">You are not currently part of any game.</p>
-}
-else
-{
-    <div class="overflow-x-auto rounded-box border border-base-300">
-        <table class="table table-zebra">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Owner</th>
-                    <th>State</th>
-                    <th>Players</th>
-                    <th>Last active</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var game in Model.MyGames)
-                {
-                    <tr>
-                        <td>
-                            <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
-                        </td>
-                        <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
-                        <td>@game.State</td>
-                        <td>@game.Players.Count</td>
-                        <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    Games = Model.MyGames,
+    ShowStateBadge = true,
+    IsAuthenticated = true,
+    EmptyMessage = "You are not currently part of any game."
+})

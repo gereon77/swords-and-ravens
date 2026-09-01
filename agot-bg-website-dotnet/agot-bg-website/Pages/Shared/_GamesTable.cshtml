@@ -1,0 +1,109 @@
+@model agot_bg_website.Pages.Shared.GamesTableViewModel
+@using agot_bg_website.Domain
+
+@if (Model.Games.Count == 0)
+{
+    <p class="opacity-70">@Model.EmptyMessage</p>
+}
+else
+{
+    <div class="overflow-x-auto rounded-box border border-base-300">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    @if (Model.ShowStateBadge)
+                    {
+                        <th></th>
+                    }
+                    <th>Name</th>
+                    <th class="text-center">Players</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var game in Model.Games)
+                {
+                    var isOpen = game.State == GameState.InLobby;
+                    var isOngoing = game.State == GameState.Ongoing;
+                    var iAmPlaying = !string.IsNullOrEmpty(game.MyHouse) || game.MyTurn;
+                    var tooltip = isOngoing
+                        ? $"Round {game.Turn?.ToString() ?? "?"}" + (string.IsNullOrEmpty(game.WaitingFor) ? "" : $"\nWaiting for: {game.WaitingFor}") + $"\nLast active {agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.LastActiveAt)}"
+                        : $"Created {agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.CreatedAt)}";
+                    <tr>
+                        @if (Model.ShowStateBadge)
+                        {
+                            <td class="text-center">
+                                <span title="@tooltip">
+                                @if (isOpen)
+                                {
+                                    @if (game.IsPasswordProtected)
+                                    {
+                                        <span class="badge badge-error" title="Password protected"><i class="fas fa-lock"></i></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-success">Open</span>
+                                    }
+                                }
+                                else if (isOngoing)
+                                {
+                                    <span class="badge badge-warning">Ongoing</span>
+                                }
+                                </span>
+                            </td>
+                        }
+                        <td>
+                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") badge-sm align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
+                                @(game.IsPbem ? "PBEM" : "Live")
+                            </span>
+                            @if (iAmPlaying)
+                            {
+                                <span class="badge @(game.MyTurn ? "badge-error" : "badge-info") badge-sm align-middle gap-1">
+                                    @if (!string.IsNullOrEmpty(game.MyHouse))
+                                    {
+                                        <img src="~/house_icons/@(game.MyHouse.ToLowerInvariant()).png" alt="@game.MyHouse" style="height: 1em; vertical-align: middle;" />
+                                    }
+                                    @(game.MyTurn ? "YOUR TURN" : "Playing")
+                                </span>
+                                @if (game.UnreadPublicMessages)
+                                {
+                                    <span class="badge badge-warning badge-sm align-middle" title="Unread public messages"><i class="fas fa-envelope"></i></span>
+                                }
+                                @if (game.UnreadPrivateMessages)
+                                {
+                                    <span class="badge badge-error badge-sm align-middle" title="Unread private messages"><i class="fas fa-envelope"></i></span>
+                                }
+                                @if (game.MyNeededForVote)
+                                {
+                                    <span class="badge badge-error badge-sm align-middle" title="There is an ongoing vote"><i class="fas fa-vote-yea"></i></span>
+                                }
+                            }
+                            @if (game.ReplacementNeededFor is not null)
+                            {
+                                <span class="badge badge-error badge-sm align-middle" title="Replacement needed for: @game.ReplacementNeededFor"><i class="fas fa-exchange-alt"></i></span>
+                            }
+                            <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                        </td>
+                        <td class="text-center">
+                            @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                        </td>
+                        <td class="text-right whitespace-nowrap">
+                            @if (isOngoing || !Model.OnProbation || iAmPlaying)
+                            {
+                                <a class="btn btn-primary btn-sm" href="/play/@game.Id" target="_blank" rel="noopener noreferrer" title="@(Model.IsAuthenticated ? "" : "You must be logged in to join or spectate a game")">
+                                    @(isOpen ? (iAmPlaying ? "Rejoin" : "Join") : (iAmPlaying ? "Rejoin" : "Spectate"))
+                                </a>
+                            }
+                            @if (Model.ShowJoinAsWaited && Model.CanPlayAsAnotherPlayer && game.JoinAsUserId is not null)
+                            {
+                                <a class="btn btn-secondary btn-sm" href="/play/@game.Id/@game.JoinAsUserId" target="_blank" rel="noopener noreferrer" title="Join as the waited-for player">
+                                    Join as ...
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

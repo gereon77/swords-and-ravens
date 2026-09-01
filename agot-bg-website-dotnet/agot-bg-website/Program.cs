@@ -93,6 +93,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAut
 
 builder.Services.AddScoped<AccountLinkingService>();
 builder.Services.AddScoped<AccountDeletionService>();
+builder.Services.AddScoped<agot_bg_website.Services.GameListing.GameListQueryService>();
 
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.

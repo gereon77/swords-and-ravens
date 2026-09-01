@@ -1,22 +1,23 @@
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Services.GameListing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Pages;
 
 /// <summary>
-/// "My games" — every game the signed-in user is (or was) a player in, mirroring Django's
-/// agotboardgame_main.views.my_games() (MIGRATION_PLAN.md notes it lived at /my_games).
+/// "My games" — every open/ongoing game the signed-in user is a player in, mirroring Django's
+/// agotboardgame_main.views.my_games() (MIGRATION_PLAN.md notes it lived at /my_games). Uses
+/// <see cref="GameListQueryService"/>, which never loads Game.SerializedGame - see its doc comment.
 /// </summary>
 [Authorize]
-public class MyGamesModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager) : PageModel
+public class MyGamesModel(ApplicationDbContext db, GameListQueryService gameLists, UserManager<ApplicationUser> userManager) : PageModel
 {
-    public List<Game> MyGames { get; set; } = [];
+    public List<GameListItem> MyGames { get; set; } = [];
 
     public bool CanCreateGame { get; set; }
 
@@ -33,13 +34,7 @@ public class MyGamesModel(ApplicationDbContext db, UserManager<ApplicationUser> 
             return;
         }
 
-        var userGuid = Guid.Parse(userId);
-        MyGames = await db.Games
-            .Include(g => g.OwnerUser)
-            .Include(g => g.Players)
-            .Where(g => g.Players.Any(p => p.UserId == userGuid))
-            .OrderByDescending(g => g.LastActiveAt)
-            .ToListAsync();
+        MyGames = await gameLists.GetMyGamesAsync(Guid.Parse(userId));
     }
 
     public async Task<IActionResult> OnPostCreateGameAsync([FromForm] string name)

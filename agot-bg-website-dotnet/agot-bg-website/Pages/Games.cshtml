@@ -1,5 +1,6 @@
 @page
 @model GamesModel
+@using agot_bg_website.Pages.Shared
 @{
     ViewData["Title"] = "All Games";
 }
@@ -51,73 +52,90 @@
 }
 
 <section class="mb-10">
-    <h2 class="text-xl font-semibold mb-3">Open games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.OpenGames.Count</span></h2>
-    @if (Model.OpenGames.Count == 0)
+    <h2 class="text-xl font-semibold mb-3">Your games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.MyGames.Count</span></h2>
+    @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
     {
-        <p class="opacity-70">No open games right now.</p>
-    }
-    else
-    {
-        <div class="overflow-x-auto rounded-box border border-base-300">
-            <table class="table table-zebra">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Owner</th>
-                        <th>Players</th>
-                        <th>Created</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var game in Model.OpenGames)
-                    {
-                        <tr>
-                            <td>
-                                <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
-                            </td>
-                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
-                            <td>@game.Players.Count</td>
-                            <td>@game.CreatedAt.ToLocalTime().ToString("g")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+        Games = Model.MyGames,
+        ShowStateBadge = true,
+        IsAuthenticated = true,
+        EmptyMessage = "You are not currently part of any game."
+    })
 </section>
 
-<section>
-    <h2 class="text-xl font-semibold mb-3">Ongoing games <span class="badge badge-warning badge-lg align-middle ml-1">@Model.OngoingGames.Count</span></h2>
-    @if (Model.OngoingGames.Count == 0)
+<section class="mb-10">
+    <h2 class="text-xl font-semibold mb-3">Open games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.OpenGames.Count</span></h2>
+    @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
     {
-        <p class="opacity-70">No ongoing games right now.</p>
-    }
-    else
-    {
-        <div class="overflow-x-auto rounded-box border border-base-300">
-            <table class="table table-zebra">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Owner</th>
-                        <th>Players</th>
-                        <th>Last active</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var game in Model.OngoingGames)
-                    {
-                        <tr>
-                            <td>
-                                <a class="link link-primary font-semibold" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
-                            </td>
-                            <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
-                            <td>@game.Players.Count</td>
-                            <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+        Games = Model.OpenGames,
+        ShowStateBadge = false,
+        IsAuthenticated = true,
+        EmptyMessage = "No open games right now."
+    })
 </section>
+
+<section class="mb-10">
+    <h2 class="text-xl font-semibold mb-3">Ongoing games <span class="badge badge-warning badge-lg align-middle ml-1">@Model.OngoingGames.Count</span></h2>
+    @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+    {
+        Games = Model.OngoingGames,
+        ShowStateBadge = false,
+        IsAuthenticated = true,
+        EmptyMessage = "No ongoing games right now."
+    })
+</section>
+
+@if (Model.ReplacementNeededGames.Count > 0)
+{
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-3" title="Games where the last move was more than 2 days ago and the player being waited on has not logged in for 8 days.">
+            Games waiting for inactive players <span class="badge badge-error badge-lg align-middle ml-1">@Model.ReplacementNeededGames.Count</span>
+        </h2>
+        @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+        {
+            Games = Model.ReplacementNeededGames,
+            ShowStateBadge = false,
+            ShowJoinAsWaited = true,
+            CanPlayAsAnotherPlayer = Model.CanPlayAsAnotherPlayer,
+            IsAuthenticated = true
+        })
+    </section>
+}
+
+@if (Model.CanPlayAsAnotherPlayer && Model.InactiveGames.Count > 0)
+{
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-3">Games without a move for 5 days <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactiveGames.Count</span></h2>
+        @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+        {
+            Games = Model.InactiveGames,
+            ShowStateBadge = false,
+            IsAuthenticated = true
+        })
+    </section>
+}
+
+@if (Model.CanPlayAsAnotherPlayer && Model.InactiveTournamentGames.Count > 0)
+{
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-3">Tournament games without a move for 2 days <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactiveTournamentGames.Count</span></h2>
+        @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+        {
+            Games = Model.InactiveTournamentGames,
+            ShowStateBadge = false,
+            IsAuthenticated = true
+        })
+    </section>
+}
+
+@if (Model.CanCancelGame && Model.InactivePrivateGames.Count > 0)
+{
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-3">Inactive private games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactivePrivateGames.Count</span></h2>
+        @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+        {
+            Games = Model.InactivePrivateGames,
+            ShowStateBadge = false,
+            IsAuthenticated = true
+        })
+    </section>
+}
