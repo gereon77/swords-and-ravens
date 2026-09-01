@@ -25,6 +25,7 @@ else
                         <th>Waiting for</th>
                     }
                     <th class="text-center">Players</th>
+                    <th>Last active</th>
                     <th></th>
                 </tr>
             </thead>
@@ -34,14 +35,10 @@ else
                     var isOpen = game.State == GameState.InLobby;
                     var isOngoing = game.State == GameState.Ongoing;
                     var iAmPlaying = !string.IsNullOrEmpty(game.MyHouse) || game.MyTurn;
-                    var tooltip = isOngoing
-                        ? $"Round {game.Turn?.ToString() ?? "?"}" + (string.IsNullOrEmpty(game.WaitingFor) ? "" : $"\nWaiting for: {game.WaitingFor}") + $"\nLast active {agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.LastActiveAt)}"
-                        : $"Created {agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.CreatedAt)}";
                     <tr>
                         @if (Model.ShowStateBadge)
                         {
                             <td class="text-center">
-                                <span title="@tooltip">
                                 @if (isOpen)
                                 {
                                     @if (game.IsPasswordProtected)
@@ -57,7 +54,6 @@ else
                                 {
                                     <span class="badge badge-warning">Ongoing</span>
                                 }
-                                </span>
                             </td>
                         }
                         <td>
@@ -94,11 +90,14 @@ else
                         </td>
                         @if (anyOngoing)
                         {
-                            <td class="text-center whitespace-nowrap" title="@tooltip">@(isOngoing ? (game.Turn?.ToString() ?? "?") : "-")</td>
-                            <td title="@tooltip">@(isOngoing ? (string.IsNullOrEmpty(game.WaitingFor) ? "-" : game.WaitingFor) : "-")</td>
+                            <td class="text-center whitespace-nowrap">@(isOngoing ? (game.Turn?.ToString() ?? "?") : "-")</td>
+                            <td>@(isOngoing ? (string.IsNullOrEmpty(game.WaitingFor) ? "-" : game.WaitingFor) : "-")</td>
                         }
                         <td class="text-center">
                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                        </td>
+                        <td class="whitespace-nowrap">
+                            @(isOpen ? agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.CreatedAt) : agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.LastActiveAt))
                         </td>
                         <td class="text-right whitespace-nowrap">
                             @if (isOngoing || !Model.OnProbation || iAmPlaying)
