@@ -16,24 +16,46 @@
     <header class="shrink-0">
         <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
             <div class="container flex items-center justify-between">
-                <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide" asp-area="" asp-page="/Index">
+                <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide shrink-0" asp-area="" asp-page="/Index">
                     <img src="~/raven.svg" asp-append-version="true" alt="" width="24" height="24" class="inline-block" />
                     Swords and Ravens
                 </a>
                 <div class="flex items-center gap-1">
-                    @if (User.Identity?.IsAuthenticated ?? false)
-                    {
-                        <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
-                        <a class="nav-link" asp-area="" asp-page="/MyGames">My Games</a>
-                        <a class="nav-link" asp-area="" asp-page="/Rules">Terms of Use</a>
-                        <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
-                    }
-                    <a class="nav-link" asp-area="" asp-page="/About">About</a>
-                    @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
-                    {
-                        <a class="nav-link" asp-area="Admin" asp-page="/Index">Admin</a>
-                        <a class="nav-link" href="/coreadmin" target="_blank" rel="noopener">CoreAdmin</a>
-                    }
+                    <div class="hidden lg:flex items-center gap-1">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
+                            <a class="nav-link" asp-area="" asp-page="/MyGames">My Games</a>
+                            <a class="nav-link" asp-area="" asp-page="/Rules">Terms of Use</a>
+                            <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
+                        }
+                        <a class="nav-link" asp-area="" asp-page="/About">About</a>
+                        @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
+                        {
+                            <a class="nav-link" asp-area="Admin" asp-page="/Index">Admin</a>
+                            <a class="nav-link" href="/coreadmin" target="_blank" rel="noopener">CoreAdmin</a>
+                        }
+                    </div>
+                    <div class="dropdown dropdown-end lg:hidden">
+                        <div tabindex="0" role="button" class="btn btn-ghost btn-square" aria-label="Open menu">
+                            <i class="fas fa-bars text-lg"></i>
+                        </div>
+                        <ul tabindex="0" class="dropdown-content menu z-20 mt-2 w-56 rounded-box border border-base-300 bg-base-200 p-2 shadow-md">
+                            @if (User.Identity?.IsAuthenticated ?? false)
+                            {
+                                <li><a asp-area="" asp-page="/Games">All Games</a></li>
+                                <li><a asp-area="" asp-page="/MyGames">My Games</a></li>
+                                <li><a asp-area="" asp-page="/Rules">Terms of Use</a></li>
+                                <li><a href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a></li>
+                            }
+                            <li><a asp-area="" asp-page="/About">About</a></li>
+                            @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
+                            {
+                                <li><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+                                <li><a href="/coreadmin" target="_blank" rel="noopener">CoreAdmin</a></li>
+                            }
+                        </ul>
+                    </div>
                     <partial name="_LoginPartial" />
                 </div>
             </div>
