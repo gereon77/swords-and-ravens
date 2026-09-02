@@ -161,17 +161,15 @@ PlayerInGame
   Data    jsonb   // same per-player payload Django stores today
 
 PreviousPlayerInGame   // NEW — does not exist in Django, see §4.4
-  Id              Guid PK
-  GameId          Guid   FK -> Game
-  UserId          Guid   FK -> User          // the user who was removed/replaced
-  House           string                     // house id they held, e.g. "stark"
-  SequenceNumber  int                         // 0-based order of removal within the game; see §4.4
-  Reason          string                      // "VOTE" | "CLOCK_TIMEOUT" | "REPLACED_BY_PLAYER"
-  WasWinner       bool?                       // true if House ultimately won; null while game still ongoing
-  ReplacedAt      DateTimeOffset?             // timestamp of the log entry that caused the removal
-  CreatedAt       DateTimeOffset              // row insert time (audit only)
-  // Unique index on (GameId, SequenceNumber) — see §4.4 for why this, not (GameId, UserId, House),
-  // is the natural key (a user can theoretically be removed from the same house more than once).
+  Id          Guid PK
+  GameId      Guid   FK -> Game
+  UserId      Guid   FK -> User          // the user who was removed/replaced
+  Reason      string?                    // "Vote" | "ClockTimeout", nullable — see §4.4
+  ReplacedAt  DateTimeOffset?            // timestamp the row was created, if known
+  CreatedAt   DateTimeOffset             // row insert time (audit only)
+  // Unique index on (GameId, UserId) — at most one "currently removed" row per user per game at a
+  // time. If they leave again after being voted back in, a fresh row is created (the old one was
+  // already deleted when they returned). See §4.4.
 
 PbemResponseTime
   Id            Guid PK
@@ -220,51 +218,40 @@ every `saveGame` (`api/serializers.py::GameSerializer.update` does
 `instance.players.all().delete()` then recreates rows from the `players` array in the PATCH body —
 see `GameSerializer.update` and `IngameGameState.getPlayersInGame()` /
 `EntireGame.getPlayersInGame()`). When a player is removed from a game — replaced by a vassal
-(Mother of Dragons mechanic) or by another human player, or timed out — they simply vanish from
-`IngameGameState.players`, so the next save deletes their `PlayerInGame` row entirely. The game
-stops counting for or against them, silently. This was never added to Django because doing it
-correctly requires replaying event history, not just diffing current state — this section makes
-that tractable.
+(Mother of Dragons mechanic) or timed out — they simply vanish from `IngameGameState.players`, so
+the next save deletes their `PlayerInGame` row entirely. The game stops counting for or against
+them, silently. This was never added to Django.
 
-**The data already exists, it's just not surfaced.** The game server already tracks enough to
-reconstruct full removal history, it's just never sent to the website:
+**What's implemented:** `PreviousPlayerInGame` is computed entirely by the .NET website, never
+trusted from the wire (see §6.1 for why a dedicated game-server field was considered and dropped).
+Two independent sources feed it, and both agree on the same simplified shape:
 
-- `IngameGameState.oldPlayerIds` / `timeoutPlayerIds` / `replacerIds` — deduplicated user-id lists
-  (`IngameGameState.ts`), useful as a quick membership check but not ordered, not per-house, and
-  missing which house/outcome was involved.
-- `IngameGameState.gameLogManager.logs` (`GameLogManager.ts`, `@observable logs: GameLog[] = []`,
-  **append-only, never trimmed**) — the authoritative, ordered history, containing everything
-  needed to reconstruct exactly which user held which house and when they stopped:
-  - `"user-house-assignments"` (`GameLog.ts:345`) — `{ assignments: [userId, houseId][] }`, logged
-    once at game start.
-  - `"player-replaced"` (`GameLog.ts:958`) — `{ oldUser, newUser?, house, reason? }`. `reason`
-    (`ReplacementReason.VOTE | CLOCK_TIMEOUT`) is present when replaced by a vassal
-    (`IngameGameState.replacePlayerByVassal`, `IngameGameState.ts:1117`); when a house is handed
-    directly to another human via a vote (`VoteType.ts::ReplacePlayer.executeAccepted`, no vassal
-    stint), `newUser` is set and `reason` is absent — treat that case as `"REPLACED_BY_PLAYER"`.
-  - `"vassal-replaced"` (`GameLog.ts:967`) — `{ house, user }`, logged when a vassal house is later
-    claimed by a new human player (`VoteType.ts::ReplaceVassalByPlayer`) — this starts a *new*
-    stint for `user`, it does not by itself end anyone's stint.
-  - `"winner-declared"` (`GameLog.ts:432`) — `{ winner: houseId }`, logged once when the game ends.
-  - Every `GameLog` entry carries a `time: Date` (`GameLog.ts:7`), giving an exact timestamp for
-    each removal.
+- **Live saves** (`GamesApi.cs`'s PATCH handler): every save that includes a `Players` list diffs
+  the old and new user-id sets against the game's existing `PreviousPlayerInGame` rows. A user
+  missing from the new list gets a row added (`Reason = null`, since the diff alone can't tell
+  vote from clock-timeout); a user who reappears (voted back in) has their row removed again. See
+  `GamesApi.DiffPreviousPlayers` and `GamesApiPreviousPlayerDiffTests`.
+- **Historical import** (`Snr.Migration/PreviousPlayersBackfill.cs`, see §10.1): reads the full
+  `SerializedGame` JSON directly — specifically `childGameState.oldPlayerIds` (→
+  `Reason = Vote`) and `childGameState.timeoutPlayerIds` (→ `Reason = ClockTimeout`) — for any
+  legacy game that doesn't already have `PreviousPlayerInGame` rows, subtracting users still
+  present in `childGameState.players[].userId` (covers being voted back in).
 
-Replaying these events in order for a given game reconstructs, per house, the ordered list of user
-stints. Every stint except the last (still-current, or never-removed) one becomes one
-`PreviousPlayerInGame` row: the user held `House` until `ReplacedAt`, for `Reason`, and `WasWinner`
-records whether that house went on to win. A house can pass through more than 2 users (player →
-vassal → different player → vassal again, etc.), which is why the natural key is
-`(GameId, SequenceNumber)` — the 0-based index of the stint-ending event in that game's replay —
-rather than `(GameId, UserId, House)`, which is not guaranteed unique if the same user is removed
-from the same house twice in one game.
+**Deliberately not tracked:** which `House` a removed player held, whether that house ultimately
+won (`WasWinner`), or a precise stint-ordering `SequenceNumber`. Reconstructing any of that
+reliably would require replaying the game server's full vote/log history — which still has real
+gaps (an additional "replace-player-by-player" vote type isn't visible in
+`oldPlayerIds`/`timeoutPlayerIds`, and a user could theoretically hold more than one house across
+replacements within a single game) — and isn't needed: every `PreviousPlayerInGame` row counts as
+a loss unconditionally regardless of any of that (§10.2). `Reason` is kept (it's cheap and useful
+context on a user's profile) but is **nullable**: only the historical backfill can set it directly
+today; a future cron job could fill it in for live-added rows too by re-reading `SerializedGame`
+after the fact, without any schema change.
 
-**Where this logic should live:** the log schema (`GameLogData`) is owned by
-`agot-bg-game-server`, and it already owns the version-migration logic needed to safely read old
-`serialized_game` blobs (`serializedGameMigrations.ts`, `GlobalServer.migrateSerializedGame`). Both
-the ongoing capture (§6.1) and the historical backfill (§10.4) therefore reuse the *same* TS
-replay logic instead of re-implementing GameLog parsing in C# — keeping the .NET/importer side
-agnostic of the log schema's internal shape, consistent with how `SerializedGame`/`ViewOfGame` are
-already treated as opaque blobs elsewhere in this plan.
+The natural key is `(GameId, UserId)`, unique — at most one "currently removed" row per user per
+game at a time. If a user is voted back in and later removed again, the old row was already
+deleted when they returned, so a fresh row is created rather than colliding.
+
 
 ## 5. Authentication design
 
@@ -400,64 +387,53 @@ object rather than relying on the naming policy to derive it from `IsCancelled`.
 `agot-bg-website.Tests/Api/ApiJsonNamingPolicyTests.cs` pins the snake_case wire format down for
 `UserDto`/`GameDto`/`CreateRoomDto` so this can't silently regress back to camelCase again.
 
-### 6.1 `previous_players` — the one deliberate TS change in this whole plan
+### 6.1 `PreviousPlayerInGame` — no game-server changes needed after all
 
-Every other endpoint above needs **zero** game-server code changes. This one field is the single
-exception, needed to populate `PreviousPlayerInGame` (§4.4) going forward for new/ongoing games.
+Earlier drafts of this plan proposed a new TS method (`IngameGameState.getPreviousPlayersInGame()`)
+that would replay `gameLogManager.logs` to resolve exactly which house/user/reason/winner applied
+to each removal, and send it to the website as a new `previous_players` field on every save. That
+approach was **abandoned** — it would have been the only game-server code change in this whole
+plan, for a feature whose actual scoring use (§10.2) only needs "was this user removed from this
+game before it ended", never house/winner/reason. Reconstructing that reliably from replaying logs
+also has real gaps (an additional "replace-player-by-player" vote type isn't visible in
+`oldPlayerIds`/`timeoutPlayerIds`, and a user could theoretically hold more than one house across
+replacements within a single game), so the precision wasn't worth the added game-server surface
+area and coupling to the log schema.
 
-**New TS method**, following the exact style/placement of the existing
-`IngameGameState.getPlayersInGame()` (`IngameGameState.ts:790`) /
-`EntireGame.getPlayersInGame()` (`EntireGame.ts:792`) pair:
+**What's implemented instead:** the game server sends **nothing new**. `PreviousPlayerInGame` is
+computed entirely by the .NET website itself, purely by diffing `Players` across saves —
+`GamesApi.cs`'s PATCH handler already has the old player list (`game.Players`, loaded before the
+replace) and the new one (`patch.Players`, the payload the game server always sends):
 
-```ts
-// IngameGameState.ts
-getPreviousPlayersInGame(): { userId: string; house: string; reason: string; wasWinner: boolean | null; replacedAt: Date; sequenceNumber: number }[] {
-    // Replay this.entireGame's gameLogManager.logs in order, tracking current holder per house
-    // starting from the "user-house-assignments" entry. Each "player-replaced" / "vassal-replaced"
-    // entry that *ends* a stint emits one row here (see §4.4 for exact log-shape mapping).
-    // wasWinner is derived by checking whether `house` appears as `winner` in a later
-    // "winner-declared" entry (null if the game hasn't finished yet).
-}
-```
+- A user present in the old list but missing from the new one → a `PreviousPlayerInGame` row is
+  added for them (`Reason` left `null` — the Players-list diff alone can't tell vote from
+  clock-timeout; see §4.4).
+- A user who already has a `PreviousPlayerInGame` row but reappears in the new list (voted back in)
+  → that row is removed again.
 
-```ts
-// EntireGame.ts — thin passthrough, mirroring getPlayersInGame()
-getPreviousPlayersInGame() {
-    return this.ingameGameState?.getPreviousPlayersInGame() ?? [];
-}
-```
-
-**Wiring into the save path** (`GlobalServer.saveGame()`, `WebsiteClient.ts` interface,
-`LiveWebsiteClient.ts`, `LocalWebsiteClient.ts`):
-
-- `WebsiteClient.updateGame(...)` gains an optional `previousPlayers` parameter alongside the
-  existing `players` parameter.
-- `LiveWebsiteClient.ts` serializes it into the PATCH body as `previous_players`, one object per
-  row: `{ user: userId, house, reason, was_winner, sequence_number, replaced_at }` — same
-  snake_case convention as the rest of the payload.
-- `LocalWebsiteClient.ts` (used for local/offline play with no website) just logs it, same as it
-  already no-ops most other website-bound calls.
-- `GamesController.Patch` on the .NET side treats `previous_players`, when present, as a **full
-  replace** for that game — delete existing `PreviousPlayerInGame` rows for `GameId` and re-insert
-  — mirroring the existing "delete all + recreate" idempotent pattern `GameSerializer.update`
-  already uses for `players[]`. This makes repeated saves of the same ongoing game safe to retry.
+This pure diff logic lives in `GamesApi.DiffPreviousPlayers(oldPlayerUserIds, newPlayerUserIds,
+existingPreviousPlayerUserIds)`, `internal static` specifically so it can be unit-tested directly
+without a database (`GamesApiPreviousPlayerDiffTests`). Because `Reason` is nullable, a future cron
+job could fill it in after the fact for live-added rows by re-reading the game's `SerializedGame`
+the same way the historical backfill (§10.1) already does — nothing about the schema blocks that.
 
 **Post-implementation fix (local dev, live-tested):** the first real save-after-seating hit a
 `DbUpdateConcurrencyException` ("expected to affect 1 row(s), but actually affected 0 row(s)") on
 every single PATCH that added a player, not just under concurrent requests. Root cause: the new
-`PlayerInGame`/`PreviousPlayerInGame` rows were assigned straight to the tracked `Game`'s
-navigation collection (`game.Players = newList`) without ever calling
-`db.PlayersInGame.AddRange(...)`. Because each row's `Id` is a client-set (non-default) `Guid`, EF
-Core's automatic graph fixup assumed the row already existed and issued an `UPDATE` instead of an
-`INSERT` — which affects 0 rows for a row that was never inserted. Fixed in `GamesApi.cs` by
-explicitly calling `AddRange` for both replacement lists before assigning them to the navigation
-properties; pinned down by `GamesApiPlayerReplacementTests`. Separately, `GamesApi.cs`'s PATCH
-handler also acquires a per-game `Infrastructure.GameSaveLock` (an in-memory `SemaphoreSlim` keyed
-by game id) as defense-in-depth, since the game server's fire-and-forget `saveGame()` can
-genuinely fire overlapping saves for the same game — this wasn't the cause of the reported
-exception, but is worth keeping since it's a real possible race on the delete side. Note this lock
-only works for a single-process deployment; a horizontally-scaled deployment would need a
-distributed lock instead (e.g. a Postgres advisory lock).
+`PlayerInGame` rows were assigned straight to the tracked `Game`'s navigation collection
+(`game.Players = newList`) without ever calling `db.PlayersInGame.AddRange(...)`. Because each
+row's `Id` is a client-set (non-default) `Guid`, EF Core's automatic graph fixup assumed the row
+already existed and issued an `UPDATE` instead of an `INSERT` — which affects 0 rows for a row that
+was never inserted. Fixed in `GamesApi.cs` by explicitly calling `AddRange` for the replacement
+`PlayerInGame` list before assigning it to the navigation property; pinned down by
+`GamesApiPlayerReplacementTests`. Separately, `GamesApi.cs`'s PATCH handler also acquires a
+per-game `Infrastructure.GameSaveLock` (an in-memory `SemaphoreSlim` keyed by game id) as
+defense-in-depth, since the game server's fire-and-forget `saveGame()` can genuinely fire
+overlapping saves for the same game — this wasn't the cause of the reported exception, but is
+worth keeping since it's a real possible race on the delete-then-recreate `Players` replace and the
+`PreviousPlayerInGame` add/remove that now happens alongside it. Note this lock only works for a
+single-process deployment; a horizontally-scaled deployment would need a distributed lock instead
+(e.g. a Postgres advisory lock).
 
 ### 6.2 Network-isolating the private API from the public port (implemented)
 
@@ -795,7 +771,7 @@ freshly-restored copy of the production Django DB as many times as needed while 
 the new site, and again at final cutover.
 
 ```
-dotnet run --project src/Snr.Migration -- import --legacy "Host=...;Database=snr_django;..." --target "Host=...;Database=snr_dotnet;..."
+dotnet run --project src/Snr.Migration -- import --legacy "Host=...;Database=snr_django;..." --target "Host=...;Database=snr_dotnet;..." [--messages-days-back N]
 ```
 
 Import order and behavior:
@@ -810,12 +786,23 @@ Import order and behavior:
    roles of the same name.
 3. **Rooms** (chat) — copy `id, name, public, max_retrieve_count`, preserving `id`.
 4. **Games** — copy `id, name, owner_id, serialized_game, view_of_game, version, state,
-   created_at, updated_at, last_active_at`, preserving `id`.
+   created_at, updated_at, last_active_at`, preserving `id`. Games cancelled while still in the
+   lobby (`view_of_game.turn == -1` and `state == CANCELLED`) are **never imported** — they have no
+   players who really played and no chat worth preserving. If an older run already imported one
+   (from before this rule existed), it's deleted from the target instead (game row, its public chat
+   room, and all of that room's messages). This exactly mirrors what the live save-game endpoint
+   (`GamesApi.cs`'s PATCH handler) now does going forward: as soon as a game is saved as
+   `CANCELLED` while `view_of_game.turn` is still `-1`, it's deleted outright rather than kept as a
+   dead row.
 5. **PlayerInGame** — copy `game_id, user_id, data`.
-6. **Messages** (chat) — optional/streamed in batches given likely volume; can be deferred past
-   initial cutover if chat history isn't considered critical, without blocking anything else.
-7. **PbemResponseTime** — copy directly, historical/statistical only.
-8. **UserInRoom** — optional; can be left to be recreated naturally as users reconnect to chat
+6. **Historical `PreviousPlayerInGame` backfill** — see §10.1 below; runs automatically as part of
+   this import, right after PlayerInGame.
+7. **Messages** (chat) — optional/streamed in batches given likely volume. Controlled by
+   `--messages-days-back`: `-1` (default) imports all history, `0` imports none, and any positive
+   `N` only imports messages younger than `N` days — useful to keep a first cutover-rehearsal
+   import fast, or to intentionally leave old chat history behind.
+8. **PbemResponseTime** — copy directly, historical/statistical only.
+9. **UserInRoom** — optional; can be left to be recreated naturally as users reconnect to chat
    rooms (the consumer/handler already creates these on demand), so it's fine to skip entirely.
 
 Verification pass at the end: row counts per table compared between source and target, plus a spot
@@ -825,42 +812,47 @@ those are embedded inside `serialized_game` JSON the TS server still owns).
 ### 10.1 Historical backfill of `PreviousPlayerInGame`
 
 Unlike every other table above, this one **cannot** be populated by a straight column copy — the
-legacy DB never stored it, and computing it requires replaying `GameLogManager.logs` (§4.4), whose
-shape is owned by `agot-bg-game-server`, not `Snr.Migration`. **This is fully feasible, not a hard
-gap**: the serialized game has tracked player-vote-out/replacement and clock-timeout-replacement
-log entries for ~3 years now, so every historical game since then has enough information in
-`serialized_game.logs` to reconstruct who was removed, when, and why — this backfill script just
-hasn't been *written* yet. So this step deliberately does not live in the .NET importer:
+legacy DB never stored it. It's computed directly by `Snr.Migration` in C#, straight from each
+game's `SerializedGame` JSON, inline while games are being imported (§10, step 5/6 above) — not a
+separate pass over the `Games` table afterwards, since `PreviousPlayersBackfill.Compute` only ever
+needs the `SerializedGame` JSON document that's already parsed in memory at that point.
 
-```
-# run once, from agot-bg-game-server, against a restored copy of the production Django DB
-npx ts-node scripts/backfillPreviousPlayers.ts \
-  --legacy "postgres://.../snr_django" \
-  --target "postgres://.../snr_dotnet"
-```
+Before the import loop starts, the set of game-ids that already have `PreviousPlayerInGame` rows
+is queried once and cached — this is what makes the step idempotent (never overwrites data a
+genuine live game-server save already wrote) without an extra per-game query.
 
-- Connects **read-only** to the legacy DB, streams every `Game` row that has a non-null
-  `serialized_game` (regardless of `state`, so `CANCELLED`/abandoned games are included too — cheap
-  to include, and their `PreviousPlayerInGame` rows are simply unused if such games stay excluded
-  from win-rate scope per §10.2).
-- Reuses the game server's own `serializedGameMigrations` / `GlobalServer`-style version-migration
-  pipeline (already battle-tested for loading arbitrarily old saved games) to deserialize each blob
-  via `EntireGame.deserializeFromServer`, exactly as if the game were being resumed.
-- Calls the new `getPreviousPlayersInGame()` (§6.1) on each deserialized game.
-- Upserts rows into the new DB's `PreviousPlayerInGame` table, keyed on `(GameId, SequenceNumber)`
-  — safe to re-run, e.g. re-run once immediately before final cutover alongside step 4 of §11.
-- Runs once per game entirely in-process (no website/API round-trip needed), so it can run
-  standalone at any time before or independent of the main `Snr.Migration` import.
+For every imported `Game` with `State` in `{Finished, Cancelled}` and a non-null `SerializedGame`
+whose id isn't in that preloaded set, `PreviousPlayersBackfill.Compute(gameId, serializedGame)`:
+
+- Confirms `childGameState.type == "ingame"` (defensive re-check; the state filter above should
+  already guarantee this for any game that reached the ingame phase). Returns no rows otherwise
+  (covers games cancelled before ever reaching the ingame state).
+- Reads `childGameState.oldPlayerIds` (removed by vote → `Reason = Vote`) and
+  `childGameState.timeoutPlayerIds` (removed by clock timeout → `Reason = ClockTimeout`) — these
+  two arrays are mutually exclusive by construction in `IngameGameState.ts` — and subtracts
+  everyone still present in `childGameState.players[].userId`: a voted-out player who was later
+  voted back in must **not** get a `PreviousPlayerInGame` row.
+- Does **not** attempt to resolve which `House` a removed player held, a precise removal
+  timestamp, or whether their house ultimately won — see §4.4 for why. `ReplacedAt` is left `null`
+  for backfilled rows.
+
+Because this only ever fills in games that currently have zero `PreviousPlayerInGame` rows, it's
+always safe to re-run: any real save of the same game by the live game server (which adds/removes
+these rows per save via diffing, see §6.1) permanently supersedes whatever this backfill produced,
+and this step will simply skip that game on the next run.
+
+**Follow-up not yet built**: once this data exists, show "games where you were removed" on a
+user's profile page using their `PreviousPlayerInGame` rows (same way wins/losses are shown today).
 
 ### 10.2 Win-rate calculation (new formula)
 
 - **Wins**: `PlayerInGame` rows where `is_winner = true`, for games with `state = FINISHED` (same
   scope Django uses today).
 - **Losses**: `PlayerInGame` rows where `is_winner = false` (`FINISHED` games) **plus every**
-  `PreviousPlayerInGame` row for `FINISHED` games — counted as a loss unconditionally, regardless of
-  `WasWinner`, per your instruction that being removed from a game should never count in your favor
-  even if your former house went on to win without you. `WasWinner` is stored anyway, purely for
-  potential future analytics (e.g. "how often does the replacing vassal/player go on to win").
+  `PreviousPlayerInGame` row for `FINISHED` games — counted as a loss unconditionally, per your
+  instruction that being removed from a game should never count in your favor even if your former
+  house went on to win without you. Since `House`/`WasWinner` aren't tracked at all (§4.4), there's
+  no way (and no need) to special-case this either way.
 - `CANCELLED`/`IN_LOBBY`/`ONGOING` games contribute to neither wins nor losses, matching today's
   Django behavior of only scoring `FINISHED` games.
 

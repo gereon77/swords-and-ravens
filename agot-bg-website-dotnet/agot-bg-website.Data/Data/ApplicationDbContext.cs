@@ -85,7 +85,6 @@ namespace agot_bg_website.Data
 
             builder.Entity<PreviousPlayerInGame>(ppig =>
             {
-                ppig.Property(p => p.House).HasMaxLength(50).IsRequired();
                 ppig.Property(p => p.Reason).HasConversion<string>().HasMaxLength(30);
                 ppig.HasOne(p => p.Game)
                     .WithMany(g => g.PreviousPlayers)
@@ -95,8 +94,9 @@ namespace agot_bg_website.Data
                     .WithMany()
                     .HasForeignKey(p => p.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
-                // Natural key: see MIGRATION_PLAN.md §4.4 for why SequenceNumber, not (GameId, UserId, House).
-                ppig.HasIndex(p => new { p.GameId, p.SequenceNumber }).IsUnique();
+                // At most one "currently removed" row per user per game - see the entity's doc
+                // comment (re-added if the user leaves again after being voted back in).
+                ppig.HasIndex(p => new { p.GameId, p.UserId }).IsUnique();
             });
 
             builder.Entity<PbemResponseTime>(prt =>

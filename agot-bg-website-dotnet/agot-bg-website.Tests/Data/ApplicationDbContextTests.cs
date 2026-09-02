@@ -7,7 +7,8 @@ namespace agot_bg_website.Tests.Data;
 
 /// <summary>
 /// Verifies the PreviousPlayerInGame model configuration (§4.4) behaves as designed: multiple
-/// rows per game are fine, but SequenceNumber must be unique within a game.
+/// rows per game are fine (one per removed user), but at most one row per (GameId, UserId) at a
+/// time - a user can only be "currently removed" from a given game once.
 /// </summary>
 public class ApplicationDbContextTests
 {
@@ -39,8 +40,6 @@ public class ApplicationDbContextTests
                 Id = Guid.NewGuid(),
                 GameId = game.Id,
                 UserId = Guid.NewGuid(),
-                House = "stark",
-                SequenceNumber = 0,
                 Reason = PlayerReplacementReason.Vote,
             },
             new PreviousPlayerInGame
@@ -48,10 +47,7 @@ public class ApplicationDbContextTests
                 Id = Guid.NewGuid(),
                 GameId = game.Id,
                 UserId = Guid.NewGuid(),
-                House = "lannister",
-                SequenceNumber = 1,
                 Reason = PlayerReplacementReason.ClockTimeout,
-                WasWinner = false,
             }
         );
 
@@ -59,11 +55,8 @@ public class ApplicationDbContextTests
 
         var stored = await db.PreviousPlayersInGame.Where(p => p.GameId == game.Id).ToListAsync();
         Assert.Equal(2, stored.Count);
-        Assert.Contains(
-            stored,
-            p => p.House == "stark" && p.Reason == PlayerReplacementReason.Vote
-        );
-        Assert.Contains(stored, p => p.House == "lannister" && p.WasWinner == false);
+        Assert.Contains(stored, p => p.Reason == PlayerReplacementReason.Vote);
+        Assert.Contains(stored, p => p.Reason == PlayerReplacementReason.ClockTimeout);
     }
 
     [Fact]
@@ -84,9 +77,7 @@ public class ApplicationDbContextTests
                 Id = Guid.NewGuid(),
                 GameId = game.Id,
                 UserId = Guid.NewGuid(),
-                House = "tyrell",
-                SequenceNumber = 0,
-                Reason = PlayerReplacementReason.ReplacedByPlayer,
+                Reason = PlayerReplacementReason.Vote,
             }
         );
         await db.SaveChangesAsync();

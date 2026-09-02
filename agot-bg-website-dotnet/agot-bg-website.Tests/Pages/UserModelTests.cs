@@ -214,8 +214,6 @@ public class UserModelTests : IDisposable
                 Id = Guid.NewGuid(),
                 GameId = wonGame.Id,
                 UserId = user.Id,
-                House = "greyjoy",
-                SequenceNumber = 0,
                 Reason = PlayerReplacementReason.Vote,
             }
         );

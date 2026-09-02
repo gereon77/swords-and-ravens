@@ -8,7 +8,7 @@ using agot_bg_website.Data;
 
 #nullable disable
 
-namespace agot_bg_website.Migrations
+namespace agot_bg_website.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -398,33 +398,21 @@ namespace agot_bg_website.Migrations
                     b.Property<Guid>("GameId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("House")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Reason")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<DateTimeOffset?>("ReplacedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("SequenceNumber")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<bool?>("WasWinner")
-                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("GameId", "SequenceNumber")
+                    b.HasIndex("GameId", "UserId")
                         .IsUnique();
 
                     b.ToTable("PreviousPlayersInGame");

@@ -9,11 +9,11 @@ using agot_bg_website.Data;
 
 #nullable disable
 
-namespace agot_bg_website.Migrations
+namespace agot_bg_website.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260831161727_AddUserSoftDelete")]
-    partial class AddUserSoftDelete
+    [Migration("20260902104059_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -187,6 +187,9 @@ namespace agot_bg_website.Migrations
                     b.Property<bool>("EmailNotificationActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("GameStateColumnRight")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("GameToken")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -240,9 +243,6 @@ namespace agot_bg_website.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("UseMapScrollbar")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("UseResponsiveLayoutOnMobile")
                         .HasColumnType("boolean");
 
                     b.Property<string>("UserName")
@@ -401,33 +401,21 @@ namespace agot_bg_website.Migrations
                     b.Property<Guid>("GameId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("House")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Reason")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<DateTimeOffset?>("ReplacedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("SequenceNumber")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<bool?>("WasWinner")
-                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("GameId", "SequenceNumber")
+                    b.HasIndex("GameId", "UserId")
                         .IsUnique();
 
                     b.ToTable("PreviousPlayersInGame");

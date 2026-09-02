@@ -1,3 +1,4 @@
+using System.Text.Json;
 using agot_bg_website.Domain;
 using Snr.Migration;
 using Xunit;
@@ -28,5 +29,20 @@ public class ImporterTests
             GameState.InLobby,
             Importer.ParseGameState("SOME_FUTURE_STATE_WE_DONT_KNOW_YET")
         );
+    }
+
+    [Theory]
+    [InlineData("""{"turn": -1}""", true)]
+    [InlineData("""{"turn": 0}""", false)]
+    [InlineData("""{"turn": 12}""", false)]
+    [InlineData("""{}""", false)]
+    [InlineData(null, false)]
+    public void IsTurnMinusOne_ReadsTheTurnFieldOfAnAlreadyParsedViewOfGameDocument(
+        string? json,
+        bool expected
+    )
+    {
+        using var doc = json is null ? null : JsonDocument.Parse(json);
+        Assert.Equal(expected, Importer.IsTurnMinusOne(doc));
     }
 }

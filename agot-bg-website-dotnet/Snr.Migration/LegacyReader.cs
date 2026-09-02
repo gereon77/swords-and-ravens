@@ -156,17 +156,17 @@ public class LegacyReader(string connectionString)
         }
     }
 
-    public async IAsyncEnumerable<LegacyMessage> ReadMessagesAsync()
+    public async IAsyncEnumerable<LegacyMessage> ReadMessagesAsync(DateTimeOffset? sinceUtc = null)
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand(
-            """
-            SELECT room_id, user_id, text, created_at
-            FROM chat_message
-            ORDER BY created_at
-            """,
-            conn
-        );
+        var sql = sinceUtc is null
+            ? "SELECT room_id, user_id, text, created_at FROM chat_message ORDER BY created_at"
+            : "SELECT room_id, user_id, text, created_at FROM chat_message WHERE created_at >= @since ORDER BY created_at";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        if (sinceUtc is { } since)
+        {
+            cmd.Parameters.AddWithValue("since", since);
+        }
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {

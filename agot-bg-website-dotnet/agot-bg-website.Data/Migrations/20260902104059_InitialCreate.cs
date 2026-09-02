@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace agot_bg_website.Migrations
+namespace agot_bg_website.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -50,10 +51,7 @@ namespace agot_bg_website.Migrations
                     MuteGames = table.Column<bool>(type: "boolean", nullable: false),
                     UseHouseNamesForChat = table.Column<bool>(type: "boolean", nullable: false),
                     UseMapScrollbar = table.Column<bool>(type: "boolean", nullable: false),
-                    UseResponsiveLayoutOnMobile = table.Column<bool>(
-                        type: "boolean",
-                        nullable: false
-                    ),
+                    GameStateColumnRight = table.Column<bool>(type: "boolean", nullable: false),
                     LastUsernameUpdateTime = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
                         nullable: true
@@ -68,6 +66,11 @@ namespace agot_bg_website.Migrations
                     CreatedAt = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
                         nullable: false
+                    ),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: true
                     ),
                     UserName = table.Column<string>(
                         type: "character varying(256)",
@@ -93,8 +96,6 @@ namespace agot_bg_website.Migrations
                     PasswordHash = table.Column<string>(type: "text", nullable: true),
                     SecurityStamp = table.Column<string>(type: "text", nullable: true),
                     ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "boolean", nullable: false),
                     TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     LockoutEnd = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
@@ -440,18 +441,11 @@ namespace agot_bg_website.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     GameId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    House = table.Column<string>(
-                        type: "character varying(50)",
-                        maxLength: 50,
-                        nullable: false
-                    ),
-                    SequenceNumber = table.Column<int>(type: "integer", nullable: false),
                     Reason = table.Column<string>(
                         type: "character varying(30)",
                         maxLength: 30,
-                        nullable: false
+                        nullable: true
                     ),
-                    WasWinner = table.Column<bool>(type: "boolean", nullable: true),
                     ReplacedAt = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
                         nullable: true
@@ -572,9 +566,9 @@ namespace agot_bg_website.Migrations
             );
 
             migrationBuilder.CreateIndex(
-                name: "IX_PreviousPlayersInGame_GameId_SequenceNumber",
+                name: "IX_PreviousPlayersInGame_GameId_UserId",
                 table: "PreviousPlayersInGame",
-                columns: new[] { "GameId", "SequenceNumber" },
+                columns: new[] { "GameId", "UserId" },
                 unique: true
             );
 

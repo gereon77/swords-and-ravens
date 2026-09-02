@@ -10,7 +10,11 @@ namespace Snr.Migration;
 /// Repeatable/idempotent import from the legacy Django database into the new Postgres schema.
 /// Safe to re-run at any time up to and including final cutover — see MIGRATION_PLAN.md §10.
 /// </summary>
-public class Importer(string legacyConnectionString, string targetConnectionString)
+public class Importer(
+    string legacyConnectionString,
+    string targetConnectionString,
+    int messagesDaysBack = -1
+)
 {
     private readonly LegacyReader _legacy = new(legacyConnectionString);
 
@@ -204,9 +208,21 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
     {
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
+
+        // Preloaded once so the historical PreviousPlayerInGame backfill (computed inline below,
+        // right while each game's SerializedGame is already parsed in memory - no second pass over
+        // Games afterwards) never overwrites rows a genuine live game-server save already wrote.
+        var gameIdsWithExistingPreviousPlayers = (
+            await db.PreviousPlayersInGame.Select(p => p.GameId).Distinct().ToListAsync()
+        ).ToHashSet();
+
         var imported = 0;
         var updated = 0;
         var skippedMissingOwner = 0;
+        var skippedCancelledLobby = 0;
+        var deletedCancelledLobby = 0;
+        var backfilledRows = 0;
+        var backfilledGames = 0;
         await foreach (var legacyGame in _legacy.ReadGamesAsync())
         {
             if (!knownUserIds.Contains(legacyGame.OwnerId))
@@ -218,6 +234,37 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             }
 
             var state = ParseGameState(legacyGame.State);
+
+            var viewOfGame =
+                legacyGame.ViewOfGame == null ? null : JsonDocument.Parse(legacyGame.ViewOfGame);
+
+            // A game cancelled before it ever left the lobby (view_of_game.turn still -1, i.e. it
+            // never even finished drafting/setup) has nothing worth keeping - no players ever
+            // really played, no chat worth preserving. The live save-game endpoint (GamesApi.cs)
+            // now deletes such games outright as soon as they're cancelled; mirror that here so a
+            // fresh import never creates one in the first place (skip it before persisting
+            // anything for this game at all).
+            if (state == GameState.Cancelled && IsTurnMinusOne(viewOfGame))
+            {
+                skippedCancelledLobby++;
+                var existingCancelled = await db.Games.FirstOrDefaultAsync(g =>
+                    g.Id == legacyGame.Id
+                );
+                if (existingCancelled is not null)
+                {
+                    // Was imported by an older run before this rule existed - clean it up now,
+                    // same as a fresh import would (never create it in the first place).
+                    await DeleteCancelledLobbyGameAsync(db, existingCancelled);
+                    deletedCancelledLobby++;
+                }
+                continue;
+            }
+
+            var serializedGame =
+                legacyGame.SerializedGame == null
+                    ? null
+                    : JsonDocument.Parse(legacyGame.SerializedGame);
+
             var existing = await db.Games.FindAsync(legacyGame.Id);
             if (existing == null)
             {
@@ -227,14 +274,8 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
                         Id = legacyGame.Id,
                         Name = legacyGame.Name,
                         OwnerUserId = legacyGame.OwnerId,
-                        SerializedGame =
-                            legacyGame.SerializedGame == null
-                                ? null
-                                : JsonDocument.Parse(legacyGame.SerializedGame),
-                        ViewOfGame =
-                            legacyGame.ViewOfGame == null
-                                ? null
-                                : JsonDocument.Parse(legacyGame.ViewOfGame),
+                        SerializedGame = serializedGame,
+                        ViewOfGame = viewOfGame,
                         Version = legacyGame.Version,
                         State = state,
                         CreatedAt = legacyGame.CreatedAt,
@@ -247,26 +288,82 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             else
             {
                 existing.Name = legacyGame.Name;
-                existing.SerializedGame =
-                    legacyGame.SerializedGame == null
-                        ? null
-                        : JsonDocument.Parse(legacyGame.SerializedGame);
-                existing.ViewOfGame =
-                    legacyGame.ViewOfGame == null
-                        ? null
-                        : JsonDocument.Parse(legacyGame.ViewOfGame);
+                existing.SerializedGame = serializedGame;
+                existing.ViewOfGame = viewOfGame;
                 existing.Version = legacyGame.Version;
                 existing.State = state;
                 existing.UpdatedAt = legacyGame.UpdatedAt;
                 existing.LastActiveAt = legacyGame.LastActiveAt;
                 updated++;
             }
+
+            // Historical PreviousPlayerInGame backfill (§10.1) - computed right here while
+            // serializedGame is already parsed in memory, rather than re-querying every Game a
+            // second time afterwards. Only Finished/Cancelled games can have removed players worth
+            // recording (InLobby/Ongoing games haven't concluded - any removal so far is still
+            // "live" data the game server itself will keep saving via GamesApi.cs). Never touches a
+            // game that already has rows - see the field's preload above.
+            if (
+                (state == GameState.Finished || state == GameState.Cancelled)
+                && serializedGame is not null
+                && !gameIdsWithExistingPreviousPlayers.Contains(legacyGame.Id)
+            )
+            {
+                var previousPlayers = PreviousPlayersBackfill.Compute(
+                    legacyGame.Id,
+                    serializedGame
+                );
+                if (previousPlayers.Count > 0)
+                {
+                    db.PreviousPlayersInGame.AddRange(previousPlayers);
+                    backfilledRows += previousPlayers.Count;
+                    backfilledGames++;
+                }
+            }
         }
         await db.SaveChangesAsync();
         Console.WriteLine(
-            $"    games: {imported} imported, {updated} updated, {skippedMissingOwner} skipped (missing owner)"
+            $"    games: {imported} imported, {updated} updated, {skippedMissingOwner} skipped (missing owner), "
+                + $"{skippedCancelledLobby} skipped (cancelled lobby games, never migrated), "
+                + $"{deletedCancelledLobby} previously-imported cancelled-lobby games deleted"
+        );
+        Console.WriteLine(
+            $"    previous players in game (historical backfill): {backfilledRows} rows backfilled across {backfilledGames} games"
         );
     }
+
+    /// <summary>Reads the `turn` field out of an already-parsed `view_of_game` JSON document.</summary>
+    internal static bool IsTurnMinusOne(JsonDocument? viewOfGame) =>
+        viewOfGame is not null
+        && viewOfGame.RootElement.TryGetProperty("turn", out var turnEl)
+        && turnEl.ValueKind == JsonValueKind.Number
+        && turnEl.GetInt32() == -1;
+
+    private static async Task DeleteCancelledLobbyGameAsync(ApplicationDbContext db, Game game)
+    {
+        // Resolve the public chat room the same way the live save-game endpoint does
+        // (view_of_game.publicChatRoomId, falling back to serialized_game's top-level field for
+        // older saves where view_of_game may not have carried it yet).
+        var roomId =
+            TryGetPublicChatRoomId(game.ViewOfGame) ?? TryGetPublicChatRoomId(game.SerializedGame);
+        if (roomId is { } id)
+        {
+            var room = await db.Rooms.FirstOrDefaultAsync(r => r.Id == id);
+            if (room is not null)
+            {
+                db.Rooms.Remove(room); // cascades to Messages/UsersInRoom
+            }
+        }
+        db.Games.Remove(game); // cascades to PlayersInGame/PreviousPlayersInGame
+    }
+
+    private static Guid? TryGetPublicChatRoomId(JsonDocument? doc) =>
+        doc is not null
+        && doc.RootElement.TryGetProperty("publicChatRoomId", out var el)
+        && el.ValueKind == JsonValueKind.String
+        && Guid.TryParse(el.GetString(), out var id)
+            ? id
+            : null;
 
     internal static GameState ParseGameState(string legacyState) =>
         legacyState switch
@@ -329,6 +426,15 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
 
     private async Task ImportMessagesAsync()
     {
+        if (messagesDaysBack == 0)
+        {
+            Console.WriteLine("    messages: 0 imported (messagesDaysBack=0, import disabled)");
+            return;
+        }
+
+        DateTimeOffset? sinceUtc =
+            messagesDaysBack > 0 ? DateTimeOffset.UtcNow.AddDays(-messagesDaysBack) : null;
+
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
         var knownRoomIds = (await db.Rooms.Select(r => r.Id).ToListAsync()).ToHashSet();
@@ -352,7 +458,7 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
         var skipped = 0;
         const int batchSize = 500;
         var pending = 0;
-        await foreach (var legacyMessage in _legacy.ReadMessagesAsync())
+        await foreach (var legacyMessage in _legacy.ReadMessagesAsync(sinceUtc))
         {
             if (
                 !knownUserIds.Contains(legacyMessage.UserId)

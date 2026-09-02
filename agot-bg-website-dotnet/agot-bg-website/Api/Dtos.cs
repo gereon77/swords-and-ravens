@@ -24,23 +24,12 @@ public record UserDto(
 
 public record PlayerInGamePatchDto(Guid User, JsonElement Data);
 
-/// <summary>One row of the new `previous_players` field — see MIGRATION_PLAN.md §4.4/§6.1.</summary>
-public record PreviousPlayerInGamePatchDto(
-    Guid User,
-    string House,
-    string Reason,
-    bool? WasWinner,
-    int SequenceNumber,
-    DateTimeOffset? ReplacedAt
-);
-
 public record GamePatchDto(
     JsonElement? SerializedGame,
     string? State,
     string? Version,
     JsonElement? ViewOfGame,
     IReadOnlyList<PlayerInGamePatchDto>? Players,
-    IReadOnlyList<PreviousPlayerInGamePatchDto>? PreviousPlayers,
     bool? UpdateLastActive
 );
 

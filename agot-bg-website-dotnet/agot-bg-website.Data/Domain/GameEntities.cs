@@ -13,8 +13,12 @@ public enum GameState
 
 /// <summary>
 /// A hosted game. SerializedGame/ViewOfGame remain opaque JSON blobs owned by the TS game
-/// server — see MIGRATION_PLAN.md §4.2/§4.4. This app never parses their contents except
-/// for the one-off historical backfill script, which lives in agot-bg-game-server, not here.
+/// server — see MIGRATION_PLAN.md §4.2/§4.4. Two small exceptions read a couple of top-level
+/// fields directly: <c>GamesApi.cs</c>'s PATCH handler reads <c>view_of_game.turn</c>/
+/// <c>publicChatRoomId</c> to delete games cancelled before ever leaving the lobby, and
+/// <c>Snr.Migration</c> reads <c>childGameState.oldPlayerIds</c>/<c>timeoutPlayerIds</c> to
+/// backfill historical <see cref="PreviousPlayerInGame"/> rows for legacy games (see
+/// MIGRATION_PLAN.md §10.1). Neither reconstructs the full game state.
 /// </summary>
 public class Game
 {
@@ -66,13 +70,22 @@ public enum PlayerReplacementReason
 {
     Vote,
     ClockTimeout,
-    ReplacedByPlayer,
 }
 
 /// <summary>
-/// A player who was removed from a game before it ended (replaced by a vassal, by another human
-/// player, or timed out). Does not exist in Django today — see MIGRATION_PLAN.md §4.4. These rows
-/// are fully replaced on every save, same idempotency pattern as PlayerInGame.
+/// A player who was removed from a game before it ended (replaced by a vassal via vote, or timed
+/// out). Does not exist in Django today — see MIGRATION_PLAN.md §4.4. Computed entirely by this
+/// app itself (never sent by the game server, which only ever sends the current `Players` list on
+/// every save) - see GamesApi.cs's PATCH handler: whenever a previously-present user is missing
+/// from a save's player list, a row is added here; if a user with an existing row reappears in a
+/// later save (voted back in), the row is removed again. At most one row per (GameId, UserId) can
+/// exist at a time.
+///
+/// <see cref="Reason"/> is nullable: the live save-game endpoint has no way to distinguish *why* a
+/// player left from the Players list alone, so it leaves this null. Only the historical import
+/// backfill (Snr.Migration, reading `oldPlayerIds`/`timeoutPlayerIds` off the full serialized
+/// game) can set it directly. A future cron job could fill in Reason for live-added rows the same
+/// way, by re-reading the game's SerializedGame after the fact.
 /// </summary>
 public class PreviousPlayerInGame
 {
@@ -86,15 +99,7 @@ public class PreviousPlayerInGame
 
     public ApplicationUser? User { get; set; }
 
-    public required string House { get; set; }
-
-    /// <summary>0-based order of removal within the game; natural key alongside GameId.</summary>
-    public int SequenceNumber { get; set; }
-
-    public PlayerReplacementReason Reason { get; set; }
-
-    /// <summary>Whether House ultimately won. Null while the game is still ongoing. Not used for win-rate.</summary>
-    public bool? WasWinner { get; set; }
+    public PlayerReplacementReason? Reason { get; set; }
 
     public DateTimeOffset? ReplacedAt { get; set; }
 
