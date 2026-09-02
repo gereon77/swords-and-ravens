@@ -101,6 +101,13 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAut
 builder.Services.AddScoped<AccountLinkingService>();
 builder.Services.AddScoped<AccountDeletionService>();
 builder.Services.AddScoped<agot_bg_website.Services.GameListing.GameListQueryService>();
+builder.Services.AddScoped<agot_bg_website.Services.UserStatsService>();
+
+// Recomputes cached win-rate stats in the background whenever a game finishes (see
+// Api.GamesApi's PATCH handler) instead of recalculating from every PlayerInGame row on every
+// profile page view - see WinRateRecalculationQueue/WinRateRecalculationBackgroundService.
+builder.Services.AddSingleton<agot_bg_website.Infrastructure.Stats.WinRateRecalculationQueue>();
+builder.Services.AddHostedService<agot_bg_website.Infrastructure.Stats.WinRateRecalculationBackgroundService>();
 
 // Refuses throwaway addresses (mailinator.com and the like) on registration/email-change - see
 // LOCAL_DEV_VERIFICATION.md "Disposable email" section for why this package/approach was picked.

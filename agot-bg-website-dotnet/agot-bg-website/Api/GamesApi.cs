@@ -64,7 +64,12 @@ public static class GamesApi
 
         group.MapPatch(
             "/{id:guid}",
-            async (Guid id, GamePatchDto patch, ApplicationDbContext db) =>
+            async (
+                Guid id,
+                GamePatchDto patch,
+                ApplicationDbContext db,
+                Infrastructure.Stats.WinRateRecalculationQueue winRateQueue
+            ) =>
             {
                 // See GameSaveLock's doc comment: the game server can (and does, in practice) fire
                 // multiple overlapping saves for the same game in quick succession, which otherwise
@@ -80,6 +85,8 @@ public static class GamesApi
                 {
                     return Results.NotFound();
                 }
+
+                var stateBeforePatch = game.State;
 
                 if (patch.SerializedGame is { } serializedGame)
                 {
@@ -197,6 +204,26 @@ public static class GamesApi
                 }
 
                 await db.SaveChangesAsync();
+
+                // Every current and former participant's cached win-rate stats become stale the
+                // moment a game they were part of finishes - recompute them in the background
+                // rather than on their next profile page view (see UserStatsService's doc
+                // comment). Not raised for any other state transition (a game going back from
+                // Finished to something else can't currently happen, and no other transition
+                // changes anyone's win-rate facts).
+                if (stateBeforePatch != GameState.Finished && game.State == GameState.Finished)
+                {
+                    foreach (
+                        var userId in game
+                            .Players.Select(p => p.UserId)
+                            .Concat(game.PreviousPlayers.Select(p => p.UserId))
+                            .Distinct()
+                    )
+                    {
+                        winRateQueue.Enqueue(userId);
+                    }
+                }
+
                 return Results.Ok(ToDto(game));
             }
         );

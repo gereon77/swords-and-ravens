@@ -3,7 +3,9 @@ using System.Text.Json;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Infrastructure.Stats;
 using agot_bg_website.Pages;
+using agot_bg_website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +28,8 @@ public class UserModelTests : IDisposable
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuthorizationService _authorizationService;
+    private readonly UserStatsService _userStatsService;
+    private readonly WinRateRecalculationQueue _winRateQueue;
 
     public UserModelTests()
     {
@@ -39,16 +43,20 @@ public class UserModelTests : IDisposable
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
         services.AddAuthorizationBuilder().AddGamePermissionPolicies();
+        services.AddScoped<UserStatsService>();
+        services.AddSingleton<WinRateRecalculationQueue>();
 
         _provider = services.BuildServiceProvider();
         _db = _provider.GetRequiredService<ApplicationDbContext>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
         _authorizationService = _provider.GetRequiredService<IAuthorizationService>();
+        _userStatsService = _provider.GetRequiredService<UserStatsService>();
+        _winRateQueue = _provider.GetRequiredService<WinRateRecalculationQueue>();
     }
 
     private UserModel CreatePageModel(ClaimsPrincipal? viewer = null)
     {
-        var model = new UserModel(_db, _userManager, _authorizationService)
+        var model = new UserModel(_db, _userManager, _authorizationService, _winRateQueue)
         {
             PageContext = new PageContext
             {
@@ -220,12 +228,23 @@ public class UserModelTests : IDisposable
 
         await _db.SaveChangesAsync();
 
+        // Stats are only ever read from the cache the profile page itself never populates
+        // synchronously anymore (see StatsNotYetCached_ShowsNAAndEnqueuesRecalculation below) -
+        // warm it via UserStatsService directly first, exactly as
+        // WinRateRecalculationBackgroundService would after picking this user up off the queue.
+        await _userStatsService.RecalculateAsync(user.Id);
+
         var model = CreatePageModel();
         var result = await model.OnGetAsync(user.Id);
 
         Assert.IsType<PageResult>(result);
-        // wonGame + lostGame count towards stats (1 win, 1 loss); learnTheGame and facelessGame are
-        // excluded entirely; plus 1 unconditional loss from the PreviousPlayerInGame row.
+        // FinishedCount considers every non-faceless game actually in state Finished - wonGame,
+        // lostGame, AND learnTheGame (3 total); it only excludes facelessGame (hidden identity,
+        // dropped from the games list entirely) and cancelledGame (never affects any stat), and
+        // does NOT exclude removed/left-early rows since those never had a PlayerInGame row to
+        // begin with. The win-rate percentage is stricter: it further excludes learnTheGame (the
+        // tutorial) from its own numerator/denominator, but folds the 1 unconditional loss from
+        // the PreviousPlayerInGame row into ITS denominator (wonGame + lostGame + removed = 3).
         Assert.Equal(1, model.WonCount);
         Assert.Equal(3, model.FinishedCount);
         Assert.Equal(1, model.RemovedFromGameCount);
@@ -238,6 +257,37 @@ public class UserModelTests : IDisposable
         Assert.DoesNotContain(model.GamesOfUser, g => g.GameId == facelessGame.Id);
         Assert.Single(model.CancelledGames);
         Assert.Equal(cancelledGame.Id, model.CancelledGames[0].GameId);
+    }
+
+    [Fact]
+    public async Task StatsNotYetCached_ShowsNAAndEnqueuesRecalculation()
+    {
+        // A brand-new user (or any pre-existing user before this feature's background service has
+        // ever picked them up) has StatsCachedAt == null. The profile page must never fall back to
+        // computing stats synchronously here - that would reintroduce exactly the "load everything
+        // on every profile view" cost LoadGamesAsync's rewrite was meant to eliminate. Instead it
+        // shows "n/a"/0 for this one request and enqueues the user for the background service.
+        var user = new ApplicationUser
+        {
+            UserName = "uncached_stats_guy",
+            Email = "uncached@example.com",
+        };
+        await _userManager.CreateAsync(user);
+
+        var model = CreatePageModel();
+        var result = await model.OnGetAsync(user.Id);
+
+        Assert.IsType<PageResult>(result);
+        Assert.Equal(0, model.WonCount);
+        Assert.Equal(0, model.FinishedCount);
+        Assert.Equal(0, model.RemovedFromGameCount);
+        Assert.Equal("n/a", model.WinRateDisplay);
+
+        await using var enumerator = _winRateQueue
+            .ReadAllAsync(CancellationToken.None)
+            .GetAsyncEnumerator();
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal(user.Id, enumerator.Current);
     }
 
     public void Dispose()

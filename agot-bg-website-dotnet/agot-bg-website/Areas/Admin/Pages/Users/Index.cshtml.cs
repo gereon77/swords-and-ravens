@@ -11,7 +11,8 @@ namespace agot_bg_website.Areas.Admin.Pages.Users;
 
 public class IndexModel(
     UserManager<ApplicationUser> userManager,
-    AccountDeletionService accountDeletionService
+    AccountDeletionService accountDeletionService,
+    UserStatsService userStatsService
 ) : PageModel
 {
     private const int PageSize = 50;
@@ -89,6 +90,28 @@ public class IndexModel(
         var displayName = user.DisplayName;
         await accountDeletionService.DeleteAccountAsync(user);
         StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
+
+        return RedirectToPage(new { Search, PageNumber });
+    }
+
+    /// <summary>
+    /// Forces an immediate, synchronous recalculation of a single user's cached win-rate stats
+    /// (<see cref="ApplicationUser.CachedWinRate"/> and friends) - the normal path only happens in
+    /// the background when one of their games finishes (see Api.GamesApi's PATCH handler) or the
+    /// first time their profile is viewed after never having been cached. Useful right after a
+    /// change to the win-rate calculation logic itself, to refresh a specific user's numbers
+    /// without waiting for their next game.
+    /// </summary>
+    public async Task<IActionResult> OnPostRecalculateStatsAsync(Guid id)
+    {
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        await userStatsService.RecalculateAsync(id);
+        StatusMessage = $"Recalculated cached win-rate stats for {user.DisplayName}.";
 
         return RedirectToPage(new { Search, PageNumber });
     }

@@ -51,6 +51,9 @@
                         @if (!user.IsDeleted)
                         {
                             <a class="btn btn-sm" asp-page="./Edit" asp-route-id="@user.Id">Edit roles</a>
+                            <form method="post" asp-page-handler="RecalculateStats" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
+                                <button type="submit" class="btn btn-sm" title="Force an immediate recalculation of this user's cached win-rate stats">Recalc stats</button>
+                            </form>
                             <form method="post" asp-page-handler="ToggleBan" asp-route-id="@user.Id" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
                                 <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
                                     @(isBanned ? "Unban" : "Ban")

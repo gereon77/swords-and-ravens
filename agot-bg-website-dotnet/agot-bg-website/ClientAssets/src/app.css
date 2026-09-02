@@ -18,7 +18,14 @@
 @layer components {
   /* Bootstrap grid --------------------------------------------------- */
   .container {
-    @apply mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  /* Opt-in wider variant for pages with dense data tables (currently just the user profile page)
+     - see Pages/User.cshtml's ViewData["WideContainer"] and _Layout.cshtml. Keeping the default
+     `.container` at 7xl everywhere else avoids widening every other page (nav, footer, forms)
+     just for the one page that benefits from more horizontal room. */
+  .container-wide {
+    @apply max-w-[1600px];
   }
   .row {
     @apply flex flex-wrap -mx-2;

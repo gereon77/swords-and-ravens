@@ -3,6 +3,7 @@
 @using agot_bg_website.Domain
 @{
     ViewData["Title"] = Model.ViewedUser.DisplayName;
+    ViewData["WideContainer"] = true;
 }
 
 <div class="mb-6">
@@ -63,107 +64,217 @@
         </div>
     </div>
 
-    <div class="lg:col-span-9">
-        <div class="card bg-base-200 shadow-md border border-base-300 p-6">
-            <h2 class="text-lg font-semibold mb-3">Games</h2>
-            @if (Model.GamesOfUser.Count == 0)
-            {
-                <p class="opacity-70">No games</p>
-            }
-            else
-            {
-                <div class="overflow-x-auto rounded-box border border-base-300">
-                    <table class="table table-zebra">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Name</th>
-                                <th>Players</th>
-                                <th></th>
+    <div class="lg:col-span-9 flex flex-col gap-4">
+        <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" open>
+            <summary class="collapse-title text-lg font-semibold">
+                Games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.GamesOfUser.Count</span>
+            </summary>
+            <div class="collapse-content">
+                @if (Model.GamesOfUser.Count == 0)
+                {
+                    <p class="opacity-70">No games</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto rounded-box border border-base-300">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col class="w-24" />
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-28" />
                                 @if (Model.CanPlayAsAnotherPlayer)
                                 {
-                                    <th></th>
+                                    <col class="w-28" />
                                 }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var game in Model.GamesOfUser)
-                            {
+                            </colgroup>
+                            <thead>
                                 <tr>
-                                    <td class="text-center">
-                                        @if (game.State == GameState.InLobby)
-                                        {
-                                            <span class="badge badge-success">Open</span>
-                                        }
-                                        else if (game.State == GameState.Ongoing)
-                                        {
-                                            <span class="badge badge-warning">Ongoing</span>
-                                        }
-                                        else if (game.IsWinner == true)
-                                        {
-                                            <span title="Won">👑</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(game.House))
-                                        {
-                                            <span class="house-icon tooltip" data-tip="@game.House">
-                                                <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
-                                            </span>
-                                        }
-                                        <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
-                                    </td>
-                                    <td class="text-center">
-                                        @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
-                                    </td>
-                                    @if (!Model.OnProbation)
-                                    {
-                                        <td>
-                                            <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
-                                                @(Model.IsOwnProfile ? "Rejoin" : "Spectate")
-                                            </a>
-                                        </td>
-                                    }
+                                    <th></th>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th></th>
                                     @if (Model.CanPlayAsAnotherPlayer)
                                     {
-                                        <td>
-                                            <a class="btn btn-secondary btn-sm" href="/play/@game.GameId/@Model.ViewedUser.Id" target="_blank" rel="noopener noreferrer">
-                                                Join as
-                                            </a>
-                                        </td>
+                                        <th></th>
                                     }
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.GamesOfUser)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            @if (game.State == GameState.InLobby)
+                                            {
+                                                <span class="badge badge-success">Open</span>
+                                            }
+                                            else if (game.State == GameState.Ongoing)
+                                            {
+                                                <span class="badge badge-warning">Ongoing</span>
+                                            }
+                                            else if (game.IsWinner == true)
+                                            {
+                                                <span title="Won">👑</span>
+                                            }
+                                        </td>
+                                        <td class="whitespace-normal break-words">
+                                            @if (!string.IsNullOrEmpty(game.House))
+                                            {
+                                                <span class="house-icon tooltip" data-tip="@game.House">
+                                                    <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
+                                                </span>
+                                            }
+                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">
+                                            @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                                        </td>
+                                        @if (!Model.OnProbation)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
+                                                    @(Model.IsOwnProfile ? "Rejoin" : "Spectate")
+                                                </a>
+                                            </td>
+                                        }
+                                        @if (Model.CanPlayAsAnotherPlayer)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-secondary btn-sm" href="/play/@game.GameId/@Model.ViewedUser.Id" target="_blank" rel="noopener noreferrer">
+                                                    Join as
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </details>
 
         @if (Model.CancelledGames.Count > 0)
         {
-            <div class="card bg-base-200 shadow-md border border-base-300 p-6 mt-6">
-                <h2 class="text-lg font-semibold mb-3">Cancelled games</h2>
-                <div class="overflow-x-auto rounded-box border border-base-300">
-                    <table class="table table-zebra">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Players</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var game in Model.CancelledGames)
-                            {
+            <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300">
+                <summary class="collapse-title text-lg font-semibold">
+                    Cancelled games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CancelledGames.Count</span>
+                </summary>
+                <div class="collapse-content">
+                    <div class="overflow-x-auto rounded-box border border-base-300">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-28" />
+                                @if (Model.CanPlayAsAnotherPlayer)
+                                {
+                                    <col class="w-28" />
+                                }
+                            </colgroup>
+                            <thead>
                                 <tr>
-                                    <td>@game.Name</td>
-                                    <td class="text-center">@game.PlayersCount</td>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th></th>
+                                    @if (Model.CanPlayAsAnotherPlayer)
+                                    {
+                                        <th></th>
+                                    }
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.CancelledGames)
+                                {
+                                    <tr>
+                                        <td class="whitespace-normal break-words">
+                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
+                                        @if (!Model.OnProbation)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
+                                                    Spectate
+                                                </a>
+                                            </td>
+                                        }
+                                        @if (Model.CanPlayAsAnotherPlayer)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-secondary btn-sm" href="/play/@game.GameId/@Model.ViewedUser.Id" target="_blank" rel="noopener noreferrer">
+                                                    Join as
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            </details>
+        }
+
+        @if (Model.PreviouslyParticipatedGames.Count > 0)
+        {
+            <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300">
+                <summary class="collapse-title text-lg font-semibold">
+                    Previously participated games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.PreviouslyParticipatedGames.Count</span>
+                </summary>
+                <div class="collapse-content">
+                    <p class="opacity-70 text-sm mb-3">Games you were replaced or removed from before they ended.</p>
+                    <div class="overflow-x-auto rounded-box border border-base-300">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-32" />
+                                <col class="w-28" />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th>Reason</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.PreviouslyParticipatedGames)
+                                {
+                                    <tr>
+                                        <td class="whitespace-normal break-words">
+                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">
+                                            @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            @(game.Reason switch
+                                            {
+                                                PlayerReplacementReason.Vote => "Voted out",
+                                                PlayerReplacementReason.ClockTimeout => "Clock timeout",
+                                                _ => "Unknown",
+                                            })
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            @if (!Model.OnProbation)
+                                            {
+                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
+                                                    Spectate
+                                                </a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
         }
     </div>
 </div>
+

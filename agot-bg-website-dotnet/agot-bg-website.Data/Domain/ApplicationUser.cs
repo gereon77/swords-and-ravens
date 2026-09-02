@@ -70,6 +70,33 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
+    /// Cached win-rate stats, recomputed by <see cref="Services.UserStatsService"/> in the
+    /// background whenever one of this user's games transitions to Finished (see
+    /// Api.GamesApi's PATCH handler and Infrastructure.Stats.WinRateRecalculationQueue) instead of
+    /// being recalculated from PlayerInGame/PreviousPlayerInGame on every profile page view -
+    /// User.cshtml.cs's LoadGamesAsync used to do exactly that, loading every one of a user's
+    /// games (including the multi-megabyte SerializedGame blob) on every request. <see
+    /// cref="StatsCachedAt"/> null means "never computed yet" (e.g. every pre-existing user right
+    /// after this feature ships, or before the game server's next PATCH after this feature
+    /// ships): User.cshtml.cs shows "n/a"/0 and enqueues a recalculation for that case rather than
+    /// computing synchronously (see Services.UserStatsService's doc comment). Cancelled games
+    /// never affect any of these fields. <see cref="CachedFinishedGamesCount"/> only counts games
+    /// actually played to the end (state Finished) - <see
+    /// cref="CachedRemovedFromGameCount"/> (games left early) is folded into <see
+    /// cref="CachedWinRate"/>'s denominator separately, always as a loss, but is intentionally
+    /// excluded from this count.
+    /// </summary>
+    public int? CachedWonGamesCount { get; set; }
+
+    public int? CachedFinishedGamesCount { get; set; }
+
+    public int? CachedRemovedFromGameCount { get; set; }
+
+    public double? CachedWinRate { get; set; }
+
+    public DateTimeOffset? StatsCachedAt { get; set; }
+
+    /// <summary>
     /// Soft-delete flag ("Took the Black"). We deliberately keep the AspNetUsers row instead of
     /// hard-deleting or moving it to a separate table: PlayerInGame/PreviousPlayerInGame/Message
     /// all reference UserId with ON DELETE RESTRICT, so a real delete would either be blocked or

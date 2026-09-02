@@ -19,7 +19,8 @@ public sealed record ViewOfGameInfo(
     bool IsPasswordProtected,
     bool IsTournamentMode,
     bool ReplacePlayerVoteOngoing,
-    Guid? PublicChatRoomId
+    Guid? PublicChatRoomId,
+    bool IsLearnTheGame
 )
 {
     public static readonly ViewOfGameInfo Empty = new(
@@ -33,7 +34,8 @@ public sealed record ViewOfGameInfo(
         false,
         false,
         false,
-        null
+        null,
+        false
     );
 
     public static ViewOfGameInfo Parse(JsonDocument? viewOfGame)
@@ -105,6 +107,14 @@ public sealed record ViewOfGameInfo(
             settings?.TryGetProperty(name, out var el) == true
             && el.ValueKind == JsonValueKind.True;
 
+        // The tutorial variant is excluded from win-rate stats entirely (MIGRATION_PLAN.md §10.2)
+        // and, on the games lists, from the "faceless" filtering below - it's identified by this
+        // one magic setupId rather than a dedicated boolean setting.
+        var isLearnTheGame =
+            settings?.TryGetProperty("setupId", out var setupIdEl) == true
+            && setupIdEl.ValueKind == JsonValueKind.String
+            && setupIdEl.GetString() == "learn-the-game";
+
         return new ViewOfGameInfo(
             turn,
             waitingFor,
@@ -116,7 +126,8 @@ public sealed record ViewOfGameInfo(
             isPasswordProtected,
             GetBoolSetting("tournamentMode"),
             replacePlayerVoteOngoing,
-            publicChatRoomId
+            publicChatRoomId,
+            isLearnTheGame
         );
     }
 }
@@ -126,10 +137,11 @@ public sealed record PlayerInGameInfo(
     string? House,
     bool WaitedFor,
     bool NeededForVote,
-    IReadOnlyList<Guid> ImportantChatRoomIds
+    IReadOnlyList<Guid> ImportantChatRoomIds,
+    bool? IsWinner
 )
 {
-    public static readonly PlayerInGameInfo Empty = new(null, false, false, []);
+    public static readonly PlayerInGameInfo Empty = new(null, false, false, [], null);
 
     public static PlayerInGameInfo Parse(JsonDocument? data)
     {
@@ -153,6 +165,15 @@ public sealed record PlayerInGameInfo(
             root.TryGetProperty("needed_for_vote", out var voteEl)
             && voteEl.ValueKind == JsonValueKind.True;
 
+        bool? isWinner =
+            root.TryGetProperty("is_winner", out var isWinnerEl)
+            && (
+                isWinnerEl.ValueKind == JsonValueKind.True
+                || isWinnerEl.ValueKind == JsonValueKind.False
+            )
+                ? isWinnerEl.GetBoolean()
+                : null;
+
         var importantChatRoomIds = new List<Guid>();
         if (
             root.TryGetProperty("important_chat_rooms", out var roomsEl)
@@ -171,6 +192,6 @@ public sealed record PlayerInGameInfo(
             }
         }
 
-        return new PlayerInGameInfo(house, waitedFor, neededForVote, importantChatRoomIds);
+        return new PlayerInGameInfo(house, waitedFor, neededForVote, importantChatRoomIds, isWinner);
     }
 }
