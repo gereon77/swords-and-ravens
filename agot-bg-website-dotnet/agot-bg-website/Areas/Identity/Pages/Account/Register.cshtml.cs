@@ -134,6 +134,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             ).ToList();
             if (ModelState.IsValid)
             {
+                if (Infrastructure.Auth.ReservedUsernames.IsReserved(Input.UserName))
+                {
+                    ModelState.AddModelError(
+                        "Input.UserName",
+                        "This username is reserved and can't be used."
+                    );
+                    return Page();
+                }
+
                 // Ensure the username is unique
                 var existingNameUser = await _userManager.FindByNameAsync(Input.UserName);
                 if (existingNameUser is not null)

@@ -50,7 +50,11 @@ public sealed class GameListQueryService(ApplicationDbContext db)
                 g.OwnerUserId,
                 g.OwnerUser == null
                     ? null
-                    : (g.OwnerUser.IsDeleted ? "Took the Black" : g.OwnerUser.UserName),
+                    : (
+                        g.OwnerUser.IsDeleted
+                            ? ApplicationUser.DeletedAccountDisplayName
+                            : g.OwnerUser.UserName
+                    ),
                 g.CreatedAt,
                 g.LastActiveAt,
                 g.ViewOfGame,
@@ -58,7 +62,9 @@ public sealed class GameListQueryService(ApplicationDbContext db)
                         p.UserId,
                         p.Data,
                         p.User!.LastActivity,
-                        p.User.IsDeleted ? "Took the Black" : p.User.UserName
+                        p.User.IsDeleted
+                            ? ApplicationUser.DeletedAccountDisplayName
+                            : p.User.UserName
                     ))
                     .ToList()
             ));

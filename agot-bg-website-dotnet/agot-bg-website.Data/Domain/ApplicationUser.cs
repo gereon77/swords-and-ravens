@@ -84,5 +84,13 @@ public class ApplicationUser : IdentityUser<Guid>
 
     /// <summary>Name to show anywhere a username would normally be displayed (games, chat, admin).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public string DisplayName => IsDeleted ? "Took the Black" : (UserName ?? "Unknown");
+    public string DisplayName => IsDeleted ? DeletedAccountDisplayName : (UserName ?? "Unknown");
+
+    /// <summary>
+    /// The fixed label shown in place of a real username for every soft-deleted account (see
+    /// <see cref="DisplayName"/>/<see cref="IsDeleted"/>) - also used by
+    /// <c>ReservedUsernames</c> to forbid anyone from actually registering/renaming to this exact
+    /// name, which would otherwise be indistinguishable from a deleted account.
+    /// </summary>
+    public const string DeletedAccountDisplayName = "Took the Black";
 }
