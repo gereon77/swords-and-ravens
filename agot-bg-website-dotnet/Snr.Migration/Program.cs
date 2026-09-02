@@ -1,12 +1,23 @@
-﻿using Snr.Migration;
+using Microsoft.Extensions.Configuration;
+using Snr.Migration;
 
-// dotnet run --project Snr.Migration -- import --legacy "Host=...;Database=snr_django;..." --target "Host=...;Database=snr_dotnet;..."
-// dotnet run --project Snr.Migration -- verify --legacy "..." --target "..."
+// Connection strings are read from --legacy/--target if given, otherwise from user secrets
+// (keys "Legacy"/"Target") so a production connection string never has to be typed on the
+// command line (and so it never ends up in shell history or a process list):
+//   dotnet user-secrets set "Legacy" "Host=...;Database=snr_django;..." --project Snr.Migration
+//   dotnet user-secrets set "Target" "Host=...;Database=snr_dotnet;..." --project Snr.Migration
+//
+// dotnet run --project Snr.Migration -- import [--legacy "..."] [--target "..."]
+// dotnet run --project Snr.Migration -- verify [--legacy "..."] [--target "..."]
 // See MIGRATION_PLAN.md §10 for the design this implements.
 
+var config = new ConfigurationBuilder()
+    .AddUserSecrets(System.Reflection.Assembly.GetExecutingAssembly())
+    .Build();
+
 string? command = args.Length > 0 ? args[0] : null;
-string? legacy = GetOption(args, "--legacy");
-string? target = GetOption(args, "--target");
+string? legacy = GetOption(args, "--legacy") ?? config["Legacy"];
+string? target = GetOption(args, "--target") ?? config["Target"];
 string? messagesDaysBackOption = GetOption(args, "--messages-days-back");
 var messagesDaysBack = -1;
 if (messagesDaysBackOption != null && !int.TryParse(messagesDaysBackOption, out messagesDaysBack))
@@ -22,8 +33,12 @@ if (command is not ("import" or "verify") || legacy == null || target == null)
     Console.WriteLine(
         """
         Usage:
-          dotnet run -- import --legacy "<connection string>" --target "<connection string>" [--messages-days-back <n>]
-          dotnet run -- verify --legacy "<connection string>" --target "<connection string>"
+          dotnet run -- import [--legacy "<connection string>"] [--target "<connection string>"] [--messages-days-back <n>]
+          dotnet run -- verify [--legacy "<connection string>"] [--target "<connection string>"]
+
+        --legacy/--target fall back to user secrets ("Legacy"/"Target") when omitted - see this
+        file's top comment for the exact `dotnet user-secrets set` commands. Preferred over typing
+        a production connection string directly on the command line.
 
         Imports Users, Groups/Roles, Rooms, Games, PlayerInGame, historical PreviousPlayerInGame,
         Messages and PbemResponseTime from a legacy Django database into a fresh
