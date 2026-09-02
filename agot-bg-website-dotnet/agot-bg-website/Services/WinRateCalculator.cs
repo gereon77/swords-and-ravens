@@ -28,10 +28,7 @@ public static class WinRateCalculator
         IEnumerable<WinRateGameFact> currentParticipations,
         int finishedGamesPlayerWasRemovedFromCount)
     {
-        if (finishedGamesPlayerWasRemovedFromCount < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(finishedGamesPlayerWasRemovedFromCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(finishedGamesPlayerWasRemovedFromCount);
 
         var finished = currentParticipations.Where(g => g.IsFinished).ToList();
 

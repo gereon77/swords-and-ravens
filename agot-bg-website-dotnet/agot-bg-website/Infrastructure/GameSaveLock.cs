@@ -12,7 +12,7 @@ namespace agot_bg_website.Infrastructure;
 /// taking a seat can trigger several state changes in quick succession). Each PATCH does a
 /// "delete all + recreate" full replace of <c>PlayerInGame</c>/<c>PreviousPlayerInGame</c> rows
 /// (see MIGRATION_PLAN.md §6). Since each request gets its own scoped <see
-/// cref="agot_bg_website.Data.ApplicationDbContext"/>, two overlapping requests can both load the
+/// cref="Data.ApplicationDbContext"/>, two overlapping requests can both load the
 /// same rows, and whichever's DELETE runs second finds 0 rows left to delete (the first request
 /// already removed them) — EF Core reports that as a
 /// <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/> ("expected to affect 1

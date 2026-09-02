@@ -43,7 +43,7 @@ public static class DiscordAuthenticationExtensions
 
 public class DiscordOAuthHandler(
     IOptionsMonitor<OAuthOptions> options,
-    Microsoft.Extensions.Logging.ILoggerFactory logger,
+    ILoggerFactory logger,
     System.Text.Encodings.Web.UrlEncoder encoder)
     : OAuthHandler<OAuthOptions>(options, logger, encoder)
 {

@@ -4,7 +4,6 @@ using agot_bg_website.Infrastructure.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using Xunit;
 
 namespace agot_bg_website.Tests.Infrastructure;

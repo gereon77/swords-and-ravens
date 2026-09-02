@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 
 namespace agot_bg_website.Infrastructure.Chat;

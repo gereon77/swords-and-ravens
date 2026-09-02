@@ -31,7 +31,7 @@ public static class EndpointRoutingExtensions
     /// it gets a plain 404, indistinguishable from a route that doesn't exist.
     ///
     /// Also deliberately checked via
-    /// <see cref="Microsoft.AspNetCore.Http.ConnectionInfo.LocalPort"/> (the actual socket the
+    /// <see cref="ConnectionInfo.LocalPort"/> (the actual socket the
     /// connection was accepted on) rather than <c>RequireHost</c>/<c>Host</c> header matching: the
     /// <c>Host</c> header is supplied by the client and can be spoofed, so a
     /// <c>RequireHost("*:8001")</c>-style check could be bypassed by a request that physically

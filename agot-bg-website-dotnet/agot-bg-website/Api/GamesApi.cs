@@ -13,7 +13,7 @@ namespace agot_bg_website.Api;
 /// rows are explicitly added via <c>AddRange</c> rather than just assigned to the navigation
 /// collection: since their <c>Id</c> is a client-set (non-default) Guid, EF Core's automatic graph
 /// fixup otherwise assumes the row already exists and generates an UPDATE instead of an INSERT,
-/// which affects 0 rows and throws <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/>
+/// which affects 0 rows and throws <see cref="DbUpdateConcurrencyException"/>
 /// on every save that adds a player — see GamesApiPlayerReplacementTests for a pinned repro. PATCH
 /// also acquires a per-game <see cref="GameSaveLock"/> first, as defense-in-depth against the
 /// game server's saves for the same game genuinely overlapping — see that type's doc comment.

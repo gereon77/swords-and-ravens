@@ -20,7 +20,7 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
     /// <summary>
     /// Permissions granted directly to this user, on top of whatever their roles already grant
     /// (Django's <c>auth_user_user_permissions</c> one-off, per-user override) — see
-    /// <see cref="Areas.Admin.Pages.Roles.EditModel"/> for the role-wide equivalent.
+    /// <see cref="Roles.EditModel"/> for the role-wide equivalent.
     /// </summary>
     public IReadOnlyList<string> AllPermissions => GamePermissions.All;
 

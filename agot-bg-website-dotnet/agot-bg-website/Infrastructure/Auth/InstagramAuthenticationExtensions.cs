@@ -44,7 +44,7 @@ public static class InstagramAuthenticationExtensions
 
 public class InstagramOAuthHandler(
     IOptionsMonitor<OAuthOptions> options,
-    Microsoft.Extensions.Logging.ILoggerFactory logger,
+    ILoggerFactory logger,
     System.Text.Encodings.Web.UrlEncoder encoder)
     : OAuthHandler<OAuthOptions>(options, logger, encoder)
 {

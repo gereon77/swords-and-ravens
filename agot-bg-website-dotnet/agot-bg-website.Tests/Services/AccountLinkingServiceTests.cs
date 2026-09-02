@@ -2,7 +2,6 @@ using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -19,7 +18,7 @@ public class AccountLinkingServiceTests : IDisposable
     private readonly ServiceProvider _provider;
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly agot_bg_website.Services.AccountLinkingService _sut;
+    private readonly AccountLinkingService _sut;
 
     public AccountLinkingServiceTests()
     {
@@ -34,7 +33,7 @@ public class AccountLinkingServiceTests : IDisposable
         _provider = services.BuildServiceProvider();
         _db = _provider.GetRequiredService<ApplicationDbContext>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
-        _sut = new agot_bg_website.Services.AccountLinkingService(_userManager);
+        _sut = new AccountLinkingService(_userManager);
     }
 
     [Fact]

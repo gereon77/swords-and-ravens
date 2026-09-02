@@ -20,7 +20,7 @@ public class MasterApiAuthenticationOptions : AuthenticationSchemeOptions
 /// </summary>
 public class MasterApiAuthenticationHandler(
     IOptionsMonitor<MasterApiAuthenticationOptions> options,
-    Microsoft.Extensions.Logging.ILoggerFactory logger,
+    ILoggerFactory logger,
     System.Text.Encodings.Web.UrlEncoder encoder)
     : AuthenticationHandler<MasterApiAuthenticationOptions>(options, logger, encoder)
 {

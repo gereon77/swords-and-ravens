@@ -6,9 +6,7 @@ using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
@@ -109,7 +107,7 @@ builder.Services.AddScoped<agot_bg_website.Services.GameListing.GameListQuerySer
 // cached for the app's lifetime) and checks the domain locally, so it never sends the email
 // address itself anywhere.
 builder.Services.AddEmailDisposableOnlineValidatorAsSingleton();
-builder.Services.AddScoped<agot_bg_website.Services.DisposableEmailChecker>();
+builder.Services.AddScoped<DisposableEmailChecker>();
 
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.
@@ -129,7 +127,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatBroadcaster>()
 // doesn't need a working mail server.
 if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
-    builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, agot_bg_website.Services.SmtpEmailSender>();
+    builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, SmtpEmailSender>();
 }
 
 builder.Services.AddRazorPages(options =>
@@ -303,13 +301,10 @@ app.MapScalarApiReference("/api/docs", options => options.WithTitle("Swords and 
 
 using (var scope = app.Services.CreateScope())
 {
-    await agot_bg_website.Infrastructure.Auth.RoleSeeder.SeedAsync(scope.ServiceProvider);
-    await agot_bg_website.Infrastructure.Auth.PermissionSeeder.SeedAsync(scope.ServiceProvider);
+    await RoleSeeder.SeedAsync(scope.ServiceProvider);
+    await PermissionSeeder.SeedAsync(scope.ServiceProvider);
     await RoomSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.Run();
-
-// Needed so WebApplicationFactory<Program> works from the test project.
-public partial class Program;
 

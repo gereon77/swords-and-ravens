@@ -1,8 +1,5 @@
-using agot_bg_website.Data;
 using agot_bg_website.Domain;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Api;
 
