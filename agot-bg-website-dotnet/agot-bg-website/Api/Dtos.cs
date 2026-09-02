@@ -19,7 +19,8 @@ public record UserDto(
     // wire contract still expects the legacy `use_responsive_layout_on_mobile` JSON key, so pin it
     // explicitly rather than let it follow the new CLR/property name.
     [property: JsonPropertyName("use_responsive_layout_on_mobile")] bool GameStateColumnRight,
-    IReadOnlyList<string> Groups);
+    IReadOnlyList<string> Groups
+);
 
 public record PlayerInGamePatchDto(Guid User, JsonElement Data);
 
@@ -30,7 +31,8 @@ public record PreviousPlayerInGamePatchDto(
     string Reason,
     bool? WasWinner,
     int SequenceNumber,
-    DateTimeOffset? ReplacedAt);
+    DateTimeOffset? ReplacedAt
+);
 
 public record GamePatchDto(
     JsonElement? SerializedGame,
@@ -39,7 +41,8 @@ public record GamePatchDto(
     JsonElement? ViewOfGame,
     IReadOnlyList<PlayerInGamePatchDto>? Players,
     IReadOnlyList<PreviousPlayerInGamePatchDto>? PreviousPlayers,
-    bool? UpdateLastActive);
+    bool? UpdateLastActive
+);
 
 public record GameDto(
     Guid Id,
@@ -48,8 +51,14 @@ public record GameDto(
     JsonElement? SerializedGame,
     string? Version,
     string State,
-    JsonElement? ViewOfGame);
+    JsonElement? ViewOfGame
+);
 
-public record CreateRoomDto(string Name, bool Public, IReadOnlyList<Guid> Users, int? MaxRetrieveCount);
+public record CreateRoomDto(
+    string Name,
+    bool Public,
+    IReadOnlyList<Guid> Users,
+    int? MaxRetrieveCount
+);
 
 public record RoomDto(Guid Id, string Name, bool Public);

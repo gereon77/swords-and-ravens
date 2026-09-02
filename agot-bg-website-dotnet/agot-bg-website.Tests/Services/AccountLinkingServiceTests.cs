@@ -23,7 +23,9 @@ public class AccountLinkingServiceTests : IDisposable
     public AccountLinkingServiceTests()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
         services.AddLogging();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -54,7 +56,7 @@ public class AccountLinkingServiceTests : IDisposable
             Email = "legacy@example.com",
             NormalizedEmail = "LEGACY@EXAMPLE.COM",
             ImportedFromLegacy = true,
-            Claimed = false
+            Claimed = false,
         };
         await _userManager.CreateAsync(imported);
 
@@ -75,7 +77,7 @@ public class AccountLinkingServiceTests : IDisposable
             Email = "active@example.com",
             NormalizedEmail = "ACTIVE@EXAMPLE.COM",
             ImportedFromLegacy = true,
-            Claimed = true
+            Claimed = true,
         };
         await _userManager.CreateAsync(claimed);
 

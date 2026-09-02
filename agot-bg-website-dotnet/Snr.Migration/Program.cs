@@ -10,7 +10,8 @@ string? target = GetOption(args, "--target");
 
 if (command is not ("import" or "verify") || legacy == null || target == null)
 {
-    Console.WriteLine("""
+    Console.WriteLine(
+        """
         Usage:
           dotnet run -- import --legacy "<connection string>" --target "<connection string>"
           dotnet run -- verify --legacy "<connection string>" --target "<connection string>"
@@ -21,7 +22,8 @@ if (command is not ("import" or "verify") || legacy == null || target == null)
 
         Note: the historical PreviousPlayerInGame backfill is a separate step that runs from
         agot-bg-game-server (scripts/backfillPreviousPlayers.ts), not from here — see §10.1.
-        """);
+        """
+    );
     return command is null ? 1 : 0;
 }
 

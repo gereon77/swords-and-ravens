@@ -21,7 +21,17 @@ public class AppSignInManager(
     Microsoft.Extensions.Options.IOptions<IdentityOptions> optionsAccessor,
     ILogger<SignInManager<ApplicationUser>> logger,
     Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider schemes,
-    IUserConfirmation<ApplicationUser> confirmation) : SignInManager<ApplicationUser>(userManager, contextAccessor, claimsFactory, optionsAccessor, logger, schemes, confirmation)
+    IUserConfirmation<ApplicationUser> confirmation
+)
+    : SignInManager<ApplicationUser>(
+        userManager,
+        contextAccessor,
+        claimsFactory,
+        optionsAccessor,
+        logger,
+        schemes,
+        confirmation
+    )
 {
     public override async Task<bool> CanSignInAsync(ApplicationUser user)
     {

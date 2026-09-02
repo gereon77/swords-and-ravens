@@ -61,7 +61,7 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
                 role = new IdentityRole<Guid>(group.Name)
                 {
                     Id = Guid.NewGuid(),
-                    NormalizedName = normalized
+                    NormalizedName = normalized,
                 };
                 db.Roles.Add(role);
             }
@@ -78,31 +78,33 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             if (existing == null)
             {
                 var normalizedUserName = legacyUser.Username.ToUpperInvariant();
-                db.Users.Add(new ApplicationUser
-                {
-                    Id = legacyUser.Id,
-                    UserName = legacyUser.Username,
-                    NormalizedUserName = normalizedUserName,
-                    Email = legacyUser.Email,
-                    NormalizedEmail = legacyUser.Email?.ToUpperInvariant(),
-                    EmailConfirmed = legacyUser.Email != null,
-                    SecurityStamp = Guid.NewGuid().ToString("N"),
-                    ConcurrencyStamp = Guid.NewGuid().ToString("N"),
-                    GameToken = legacyUser.GameToken,
-                    ProfileText = legacyUser.ProfileText,
-                    LastWonTournament = legacyUser.LastWonTournament,
-                    EmailNotificationActive = legacyUser.EmailNotificationActive,
-                    MuteGames = legacyUser.MuteGames,
-                    UseHouseNamesForChat = legacyUser.UseHouseNamesForChat,
-                    UseMapScrollbar = legacyUser.UseMapScrollbar,
-                    GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile,
-                    LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime,
-                    LastActivity = legacyUser.LastActivity,
-                    VanillaForumUserId = legacyUser.VanillaForumUserId,
-                    ImportedFromLegacy = true,
-                    Claimed = false,
-                    CreatedAt = legacyUser.DateJoined
-                });
+                db.Users.Add(
+                    new ApplicationUser
+                    {
+                        Id = legacyUser.Id,
+                        UserName = legacyUser.Username,
+                        NormalizedUserName = normalizedUserName,
+                        Email = legacyUser.Email,
+                        NormalizedEmail = legacyUser.Email?.ToUpperInvariant(),
+                        EmailConfirmed = legacyUser.Email != null,
+                        SecurityStamp = Guid.NewGuid().ToString("N"),
+                        ConcurrencyStamp = Guid.NewGuid().ToString("N"),
+                        GameToken = legacyUser.GameToken,
+                        ProfileText = legacyUser.ProfileText,
+                        LastWonTournament = legacyUser.LastWonTournament,
+                        EmailNotificationActive = legacyUser.EmailNotificationActive,
+                        MuteGames = legacyUser.MuteGames,
+                        UseHouseNamesForChat = legacyUser.UseHouseNamesForChat,
+                        UseMapScrollbar = legacyUser.UseMapScrollbar,
+                        GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile,
+                        LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime,
+                        LastActivity = legacyUser.LastActivity,
+                        VanillaForumUserId = legacyUser.VanillaForumUserId,
+                        ImportedFromLegacy = true,
+                        Claimed = false,
+                        CreatedAt = legacyUser.DateJoined,
+                    }
+                );
                 imported++;
             }
             else if (existing.ImportedFromLegacy && !existing.Claimed)
@@ -133,7 +135,9 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             }
         }
         await db.SaveChangesAsync();
-        Console.WriteLine($"    users: {imported} imported, {updated} updated, {skippedClaimed} claimed (skipped)");
+        Console.WriteLine(
+            $"    users: {imported} imported, {updated} updated, {skippedClaimed} claimed (skipped)"
+        );
 
         // User <-> role membership, only for rows we own (imported and not yet claimed by a
         // real registration would still be correct to assign roles to; claimed rows keep
@@ -143,13 +147,17 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
         {
             if (!groupIdToRoleId.TryGetValue(userGroup.GroupId, out var roleId))
                 continue;
-            var exists = await db.UserRoles.AnyAsync(ur => ur.UserId == userGroup.UserId && ur.RoleId == roleId);
+            var exists = await db.UserRoles.AnyAsync(ur =>
+                ur.UserId == userGroup.UserId && ur.RoleId == roleId
+            );
             if (exists)
                 continue;
             var userExists = await db.Users.AnyAsync(u => u.Id == userGroup.UserId);
             if (!userExists)
                 continue;
-            db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = userGroup.UserId, RoleId = roleId });
+            db.UserRoles.Add(
+                new IdentityUserRole<Guid> { UserId = userGroup.UserId, RoleId = roleId }
+            );
             addedRoles++;
         }
         await db.SaveChangesAsync();
@@ -168,14 +176,16 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             var existing = await db.Rooms.FindAsync(legacyRoom.Id);
             if (existing == null)
             {
-                db.Rooms.Add(new Room
-                {
-                    Id = legacyRoom.Id,
-                    Name = legacyRoom.Name,
-                    Public = legacyRoom.Public,
-                    MaxRetrieveCount = legacyRoom.MaxRetrieveCount,
-                    CreatedAt = legacyRoom.CreatedAt
-                });
+                db.Rooms.Add(
+                    new Room
+                    {
+                        Id = legacyRoom.Id,
+                        Name = legacyRoom.Name,
+                        Public = legacyRoom.Public,
+                        MaxRetrieveCount = legacyRoom.MaxRetrieveCount,
+                        CreatedAt = legacyRoom.CreatedAt,
+                    }
+                );
                 imported++;
             }
             else
@@ -211,26 +221,40 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             var existing = await db.Games.FindAsync(legacyGame.Id);
             if (existing == null)
             {
-                db.Games.Add(new Game
-                {
-                    Id = legacyGame.Id,
-                    Name = legacyGame.Name,
-                    OwnerUserId = legacyGame.OwnerId,
-                    SerializedGame = legacyGame.SerializedGame == null ? null : JsonDocument.Parse(legacyGame.SerializedGame),
-                    ViewOfGame = legacyGame.ViewOfGame == null ? null : JsonDocument.Parse(legacyGame.ViewOfGame),
-                    Version = legacyGame.Version,
-                    State = state,
-                    CreatedAt = legacyGame.CreatedAt,
-                    UpdatedAt = legacyGame.UpdatedAt,
-                    LastActiveAt = legacyGame.LastActiveAt
-                });
+                db.Games.Add(
+                    new Game
+                    {
+                        Id = legacyGame.Id,
+                        Name = legacyGame.Name,
+                        OwnerUserId = legacyGame.OwnerId,
+                        SerializedGame =
+                            legacyGame.SerializedGame == null
+                                ? null
+                                : JsonDocument.Parse(legacyGame.SerializedGame),
+                        ViewOfGame =
+                            legacyGame.ViewOfGame == null
+                                ? null
+                                : JsonDocument.Parse(legacyGame.ViewOfGame),
+                        Version = legacyGame.Version,
+                        State = state,
+                        CreatedAt = legacyGame.CreatedAt,
+                        UpdatedAt = legacyGame.UpdatedAt,
+                        LastActiveAt = legacyGame.LastActiveAt,
+                    }
+                );
                 imported++;
             }
             else
             {
                 existing.Name = legacyGame.Name;
-                existing.SerializedGame = legacyGame.SerializedGame == null ? null : JsonDocument.Parse(legacyGame.SerializedGame);
-                existing.ViewOfGame = legacyGame.ViewOfGame == null ? null : JsonDocument.Parse(legacyGame.ViewOfGame);
+                existing.SerializedGame =
+                    legacyGame.SerializedGame == null
+                        ? null
+                        : JsonDocument.Parse(legacyGame.SerializedGame);
+                existing.ViewOfGame =
+                    legacyGame.ViewOfGame == null
+                        ? null
+                        : JsonDocument.Parse(legacyGame.ViewOfGame);
                 existing.Version = legacyGame.Version;
                 existing.State = state;
                 existing.UpdatedAt = legacyGame.UpdatedAt;
@@ -239,18 +263,21 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             }
         }
         await db.SaveChangesAsync();
-        Console.WriteLine($"    games: {imported} imported, {updated} updated, {skippedMissingOwner} skipped (missing owner)");
+        Console.WriteLine(
+            $"    games: {imported} imported, {updated} updated, {skippedMissingOwner} skipped (missing owner)"
+        );
     }
 
-    internal static GameState ParseGameState(string legacyState) => legacyState switch
-    {
-        "IN_LOBBY" => GameState.InLobby,
-        "ONGOING" => GameState.Ongoing,
-        "FINISHED" => GameState.Finished,
-        "CLOSED" => GameState.Closed,
-        "CANCELLED" => GameState.Cancelled,
-        _ => GameState.InLobby
-    };
+    internal static GameState ParseGameState(string legacyState) =>
+        legacyState switch
+        {
+            "IN_LOBBY" => GameState.InLobby,
+            "ONGOING" => GameState.Ongoing,
+            "FINISHED" => GameState.Finished,
+            "CLOSED" => GameState.Closed,
+            "CANCELLED" => GameState.Cancelled,
+            _ => GameState.InLobby,
+        };
 
     private async Task ImportPlayersInGameAsync()
     {
@@ -262,24 +289,30 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
         var skipped = 0;
         await foreach (var legacyPlayer in _legacy.ReadPlayersInGameAsync())
         {
-            if (!knownUserIds.Contains(legacyPlayer.UserId) || !knownGameIds.Contains(legacyPlayer.GameId))
+            if (
+                !knownUserIds.Contains(legacyPlayer.UserId)
+                || !knownGameIds.Contains(legacyPlayer.GameId)
+            )
             {
                 skipped++;
                 continue;
             }
 
-            var existing = await db.PlayersInGame
-                .FirstOrDefaultAsync(p => p.GameId == legacyPlayer.GameId && p.UserId == legacyPlayer.UserId);
+            var existing = await db.PlayersInGame.FirstOrDefaultAsync(p =>
+                p.GameId == legacyPlayer.GameId && p.UserId == legacyPlayer.UserId
+            );
             var data = JsonDocument.Parse(legacyPlayer.Data);
             if (existing == null)
             {
-                db.PlayersInGame.Add(new PlayerInGame
-                {
-                    Id = Guid.NewGuid(),
-                    GameId = legacyPlayer.GameId,
-                    UserId = legacyPlayer.UserId,
-                    Data = data
-                });
+                db.PlayersInGame.Add(
+                    new PlayerInGame
+                    {
+                        Id = Guid.NewGuid(),
+                        GameId = legacyPlayer.GameId,
+                        UserId = legacyPlayer.UserId,
+                        Data = data,
+                    }
+                );
                 imported++;
             }
             else
@@ -289,7 +322,9 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             }
         }
         await db.SaveChangesAsync();
-        Console.WriteLine($"    players in game: {imported} imported, {updated} updated, {skipped} skipped (unknown game/user)");
+        Console.WriteLine(
+            $"    players in game: {imported} imported, {updated} updated, {skipped} skipped (unknown game/user)"
+        );
     }
 
     private async Task ImportMessagesAsync()
@@ -301,11 +336,17 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
         // Messages have no stable legacy id worth preserving (see MIGRATION_PLAN.md §4.1), and
         // volume can be large, so only ever insert — treat (RoomId, UserId, Text, CreatedAt) as
         // "already imported" to keep re-runs idempotent without loading the whole table into memory.
-        var existingKeys = (await db.Messages
-                .Select(m => new { m.RoomId, m.UserId, m.Text, m.CreatedAt })
-                .ToListAsync())
-            .Select(m => (m.RoomId, m.UserId, m.Text, m.CreatedAt))
-            .ToHashSet();
+        var existingKeys = (
+            await db
+                .Messages.Select(m => new
+                {
+                    m.RoomId,
+                    m.UserId,
+                    m.Text,
+                    m.CreatedAt,
+                })
+                .ToListAsync()
+        ).Select(m => (m.RoomId, m.UserId, m.Text, m.CreatedAt)).ToHashSet();
 
         var imported = 0;
         var skipped = 0;
@@ -313,23 +354,33 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
         var pending = 0;
         await foreach (var legacyMessage in _legacy.ReadMessagesAsync())
         {
-            if (!knownUserIds.Contains(legacyMessage.UserId) || !knownRoomIds.Contains(legacyMessage.RoomId))
+            if (
+                !knownUserIds.Contains(legacyMessage.UserId)
+                || !knownRoomIds.Contains(legacyMessage.RoomId)
+            )
             {
                 skipped++;
                 continue;
             }
-            var key = (legacyMessage.RoomId, legacyMessage.UserId, legacyMessage.Text, legacyMessage.CreatedAt);
+            var key = (
+                legacyMessage.RoomId,
+                legacyMessage.UserId,
+                legacyMessage.Text,
+                legacyMessage.CreatedAt
+            );
             if (existingKeys.Contains(key))
                 continue;
 
-            db.Messages.Add(new Message
-            {
-                Id = Guid.NewGuid(),
-                RoomId = legacyMessage.RoomId,
-                UserId = legacyMessage.UserId,
-                Text = legacyMessage.Text,
-                CreatedAt = legacyMessage.CreatedAt
-            });
+            db.Messages.Add(
+                new Message
+                {
+                    Id = Guid.NewGuid(),
+                    RoomId = legacyMessage.RoomId,
+                    UserId = legacyMessage.UserId,
+                    Text = legacyMessage.Text,
+                    CreatedAt = legacyMessage.CreatedAt,
+                }
+            );
             existingKeys.Add(key);
             imported++;
             pending++;
@@ -340,7 +391,9 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             }
         }
         await db.SaveChangesAsync();
-        Console.WriteLine($"    messages: {imported} imported, {skipped} skipped (unknown room/user)");
+        Console.WriteLine(
+            $"    messages: {imported} imported, {skipped} skipped (unknown room/user)"
+        );
     }
 
     private async Task ImportPbemResponseTimesAsync()
@@ -360,17 +413,21 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             if (exists)
                 continue;
 
-            db.PbemResponseTimes.Add(new PbemResponseTime
-            {
-                Id = legacyResponseTime.Id,
-                UserId = legacyResponseTime.UserId,
-                ResponseTime = legacyResponseTime.ResponseTime,
-                CreatedAt = legacyResponseTime.CreatedAt
-            });
+            db.PbemResponseTimes.Add(
+                new PbemResponseTime
+                {
+                    Id = legacyResponseTime.Id,
+                    UserId = legacyResponseTime.UserId,
+                    ResponseTime = legacyResponseTime.ResponseTime,
+                    CreatedAt = legacyResponseTime.CreatedAt,
+                }
+            );
             imported++;
         }
         await db.SaveChangesAsync();
-        Console.WriteLine($"    PBEM response times: {imported} imported, {skipped} skipped (unknown user)");
+        Console.WriteLine(
+            $"    PBEM response times: {imported} imported, {skipped} skipped (unknown user)"
+        );
     }
 
     public async Task VerifyAsync()
@@ -386,17 +443,18 @@ public class Importer(string legacyConnectionString, string targetConnectionStri
             ["agotboardgame_main_game"] = await db.Games.CountAsync(),
             ["agotboardgame_main_playeringame"] = await db.PlayersInGame.CountAsync(),
             ["chat_message"] = await db.Messages.CountAsync(),
-            ["agotboardgame_main_pbemresponsetime"] = await db.PbemResponseTimes.CountAsync()
+            ["agotboardgame_main_pbemresponsetime"] = await db.PbemResponseTimes.CountAsync(),
         };
 
         Console.WriteLine("---> Row counts (legacy -> target)");
         foreach (var (table, legacyCount) in legacyCounts)
         {
             var targetCount = targetCounts.GetValueOrDefault(table);
-            var flag = table == "agotboardgame_main_playeringame" || table == "chat_message"
-                ? "" // these are recalculated/append-only, counts may legitimately differ
-                : legacyCount == targetCount ? "OK" : "MISMATCH";
-            Console.WriteLine($"    {table,-40} {legacyCount,8} -> {targetCount,8}  {flag}");
+            var flag =
+                table == "agotboardgame_main_playeringame" || table == "chat_message" ? "" // these are recalculated/append-only, counts may legitimately differ
+                : legacyCount == targetCount ? "OK"
+                : "MISMATCH";
+            Console.WriteLine($"    {table, -40} {legacyCount, 8} -> {targetCount, 8}  {flag}");
         }
 
         Console.WriteLine("---> Spot-checking id round-trips");

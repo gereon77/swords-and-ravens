@@ -25,7 +25,12 @@ public class ApplicationDbContextTests
         await using var db = CreateContext(nameof(CanStoreMultiplePreviousPlayersForOneGame));
 
         var ownerId = Guid.NewGuid();
-        var game = new Game { Id = Guid.NewGuid(), Name = "Test Game", OwnerUserId = ownerId };
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Game",
+            OwnerUserId = ownerId,
+        };
         db.Games.Add(game);
 
         db.PreviousPlayersInGame.AddRange(
@@ -36,7 +41,7 @@ public class ApplicationDbContextTests
                 UserId = Guid.NewGuid(),
                 House = "stark",
                 SequenceNumber = 0,
-                Reason = PlayerReplacementReason.Vote
+                Reason = PlayerReplacementReason.Vote,
             },
             new PreviousPlayerInGame
             {
@@ -46,14 +51,18 @@ public class ApplicationDbContextTests
                 House = "lannister",
                 SequenceNumber = 1,
                 Reason = PlayerReplacementReason.ClockTimeout,
-                WasWinner = false
-            });
+                WasWinner = false,
+            }
+        );
 
         await db.SaveChangesAsync();
 
         var stored = await db.PreviousPlayersInGame.Where(p => p.GameId == game.Id).ToListAsync();
         Assert.Equal(2, stored.Count);
-        Assert.Contains(stored, p => p.House == "stark" && p.Reason == PlayerReplacementReason.Vote);
+        Assert.Contains(
+            stored,
+            p => p.House == "stark" && p.Reason == PlayerReplacementReason.Vote
+        );
         Assert.Contains(stored, p => p.House == "lannister" && p.WasWinner == false);
     }
 
@@ -62,17 +71,24 @@ public class ApplicationDbContextTests
     {
         await using var db = CreateContext(nameof(DeletingGame_CascadesToPreviousPlayers));
 
-        var game = new Game { Id = Guid.NewGuid(), Name = "Cascade Test", OwnerUserId = Guid.NewGuid() };
-        db.Games.Add(game);
-        db.PreviousPlayersInGame.Add(new PreviousPlayerInGame
+        var game = new Game
         {
             Id = Guid.NewGuid(),
-            GameId = game.Id,
-            UserId = Guid.NewGuid(),
-            House = "tyrell",
-            SequenceNumber = 0,
-            Reason = PlayerReplacementReason.ReplacedByPlayer
-        });
+            Name = "Cascade Test",
+            OwnerUserId = Guid.NewGuid(),
+        };
+        db.Games.Add(game);
+        db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = game.Id,
+                UserId = Guid.NewGuid(),
+                House = "tyrell",
+                SequenceNumber = 0,
+                Reason = PlayerReplacementReason.ReplacedByPlayer,
+            }
+        );
         await db.SaveChangesAsync();
 
         db.Games.Remove(game);

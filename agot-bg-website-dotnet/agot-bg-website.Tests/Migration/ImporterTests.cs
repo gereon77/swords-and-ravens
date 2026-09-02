@@ -24,6 +24,9 @@ public class ImporterTests
     [Fact]
     public void ParseGameState_FallsBackToInLobbyForUnknownState()
     {
-        Assert.Equal(GameState.InLobby, Importer.ParseGameState("SOME_FUTURE_STATE_WE_DONT_KNOW_YET"));
+        Assert.Equal(
+            GameState.InLobby,
+            Importer.ParseGameState("SOME_FUTURE_STATE_WE_DONT_KNOW_YET")
+        );
     }
 }

@@ -12,7 +12,10 @@ namespace agot_bg_website.Services;
 /// <see cref="ApplicationUser.DisplayName"/> is what makes every deleted account show up as
 /// "Took the Black" in the UI.
 /// </summary>
-public class AccountDeletionService(UserManager<ApplicationUser> userManager, ILogger<AccountDeletionService> logger)
+public class AccountDeletionService(
+    UserManager<ApplicationUser> userManager,
+    ILogger<AccountDeletionService> logger
+)
 {
     public async Task<IdentityResult> DeleteAccountAsync(ApplicationUser user)
     {

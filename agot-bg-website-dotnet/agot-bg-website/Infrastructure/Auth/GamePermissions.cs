@@ -58,12 +58,23 @@ public static class GamePermissions
     /// </summary>
     public static readonly string[] All = [CreateGame, ImpersonateOtherPlayers, CancelGame];
 
-    public static AuthorizationBuilder AddGamePermissionPolicies(this AuthorizationBuilder builder) => builder
-        .AddPolicy(CreateGame, policy => policy.RequireAssertion(context =>
-            context.User.Identity?.IsAuthenticated == true &&
-            !context.User.IsInRole(RoleNames.Banned) &&
-            !context.User.IsInRole(RoleNames.OnProbation) &&
-            context.User.HasClaim(ClaimType, CreateGame)))
-        .AddPolicy(ImpersonateOtherPlayers, policy => policy.RequireClaim(ClaimType, ImpersonateOtherPlayers))
-        .AddPolicy(CancelGame, policy => policy.RequireClaim(ClaimType, CancelGame));
+    public static AuthorizationBuilder AddGamePermissionPolicies(
+        this AuthorizationBuilder builder
+    ) =>
+        builder
+            .AddPolicy(
+                CreateGame,
+                policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.Identity?.IsAuthenticated == true
+                        && !context.User.IsInRole(RoleNames.Banned)
+                        && !context.User.IsInRole(RoleNames.OnProbation)
+                        && context.User.HasClaim(ClaimType, CreateGame)
+                    )
+            )
+            .AddPolicy(
+                ImpersonateOtherPlayers,
+                policy => policy.RequireClaim(ClaimType, ImpersonateOtherPlayers)
+            )
+            .AddPolicy(CancelGame, policy => policy.RequireClaim(ClaimType, CancelGame));
 }

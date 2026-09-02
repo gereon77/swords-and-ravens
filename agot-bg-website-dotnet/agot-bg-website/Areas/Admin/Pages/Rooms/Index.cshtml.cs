@@ -30,17 +30,19 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         {
             var normalized = Search.Trim();
             query = query.Where(r =>
-                EF.Functions.ILike(r.Name, $"%{normalized}%") ||
-                r.Id.ToString() == normalized);
+                EF.Functions.ILike(r.Name, $"%{normalized}%") || r.Id.ToString() == normalized
+            );
         }
 
-        var paged = await query.OrderByDescending(r => r.CreatedAt).ToPagedResultAsync(PageNumber, PageSize);
+        var paged = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .ToPagedResultAsync(PageNumber, PageSize);
         Rooms = paged.Items;
         Pager = paged.Pager;
 
         var roomIds = Rooms.Select(r => r.Id).ToList();
-        MessageCountByRoomId = await db.Messages
-            .Where(m => roomIds.Contains(m.RoomId))
+        MessageCountByRoomId = await db
+            .Messages.Where(m => roomIds.Contains(m.RoomId))
             .GroupBy(m => m.RoomId)
             .Select(g => new { RoomId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.RoomId, x => x.Count);

@@ -25,7 +25,8 @@ public class PbemResponseTimeCalculatorTests
     public void ManySamples_TrimsTenFastestAndTenSlowestBeforeAveraging()
     {
         // 30 samples: ten 1s (fastest), ten 100s (middle, average), ten 10000s (slowest, outliers).
-        var values = Enumerable.Repeat(1, 10)
+        var values = Enumerable
+            .Repeat(1, 10)
             .Concat(Enumerable.Repeat(100, 10))
             .Concat(Enumerable.Repeat(10000, 10))
             .ToList();

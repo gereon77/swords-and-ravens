@@ -42,19 +42,34 @@ public class GamesApiPlayerReplacementTests
     {
         // This test documents the *original* bug: assigning newly-created rows to the navigation
         // collection alone is not enough for EF Core to treat them as inserts.
-        await using var db = CreateContext(nameof(ReplacingPlayersWithoutExplicitlyAddingThemThrowsConcurrencyException));
+        await using var db = CreateContext(
+            nameof(ReplacingPlayersWithoutExplicitlyAddingThemThrowsConcurrencyException)
+        );
 
-        var game = new Game { Id = Guid.NewGuid(), Name = "Test Game", OwnerUserId = Guid.NewGuid() };
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Game",
+            OwnerUserId = Guid.NewGuid(),
+        };
         db.Games.Add(game);
         await db.SaveChangesAsync();
 
-        await using var db2 = CreateContext(nameof(ReplacingPlayersWithoutExplicitlyAddingThemThrowsConcurrencyException));
+        await using var db2 = CreateContext(
+            nameof(ReplacingPlayersWithoutExplicitlyAddingThemThrowsConcurrencyException)
+        );
         var loaded = await db2.Games.Include(g => g.Players).FirstAsync(g => g.Id == game.Id);
 
         db2.PlayersInGame.RemoveRange(loaded.Players);
         loaded.Players = new List<PlayerInGame>
         {
-            new() { Id = Guid.NewGuid(), GameId = loaded.Id, UserId = Guid.NewGuid(), Data = MakeData() }
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GameId = loaded.Id,
+                UserId = Guid.NewGuid(),
+                Data = MakeData(),
+            },
         };
         // Deliberately NOT calling db2.PlayersInGame.AddRange(...) here, matching the original bug.
 
@@ -66,7 +81,12 @@ public class GamesApiPlayerReplacementTests
     {
         await using var db = CreateContext(nameof(ReplacingPlayersWithExplicitAddRangeSucceeds));
 
-        var game = new Game { Id = Guid.NewGuid(), Name = "Test Game", OwnerUserId = Guid.NewGuid() };
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Game",
+            OwnerUserId = Guid.NewGuid(),
+        };
         db.Games.Add(game);
         await db.SaveChangesAsync();
 
@@ -76,7 +96,13 @@ public class GamesApiPlayerReplacementTests
         db2.PlayersInGame.RemoveRange(loaded.Players);
         var newPlayers = new List<PlayerInGame>
         {
-            new() { Id = Guid.NewGuid(), GameId = loaded.Id, UserId = Guid.NewGuid(), Data = MakeData() }
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GameId = loaded.Id,
+                UserId = Guid.NewGuid(),
+                Data = MakeData(),
+            },
         };
         db2.PlayersInGame.AddRange(newPlayers);
         loaded.Players = newPlayers;
@@ -88,5 +114,6 @@ public class GamesApiPlayerReplacementTests
         Assert.Single(reloaded.Players);
     }
 
-    private static System.Text.Json.JsonDocument MakeData() => System.Text.Json.JsonDocument.Parse("{}");
+    private static System.Text.Json.JsonDocument MakeData() =>
+        System.Text.Json.JsonDocument.Parse("{}");
 }

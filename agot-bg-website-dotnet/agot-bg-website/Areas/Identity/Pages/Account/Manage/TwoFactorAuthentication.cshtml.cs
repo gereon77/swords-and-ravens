@@ -10,7 +10,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
 {
     public class TwoFactorAuthenticationModel(
-        UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ILogger<TwoFactorAuthenticationModel> logger) : PageModel
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        ILogger<TwoFactorAuthenticationModel> logger
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -73,7 +76,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             }
 
             await _signInManager.ForgetTwoFactorClientAsync();
-            StatusMessage = "The current browser has been forgotten. When you login again from this browser you will be prompted for your 2fa code.";
+            StatusMessage =
+                "The current browser has been forgotten. When you login again from this browser you will be prompted for your 2fa code.";
             return RedirectToPage();
         }
     }

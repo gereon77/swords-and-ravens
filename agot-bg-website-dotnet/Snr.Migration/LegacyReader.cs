@@ -18,14 +18,17 @@ public class LegacyReader(string connectionString)
     public async IAsyncEnumerable<LegacyUser> ReadUsersAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT id, username, email, game_token, profile_text, last_won_tournament,
                    email_notification_active, mute_games, use_house_names_for_chat, use_map_scrollbar,
                    use_responsive_layout_on_mobile, last_username_update_time, last_activity,
                    vanilla_forum_user_id, date_joined
             FROM agotboardgame_main_user
             ORDER BY date_joined
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -44,14 +47,18 @@ public class LegacyReader(string connectionString)
                 reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
                 reader.GetFieldValue<DateTimeOffset>(12),
                 reader.GetInt32(13),
-                reader.GetFieldValue<DateTimeOffset>(14));
+                reader.GetFieldValue<DateTimeOffset>(14)
+            );
         }
     }
 
     public async IAsyncEnumerable<LegacyGroup> ReadGroupsAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("SELECT id, name FROM auth_group ORDER BY id", conn);
+        await using var cmd = new NpgsqlCommand(
+            "SELECT id, name FROM auth_group ORDER BY id",
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -63,7 +70,9 @@ public class LegacyReader(string connectionString)
     {
         await using var conn = OpenConnection();
         await using var cmd = new NpgsqlCommand(
-            "SELECT user_id, group_id FROM agotboardgame_main_user_groups ORDER BY user_id", conn);
+            "SELECT user_id, group_id FROM agotboardgame_main_user_groups ORDER BY user_id",
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -74,11 +83,14 @@ public class LegacyReader(string connectionString)
     public async IAsyncEnumerable<LegacyRoom> ReadRoomsAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT id, name, public, max_retrieve_count, created_at
             FROM chat_room
             ORDER BY created_at
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -87,19 +99,23 @@ public class LegacyReader(string connectionString)
                 reader.GetString(1),
                 reader.GetBoolean(2),
                 reader.IsDBNull(3) ? null : reader.GetInt32(3),
-                reader.GetFieldValue<DateTimeOffset>(4));
+                reader.GetFieldValue<DateTimeOffset>(4)
+            );
         }
     }
 
     public async IAsyncEnumerable<LegacyGame> ReadGamesAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT id, name, owner_id, view_of_game::text, serialized_game::text, version, state,
                    created_at, updated_at, last_active_at
             FROM agotboardgame_main_game
             ORDER BY created_at
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -113,54 +129,76 @@ public class LegacyReader(string connectionString)
                 reader.GetString(6),
                 reader.GetFieldValue<DateTimeOffset>(7),
                 reader.GetFieldValue<DateTimeOffset>(8),
-                reader.GetFieldValue<DateTimeOffset>(9));
+                reader.GetFieldValue<DateTimeOffset>(9)
+            );
         }
     }
 
     public async IAsyncEnumerable<LegacyPlayerInGame> ReadPlayersInGameAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT game_id, user_id, data::text
             FROM agotboardgame_main_playeringame
             ORDER BY game_id
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            yield return new LegacyPlayerInGame(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2));
+            yield return new LegacyPlayerInGame(
+                reader.GetGuid(0),
+                reader.GetGuid(1),
+                reader.GetString(2)
+            );
         }
     }
 
     public async IAsyncEnumerable<LegacyMessage> ReadMessagesAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT room_id, user_id, text, created_at
             FROM chat_message
             ORDER BY created_at
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             yield return new LegacyMessage(
-                reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetFieldValue<DateTimeOffset>(3));
+                reader.GetGuid(0),
+                reader.GetGuid(1),
+                reader.GetString(2),
+                reader.GetFieldValue<DateTimeOffset>(3)
+            );
         }
     }
 
     public async IAsyncEnumerable<LegacyPbemResponseTime> ReadPbemResponseTimesAsync()
     {
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand("""
+        await using var cmd = new NpgsqlCommand(
+            """
             SELECT id, user_id, response_time, created_at
             FROM agotboardgame_main_pbemresponsetime
             ORDER BY created_at
-            """, conn);
+            """,
+            conn
+        );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             yield return new LegacyPbemResponseTime(
-                reader.GetGuid(0), reader.GetGuid(1), reader.GetInt32(2), reader.GetFieldValue<DateTimeOffset>(3));
+                reader.GetGuid(0),
+                reader.GetGuid(1),
+                reader.GetInt32(2),
+                reader.GetFieldValue<DateTimeOffset>(3)
+            );
         }
     }
 
@@ -168,7 +206,10 @@ public class LegacyReader(string connectionString)
     {
         var result = new List<Guid>();
         await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand($"SELECT id FROM {table} ORDER BY random() LIMIT @count", conn);
+        await using var cmd = new NpgsqlCommand(
+            $"SELECT id FROM {table} ORDER BY random() LIMIT @count",
+            conn
+        );
         cmd.Parameters.AddWithValue("count", count);
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -182,8 +223,13 @@ public class LegacyReader(string connectionString)
     {
         var tables = new[]
         {
-            "agotboardgame_main_user", "auth_group", "chat_room", "agotboardgame_main_game",
-            "agotboardgame_main_playeringame", "chat_message", "agotboardgame_main_pbemresponsetime"
+            "agotboardgame_main_user",
+            "auth_group",
+            "chat_room",
+            "agotboardgame_main_game",
+            "agotboardgame_main_playeringame",
+            "chat_message",
+            "agotboardgame_main_pbemresponsetime",
         };
         var result = new Dictionary<string, long>();
         await using var conn = OpenConnection();

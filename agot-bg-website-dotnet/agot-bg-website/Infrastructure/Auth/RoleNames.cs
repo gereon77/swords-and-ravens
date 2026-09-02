@@ -14,5 +14,13 @@ public static class RoleNames
     public const string OnProbation = "On probation";
     public const string Tongueless = "Tongueless";
 
-    public static readonly string[] All = [Member, Admin, HighMember, Banned, OnProbation, Tongueless];
+    public static readonly string[] All =
+    [
+        Member,
+        Admin,
+        HighMember,
+        Banned,
+        OnProbation,
+        Tongueless,
+    ];
 }

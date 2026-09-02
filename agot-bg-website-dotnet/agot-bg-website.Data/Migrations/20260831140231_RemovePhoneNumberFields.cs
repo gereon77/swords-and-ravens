@@ -10,13 +10,9 @@ namespace agot_bg_website.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "PhoneNumber",
-                table: "AspNetUsers");
+            migrationBuilder.DropColumn(name: "PhoneNumber", table: "AspNetUsers");
 
-            migrationBuilder.DropColumn(
-                name: "PhoneNumberConfirmed",
-                table: "AspNetUsers");
+            migrationBuilder.DropColumn(name: "PhoneNumberConfirmed", table: "AspNetUsers");
         }
 
         /// <inheritdoc />
@@ -26,14 +22,16 @@ namespace agot_bg_website.Migrations
                 name: "PhoneNumber",
                 table: "AspNetUsers",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<bool>(
                 name: "PhoneNumberConfirmed",
                 table: "AspNetUsers",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
         }
     }
 }

@@ -21,8 +21,8 @@ public class MasterApiAuthenticationOptions : AuthenticationSchemeOptions
 public class MasterApiAuthenticationHandler(
     IOptionsMonitor<MasterApiAuthenticationOptions> options,
     ILoggerFactory logger,
-    System.Text.Encodings.Web.UrlEncoder encoder)
-    : AuthenticationHandler<MasterApiAuthenticationOptions>(options, logger, encoder)
+    System.Text.Encodings.Web.UrlEncoder encoder
+) : AuthenticationHandler<MasterApiAuthenticationOptions>(options, logger, encoder)
 {
     public const string SchemeName = "MasterApi";
 
@@ -42,7 +42,9 @@ public class MasterApiAuthenticationHandler(
         string decoded;
         try
         {
-            decoded = Encoding.UTF8.GetString(Convert.FromBase64String(header["Basic ".Length..].Trim()));
+            decoded = Encoding.UTF8.GetString(
+                Convert.FromBase64String(header["Basic ".Length..].Trim())
+            );
         }
         catch (FormatException)
         {

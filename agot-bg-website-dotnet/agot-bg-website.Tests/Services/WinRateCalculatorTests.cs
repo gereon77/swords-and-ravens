@@ -37,10 +37,7 @@ public class WinRateCalculatorTests
     {
         // See MIGRATION_PLAN.md §10.2: PreviousPlayerInGame rows always count as losses,
         // even if the player also won some other finished game.
-        var facts = new[]
-        {
-            new WinRateGameFact(IsFinished: true, IsWinner: true),
-        };
+        var facts = new[] { new WinRateGameFact(IsFinished: true, IsWinner: true) };
 
         var result = WinRateCalculator.Calculate(facts, finishedGamesPlayerWasRemovedFromCount: 3);
 
@@ -54,6 +51,7 @@ public class WinRateCalculatorTests
     public void NegativeRemovedFromGameCount_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            WinRateCalculator.Calculate([], finishedGamesPlayerWasRemovedFromCount: -1));
+            WinRateCalculator.Calculate([], finishedGamesPlayerWasRemovedFromCount: -1)
+        );
     }
 }

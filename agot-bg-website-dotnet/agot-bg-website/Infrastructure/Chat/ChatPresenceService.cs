@@ -4,7 +4,12 @@ using StackExchange.Redis;
 namespace agot_bg_website.Infrastructure.Chat;
 
 /// <summary>One connected-user entry as tracked for the public room's presence list.</summary>
-public sealed record ConnectedUserData(string Username, bool IsAdmin, bool IsHighMember, string? LastWonTournament)
+public sealed record ConnectedUserData(
+    string Username,
+    bool IsAdmin,
+    bool IsHighMember,
+    string? LastWonTournament
+)
 {
     public int Count { get; set; } = 1;
     public DateTimeOffset LastActiveAt { get; set; } = DateTimeOffset.UtcNow;
@@ -25,7 +30,11 @@ public sealed class ChatPresenceService(IConnectionMultiplexer redis)
 
     private IDatabase Db => redis.GetDatabase();
 
-    public async Task<Dictionary<Guid, ConnectedUserData>> AddConnectedUserAsync(Guid roomId, Guid userId, ConnectedUserData userData)
+    public async Task<Dictionary<Guid, ConnectedUserData>> AddConnectedUserAsync(
+        Guid roomId,
+        Guid userId,
+        ConnectedUserData userData
+    )
     {
         var users = await ReadAsync(roomId);
         if (users.TryGetValue(userId, out var existing))
@@ -42,7 +51,10 @@ public sealed class ChatPresenceService(IConnectionMultiplexer redis)
         return users;
     }
 
-    public async Task<Dictionary<Guid, ConnectedUserData>> RemoveConnectedUserAsync(Guid roomId, Guid userId)
+    public async Task<Dictionary<Guid, ConnectedUserData>> RemoveConnectedUserAsync(
+        Guid roomId,
+        Guid userId
+    )
     {
         var users = await ReadAsync(roomId);
         if (users.TryGetValue(userId, out var existing))
@@ -59,7 +71,10 @@ public sealed class ChatPresenceService(IConnectionMultiplexer redis)
     }
 
     /// <summary>Returns the still-live users plus the ids of any stale entries pruned along the way.</summary>
-    public async Task<(Dictionary<Guid, ConnectedUserData> Users, List<Guid> PrunedUserIds)> GetConnectedUsersAsync(Guid roomId)
+    public async Task<(
+        Dictionary<Guid, ConnectedUserData> Users,
+        List<Guid> PrunedUserIds
+    )> GetConnectedUsersAsync(Guid roomId)
     {
         var users = await ReadAsync(roomId);
         var cutoff = DateTimeOffset.UtcNow - StaleAfter;
@@ -95,7 +110,8 @@ public sealed class ChatPresenceService(IConnectionMultiplexer redis)
             return [];
         }
 
-        return JsonSerializer.Deserialize<Dictionary<Guid, ConnectedUserData>>(json.ToString()) ?? [];
+        return JsonSerializer.Deserialize<Dictionary<Guid, ConnectedUserData>>(json.ToString())
+            ?? [];
     }
 
     private Task WriteAsync(Guid roomId, Dictionary<Guid, ConnectedUserData> users) =>

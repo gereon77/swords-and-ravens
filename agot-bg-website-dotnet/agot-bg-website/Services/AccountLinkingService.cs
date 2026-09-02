@@ -16,7 +16,7 @@ public enum AccountLinkOutcome
     Linked,
 
     /// <summary>A user with this email exists but is already claimed by someone else — do not auto-merge.</summary>
-    ConflictAlreadyClaimed
+    ConflictAlreadyClaimed,
 }
 
 public record AccountLinkResult(AccountLinkOutcome Outcome, ApplicationUser? User);
@@ -31,8 +31,8 @@ public class AccountLinkingService(UserManager<ApplicationUser> userManager)
 {
     public async Task<AccountLinkResult> TryLinkByEmailAsync(string normalizedEmail)
     {
-        var existing = await userManager.Users
-            .Where(u => u.NormalizedEmail == normalizedEmail)
+        var existing = await userManager
+            .Users.Where(u => u.NormalizedEmail == normalizedEmail)
             .ToListAsync();
 
         if (existing.Count == 0)

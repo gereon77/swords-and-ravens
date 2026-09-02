@@ -9,7 +9,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
-    public class LogoutModel(SignInManager<ApplicationUser> signInManager, ILogger<LogoutModel> logger) : PageModel
+    public class LogoutModel(
+        SignInManager<ApplicationUser> signInManager,
+        ILogger<LogoutModel> logger
+    ) : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
         private readonly ILogger<LogoutModel> _logger = logger;

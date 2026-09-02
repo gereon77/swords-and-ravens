@@ -19,9 +19,22 @@ public sealed record ViewOfGameInfo(
     bool IsPasswordProtected,
     bool IsTournamentMode,
     bool ReplacePlayerVoteOngoing,
-    Guid? PublicChatRoomId)
+    Guid? PublicChatRoomId
+)
 {
-    public static readonly ViewOfGameInfo Empty = new(null, null, new HashSet<Guid>(), null, false, false, false, false, false, false, null);
+    public static readonly ViewOfGameInfo Empty = new(
+        null,
+        null,
+        new HashSet<Guid>(),
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null
+    );
 
     public static ViewOfGameInfo Parse(JsonDocument? viewOfGame)
     {
@@ -32,44 +45,65 @@ public sealed record ViewOfGameInfo(
 
         var root = viewOfGame.RootElement;
 
-        var turn = root.TryGetProperty("turn", out var turnEl) && turnEl.ValueKind == JsonValueKind.Number
-            ? turnEl.GetInt32()
-            : (int?)null;
+        var turn =
+            root.TryGetProperty("turn", out var turnEl) && turnEl.ValueKind == JsonValueKind.Number
+                ? turnEl.GetInt32()
+                : (int?)null;
 
-        var waitingFor = root.TryGetProperty("waitingFor", out var wfEl) && wfEl.ValueKind == JsonValueKind.String
-            ? wfEl.GetString()
-            : null;
+        var waitingFor =
+            root.TryGetProperty("waitingFor", out var wfEl)
+            && wfEl.ValueKind == JsonValueKind.String
+                ? wfEl.GetString()
+                : null;
 
         var waitingForIds = new HashSet<Guid>();
-        if (root.TryGetProperty("waitingForIds", out var wfIdsEl) && wfIdsEl.ValueKind == JsonValueKind.Array)
+        if (
+            root.TryGetProperty("waitingForIds", out var wfIdsEl)
+            && wfIdsEl.ValueKind == JsonValueKind.Array
+        )
         {
             foreach (var idEl in wfIdsEl.EnumerateArray())
             {
-                if (idEl.ValueKind == JsonValueKind.String && Guid.TryParse(idEl.GetString(), out var id))
+                if (
+                    idEl.ValueKind == JsonValueKind.String
+                    && Guid.TryParse(idEl.GetString(), out var id)
+                )
                 {
                     waitingForIds.Add(id);
                 }
             }
         }
 
-        var maxPlayerCount = root.TryGetProperty("maxPlayerCount", out var maxEl) && maxEl.ValueKind == JsonValueKind.Number
-            ? maxEl.GetInt32()
-            : (int?)null;
+        var maxPlayerCount =
+            root.TryGetProperty("maxPlayerCount", out var maxEl)
+            && maxEl.ValueKind == JsonValueKind.Number
+                ? maxEl.GetInt32()
+                : (int?)null;
 
-        var isPasswordProtected = root.TryGetProperty("isPasswordProtected", out var pwEl) && pwEl.ValueKind == JsonValueKind.True;
+        var isPasswordProtected =
+            root.TryGetProperty("isPasswordProtected", out var pwEl)
+            && pwEl.ValueKind == JsonValueKind.True;
 
-        var replacePlayerVoteOngoing = root.TryGetProperty("replacePlayerVoteOngoing", out var voteEl) && voteEl.ValueKind == JsonValueKind.True;
+        var replacePlayerVoteOngoing =
+            root.TryGetProperty("replacePlayerVoteOngoing", out var voteEl)
+            && voteEl.ValueKind == JsonValueKind.True;
 
-        Guid? publicChatRoomId = root.TryGetProperty("publicChatRoomId", out var roomEl) && roomEl.ValueKind == JsonValueKind.String
+        Guid? publicChatRoomId =
+            root.TryGetProperty("publicChatRoomId", out var roomEl)
+            && roomEl.ValueKind == JsonValueKind.String
             && Guid.TryParse(roomEl.GetString(), out var roomId)
-            ? roomId
-            : null;
+                ? roomId
+                : null;
 
-        var settings = root.TryGetProperty("settings", out var settingsEl) && settingsEl.ValueKind == JsonValueKind.Object
-            ? settingsEl
-            : (JsonElement?)null;
+        var settings =
+            root.TryGetProperty("settings", out var settingsEl)
+            && settingsEl.ValueKind == JsonValueKind.Object
+                ? settingsEl
+                : (JsonElement?)null;
 
-        bool GetBoolSetting(string name) => settings?.TryGetProperty(name, out var el) == true && el.ValueKind == JsonValueKind.True;
+        bool GetBoolSetting(string name) =>
+            settings?.TryGetProperty(name, out var el) == true
+            && el.ValueKind == JsonValueKind.True;
 
         return new ViewOfGameInfo(
             turn,
@@ -82,12 +116,18 @@ public sealed record ViewOfGameInfo(
             isPasswordProtected,
             GetBoolSetting("tournamentMode"),
             replacePlayerVoteOngoing,
-            publicChatRoomId);
+            publicChatRoomId
+        );
     }
 }
 
 /// <summary>Typed view over a single `PlayerInGame.Data` JSON blob, from EntireGame.ts's getPlayersInGame().</summary>
-public sealed record PlayerInGameInfo(string? House, bool WaitedFor, bool NeededForVote, IReadOnlyList<Guid> ImportantChatRoomIds)
+public sealed record PlayerInGameInfo(
+    string? House,
+    bool WaitedFor,
+    bool NeededForVote,
+    IReadOnlyList<Guid> ImportantChatRoomIds
+)
 {
     public static readonly PlayerInGameInfo Empty = new(null, false, false, []);
 
@@ -100,19 +140,31 @@ public sealed record PlayerInGameInfo(string? House, bool WaitedFor, bool Needed
 
         var root = data.RootElement;
 
-        var house = root.TryGetProperty("house", out var houseEl) && houseEl.ValueKind == JsonValueKind.String
-            ? houseEl.GetString()
-            : null;
+        var house =
+            root.TryGetProperty("house", out var houseEl)
+            && houseEl.ValueKind == JsonValueKind.String
+                ? houseEl.GetString()
+                : null;
 
-        var waitedFor = root.TryGetProperty("waited_for", out var waitedEl) && waitedEl.ValueKind == JsonValueKind.True;
-        var neededForVote = root.TryGetProperty("needed_for_vote", out var voteEl) && voteEl.ValueKind == JsonValueKind.True;
+        var waitedFor =
+            root.TryGetProperty("waited_for", out var waitedEl)
+            && waitedEl.ValueKind == JsonValueKind.True;
+        var neededForVote =
+            root.TryGetProperty("needed_for_vote", out var voteEl)
+            && voteEl.ValueKind == JsonValueKind.True;
 
         var importantChatRoomIds = new List<Guid>();
-        if (root.TryGetProperty("important_chat_rooms", out var roomsEl) && roomsEl.ValueKind == JsonValueKind.Array)
+        if (
+            root.TryGetProperty("important_chat_rooms", out var roomsEl)
+            && roomsEl.ValueKind == JsonValueKind.Array
+        )
         {
             foreach (var idEl in roomsEl.EnumerateArray())
             {
-                if (idEl.ValueKind == JsonValueKind.String && Guid.TryParse(idEl.GetString(), out var id))
+                if (
+                    idEl.ValueKind == JsonValueKind.String
+                    && Guid.TryParse(idEl.GetString(), out var id)
+                )
                 {
                     importantChatRoomIds.Add(id);
                 }

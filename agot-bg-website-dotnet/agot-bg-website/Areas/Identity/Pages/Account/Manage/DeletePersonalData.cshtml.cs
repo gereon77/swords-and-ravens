@@ -15,7 +15,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         AccountDeletionService accountDeletionService,
-        ILogger<DeletePersonalDataModel> logger) : PageModel
+        ILogger<DeletePersonalDataModel> logger
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;

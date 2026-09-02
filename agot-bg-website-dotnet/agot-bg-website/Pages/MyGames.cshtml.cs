@@ -20,7 +20,8 @@ public class MyGamesModel(
     GameListQueryService gameLists,
     UserManager<ApplicationUser> userManager,
     IAuthorizationService authorizationService,
-    ILogger<MyGamesModel> logger) : PageModel
+    ILogger<MyGamesModel> logger
+) : PageModel
 {
     public List<GameListItem> MyGames { get; set; } = [];
 
@@ -37,9 +38,15 @@ public class MyGamesModel(
 
     public async Task OnGetAsync()
     {
-        CanCreateGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded;
-        CanPlayAsAnotherPlayer = (await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
-        CanCancelGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded;
+        CanCreateGame = (
+            await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)
+        ).Succeeded;
+        CanPlayAsAnotherPlayer = (
+            await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)
+        ).Succeeded;
+        CanCancelGame = (
+            await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)
+        ).Succeeded;
 
         CurrentLiveGames = await gameLists.GetCurrentLiveGamesAsync();
 
@@ -54,7 +61,9 @@ public class MyGamesModel(
 
     public async Task<IActionResult> OnPostCreateGameAsync([FromForm] string name)
     {
-        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded)
+        if (
+            !(await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded
+        )
         {
             return Forbid();
         }
@@ -79,7 +88,7 @@ public class MyGamesModel(
             State = GameState.InLobby,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
-            LastActiveAt = DateTimeOffset.UtcNow
+            LastActiveAt = DateTimeOffset.UtcNow,
         };
 
         db.Games.Add(game);
@@ -95,7 +104,9 @@ public class MyGamesModel(
     /// </summary>
     public async Task<IActionResult> OnPostCancelGameAsync([FromForm] Guid gameId)
     {
-        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded)
+        if (
+            !(await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded
+        )
         {
             return Forbid();
         }
@@ -112,7 +123,8 @@ public class MyGamesModel(
                 User.Identity?.Name,
                 userManager.GetUserId(User),
                 game.Name,
-                game.Id);
+                game.Id
+            );
         }
 
         return RedirectToPage();

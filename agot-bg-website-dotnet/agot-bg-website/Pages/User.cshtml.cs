@@ -17,7 +17,11 @@ namespace agot_bg_website.Pages;
 /// Public user profile, mirroring Django's agotboardgame_main.views.user_profile (route
 /// "/user/&lt;uuid:user_id&gt;", template user_profile.html) — see MIGRATION_PLAN.md §10.2/§13/§14.
 /// </summary>
-public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService) : PageModel
+public class UserModel(
+    ApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IAuthorizationService authorizationService
+) : PageModel
 {
     /// <summary>Badge color per role, mirroring Django's settings.GROUP_COLORS (bootstrap contextual
     /// names mapped onto their DaisyUI badge-* equivalents).</summary>
@@ -27,7 +31,7 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
         [RoleNames.HighMember] = "badge-info",
         [RoleNames.Banned] = "badge-error",
         [RoleNames.OnProbation] = "badge-warning",
-        [RoleNames.Tongueless] = "badge-warning"
+        [RoleNames.Tongueless] = "badge-warning",
     };
 
     public record GameRow(
@@ -42,7 +46,8 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
         DateTimeOffset LastActiveAt,
         int? Turn,
         string? WaitingFor,
-        string? Winner);
+        string? Winner
+    );
 
     public ApplicationUser ViewedUser { get; set; } = null!;
 
@@ -84,9 +89,14 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
         ViewedUser = viewedUser;
 
         var currentUserId = userManager.GetUserId(User);
-        IsOwnProfile = currentUserId is not null && Guid.TryParse(currentUserId, out var currentUserGuid) && currentUserGuid == id;
+        IsOwnProfile =
+            currentUserId is not null
+            && Guid.TryParse(currentUserId, out var currentUserGuid)
+            && currentUserGuid == id;
         OnProbation = User.IsInRole(RoleNames.OnProbation);
-        CanPlayAsAnotherPlayer = (await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
+        CanPlayAsAnotherPlayer = (
+            await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)
+        ).Succeeded;
 
         var viewedUserRoles = await userManager.GetRolesAsync(viewedUser);
         UserGroups = GroupBadgeClasses
@@ -102,9 +112,9 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
 
     private async Task LoadGamesAsync(Guid userId)
     {
-        var playerRows = await db.PlayersInGame
-            .Include(p => p.Game)
-            .ThenInclude(g => g!.Players)
+        var playerRows = await db
+            .PlayersInGame.Include(p => p.Game)
+                .ThenInclude(g => g!.Players)
             .Where(p => p.UserId == userId && p.Game != null && p.Game.ViewOfGame != null)
             .OrderByDescending(p => p.Game!.CreatedAt)
             .ToListAsync();
@@ -114,54 +124,86 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
             var game = row.Game!;
             var view = game.ViewOfGame!.RootElement;
 
-            var settings = view.TryGetProperty("settings", out var settingsElement) && settingsElement.ValueKind == JsonValueKind.Object
-                ? settingsElement
-                : (JsonElement?)null;
+            var settings =
+                view.TryGetProperty("settings", out var settingsElement)
+                && settingsElement.ValueKind == JsonValueKind.Object
+                    ? settingsElement
+                    : (JsonElement?)null;
 
             // A faceless game hides who's playing which house entirely - Django excludes these
             // from the profile's games list outright rather than showing misleading data.
-            var isFaceless = settings?.TryGetProperty("faceless", out var facelessElement) == true && facelessElement.ValueKind == JsonValueKind.True;
+            var isFaceless =
+                settings?.TryGetProperty("faceless", out var facelessElement) == true
+                && facelessElement.ValueKind == JsonValueKind.True;
             if (isFaceless)
             {
                 continue;
             }
 
-            var setupId = settings?.TryGetProperty("setupId", out var setupIdElement) == true && setupIdElement.ValueKind == JsonValueKind.String
-                ? setupIdElement.GetString()
-                : null;
+            var setupId =
+                settings?.TryGetProperty("setupId", out var setupIdElement) == true
+                && setupIdElement.ValueKind == JsonValueKind.String
+                    ? setupIdElement.GetString()
+                    : null;
             var isLearnTheGame = setupId == "learn-the-game";
 
-            var maxPlayerCount = view.TryGetProperty("maxPlayerCount", out var maxPlayerCountElement) && maxPlayerCountElement.ValueKind == JsonValueKind.Number
-                ? maxPlayerCountElement.GetInt32()
-                : (int?)null;
-            var turn = view.TryGetProperty("turn", out var turnElement) && turnElement.ValueKind == JsonValueKind.Number
-                ? turnElement.GetInt32()
-                : (int?)null;
-            var waitingFor = view.TryGetProperty("waitingFor", out var waitingForElement) && waitingForElement.ValueKind == JsonValueKind.String
-                ? waitingForElement.GetString()
-                : null;
-            var winner = view.TryGetProperty("winner", out var winnerElement) && winnerElement.ValueKind == JsonValueKind.String
-                ? winnerElement.GetString()
-                : null;
+            var maxPlayerCount =
+                view.TryGetProperty("maxPlayerCount", out var maxPlayerCountElement)
+                && maxPlayerCountElement.ValueKind == JsonValueKind.Number
+                    ? maxPlayerCountElement.GetInt32()
+                    : (int?)null;
+            var turn =
+                view.TryGetProperty("turn", out var turnElement)
+                && turnElement.ValueKind == JsonValueKind.Number
+                    ? turnElement.GetInt32()
+                    : (int?)null;
+            var waitingFor =
+                view.TryGetProperty("waitingFor", out var waitingForElement)
+                && waitingForElement.ValueKind == JsonValueKind.String
+                    ? waitingForElement.GetString()
+                    : null;
+            var winner =
+                view.TryGetProperty("winner", out var winnerElement)
+                && winnerElement.ValueKind == JsonValueKind.String
+                    ? winnerElement.GetString()
+                    : null;
 
             string? house = null;
             bool? isWinner = null;
             if (row.Data is not null)
             {
                 var data = row.Data.RootElement;
-                house = data.TryGetProperty("house", out var houseElement) && houseElement.ValueKind == JsonValueKind.String
-                    ? houseElement.GetString()
-                    : null;
-                if (data.TryGetProperty("is_winner", out var isWinnerElement) &&
-                    (isWinnerElement.ValueKind == JsonValueKind.True || isWinnerElement.ValueKind == JsonValueKind.False))
+                house =
+                    data.TryGetProperty("house", out var houseElement)
+                    && houseElement.ValueKind == JsonValueKind.String
+                        ? houseElement.GetString()
+                        : null;
+                if (
+                    data.TryGetProperty("is_winner", out var isWinnerElement)
+                    && (
+                        isWinnerElement.ValueKind == JsonValueKind.True
+                        || isWinnerElement.ValueKind == JsonValueKind.False
+                    )
+                )
                 {
                     isWinner = isWinnerElement.GetBoolean();
                 }
             }
 
             var gameRow = new GameRow(
-                game.Id, game.Name, game.State, house, game.Players.Count, maxPlayerCount, isWinner,
-                game.CreatedAt, game.LastActiveAt, turn, waitingFor, winner);
+                game.Id,
+                game.Name,
+                game.State,
+                house,
+                game.Players.Count,
+                maxPlayerCount,
+                isWinner,
+                game.CreatedAt,
+                game.LastActiveAt,
+                turn,
+                waitingFor,
+                winner
+            );
 
             if (game.State == GameState.Cancelled)
             {
@@ -184,8 +226,11 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
             // A row only counts towards win-rate stats once it's actually finished with a
             // recorded outcome and isn't the "learn the game" tutorial variant - see
             // MIGRATION_PLAN.md §10.2 and Django's identical exclusions in user_profile().
-            var countsTowardsStats = game.State == GameState.Finished && !isLearnTheGame && isWinner.HasValue;
-            _winRateFacts.Add(new WinRateGameFact(IsFinished: countsTowardsStats, IsWinner: isWinner == true));
+            var countsTowardsStats =
+                game.State == GameState.Finished && !isLearnTheGame && isWinner.HasValue;
+            _winRateFacts.Add(
+                new WinRateGameFact(IsFinished: countsTowardsStats, IsWinner: isWinner == true)
+            );
         }
     }
 
@@ -193,8 +238,10 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
 
     private async Task LoadStatsAsync(Guid userId)
     {
-        RemovedFromGameCount = await db.PreviousPlayersInGame
-            .Where(p => p.UserId == userId && p.Game!.State == GameState.Finished)
+        RemovedFromGameCount = await db
+            .PreviousPlayersInGame.Where(p =>
+                p.UserId == userId && p.Game!.State == GameState.Finished
+            )
             .CountAsync();
 
         var winRate = WinRateCalculator.Calculate(_winRateFacts, RemovedFromGameCount);
@@ -204,8 +251,8 @@ public class UserModel(ApplicationDbContext db, UserManager<ApplicationUser> use
             ? $"{(winRate.WinRate.Value * 100).ToString("F1", CultureInfo.InvariantCulture)} %"
             : "n/a";
 
-        var responseTimes = await db.PbemResponseTimes
-            .Where(p => p.UserId == userId)
+        var responseTimes = await db
+            .PbemResponseTimes.Where(p => p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)
             .Take(100)
             .Select(p => p.ResponseTime)

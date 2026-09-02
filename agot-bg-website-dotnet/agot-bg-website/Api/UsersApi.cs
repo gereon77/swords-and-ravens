@@ -11,30 +11,35 @@ public static class UsersApi
 {
     public static RouteGroupBuilder MapUsersApi(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/user").RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
+        var group = app.MapGroup("/api/user")
+            .RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
 
-        group.MapGet("/{id:guid}", async (Guid id, UserManager<ApplicationUser> userManager) =>
-        {
-            var user = await userManager.FindByIdAsync(id.ToString());
-            if (user is null)
+        group.MapGet(
+            "/{id:guid}",
+            async (Guid id, UserManager<ApplicationUser> userManager) =>
             {
-                return Results.NotFound();
+                var user = await userManager.FindByIdAsync(id.ToString());
+                if (user is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var roles = await userManager.GetRolesAsync(user);
+                var dto = new UserDto(
+                    user.Id,
+                    user.UserName ?? string.Empty,
+                    user.GameToken,
+                    roles.Contains("Admin"),
+                    user.MuteGames,
+                    user.UseHouseNamesForChat,
+                    user.UseMapScrollbar,
+                    user.GameStateColumnRight,
+                    (IReadOnlyList<string>)roles.ToList()
+                );
+
+                return Results.Ok(dto);
             }
-
-            var roles = await userManager.GetRolesAsync(user);
-            var dto = new UserDto(
-                user.Id,
-                user.UserName ?? string.Empty,
-                user.GameToken,
-                roles.Contains("Admin"),
-                user.MuteGames,
-                user.UseHouseNamesForChat,
-                user.UseMapScrollbar,
-                user.GameStateColumnRight,
-                (IReadOnlyList<string>)roles.ToList());
-
-            return Results.Ok(dto);
-        });
+        );
 
         return group;
     }

@@ -5,8 +5,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Encodings.Web;
-using Microsoft.AspNetCore.Authorization;
 using agot_bg_website.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +16,10 @@ using Microsoft.AspNetCore.WebUtilities;
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
     [AllowAnonymous]
-    public class ResendEmailConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender emailSender) : PageModel
+    public class ResendEmailConfirmationModel(
+        UserManager<ApplicationUser> userManager,
+        IEmailSender emailSender
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly IEmailSender _emailSender = emailSender;
@@ -43,9 +46,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             public string Email { get; set; }
         }
 
-        public void OnGet()
-        {
-        }
+        public void OnGet() { }
 
         public async Task<IActionResult> OnPostAsync()
         {
@@ -57,7 +58,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Verification email sent. Please check your email.");
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Verification email sent. Please check your email."
+                );
                 return Page();
             }
 
@@ -68,13 +72,18 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 "/Account/ConfirmEmail",
                 pageHandler: null,
                 values: new { userId = userId, code = code },
-                protocol: Request.Scheme);
+                protocol: Request.Scheme
+            );
             await _emailSender.SendEmailAsync(
                 Input.Email,
                 "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+            );
 
-            ModelState.AddModelError(string.Empty, "Verification email sent. Please check your email.");
+            ModelState.AddModelError(
+                string.Empty,
+                "Verification email sent. Please check your email."
+            );
             return Page();
         }
     }

@@ -33,10 +33,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Third-party "CoreAdmin" NuGet package, kept alongside the hand-built Admin area
@@ -53,7 +53,6 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // serialized game, and is also the base for the planned High Member operations screens.
 builder.Services.AddControllersWithViews();
 builder.Services.AddCoreAdmin(RoleNames.Admin);
-
 
 // GDPR: require explicit cookie consent (via _CookieConsentPartial.cshtml) before any
 // non-essential cookie is written. Identity's own auth cookies are marked "Essential" by the
@@ -72,8 +71,8 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 // is only wired up when its ClientId/ClientSecret are actually configured (via
 // appsettings/user-secrets/env vars), so local debugging can run with individual
 // (username/password) accounts only, with no OAuth app registrations needed.
-builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+builder
+    .Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
         // Two different ApplicationUsers must never share an email: Register.cshtml.cs and
@@ -95,7 +94,9 @@ builder.Services.AddScoped<SignInManager<ApplicationUser>, AppSignInManager>();
 // https://learn.microsoft.com/aspnet/core/security/gdpr.
 builder.Services.ConfigureApplicationCookie(options => options.Cookie.IsEssential = true);
 builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
-    IdentityConstants.ExternalScheme, options => options.Cookie.IsEssential = true);
+    IdentityConstants.ExternalScheme,
+    options => options.Cookie.IsEssential = true
+);
 
 builder.Services.AddScoped<AccountLinkingService>();
 builder.Services.AddScoped<AccountDeletionService>();
@@ -111,9 +112,12 @@ builder.Services.AddScoped<DisposableEmailChecker>();
 
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
+var redisConnectionString =
+    builder.Configuration.GetConnectionString("Redis")
     ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString));
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(redisConnectionString)
+);
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ChatConnectionManager>();
 builder.Services.AddSingleton<ChatPresenceService>();
@@ -127,7 +131,10 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatBroadcaster>()
 // doesn't need a working mail server.
 if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
-    builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, SmtpEmailSender>();
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        SmtpEmailSender
+    >();
 }
 
 builder.Services.AddRazorPages(options =>
@@ -149,8 +156,8 @@ builder.Services.AddRazorPages(options =>
 var authenticationBuilder = builder.Services.AddAuthentication();
 
 bool IsConfigured(string clientIdKey, string clientSecretKey) =>
-    !string.IsNullOrEmpty(builder.Configuration[clientIdKey]) &&
-    !string.IsNullOrEmpty(builder.Configuration[clientSecretKey]);
+    !string.IsNullOrEmpty(builder.Configuration[clientIdKey])
+    && !string.IsNullOrEmpty(builder.Configuration[clientSecretKey]);
 
 if (IsConfigured("Authentication:Google:ClientId", "Authentication:Google:ClientSecret"))
 {
@@ -185,11 +192,18 @@ authenticationBuilder.AddScheme<MasterApiAuthenticationOptions, MasterApiAuthent
     {
         options.Username = builder.Configuration["GameServer:MasterApiUsername"] ?? string.Empty;
         options.Password = builder.Configuration["GameServer:MasterApiPassword"] ?? string.Empty;
-    });
+    }
+);
 
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(MasterApiAuthenticationHandler.SchemeName, policy =>
-        policy.AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName).RequireAuthenticatedUser())
+builder
+    .Services.AddAuthorizationBuilder()
+    .AddPolicy(
+        MasterApiAuthenticationHandler.SchemeName,
+        policy =>
+            policy
+                .AddAuthenticationSchemes(MasterApiAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser()
+    )
     .AddPolicy("AdminArea", policy => policy.RequireRole(RoleNames.Admin))
     .AddGamePermissionPolicies();
 
@@ -208,15 +222,17 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddOpenApi(options =>
 {
     options.ShouldInclude = description => description.GroupName == "public";
-    options.AddDocumentTransformer((document, _, _) =>
-    {
-        document.Info.Title = "Swords and Ravens Public API";
-        document.Info.Description =
-            "Read-only public REST endpoints for outside consumption. Anonymous/unauthenticated " +
-            "— no login or credentials required.";
-        document.Info.Version = "v1";
-        return Task.CompletedTask;
-    });
+    options.AddDocumentTransformer(
+        (document, _, _) =>
+        {
+            document.Info.Title = "Swords and Ravens Public API";
+            document.Info.Description =
+                "Read-only public REST endpoints for outside consumption. Anonymous/unauthenticated "
+                + "— no login or credentials required.";
+            document.Info.Version = "v1";
+            return Task.CompletedTask;
+        }
+    );
 });
 
 var app = builder.Build();
@@ -254,19 +270,20 @@ app.UseStaticFiles();
 var staticGameDir = Path.Combine(app.Environment.WebRootPath, "static_game");
 if (Directory.Exists(staticGameDir))
 {
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(staticGameDir),
-        RequestPath = "/static"
-    });
+    app.UseStaticFiles(
+        new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(staticGameDir),
+            RequestPath = "/static",
+        }
+    );
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapRazorPages().WithStaticAssets();
 app.MapDefaultControllerRoute();
 
 // Minimal API groups — the REST contract the game server speaks, see MIGRATION_PLAN.md §6.
@@ -281,7 +298,8 @@ app.MapDefaultControllerRoute();
 // (anonymous, used by third-party sites/front-end tooling) and PlayApi/ChatWebSocket (used by
 // signed-in users directly) are intentionally left reachable on every configured endpoint.
 var gameServerApiPort = new Uri(
-    builder.Configuration["Kestrel:Endpoints:GameServerApi:Url"] ?? "http://0.0.0.0:8001").Port;
+    builder.Configuration["Kestrel:Endpoints:GameServerApi:Url"] ?? "http://0.0.0.0:8001"
+).Port;
 app.MapUsersApi().RequireLocalPort(gameServerApiPort);
 app.MapGamesApi().RequireLocalPort(gameServerApiPort);
 app.MapRoomsApi().RequireLocalPort(gameServerApiPort);
@@ -296,8 +314,10 @@ app.MapChatWebSocket();
 // it via Scalar.AspNetCore (https://github.com/scalar/scalar) — deliberately not Swagger UI, per
 // preference — browsable at /api/docs, e.g. https://localhost:8000/api/docs.
 app.MapOpenApi();
-app.MapScalarApiReference("/api/docs", options => options.WithTitle("Swords and Ravens Public API"));
-
+app.MapScalarApiReference(
+    "/api/docs",
+    options => options.WithTitle("Swords and Ravens Public API")
+);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -307,4 +327,3 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-

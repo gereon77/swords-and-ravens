@@ -30,122 +30,172 @@ public static class ChatWebSocketApi
     /// unit-testable without a real WebSocket/DbContext.
     /// </summary>
     internal static int ResolveRetrieveCount(int requestedCount, int? maxRetrieveCount) =>
-        maxRetrieveCount.HasValue ? Math.Min(requestedCount, maxRetrieveCount.Value) : requestedCount;
+        maxRetrieveCount.HasValue
+            ? Math.Min(requestedCount, maxRetrieveCount.Value)
+            : requestedCount;
 
     public static IEndpointRouteBuilder MapChatWebSocket(this IEndpointRouteBuilder app)
     {
-        app.Map("/ws/chat/room/{roomId:guid}", async (
-            HttpContext context,
-            Guid roomId,
-            ApplicationDbContext db,
-            UserManager<ApplicationUser> userManager,
-            ChatConnectionManager connections,
-            ChatBroadcaster broadcaster,
-            ChatPresenceService presence,
-            IMemoryCache memoryCache,
-            IEmailSender emailSender,
-            ILogger<ChatBroadcaster> logger) =>
-        {
-            if (!context.WebSockets.IsWebSocketRequest)
+        app.Map(
+            "/ws/chat/room/{roomId:guid}",
+            async (
+                HttpContext context,
+                Guid roomId,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                ChatConnectionManager connections,
+                ChatBroadcaster broadcaster,
+                ChatPresenceService presence,
+                IMemoryCache memoryCache,
+                IEmailSender emailSender,
+                ILogger<ChatBroadcaster> logger
+            ) =>
             {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return;
-            }
-
-            if (context.User.Identity?.IsAuthenticated != true)
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
-
-            var user = await userManager.GetUserAsync(context.User);
-            if (user is null)
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
-
-            var room = await db.Rooms.AsNoTracking()
-                .Where(r => r.Id == roomId)
-                .Select(r => new { r.Id, r.Name, r.Public, r.MaxRetrieveCount })
-                .FirstOrDefaultAsync();
-            if (room is null)
-            {
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
-            }
-
-            var userInRoom = await db.UsersInRoom.FirstOrDefaultAsync(u => u.UserId == user.Id && u.RoomId == roomId);
-            if (!room.Public && userInRoom is null)
-            {
-                // Private (per-game) rooms require an existing UserInRoom row, created server-side
-                // when the game/room is set up (RoomsApi) — unlike the public/issues rooms, anyone
-                // authenticated may join those on first connect.
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                return;
-            }
-
-            if (userInRoom is null)
-            {
-                userInRoom = new UserInRoom { Id = Guid.NewGuid(), UserId = user.Id, RoomId = roomId };
-                db.UsersInRoom.Add(userInRoom);
-                await db.SaveChangesAsync();
-            }
-
-            // Presence ("connected_users") tracking only applies to the "public" room, not
-            // "issues" — matches Django's ChatConsumer.connect (room_name == 'public').
-            var isPresenceTrackedRoom = room.Public && room.Name == RoomSeeder.PublicRoomName;
-
-            var socket = await context.WebSockets.AcceptWebSocketAsync();
-            var connectionId = connections.Add(roomId, socket, user.Id);
-
-            try
-            {
-                if (isPresenceTrackedRoom)
+                if (!context.WebSockets.IsWebSocketRequest)
                 {
-                    var userData = await GetUserDataAsync(memoryCache, userManager, user);
-                    await presence.AddConnectedUserAsync(roomId, user.Id, userData);
-                    await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
                 }
 
-                await ReceiveLoopAsync(
-                    context, roomId, room.Name, room.Public, room.MaxRetrieveCount, user, userInRoom, socket,
-                    db, userManager, broadcaster, presence, memoryCache, emailSender, logger);
-            }
-            finally
-            {
-                connections.Remove(roomId, connectionId);
-
-                if (isPresenceTrackedRoom)
+                if (context.User.Identity?.IsAuthenticated != true)
                 {
-                    await presence.RemoveConnectedUserAsync(roomId, user.Id);
-                    await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return;
                 }
 
-                if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+                var user = await userManager.GetUserAsync(context.User);
+                if (user is null)
                 {
-                    try
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return;
+                }
+
+                var room = await db
+                    .Rooms.AsNoTracking()
+                    .Where(r => r.Id == roomId)
+                    .Select(r => new
                     {
-                        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-                    }
-                    catch (WebSocketException)
-                    {
-                        // Best-effort — the client may have already dropped the connection.
-                    }
+                        r.Id,
+                        r.Name,
+                        r.Public,
+                        r.MaxRetrieveCount,
+                    })
+                    .FirstOrDefaultAsync();
+                if (room is null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
                 }
 
-                socket.Dispose();
+                var userInRoom = await db.UsersInRoom.FirstOrDefaultAsync(u =>
+                    u.UserId == user.Id && u.RoomId == roomId
+                );
+                if (!room.Public && userInRoom is null)
+                {
+                    // Private (per-game) rooms require an existing UserInRoom row, created server-side
+                    // when the game/room is set up (RoomsApi) — unlike the public/issues rooms, anyone
+                    // authenticated may join those on first connect.
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+
+                if (userInRoom is null)
+                {
+                    userInRoom = new UserInRoom
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        RoomId = roomId,
+                    };
+                    db.UsersInRoom.Add(userInRoom);
+                    await db.SaveChangesAsync();
+                }
+
+                // Presence ("connected_users") tracking only applies to the "public" room, not
+                // "issues" — matches Django's ChatConsumer.connect (room_name == 'public').
+                var isPresenceTrackedRoom = room.Public && room.Name == RoomSeeder.PublicRoomName;
+
+                var socket = await context.WebSockets.AcceptWebSocketAsync();
+                var connectionId = connections.Add(roomId, socket, user.Id);
+
+                try
+                {
+                    if (isPresenceTrackedRoom)
+                    {
+                        var userData = await GetUserDataAsync(memoryCache, userManager, user);
+                        await presence.AddConnectedUserAsync(roomId, user.Id, userData);
+                        await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                    }
+
+                    await ReceiveLoopAsync(
+                        context,
+                        roomId,
+                        room.Name,
+                        room.Public,
+                        room.MaxRetrieveCount,
+                        user,
+                        userInRoom,
+                        socket,
+                        db,
+                        userManager,
+                        broadcaster,
+                        presence,
+                        memoryCache,
+                        emailSender,
+                        logger
+                    );
+                }
+                finally
+                {
+                    connections.Remove(roomId, connectionId);
+
+                    if (isPresenceTrackedRoom)
+                    {
+                        await presence.RemoveConnectedUserAsync(roomId, user.Id);
+                        await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                    }
+
+                    if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+                    {
+                        try
+                        {
+                            await socket.CloseAsync(
+                                WebSocketCloseStatus.NormalClosure,
+                                null,
+                                CancellationToken.None
+                            );
+                        }
+                        catch (WebSocketException)
+                        {
+                            // Best-effort — the client may have already dropped the connection.
+                        }
+                    }
+
+                    socket.Dispose();
+                }
             }
-        });
+        );
 
         return app;
     }
 
     private static async Task ReceiveLoopAsync(
-        HttpContext context, Guid roomId, string roomName, bool roomPublic, int? maxRetrieveCount,
-        ApplicationUser user, UserInRoom userInRoom, WebSocket socket, ApplicationDbContext db,
-        UserManager<ApplicationUser> userManager, ChatBroadcaster broadcaster, ChatPresenceService presence,
-        IMemoryCache memoryCache, IEmailSender emailSender, ILogger logger)
+        HttpContext context,
+        Guid roomId,
+        string roomName,
+        bool roomPublic,
+        int? maxRetrieveCount,
+        ApplicationUser user,
+        UserInRoom userInRoom,
+        WebSocket socket,
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ChatBroadcaster broadcaster,
+        ChatPresenceService presence,
+        IMemoryCache memoryCache,
+        IEmailSender emailSender,
+        ILogger logger
+    )
     {
         var buffer = new byte[8192];
 
@@ -187,14 +237,33 @@ public static class ChatWebSocketApi
                 {
                     case "chat_message":
                         await HandleChatMessageAsync(
-                            doc.RootElement, context, roomId, roomName, roomPublic, user, db, userManager,
-                            broadcaster, presence, memoryCache, emailSender, logger);
+                            doc.RootElement,
+                            context,
+                            roomId,
+                            roomName,
+                            roomPublic,
+                            user,
+                            db,
+                            userManager,
+                            broadcaster,
+                            presence,
+                            memoryCache,
+                            emailSender,
+                            logger
+                        );
                         break;
                     case "chat_view_message":
                         await HandleChatViewMessageAsync(doc.RootElement, userInRoom.Id, db);
                         break;
                     case "chat_retrieve":
-                        await HandleChatRetrieveAsync(doc.RootElement, roomId, maxRetrieveCount, userInRoom.Id, socket, db);
+                        await HandleChatRetrieveAsync(
+                            doc.RootElement,
+                            roomId,
+                            maxRetrieveCount,
+                            userInRoom.Id,
+                            socket,
+                            db
+                        );
                         break;
                 }
             }
@@ -202,17 +271,32 @@ public static class ChatWebSocketApi
     }
 
     private static async Task HandleChatMessageAsync(
-        JsonElement data, HttpContext context, Guid roomId, string roomName, bool roomPublic, ApplicationUser user,
-        ApplicationDbContext db, UserManager<ApplicationUser> userManager, ChatBroadcaster broadcaster,
-        ChatPresenceService presence, IMemoryCache memoryCache, IEmailSender emailSender, ILogger logger)
+        JsonElement data,
+        HttpContext context,
+        Guid roomId,
+        string roomName,
+        bool roomPublic,
+        ApplicationUser user,
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ChatBroadcaster broadcaster,
+        ChatPresenceService presence,
+        IMemoryCache memoryCache,
+        IEmailSender emailSender,
+        ILogger logger
+    )
     {
-        var text = data.TryGetProperty("text", out var textElement) ? textElement.GetString() : null;
+        var text = data.TryGetProperty("text", out var textElement)
+            ? textElement.GetString()
+            : null;
         if (string.IsNullOrEmpty(text) || text.Length > 200)
         {
             return;
         }
 
-        var faceless = data.TryGetProperty("faceless", out var facelessElement) && facelessElement.GetBoolean();
+        var faceless =
+            data.TryGetProperty("faceless", out var facelessElement)
+            && facelessElement.GetBoolean();
 
         if (await userManager.IsInRoleAsync(user, RoleNames.Tongueless))
         {
@@ -236,7 +320,7 @@ public static class ChatWebSocketApi
             Id = Guid.NewGuid(),
             RoomId = roomId,
             UserId = user.Id,
-            Text = text
+            Text = text,
         };
         db.Messages.Add(message);
         await db.SaveChangesAsync();
@@ -247,11 +331,14 @@ public static class ChatWebSocketApi
             Text = message.Text,
             UserId = user.Id,
             UserUsername = faceless ? "" : user.UserName ?? "",
-            CreatedAt = message.CreatedAt
+            CreatedAt = message.CreatedAt,
         };
         await broadcaster.PublishAsync(roomId, evt);
 
-        if (roomPublic && (roomName == RoomSeeder.PublicRoomName || roomName == RoomSeeder.IssuesRoomName))
+        if (
+            roomPublic
+            && (roomName == RoomSeeder.PublicRoomName || roomName == RoomSeeder.IssuesRoomName)
+        )
         {
             // Both public rooms' activity refreshes the *public* room's presence timestamp,
             // matching Django's ChatConsumer.receive_json (always refreshes public_room_id).
@@ -263,13 +350,25 @@ public static class ChatWebSocketApi
             return;
         }
 
-        if (data.TryGetProperty("gameId", out var gameIdElement) &&
-            Guid.TryParse(gameIdElement.GetString(), out var gameId))
+        if (
+            data.TryGetProperty("gameId", out var gameIdElement)
+            && Guid.TryParse(gameIdElement.GetString(), out var gameId)
+        )
         {
             var fromHouse = data.TryGetProperty("fromHouse", out var fromHouseElement)
                 ? fromHouseElement.GetString() ?? "Unknown"
                 : "Unknown";
-            await NotifyChatPartnerAsync(context, db, memoryCache, emailSender, roomId, user, message, gameId, fromHouse);
+            await NotifyChatPartnerAsync(
+                context,
+                db,
+                memoryCache,
+                emailSender,
+                roomId,
+                user,
+                message,
+                gameId,
+                fromHouse
+            );
         }
     }
 
@@ -277,8 +376,16 @@ public static class ChatWebSocketApi
     // notification path directly against an in-memory DbContext/cache/fake IEmailSender, without
     // needing a live WebSocket/Redis connection.
     internal static async Task NotifyChatPartnerAsync(
-        HttpContext context, ApplicationDbContext db, IMemoryCache memoryCache, IEmailSender emailSender,
-        Guid roomId, ApplicationUser sender, Message message, Guid gameId, string fromHouse)
+        HttpContext context,
+        ApplicationDbContext db,
+        IMemoryCache memoryCache,
+        IEmailSender emailSender,
+        Guid roomId,
+        ApplicationUser sender,
+        Message message,
+        Guid gameId,
+        string fromHouse
+    )
     {
         var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
         if (game?.ViewOfGame is null)
@@ -287,21 +394,25 @@ public static class ChatWebSocketApi
         }
 
         var pbemActive =
-            game.ViewOfGame.RootElement.TryGetProperty("settings", out var settings) &&
-            settings.ValueKind == JsonValueKind.Object &&
-            settings.TryGetProperty("pbem", out var pbem) &&
-            pbem.ValueKind == JsonValueKind.True;
+            game.ViewOfGame.RootElement.TryGetProperty("settings", out var settings)
+            && settings.ValueKind == JsonValueKind.Object
+            && settings.TryGetProperty("pbem", out var pbem)
+            && pbem.ValueKind == JsonValueKind.True;
         if (!pbemActive)
         {
             return;
         }
 
-        var otherUserInRoom = await db.UsersInRoom
-            .Include(u => u.User)
+        var otherUserInRoom = await db
+            .UsersInRoom.Include(u => u.User)
             .Where(u => u.RoomId == roomId && u.UserId != sender.Id)
             .FirstOrDefaultAsync();
         var recipient = otherUserInRoom?.User;
-        if (recipient is null || !recipient.EmailNotificationActive || string.IsNullOrEmpty(recipient.Email))
+        if (
+            recipient is null
+            || !recipient.EmailNotificationActive
+            || string.IsNullOrEmpty(recipient.Email)
+        )
         {
             return;
         }
@@ -330,38 +441,62 @@ public static class ChatWebSocketApi
             Staff @ Swords and Ravens
             """;
 
-        await emailSender.SendEmailAsync(recipient.Email, $"You received a new private message in game: '{game.Name}'", body);
+        await emailSender.SendEmailAsync(
+            recipient.Email,
+            $"You received a new private message in game: '{game.Name}'",
+            body
+        );
     }
 
-    private static async Task HandleChatViewMessageAsync(JsonElement data, Guid userInRoomId, ApplicationDbContext db)
+    private static async Task HandleChatViewMessageAsync(
+        JsonElement data,
+        Guid userInRoomId,
+        ApplicationDbContext db
+    )
     {
-        if (!data.TryGetProperty("message_id", out var messageIdElement) ||
-            !Guid.TryParse(messageIdElement.GetString(), out var messageId))
+        if (
+            !data.TryGetProperty("message_id", out var messageIdElement)
+            || !Guid.TryParse(messageIdElement.GetString(), out var messageId)
+        )
         {
             return;
         }
 
-        await db.UsersInRoom
-            .Where(u => u.Id == userInRoomId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastViewedMessageId, messageId));
+        await db
+            .UsersInRoom.Where(u => u.Id == userInRoomId)
+            .ExecuteUpdateAsync(setters =>
+                setters.SetProperty(u => u.LastViewedMessageId, messageId)
+            );
     }
 
     private static async Task HandleChatRetrieveAsync(
-        JsonElement data, Guid roomId, int? maxRetrieveCount, Guid userInRoomId, WebSocket socket, ApplicationDbContext db)
+        JsonElement data,
+        Guid roomId,
+        int? maxRetrieveCount,
+        Guid userInRoomId,
+        WebSocket socket,
+        ApplicationDbContext db
+    )
     {
-        var count = data.TryGetProperty("count", out var countElement) ? countElement.GetInt32() : 0;
+        var count = data.TryGetProperty("count", out var countElement)
+            ? countElement.GetInt32()
+            : 0;
         count = ResolveRetrieveCount(count, maxRetrieveCount);
         if (count <= 0)
         {
             return;
         }
 
-        var faceless = data.TryGetProperty("faceless", out var facelessElement) && facelessElement.GetBoolean();
+        var faceless =
+            data.TryGetProperty("faceless", out var facelessElement)
+            && facelessElement.GetBoolean();
 
         Guid? firstMessageId = null;
-        if (data.TryGetProperty("first_message_id", out var firstMessageIdElement) &&
-            firstMessageIdElement.ValueKind == JsonValueKind.String &&
-            Guid.TryParse(firstMessageIdElement.GetString(), out var parsedFirstMessageId))
+        if (
+            data.TryGetProperty("first_message_id", out var firstMessageIdElement)
+            && firstMessageIdElement.ValueKind == JsonValueKind.String
+            && Guid.TryParse(firstMessageIdElement.GetString(), out var parsedFirstMessageId)
+        )
         {
             firstMessageId = parsedFirstMessageId;
         }
@@ -369,8 +504,8 @@ public static class ChatWebSocketApi
         var query = db.Messages.AsNoTracking().Where(m => m.RoomId == roomId);
         if (firstMessageId is { } fid)
         {
-            var firstMessageCreatedAt = await db.Messages
-                .Where(m => m.Id == fid)
+            var firstMessageCreatedAt = await db
+                .Messages.Where(m => m.Id == fid)
                 .Select(m => (DateTimeOffset?)m.CreatedAt)
                 .FirstOrDefaultAsync();
             if (firstMessageCreatedAt is { } createdAt)
@@ -389,24 +524,28 @@ public static class ChatWebSocketApi
         Guid? lastViewedMessage = null;
         if (firstMessageId is null)
         {
-            lastViewedMessage = await db.UsersInRoom
-                .Where(u => u.Id == userInRoomId)
+            lastViewedMessage = await db
+                .UsersInRoom.Where(u => u.Id == userInRoomId)
                 .Select(u => u.LastViewedMessageId)
                 .FirstOrDefaultAsync();
         }
 
         var evt = new MessagesRetrievedEvent
         {
-            Type = firstMessageId is null ? "chat_messages_retrieved" : "more_chat_messages_retrieved",
-            Messages = messages.Select(m => new MessageData
-            {
-                Id = m.Id,
-                Text = m.Text,
-                UserId = m.UserId,
-                UserUsername = faceless ? "" : m.User?.UserName ?? "",
-                CreatedAt = m.CreatedAt
-            }).ToList(),
-            LastViewedMessage = lastViewedMessage
+            Type = firstMessageId is null
+                ? "chat_messages_retrieved"
+                : "more_chat_messages_retrieved",
+            Messages = messages
+                .Select(m => new MessageData
+                {
+                    Id = m.Id,
+                    Text = m.Text,
+                    UserId = m.UserId,
+                    UserUsername = faceless ? "" : m.User?.UserName ?? "",
+                    CreatedAt = m.CreatedAt,
+                })
+                .ToList(),
+            LastViewedMessage = lastViewedMessage,
         };
 
         var bytes = JsonSerializer.SerializeToUtf8Bytes(evt);
@@ -416,7 +555,11 @@ public static class ChatWebSocketApi
         }
     }
 
-    private static async Task BroadcastConnectedUsersAsync(ChatBroadcaster broadcaster, ChatPresenceService presence, Guid roomId)
+    private static async Task BroadcastConnectedUsersAsync(
+        ChatBroadcaster broadcaster,
+        ChatPresenceService presence,
+        Guid roomId
+    )
     {
         var (users, prunedUserIds) = await presence.GetConnectedUsersAsync(roomId);
 
@@ -434,8 +577,9 @@ public static class ChatWebSocketApi
                     Username = kv.Value.Username,
                     IsAdmin = kv.Value.IsAdmin,
                     IsHighMember = kv.Value.IsHighMember,
-                    LastWonTournament = kv.Value.LastWonTournament
-                })
+                    LastWonTournament = kv.Value.LastWonTournament,
+                }
+            ),
         };
         await broadcaster.PublishAsync(roomId, evt);
     }
@@ -443,7 +587,10 @@ public static class ChatWebSocketApi
     // Mirrors Django's get_user_data — cached for 5 minutes to avoid a role/DB lookup on every
     // connect/prune-check cycle.
     private static async Task<ConnectedUserData> GetUserDataAsync(
-        IMemoryCache memoryCache, UserManager<ApplicationUser> userManager, ApplicationUser user)
+        IMemoryCache memoryCache,
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser user
+    )
     {
         var cacheKey = $"chat:user-data:{user.Id}";
         if (memoryCache.TryGetValue(cacheKey, out ConnectedUserData? cached) && cached is not null)
@@ -455,7 +602,12 @@ public static class ChatWebSocketApi
         var isAdmin = roles.Contains(RoleNames.Admin);
         var isHighMember = !isAdmin && roles.Contains(RoleNames.HighMember);
 
-        var data = new ConnectedUserData(user.UserName ?? "", isAdmin, isHighMember, user.LastWonTournament);
+        var data = new ConnectedUserData(
+            user.UserName ?? "",
+            isAdmin,
+            isHighMember,
+            user.LastWonTournament
+        );
         memoryCache.Set(cacheKey, data, TimeSpan.FromMinutes(5));
         return data;
     }

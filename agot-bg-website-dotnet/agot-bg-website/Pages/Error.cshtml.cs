@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Diagnostics;
 
 namespace agot_bg_website.Pages
 {
@@ -17,5 +17,4 @@ namespace agot_bg_website.Pages
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
         }
     }
-
 }

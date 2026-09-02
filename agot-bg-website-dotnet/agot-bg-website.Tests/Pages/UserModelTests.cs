@@ -30,7 +30,9 @@ public class UserModelTests : IDisposable
     public UserModelTests()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
         services.AddLogging();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -50,8 +52,11 @@ public class UserModelTests : IDisposable
         {
             PageContext = new PageContext
             {
-                HttpContext = new DefaultHttpContext { User = viewer ?? new ClaimsPrincipal(new ClaimsIdentity()) }
-            }
+                HttpContext = new DefaultHttpContext
+                {
+                    User = viewer ?? new ClaimsPrincipal(new ClaimsIdentity()),
+                },
+            },
         };
         return model;
     }
@@ -61,7 +66,12 @@ public class UserModelTests : IDisposable
     [Fact]
     public async Task DeletedUser_Returns404()
     {
-        var user = new ApplicationUser { UserName = "deleted-guy", Email = "deleted@example.com", IsDeleted = true };
+        var user = new ApplicationUser
+        {
+            UserName = "deleted-guy",
+            Email = "deleted@example.com",
+            IsDeleted = true,
+        };
         await _userManager.CreateAsync(user);
 
         var result = await CreatePageModel().OnGetAsync(user.Id);
@@ -89,7 +99,9 @@ public class UserModelTests : IDisposable
             Name = "A finished game (won)",
             OwnerUserId = user.Id,
             State = GameState.Finished,
-            ViewOfGame = Json("""{"turn": 10, "maxPlayerCount": 6, "winner": "stark", "settings": {"setupId": "base-game"}}""")
+            ViewOfGame = Json(
+                """{"turn": 10, "maxPlayerCount": 6, "winner": "stark", "settings": {"setupId": "base-game"}}"""
+            ),
         };
         var lostGame = new Game
         {
@@ -97,7 +109,9 @@ public class UserModelTests : IDisposable
             Name = "A finished game (lost)",
             OwnerUserId = user.Id,
             State = GameState.Finished,
-            ViewOfGame = Json("""{"turn": 10, "maxPlayerCount": 6, "winner": "lannister", "settings": {"setupId": "base-game"}}""")
+            ViewOfGame = Json(
+                """{"turn": 10, "maxPlayerCount": 6, "winner": "lannister", "settings": {"setupId": "base-game"}}"""
+            ),
         };
         var learnTheGame = new Game
         {
@@ -105,7 +119,9 @@ public class UserModelTests : IDisposable
             Name = "Tutorial game",
             OwnerUserId = user.Id,
             State = GameState.Finished,
-            ViewOfGame = Json("""{"turn": 10, "maxPlayerCount": 6, "winner": "stark", "settings": {"setupId": "learn-the-game"}}""")
+            ViewOfGame = Json(
+                """{"turn": 10, "maxPlayerCount": 6, "winner": "stark", "settings": {"setupId": "learn-the-game"}}"""
+            ),
         };
         var facelessGame = new Game
         {
@@ -113,7 +129,9 @@ public class UserModelTests : IDisposable
             Name = "Faceless game",
             OwnerUserId = user.Id,
             State = GameState.Finished,
-            ViewOfGame = Json("""{"turn": 10, "maxPlayerCount": 6, "settings": {"setupId": "base-game", "faceless": true}}""")
+            ViewOfGame = Json(
+                """{"turn": 10, "maxPlayerCount": 6, "settings": {"setupId": "base-game", "faceless": true}}"""
+            ),
         };
         var ongoingGame = new Game
         {
@@ -121,7 +139,9 @@ public class UserModelTests : IDisposable
             Name = "Ongoing game",
             OwnerUserId = user.Id,
             State = GameState.Ongoing,
-            ViewOfGame = Json("""{"turn": 3, "maxPlayerCount": 6, "waitingFor": "Stark", "settings": {"setupId": "base-game"}}""")
+            ViewOfGame = Json(
+                """{"turn": 3, "maxPlayerCount": 6, "waitingFor": "Stark", "settings": {"setupId": "base-game"}}"""
+            ),
         };
         var cancelledGame = new Game
         {
@@ -129,28 +149,76 @@ public class UserModelTests : IDisposable
             Name = "Cancelled game",
             OwnerUserId = user.Id,
             State = GameState.Cancelled,
-            ViewOfGame = Json("""{"turn": 1, "maxPlayerCount": 6, "settings": {"setupId": "base-game"}}""")
+            ViewOfGame = Json(
+                """{"turn": 1, "maxPlayerCount": 6, "settings": {"setupId": "base-game"}}"""
+            ),
         };
-        _db.Games.AddRange(wonGame, lostGame, learnTheGame, facelessGame, ongoingGame, cancelledGame);
+        _db.Games.AddRange(
+            wonGame,
+            lostGame,
+            learnTheGame,
+            facelessGame,
+            ongoingGame,
+            cancelledGame
+        );
 
         _db.PlayersInGame.AddRange(
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = wonGame.Id, UserId = user.Id, Data = Json("""{"house": "stark", "is_winner": true}""") },
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = lostGame.Id, UserId = user.Id, Data = Json("""{"house": "stark", "is_winner": false}""") },
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = learnTheGame.Id, UserId = user.Id, Data = Json("""{"house": "stark", "is_winner": true}""") },
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = facelessGame.Id, UserId = user.Id, Data = Json("""{"house": "stark"}""") },
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = ongoingGame.Id, UserId = user.Id, Data = Json("""{"house": "stark"}""") },
-            new PlayerInGame { Id = Guid.NewGuid(), GameId = cancelledGame.Id, UserId = user.Id, Data = Json("""{"house": "stark"}""") });
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = wonGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": true}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = lostGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": false}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = learnTheGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": true}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = facelessGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark"}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = ongoingGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark"}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = cancelledGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark"}"""),
+            }
+        );
 
         // A previous stint that ended in a finished game - always a loss (MIGRATION_PLAN.md §10.2).
-        _db.PreviousPlayersInGame.Add(new PreviousPlayerInGame
-        {
-            Id = Guid.NewGuid(),
-            GameId = wonGame.Id,
-            UserId = user.Id,
-            House = "greyjoy",
-            SequenceNumber = 0,
-            Reason = PlayerReplacementReason.Vote
-        });
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = wonGame.Id,
+                UserId = user.Id,
+                House = "greyjoy",
+                SequenceNumber = 0,
+                Reason = PlayerReplacementReason.Vote,
+            }
+        );
 
         await _db.SaveChangesAsync();
 

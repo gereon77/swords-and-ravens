@@ -96,30 +96,76 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
         _httpContext.Request.Host = new HostString("swordsandravens.net");
     }
 
-    private static JsonDocument ViewOfGame(bool pbem) => JsonDocument.Parse($"{{\"settings\":{{\"pbem\":{(pbem ? "true" : "false")}}}}}");
+    private static JsonDocument ViewOfGame(bool pbem) =>
+        JsonDocument.Parse($"{{\"settings\":{{\"pbem\":{(pbem ? "true" : "false")}}}}}");
 
-    private async Task<(Game Game, ApplicationUser Sender, ApplicationUser Recipient, Guid RoomId)> SeedGameWithTwoPlayersAsync(bool pbem, bool recipientWantsEmail = true)
+    private async Task<(
+        Game Game,
+        ApplicationUser Sender,
+        ApplicationUser Recipient,
+        Guid RoomId
+    )> SeedGameWithTwoPlayersAsync(bool pbem, bool recipientWantsEmail = true)
     {
         var sender = new ApplicationUser { UserName = "sender", Email = "sender@example.com" };
-        var recipient = new ApplicationUser { UserName = "recipient", Email = "recipient@example.com", EmailNotificationActive = recipientWantsEmail };
-        var game = new Game { Id = Guid.NewGuid(), Name = "A Game of Thrones", ViewOfGame = ViewOfGame(pbem) };
+        var recipient = new ApplicationUser
+        {
+            UserName = "recipient",
+            Email = "recipient@example.com",
+            EmailNotificationActive = recipientWantsEmail,
+        };
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "A Game of Thrones",
+            ViewOfGame = ViewOfGame(pbem),
+        };
         var roomId = Guid.NewGuid();
 
         _db.Users.AddRange(sender, recipient);
         _db.Games.Add(game);
         _db.UsersInRoom.AddRange(
-            new UserInRoom { Id = Guid.NewGuid(), UserId = sender.Id, RoomId = roomId },
-            new UserInRoom { Id = Guid.NewGuid(), UserId = recipient.Id, RoomId = roomId });
+            new UserInRoom
+            {
+                Id = Guid.NewGuid(),
+                UserId = sender.Id,
+                RoomId = roomId,
+            },
+            new UserInRoom
+            {
+                Id = Guid.NewGuid(),
+                UserId = recipient.Id,
+                RoomId = roomId,
+            }
+        );
         await _db.SaveChangesAsync();
 
         return (game, sender, recipient, roomId);
     }
 
-    private Task InvokeAsync(Guid roomId, ApplicationUser sender, Game game, string text = "Would you support me?", string fromHouse = "Stark") =>
+    private Task InvokeAsync(
+        Guid roomId,
+        ApplicationUser sender,
+        Game game,
+        string text = "Would you support me?",
+        string fromHouse = "Stark"
+    ) =>
         ChatWebSocketApi.NotifyChatPartnerAsync(
-            _httpContext, _db, _memoryCache, _emailSender, roomId, sender,
-            new Message { Id = Guid.NewGuid(), RoomId = roomId, UserId = sender.Id, Text = text },
-            game.Id, fromHouse);
+            _httpContext,
+            _db,
+            _memoryCache,
+            _emailSender,
+            roomId,
+            sender,
+            new Message
+            {
+                Id = Guid.NewGuid(),
+                RoomId = roomId,
+                UserId = sender.Id,
+                Text = text,
+            },
+            game.Id,
+            fromHouse
+        );
 
     [Fact]
     public async Task SendsEmail_ForPbemGame_ToOtherPlayerInRoom()
@@ -148,7 +194,10 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
     [Fact]
     public async Task DoesNotSendEmail_WhenRecipientOptedOutOfEmailNotifications()
     {
-        var (game, sender, _, roomId) = await SeedGameWithTwoPlayersAsync(pbem: true, recipientWantsEmail: false);
+        var (game, sender, _, roomId) = await SeedGameWithTwoPlayersAsync(
+            pbem: true,
+            recipientWantsEmail: false
+        );
 
         await InvokeAsync(roomId, sender, game);
 
@@ -158,12 +207,28 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
     [Fact]
     public async Task DoesNotSendEmail_WhenNoOtherUserInRoom()
     {
-        var sender = new ApplicationUser { UserName = "lonely-sender", Email = "sender@example.com" };
-        var game = new Game { Id = Guid.NewGuid(), Name = "Solo Room Game", ViewOfGame = ViewOfGame(pbem: true) };
+        var sender = new ApplicationUser
+        {
+            UserName = "lonely-sender",
+            Email = "sender@example.com",
+        };
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Solo Room Game",
+            ViewOfGame = ViewOfGame(pbem: true),
+        };
         var roomId = Guid.NewGuid();
         _db.Users.Add(sender);
         _db.Games.Add(game);
-        _db.UsersInRoom.Add(new UserInRoom { Id = Guid.NewGuid(), UserId = sender.Id, RoomId = roomId });
+        _db.UsersInRoom.Add(
+            new UserInRoom
+            {
+                Id = Guid.NewGuid(),
+                UserId = sender.Id,
+                RoomId = roomId,
+            }
+        );
         await _db.SaveChangesAsync();
 
         await InvokeAsync(roomId, sender, game);
@@ -179,9 +244,22 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
         await _db.SaveChangesAsync();
 
         await ChatWebSocketApi.NotifyChatPartnerAsync(
-            _httpContext, _db, _memoryCache, _emailSender, Guid.NewGuid(), sender,
-            new Message { Id = Guid.NewGuid(), RoomId = Guid.NewGuid(), UserId = sender.Id, Text = "hi" },
-            gameId: Guid.NewGuid(), fromHouse: "Stark");
+            _httpContext,
+            _db,
+            _memoryCache,
+            _emailSender,
+            Guid.NewGuid(),
+            sender,
+            new Message
+            {
+                Id = Guid.NewGuid(),
+                RoomId = Guid.NewGuid(),
+                UserId = sender.Id,
+                Text = "hi",
+            },
+            gameId: Guid.NewGuid(),
+            fromHouse: "Stark"
+        );
 
         Assert.Empty(_emailSender.Sent);
     }
@@ -199,4 +277,3 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 }
-

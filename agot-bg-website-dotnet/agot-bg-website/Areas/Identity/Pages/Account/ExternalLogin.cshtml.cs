@@ -6,15 +6,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
-using Microsoft.AspNetCore.Authorization;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
-using agot_bg_website.Services;
-using agot_bg_website.Infrastructure.Auth;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -37,7 +37,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             ILogger<ExternalLoginModel> logger,
             IEmailSender emailSender,
             AccountLinkingService accountLinkingService,
-            DisposableEmailChecker disposableEmailChecker)
+            DisposableEmailChecker disposableEmailChecker
+        )
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -89,18 +90,28 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             [EmailAddress]
             public string Email { get; set; }
         }
-        
+
         public IActionResult OnGet() => RedirectToPage("./Login");
 
         public IActionResult OnPost(string provider, string returnUrl = null)
         {
             // Request a redirect to the external login provider.
-            var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            var redirectUrl = Url.Page(
+                "./ExternalLogin",
+                pageHandler: "Callback",
+                values: new { returnUrl }
+            );
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+                provider,
+                redirectUrl
+            );
             return new ChallengeResult(provider, properties);
         }
 
-        public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
+        public async Task<IActionResult> OnGetCallbackAsync(
+            string returnUrl = null,
+            string remoteError = null
+        )
         {
             returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
             if (remoteError != null)
@@ -116,10 +127,19 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             }
 
             // Sign in the user with this external login provider if the user already has a login.
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+            var result = await _signInManager.ExternalLoginSignInAsync(
+                info.LoginProvider,
+                info.ProviderKey,
+                isPersistent: false,
+                bypassTwoFactor: true
+            );
             if (result.Succeeded)
             {
-                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
+                _logger.LogInformation(
+                    "{Name} logged in with {LoginProvider} provider.",
+                    info.Principal.Identity.Name,
+                    info.LoginProvider
+                );
                 return LocalRedirect(returnUrl);
             }
             if (result.IsNotAllowed)
@@ -127,8 +147,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 // AppSignInManager.CanSignInAsync also refuses banned members here; tell them so
                 // instead of falling through to the "let's create you an account" branch below,
                 // which would otherwise be reached for any other NotAllowed reason too.
-                var existingUser = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
-                if (existingUser is not null && await _userManager.IsInRoleAsync(existingUser, RoleNames.Banned))
+                var existingUser = await _userManager.FindByLoginAsync(
+                    info.LoginProvider,
+                    info.ProviderKey
+                );
+                if (
+                    existingUser is not null
+                    && await _userManager.IsInRoleAsync(existingUser, RoleNames.Banned)
+                )
                 {
                     return RedirectToPage("./Banned");
                 }
@@ -146,7 +172,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 {
                     Input = new InputModel
                     {
-                        Email = info.Principal.FindFirstValue(ClaimTypes.Email)
+                        Email = info.Principal.FindFirstValue(ClaimTypes.Email),
                     };
                 }
                 return Page();
@@ -178,7 +204,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 {
                     AccountLinkOutcome.Linked => linkResult.User,
                     AccountLinkOutcome.ConflictAlreadyClaimed => linkResult.User,
-                    _ => null
+                    _ => null,
                 };
 
                 if (existingUser is not null)
@@ -188,8 +214,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     {
                         _logger.LogInformation(
                             "Linked existing account {UserId} to new {Provider} login.",
-                            existingUser.Id, info.LoginProvider);
-                        await _signInManager.SignInAsync(existingUser, isPersistent: false, info.LoginProvider);
+                            existingUser.Id,
+                            info.LoginProvider
+                        );
+                        await _signInManager.SignInAsync(
+                            existingUser,
+                            isPersistent: false,
+                            info.LoginProvider
+                        );
                         return LocalRedirect(returnUrl);
                     }
 
@@ -205,8 +237,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
                 if (await _disposableEmailChecker.IsDisposableAsync(Input.Email))
                 {
-                    ModelState.AddModelError("Input.Email",
-                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
+                    ModelState.AddModelError(
+                        "Input.Email",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at."
+                    );
                     ProviderDisplayName = info.ProviderDisplayName;
                     ReturnUrl = returnUrl;
                     return Page();
@@ -224,7 +258,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     if (result.Succeeded)
                     {
                         await _userManager.AddToRoleAsync(user, RoleNames.Member);
-                        _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+                        _logger.LogInformation(
+                            "User created an account using {Name} provider.",
+                            info.LoginProvider
+                        );
 
                         var userId = await _userManager.GetUserIdAsync(user);
                         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -232,19 +269,35 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                         var callbackUrl = Url.Page(
                             "/Account/ConfirmEmail",
                             pageHandler: null,
-                            values: new { area = "Identity", userId = userId, code = code },
-                            protocol: Request.Scheme);
+                            values: new
+                            {
+                                area = "Identity",
+                                userId = userId,
+                                code = code,
+                            },
+                            protocol: Request.Scheme
+                        );
 
-                        await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                        await _emailSender.SendEmailAsync(
+                            Input.Email,
+                            "Confirm your email",
+                            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                        );
 
                         // If account confirmation is required, we need to show the link if we don't have a real email sender
                         if (_userManager.Options.SignIn.RequireConfirmedAccount)
                         {
-                            return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
+                            return RedirectToPage(
+                                "./RegisterConfirmation",
+                                new { Email = Input.Email }
+                            );
                         }
 
-                        await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                        await _signInManager.SignInAsync(
+                            user,
+                            isPersistent: false,
+                            info.LoginProvider
+                        );
                         return LocalRedirect(returnUrl);
                     }
                 }
@@ -267,9 +320,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             }
             catch
             {
-                throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                    $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
-                    $"override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml");
+                throw new InvalidOperationException(
+                    $"Can't create an instance of '{nameof(ApplicationUser)}'. "
+                        + $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively "
+                        + $"override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml"
+                );
             }
         }
 
@@ -277,7 +332,9 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         {
             if (!_userManager.SupportsUserEmail)
             {
-                throw new NotSupportedException("The default UI requires a user store with email support.");
+                throw new NotSupportedException(
+                    "The default UI requires a user store with email support."
+                );
             }
             return (IUserEmailStore<ApplicationUser>)_userStore;
         }

@@ -26,7 +26,11 @@ public static class RoomSeeder
         _issuesRoomId = await GetOrCreateAsync(db, IssuesRoomName, maxRetrieveCount: 50);
     }
 
-    private static async Task<Guid> GetOrCreateAsync(ApplicationDbContext db, string name, int maxRetrieveCount)
+    private static async Task<Guid> GetOrCreateAsync(
+        ApplicationDbContext db,
+        string name,
+        int maxRetrieveCount
+    )
     {
         var room = await db.Rooms.FirstOrDefaultAsync(r => r.Name == name);
         if (room is null)
@@ -36,7 +40,7 @@ public static class RoomSeeder
                 Id = Guid.NewGuid(),
                 Name = name,
                 Public = true,
-                MaxRetrieveCount = maxRetrieveCount
+                MaxRetrieveCount = maxRetrieveCount,
             };
             db.Rooms.Add(room);
             await db.SaveChangesAsync();
@@ -46,8 +50,16 @@ public static class RoomSeeder
     }
 
     /// <summary>Cached after <see cref="SeedAsync"/> runs at startup — never null once the app is running.</summary>
-    public static Guid PublicRoomId => _publicRoomId ?? throw new InvalidOperationException($"{nameof(RoomSeeder)}.{nameof(SeedAsync)} has not run yet.");
+    public static Guid PublicRoomId =>
+        _publicRoomId
+        ?? throw new InvalidOperationException(
+            $"{nameof(RoomSeeder)}.{nameof(SeedAsync)} has not run yet."
+        );
 
     /// <summary>Cached after <see cref="SeedAsync"/> runs at startup — never null once the app is running.</summary>
-    public static Guid IssuesRoomId => _issuesRoomId ?? throw new InvalidOperationException($"{nameof(RoomSeeder)}.{nameof(SeedAsync)} has not run yet.");
+    public static Guid IssuesRoomId =>
+        _issuesRoomId
+        ?? throw new InvalidOperationException(
+            $"{nameof(RoomSeeder)}.{nameof(SeedAsync)} has not run yet."
+        );
 }

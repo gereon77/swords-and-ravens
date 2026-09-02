@@ -19,7 +19,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IEmailSender emailSender,
-        DisposableEmailChecker disposableEmailChecker) : PageModel
+        DisposableEmailChecker disposableEmailChecker
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -73,10 +74,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             var email = await _userManager.GetEmailAsync(user);
             Email = email;
 
-            Input = new InputModel
-            {
-                NewEmail = email,
-            };
+            Input = new InputModel { NewEmail = email };
 
             IsEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
         }
@@ -112,8 +110,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             {
                 if (await _disposableEmailChecker.IsDisposableAsync(Input.NewEmail))
                 {
-                    ModelState.AddModelError("Input.NewEmail",
-                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
+                    ModelState.AddModelError(
+                        "Input.NewEmail",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at."
+                    );
                     await LoadAsync(user);
                     return Page();
                 }
@@ -124,12 +124,20 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 var callbackUrl = Url.Page(
                     "/Account/ConfirmEmailChange",
                     pageHandler: null,
-                    values: new { area = "Identity", userId = userId, email = Input.NewEmail, code = code },
-                    protocol: Request.Scheme);
+                    values: new
+                    {
+                        area = "Identity",
+                        userId = userId,
+                        email = Input.NewEmail,
+                        code = code,
+                    },
+                    protocol: Request.Scheme
+                );
                 await _emailSender.SendEmailAsync(
                     Input.NewEmail,
                     "Confirm your email",
-                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                );
 
                 StatusMessage = "Confirmation link to change email sent. Please check your email.";
                 return RedirectToPage();
@@ -160,12 +168,19 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             var callbackUrl = Url.Page(
                 "/Account/ConfirmEmail",
                 pageHandler: null,
-                values: new { area = "Identity", userId = userId, code = code },
-                protocol: Request.Scheme);
+                values: new
+                {
+                    area = "Identity",
+                    userId = userId,
+                    code = code,
+                },
+                protocol: Request.Scheme
+            );
             await _emailSender.SendEmailAsync(
                 email,
                 "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+            );
 
             StatusMessage = "Verification email sent. Please check your email.";
             return RedirectToPage();

@@ -13,12 +13,18 @@ public sealed record ChatConnection(Guid ConnectionId, WebSocket Socket, Guid Us
 
 public sealed class ChatConnectionManager
 {
-    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, ChatConnection>> _connectionsByRoom = new();
+    private readonly ConcurrentDictionary<
+        Guid,
+        ConcurrentDictionary<Guid, ChatConnection>
+    > _connectionsByRoom = new();
 
     public Guid Add(Guid roomId, WebSocket socket, Guid userId)
     {
         var connectionId = Guid.NewGuid();
-        var room = _connectionsByRoom.GetOrAdd(roomId, _ => new ConcurrentDictionary<Guid, ChatConnection>());
+        var room = _connectionsByRoom.GetOrAdd(
+            roomId,
+            _ => new ConcurrentDictionary<Guid, ChatConnection>()
+        );
         room[connectionId] = new ChatConnection(connectionId, socket, userId);
         return connectionId;
     }

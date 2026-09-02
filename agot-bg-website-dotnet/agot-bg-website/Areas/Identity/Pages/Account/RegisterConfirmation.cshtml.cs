@@ -3,8 +3,8 @@
 #nullable disable
 
 using System.Text;
-using Microsoft.AspNetCore.Authorization;
 using agot_bg_website.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +14,11 @@ using Microsoft.AspNetCore.WebUtilities;
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
     [AllowAnonymous]
-    public class RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender, IConfiguration configuration) : PageModel
+    public class RegisterConfirmationModel(
+        UserManager<ApplicationUser> userManager,
+        IEmailSender sender,
+        IConfiguration configuration
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly IEmailSender _sender = sender;
@@ -66,8 +70,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 EmailConfirmationUrl = Url.Page(
                     "/Account/ConfirmEmail",
                     pageHandler: null,
-                    values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                    protocol: Request.Scheme);
+                    values: new
+                    {
+                        area = "Identity",
+                        userId = userId,
+                        code = code,
+                        returnUrl = returnUrl,
+                    },
+                    protocol: Request.Scheme
+                );
             }
 
             return Page();

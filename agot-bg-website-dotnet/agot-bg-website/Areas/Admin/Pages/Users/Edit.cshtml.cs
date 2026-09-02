@@ -43,7 +43,10 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
         SelectedRoles = [.. CurrentRoles];
 
         var userClaims = await userManager.GetClaimsAsync(user);
-        SelectedPermissions = [.. userClaims.Where(c => c.Type == GamePermissions.ClaimType).Select(c => c.Value)];
+        SelectedPermissions =
+        [
+            .. userClaims.Where(c => c.Type == GamePermissions.ClaimType).Select(c => c.Value),
+        ];
         return Page();
     }
 
@@ -82,14 +85,25 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
 
         foreach (var permission in permissionsToAdd)
         {
-            await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+            await userManager.AddClaimAsync(
+                user,
+                new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
+            );
         }
         foreach (var permission in permissionsToRemove)
         {
-            await userManager.RemoveClaimAsync(user, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+            await userManager.RemoveClaimAsync(
+                user,
+                new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
+            );
         }
 
-        if (rolesToAdd.Length > 0 || rolesToRemove.Length > 0 || permissionsToAdd.Length > 0 || permissionsToRemove.Length > 0)
+        if (
+            rolesToAdd.Length > 0
+            || rolesToRemove.Length > 0
+            || permissionsToAdd.Length > 0
+            || permissionsToRemove.Length > 0
+        )
         {
             // Force role/permission changes (e.g. Banned/On probation, or a direct permission
             // grant) to take effect on the user's next request instead of only after their

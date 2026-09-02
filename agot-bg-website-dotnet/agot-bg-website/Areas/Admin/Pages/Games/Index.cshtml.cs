@@ -31,11 +31,13 @@ public class IndexModel(ApplicationDbContext db) : PageModel
         {
             var normalized = Search.Trim();
             query = query.Where(g =>
-                EF.Functions.ILike(g.Name, $"%{normalized}%") ||
-                g.Id.ToString() == normalized);
+                EF.Functions.ILike(g.Name, $"%{normalized}%") || g.Id.ToString() == normalized
+            );
         }
 
-        var paged = await query.OrderByDescending(g => g.LastActiveAt).ToPagedResultAsync(PageNumber, PageSize);
+        var paged = await query
+            .OrderByDescending(g => g.LastActiveAt)
+            .ToPagedResultAsync(PageNumber, PageSize);
         Games = paged.Items;
         Pager = paged.Pager;
     }

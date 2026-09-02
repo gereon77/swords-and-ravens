@@ -20,7 +20,8 @@ public record LegacyUser(
     DateTimeOffset? LastUsernameUpdateTime,
     DateTimeOffset LastActivity,
     int VanillaForumUserId,
-    DateTimeOffset DateJoined);
+    DateTimeOffset DateJoined
+);
 
 public record LegacyGroup(int Id, string Name);
 
@@ -31,7 +32,8 @@ public record LegacyRoom(
     string Name,
     bool Public,
     int? MaxRetrieveCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt
+);
 
 public record LegacyGame(
     Guid Id,
@@ -43,10 +45,16 @@ public record LegacyGame(
     string State,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset LastActiveAt);
+    DateTimeOffset LastActiveAt
+);
 
 public record LegacyPlayerInGame(Guid GameId, Guid UserId, string Data);
 
 public record LegacyMessage(Guid RoomId, Guid UserId, string Text, DateTimeOffset CreatedAt);
 
-public record LegacyPbemResponseTime(Guid Id, Guid UserId, int ResponseTime, DateTimeOffset CreatedAt);
+public record LegacyPbemResponseTime(
+    Guid Id,
+    Guid UserId,
+    int ResponseTime,
+    DateTimeOffset CreatedAt
+);

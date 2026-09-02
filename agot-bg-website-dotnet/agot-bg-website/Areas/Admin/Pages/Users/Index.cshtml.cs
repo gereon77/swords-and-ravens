@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Areas.Admin.Pages.Users;
 
-public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletionService accountDeletionService) : PageModel
+public class IndexModel(
+    UserManager<ApplicationUser> userManager,
+    AccountDeletionService accountDeletionService
+) : PageModel
 {
     private const int PageSize = 50;
 
@@ -35,9 +38,10 @@ public class IndexModel(UserManager<ApplicationUser> userManager, AccountDeletio
         {
             var normalized = Search.Trim();
             query = query.Where(u =>
-                EF.Functions.ILike(u.UserName!, $"%{normalized}%") ||
-                EF.Functions.ILike(u.Email!, $"%{normalized}%") ||
-                u.Id.ToString() == normalized);
+                EF.Functions.ILike(u.UserName!, $"%{normalized}%")
+                || EF.Functions.ILike(u.Email!, $"%{normalized}%")
+                || u.Id.ToString() == normalized
+            );
         }
 
         var paged = await query.OrderBy(u => u.UserName).ToPagedResultAsync(PageNumber, PageSize);

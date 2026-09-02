@@ -26,7 +26,8 @@ public static class WinRateCalculator
 {
     public static WinRateResult Calculate(
         IEnumerable<WinRateGameFact> currentParticipations,
-        int finishedGamesPlayerWasRemovedFromCount)
+        int finishedGamesPlayerWasRemovedFromCount
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegative(finishedGamesPlayerWasRemovedFromCount);
 

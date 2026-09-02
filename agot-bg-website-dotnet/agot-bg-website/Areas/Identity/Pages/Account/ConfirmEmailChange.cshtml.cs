@@ -11,7 +11,10 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
-    public class ConfirmEmailChangeModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) : PageModel
+    public class ConfirmEmailChangeModel(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;

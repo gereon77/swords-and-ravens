@@ -4,15 +4,19 @@
 
 using System.ComponentModel.DataAnnotations;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using agot_bg_website.Infrastructure.Auth;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
-    public class LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<LoginModel> logger) : PageModel
+    public class LoginModel(
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager,
+        ILogger<LoginModel> logger
+    ) : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
         private readonly UserManager<ApplicationUser> _userManager = userManager;
@@ -86,7 +90,9 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (
+                await _signInManager.GetExternalAuthenticationSchemesAsync()
+            ).ToList();
 
             ReturnUrl = returnUrl;
         }
@@ -95,7 +101,9 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         {
             returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
 
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (
+                await _signInManager.GetExternalAuthenticationSchemesAsync()
+            ).ToList();
 
             if (ModelState.IsValid)
             {
@@ -115,7 +123,12 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
                 var result = user is null
                     ? Microsoft.AspNetCore.Identity.SignInResult.Failed
-                    : await _signInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                    : await _signInManager.PasswordSignInAsync(
+                        user,
+                        Input.Password,
+                        Input.RememberMe,
+                        lockoutOnFailure: false
+                    );
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
@@ -123,7 +136,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 }
                 if (result.RequiresTwoFactor)
                 {
-                    return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+                    return RedirectToPage(
+                        "./LoginWith2fa",
+                        new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe }
+                    );
                 }
                 if (result.IsLockedOut)
                 {
@@ -135,7 +151,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     // AppSignInManager.CanSignInAsync also refuses banned members; distinguish that
                     // from "email not confirmed yet" here so a banned member is sent to a plain
                     // "you're banned" page instead of a confusing "confirm your email" message.
-                    if (user is not null && await _userManager.IsInRoleAsync(user, RoleNames.Banned))
+                    if (
+                        user is not null
+                        && await _userManager.IsInRoleAsync(user, RoleNames.Banned)
+                    )
                     {
                         return RedirectToPage("./Banned");
                     }
@@ -144,10 +163,12 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     // RequireConfirmedAccount: the email hasn't been confirmed yet. Say so plainly
                     // instead of the generic "Invalid login attempt" — that's what made it look like
                     // login silently did nothing while the nav kept showing Login/Register.
-                    ModelState.AddModelError(string.Empty,
-                        "You need to confirm your email address before you can log in. Check your inbox " +
-                        "(or your local SMTP catcher during development) for the confirmation link we sent " +
-                        "when you registered, or use \"Resend email confirmation\" below.");
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "You need to confirm your email address before you can log in. Check your inbox "
+                            + "(or your local SMTP catcher during development) for the confirmation link we sent "
+                            + "when you registered, or use \"Resend email confirmation\" below."
+                    );
                     return Page();
                 }
                 else

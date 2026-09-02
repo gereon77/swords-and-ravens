@@ -13,7 +13,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
     public class ExternalLoginsModel(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IUserStore<ApplicationUser> userStore) : PageModel
+        IUserStore<ApplicationUser> userStore
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -60,14 +61,20 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             string passwordHash = null;
             if (_userStore is IUserPasswordStore<ApplicationUser> userPasswordStore)
             {
-                passwordHash = await userPasswordStore.GetPasswordHashAsync(user, HttpContext.RequestAborted);
+                passwordHash = await userPasswordStore.GetPasswordHashAsync(
+                    user,
+                    HttpContext.RequestAborted
+                );
             }
 
             ShowRemoveButton = passwordHash != null || CurrentLogins.Count > 1;
             return Page();
         }
 
-        public async Task<IActionResult> OnPostRemoveLoginAsync(string loginProvider, string providerKey)
+        public async Task<IActionResult> OnPostRemoveLoginAsync(
+            string loginProvider,
+            string providerKey
+        )
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -94,7 +101,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
 
             // Request a redirect to the external login provider to link a login for the current user
             var redirectUrl = Url.Page("./ExternalLogins", pageHandler: "LinkLoginCallback");
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl, _userManager.GetUserId(User));
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+                provider,
+                redirectUrl,
+                _userManager.GetUserId(User)
+            );
             return new ChallengeResult(provider, properties);
         }
 
@@ -110,13 +121,16 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             var info = await _signInManager.GetExternalLoginInfoAsync(userId);
             if (info == null)
             {
-                throw new InvalidOperationException($"Unexpected error occurred loading external login info.");
+                throw new InvalidOperationException(
+                    $"Unexpected error occurred loading external login info."
+                );
             }
 
             var result = await _userManager.AddLoginAsync(user, info);
             if (!result.Succeeded)
             {
-                StatusMessage = "The external login was not added. External logins can only be associated with one account.";
+                StatusMessage =
+                    "The external login was not added. External logins can only be associated with one account.";
                 return RedirectToPage();
             }
 

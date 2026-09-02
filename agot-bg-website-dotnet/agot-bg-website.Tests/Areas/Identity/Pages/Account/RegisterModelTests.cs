@@ -12,7 +12,10 @@ public class RegisterModelTests
     [Fact]
     public void BuildDuplicateAccountErrorMessage_LocalPasswordAccount_TellsVisitorToLogIn()
     {
-        var message = RegisterModel.BuildDuplicateAccountErrorMessage(hasPassword: true, externalProviderNames: []);
+        var message = RegisterModel.BuildDuplicateAccountErrorMessage(
+            hasPassword: true,
+            externalProviderNames: []
+        );
 
         Assert.Equal("An account with this email already exists. Please log in instead.", message);
     }
@@ -20,7 +23,10 @@ public class RegisterModelTests
     [Fact]
     public void BuildDuplicateAccountErrorMessage_ExternalOnlyAccount_NamesTheProvider()
     {
-        var message = RegisterModel.BuildDuplicateAccountErrorMessage(hasPassword: false, externalProviderNames: ["Google"]);
+        var message = RegisterModel.BuildDuplicateAccountErrorMessage(
+            hasPassword: false,
+            externalProviderNames: ["Google"]
+        );
 
         Assert.Contains("Google", message);
         Assert.Contains("sign in with Google instead", message);
@@ -30,7 +36,10 @@ public class RegisterModelTests
     [Fact]
     public void BuildDuplicateAccountErrorMessage_MultipleProviders_JoinsWithOr()
     {
-        var message = RegisterModel.BuildDuplicateAccountErrorMessage(hasPassword: false, externalProviderNames: ["Google", "Discord"]);
+        var message = RegisterModel.BuildDuplicateAccountErrorMessage(
+            hasPassword: false,
+            externalProviderNames: ["Google", "Discord"]
+        );
 
         Assert.Contains("Google or Discord", message);
     }
@@ -38,7 +47,10 @@ public class RegisterModelTests
     [Fact]
     public void BuildDuplicateAccountErrorMessage_ExternalOnlyAccount_NoProviderNamesFallsBackToGenericWording()
     {
-        var message = RegisterModel.BuildDuplicateAccountErrorMessage(hasPassword: false, externalProviderNames: []);
+        var message = RegisterModel.BuildDuplicateAccountErrorMessage(
+            hasPassword: false,
+            externalProviderNames: []
+        );
 
         Assert.Contains("an external provider", message);
     }

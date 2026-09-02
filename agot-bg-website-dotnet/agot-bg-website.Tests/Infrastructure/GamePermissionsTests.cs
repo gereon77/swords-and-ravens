@@ -29,7 +29,9 @@ public class GamePermissionsTests : IDisposable
     public GamePermissionsTests()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
         services.AddLogging();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -40,7 +42,9 @@ public class GamePermissionsTests : IDisposable
         _provider = services.BuildServiceProvider();
         _roleManager = _provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
-        _principalFactory = _provider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>();
+        _principalFactory = _provider.GetRequiredService<
+            IUserClaimsPrincipalFactory<ApplicationUser>
+        >();
         _authorizationService = _provider.GetRequiredService<IAuthorizationService>();
     }
 
@@ -60,14 +64,18 @@ public class GamePermissionsTests : IDisposable
         await _roleManager.CreateAsync(new IdentityRole<Guid>(RoleNames.HighMember));
         await _roleManager.AddClaimAsync(
             (await _roleManager.FindByNameAsync(RoleNames.HighMember))!,
-            new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CancelGame));
+            new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CancelGame)
+        );
 
         var user = await CreateUserAsync("high-member-user");
         await _userManager.AddToRoleAsync(user, RoleNames.HighMember);
 
         var principal = await _principalFactory.CreateAsync(user);
 
-        var result = await _authorizationService.AuthorizeAsync(principal, GamePermissions.CancelGame);
+        var result = await _authorizationService.AuthorizeAsync(
+            principal,
+            GamePermissions.CancelGame
+        );
 
         Assert.True(result.Succeeded);
     }
@@ -78,11 +86,20 @@ public class GamePermissionsTests : IDisposable
         // Mirrors UserManager.AddClaimAsync — a one-off permission granted straight to a single
         // user with no role involved (the "assign permissions to a user" admin feature).
         var user = await CreateUserAsync("special-case-user");
-        await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.ImpersonateOtherPlayers));
+        await _userManager.AddClaimAsync(
+            user,
+            new System.Security.Claims.Claim(
+                GamePermissions.ClaimType,
+                GamePermissions.ImpersonateOtherPlayers
+            )
+        );
 
         var principal = await _principalFactory.CreateAsync(user);
 
-        var result = await _authorizationService.AuthorizeAsync(principal, GamePermissions.ImpersonateOtherPlayers);
+        var result = await _authorizationService.AuthorizeAsync(
+            principal,
+            GamePermissions.ImpersonateOtherPlayers
+        );
 
         Assert.True(result.Succeeded);
     }
@@ -93,8 +110,14 @@ public class GamePermissionsTests : IDisposable
         var user = await CreateUserAsync("plain-user");
         var principal = await _principalFactory.CreateAsync(user);
 
-        var cancelResult = await _authorizationService.AuthorizeAsync(principal, GamePermissions.CancelGame);
-        var impersonateResult = await _authorizationService.AuthorizeAsync(principal, GamePermissions.ImpersonateOtherPlayers);
+        var cancelResult = await _authorizationService.AuthorizeAsync(
+            principal,
+            GamePermissions.CancelGame
+        );
+        var impersonateResult = await _authorizationService.AuthorizeAsync(
+            principal,
+            GamePermissions.ImpersonateOtherPlayers
+        );
 
         Assert.False(cancelResult.Succeeded);
         Assert.False(impersonateResult.Succeeded);
@@ -107,18 +130,45 @@ public class GamePermissionsTests : IDisposable
 
         var withoutClaim = await CreateUserAsync("no-permission-user");
         var withoutClaimPrincipal = await _principalFactory.CreateAsync(withoutClaim);
-        Assert.False((await _authorizationService.AuthorizeAsync(withoutClaimPrincipal, GamePermissions.CreateGame)).Succeeded);
+        Assert.False(
+            (
+                await _authorizationService.AuthorizeAsync(
+                    withoutClaimPrincipal,
+                    GamePermissions.CreateGame
+                )
+            ).Succeeded
+        );
 
         var granted = await CreateUserAsync("granted-user");
-        await _userManager.AddClaimAsync(granted, new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CreateGame));
+        await _userManager.AddClaimAsync(
+            granted,
+            new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CreateGame)
+        );
         var grantedPrincipal = await _principalFactory.CreateAsync(granted);
-        Assert.True((await _authorizationService.AuthorizeAsync(grantedPrincipal, GamePermissions.CreateGame)).Succeeded);
+        Assert.True(
+            (
+                await _authorizationService.AuthorizeAsync(
+                    grantedPrincipal,
+                    GamePermissions.CreateGame
+                )
+            ).Succeeded
+        );
 
         var bannedButGranted = await CreateUserAsync("banned-user");
-        await _userManager.AddClaimAsync(bannedButGranted, new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CreateGame));
+        await _userManager.AddClaimAsync(
+            bannedButGranted,
+            new System.Security.Claims.Claim(GamePermissions.ClaimType, GamePermissions.CreateGame)
+        );
         await _userManager.AddToRoleAsync(bannedButGranted, RoleNames.Banned);
         var bannedPrincipal = await _principalFactory.CreateAsync(bannedButGranted);
-        Assert.False((await _authorizationService.AuthorizeAsync(bannedPrincipal, GamePermissions.CreateGame)).Succeeded);
+        Assert.False(
+            (
+                await _authorizationService.AuthorizeAsync(
+                    bannedPrincipal,
+                    GamePermissions.CreateGame
+                )
+            ).Succeeded
+        );
     }
 
     public void Dispose() => _provider.Dispose();

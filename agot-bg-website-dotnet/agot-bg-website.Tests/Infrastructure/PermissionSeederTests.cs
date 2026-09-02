@@ -22,7 +22,9 @@ public class PermissionSeederTests : IDisposable
     public PermissionSeederTests()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
         services.AddLogging();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -53,11 +55,20 @@ public class PermissionSeederTests : IDisposable
 
         await PermissionSeeder.SeedAsync(_provider);
 
-        var memberClaims = await _roleManager.GetClaimsAsync((await _roleManager.FindByNameAsync(RoleNames.Member))!);
-        var adminClaims = await _roleManager.GetClaimsAsync((await _roleManager.FindByNameAsync(RoleNames.Admin))!);
-        var highMemberClaims = await _roleManager.GetClaimsAsync((await _roleManager.FindByNameAsync(RoleNames.HighMember))!);
+        var memberClaims = await _roleManager.GetClaimsAsync(
+            (await _roleManager.FindByNameAsync(RoleNames.Member))!
+        );
+        var adminClaims = await _roleManager.GetClaimsAsync(
+            (await _roleManager.FindByNameAsync(RoleNames.Admin))!
+        );
+        var highMemberClaims = await _roleManager.GetClaimsAsync(
+            (await _roleManager.FindByNameAsync(RoleNames.HighMember))!
+        );
 
-        Assert.Contains(memberClaims, c => c.Type == GamePermissions.ClaimType && c.Value == GamePermissions.CreateGame);
+        Assert.Contains(
+            memberClaims,
+            c => c.Type == GamePermissions.ClaimType && c.Value == GamePermissions.CreateGame
+        );
         Assert.DoesNotContain(memberClaims, c => c.Value == GamePermissions.CancelGame);
 
         foreach (var claims in new[] { adminClaims, highMemberClaims })
@@ -76,7 +87,9 @@ public class PermissionSeederTests : IDisposable
         await PermissionSeeder.SeedAsync(_provider);
         await PermissionSeeder.SeedAsync(_provider);
 
-        var adminClaims = await _roleManager.GetClaimsAsync((await _roleManager.FindByNameAsync(RoleNames.Admin))!);
+        var adminClaims = await _roleManager.GetClaimsAsync(
+            (await _roleManager.FindByNameAsync(RoleNames.Admin))!
+        );
         Assert.Single(adminClaims, c => c.Value == GamePermissions.CreateGame);
     }
 
@@ -91,7 +104,9 @@ public class PermissionSeederTests : IDisposable
         await PermissionSeeder.SeedAsync(_provider);
 
         var role = (await _roleManager.FindByNameAsync(RoleNames.Member))!;
-        var createGameClaim = (await _roleManager.GetClaimsAsync(role)).Single(c => c.Value == GamePermissions.CreateGame);
+        var createGameClaim = (await _roleManager.GetClaimsAsync(role)).Single(c =>
+            c.Value == GamePermissions.CreateGame
+        );
         await _roleManager.RemoveClaimAsync(role, createGameClaim);
 
         await PermissionSeeder.SeedAsync(_provider);

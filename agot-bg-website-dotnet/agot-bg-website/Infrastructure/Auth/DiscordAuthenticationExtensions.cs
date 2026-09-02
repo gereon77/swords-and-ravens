@@ -15,50 +15,76 @@ public static class DiscordAuthenticationExtensions
 {
     public const string DiscordAuthenticationDefaultScheme = "Discord";
 
-    public static AuthenticationBuilder AddDiscord(this AuthenticationBuilder builder)
-        => builder.AddDiscord(DiscordAuthenticationDefaultScheme, _ => { });
+    public static AuthenticationBuilder AddDiscord(this AuthenticationBuilder builder) =>
+        builder.AddDiscord(DiscordAuthenticationDefaultScheme, _ => { });
 
-    public static AuthenticationBuilder AddDiscord(this AuthenticationBuilder builder, Action<OAuthOptions> configureOptions)
-        => builder.AddDiscord(DiscordAuthenticationDefaultScheme, configureOptions);
+    public static AuthenticationBuilder AddDiscord(
+        this AuthenticationBuilder builder,
+        Action<OAuthOptions> configureOptions
+    ) => builder.AddDiscord(DiscordAuthenticationDefaultScheme, configureOptions);
 
-    public static AuthenticationBuilder AddDiscord(this AuthenticationBuilder builder, string scheme, Action<OAuthOptions> configureOptions)
+    public static AuthenticationBuilder AddDiscord(
+        this AuthenticationBuilder builder,
+        string scheme,
+        Action<OAuthOptions> configureOptions
+    )
     {
-        return builder.AddOAuth<OAuthOptions, DiscordOAuthHandler>(scheme, "Discord", options =>
-        {
-            options.AuthorizationEndpoint = "https://discord.com/api/oauth2/authorize";
-            options.TokenEndpoint = "https://discord.com/api/oauth2/token";
-            options.UserInformationEndpoint = "https://discord.com/api/users/@me";
-            options.CallbackPath = "/signin-discord";
-            options.Scope.Add("identify");
-            options.Scope.Add("email");
+        return builder.AddOAuth<OAuthOptions, DiscordOAuthHandler>(
+            scheme,
+            "Discord",
+            options =>
+            {
+                options.AuthorizationEndpoint = "https://discord.com/api/oauth2/authorize";
+                options.TokenEndpoint = "https://discord.com/api/oauth2/token";
+                options.UserInformationEndpoint = "https://discord.com/api/users/@me";
+                options.CallbackPath = "/signin-discord";
+                options.Scope.Add("identify");
+                options.Scope.Add("email");
 
-            options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
-            options.ClaimActions.MapJsonKey(ClaimTypes.Name, "username");
-            options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+                options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+                options.ClaimActions.MapJsonKey(ClaimTypes.Name, "username");
+                options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
 
-            configureOptions(options);
-        });
+                configureOptions(options);
+            }
+        );
     }
 }
 
 public class DiscordOAuthHandler(
     IOptionsMonitor<OAuthOptions> options,
     ILoggerFactory logger,
-    System.Text.Encodings.Web.UrlEncoder encoder)
-    : OAuthHandler<OAuthOptions>(options, logger, encoder)
+    System.Text.Encodings.Web.UrlEncoder encoder
+) : OAuthHandler<OAuthOptions>(options, logger, encoder)
 {
     protected override async Task<AuthenticationTicket> CreateTicketAsync(
-        ClaimsIdentity identity, AuthenticationProperties properties, OAuthTokenResponse tokens)
+        ClaimsIdentity identity,
+        AuthenticationProperties properties,
+        OAuthTokenResponse tokens
+    )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, Options.UserInformationEndpoint);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            tokens.AccessToken
+        );
 
         using var response = await Backchannel.SendAsync(request, Context.RequestAborted);
         response.EnsureSuccessStatusCode();
 
-        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Context.RequestAborted));
+        using var payload = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync(Context.RequestAborted)
+        );
         var context = new OAuthCreatingTicketContext(
-            new ClaimsPrincipal(identity), properties, Context, Scheme, Options, Backchannel, tokens, payload.RootElement);
+            new ClaimsPrincipal(identity),
+            properties,
+            Context,
+            Scheme,
+            Options,
+            Backchannel,
+            tokens,
+            payload.RootElement
+        );
         context.RunClaimActions();
         await Events.CreatingTicket(context);
         return new AuthenticationTicket(context.Principal!, context.Properties, Scheme.Name);

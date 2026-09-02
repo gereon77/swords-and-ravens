@@ -19,125 +19,164 @@ public static class NotificationsApi
 
     // (subject, body) builders, one per notify* route, ported line-for-line from the matching
     // agotboardgame_main/templates/agotboardgame_main/*_notification.html Django template.
-    private static readonly Dictionary<string, (Func<Game, string> Subject, Func<ApplicationUser, Game, string, string> Body)> Templates = new()
+    private static readonly Dictionary<
+        string,
+        (Func<Game, string> Subject, Func<ApplicationUser, Game, string, string> Body)
+    > Templates = new()
     {
         ["notifyReadyToStart"] = (
             game => $"Your game is ready to start: {game.Name}",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                Your game "{game.Name}" is ready to start:
+                    Your game "{game.Name}" is ready to start:
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """),
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
         ["notifyYourTurn"] = (
             game => $"It's your turn in '{game.Name}'",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                It's your turn to play in "{game.Name}":
+                    It's your turn to play in "{game.Name}":
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """),
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
         ["notifyBribeForSupport"] = (
             game => $"You are attacked and now can call for support in '{game.Name}'",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                You are attacked in the game "{game.Name}"
-                and now you can call for support or try to bribe your way there:
+                    You are attacked in the game "{game.Name}"
+                    and now you can call for support or try to bribe your way there:
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """),
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
         ["notifyBattleResults"] = (
             game => $"Your battle is over in '{game.Name}'",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                Your battle in "{game.Name}" is over:
+                    Your battle in "{game.Name}" is over:
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """),
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
         ["notifyNewVote"] = (
             game => $"Your vote is needed in '{game.Name}'",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                a new vote has been started in "{game.Name}":
+                    a new vote has been started in "{game.Name}":
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """),
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
         ["notifyGameEnded"] = (
             game => $"Game has ended -  {game.Name}",
-            (user, game, gameUrl) => $"""
-                Hello {user.UserName},
+            (user, game, gameUrl) =>
+                $"""
+                    Hello {user.UserName},
 
-                The game "{game.Name}" has ended:
+                    The game "{game.Name}" has ended:
 
-                {gameUrl}
+                    {gameUrl}
 
-                Warmest regards,
-                Staff @ Swords and Ravens
-                """)
+                    Warmest regards,
+                    Staff @ Swords and Ravens
+                    """
+        ),
     };
 
     public static RouteGroupBuilder MapNotificationsApi(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api").RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
+        var group = app.MapGroup("/api")
+            .RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
 
-        group.MapPost("/addPbemResponseTime/{userId:guid}/{responseTime:int}",
+        group.MapPost(
+            "/addPbemResponseTime/{userId:guid}/{responseTime:int}",
             async (Guid userId, int responseTime, ApplicationDbContext db) =>
             {
-                db.PbemResponseTimes.Add(new PbemResponseTime
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    ResponseTime = responseTime
-                });
+                db.PbemResponseTimes.Add(
+                    new PbemResponseTime
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        ResponseTime = responseTime,
+                    }
+                );
                 await db.SaveChangesAsync();
                 return Results.NoContent();
-            });
+            }
+        );
 
         foreach (var (route, template) in Templates)
         {
-            group.MapPost($"/{route}/{{gameId:guid}}", async (Guid gameId, NotifyRequest body, HttpContext ctx, ApplicationDbContext db, IEmailSender emailSender) =>
-            {
-                var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
-                if (game is null)
+            group.MapPost(
+                $"/{route}/{{gameId:guid}}",
+                async (
+                    Guid gameId,
+                    NotifyRequest body,
+                    HttpContext ctx,
+                    ApplicationDbContext db,
+                    IEmailSender emailSender
+                ) =>
                 {
-                    return Results.NotFound();
+                    var game = await db
+                        .Games.AsNoTracking()
+                        .FirstOrDefaultAsync(g => g.Id == gameId);
+                    if (game is null)
+                    {
+                        return Results.NotFound();
+                    }
+
+                    var users = await db
+                        .Users.Where(u =>
+                            body.Users.Contains(u.Id)
+                            && u.EmailNotificationActive
+                            && u.Email != null
+                        )
+                        .ToListAsync();
+
+                    var request = ctx.Request;
+                    var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
+                    var subject = template.Subject(game);
+
+                    foreach (var user in users)
+                    {
+                        await emailSender.SendEmailAsync(
+                            user.Email!,
+                            subject,
+                            template.Body(user, game, gameUrl)
+                        );
+                    }
+
+                    return Results.Ok(new { status = "ok" });
                 }
-
-                var users = await db.Users
-                    .Where(u => body.Users.Contains(u.Id) && u.EmailNotificationActive && u.Email != null)
-                    .ToListAsync();
-
-                var request = ctx.Request;
-                var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
-                var subject = template.Subject(game);
-
-                foreach (var user in users)
-                {
-                    await emailSender.SendEmailAsync(user.Email!, subject, template.Body(user, game, gameUrl));
-                }
-
-                return Results.Ok(new { status = "ok" });
-            });
+            );
         }
 
         return group;

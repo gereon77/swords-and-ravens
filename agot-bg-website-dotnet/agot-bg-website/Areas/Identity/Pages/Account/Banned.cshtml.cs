@@ -11,7 +11,5 @@ namespace agot_bg_website.Areas.Identity.Pages.Account;
 [AllowAnonymous]
 public class BannedModel : PageModel
 {
-    public void OnGet()
-    {
-    }
+    public void OnGet() { }
 }

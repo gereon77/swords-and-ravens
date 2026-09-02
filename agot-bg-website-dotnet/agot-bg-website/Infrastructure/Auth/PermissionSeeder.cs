@@ -32,8 +32,18 @@ public static class PermissionSeeder
     private static readonly Dictionary<string, string[]> DefaultRolePermissions = new()
     {
         [RoleNames.Member] = [GamePermissions.CreateGame],
-        [RoleNames.Admin] = [GamePermissions.CreateGame, GamePermissions.ImpersonateOtherPlayers, GamePermissions.CancelGame],
-        [RoleNames.HighMember] = [GamePermissions.CreateGame, GamePermissions.ImpersonateOtherPlayers, GamePermissions.CancelGame],
+        [RoleNames.Admin] =
+        [
+            GamePermissions.CreateGame,
+            GamePermissions.ImpersonateOtherPlayers,
+            GamePermissions.CancelGame,
+        ],
+        [RoleNames.HighMember] =
+        [
+            GamePermissions.CreateGame,
+            GamePermissions.ImpersonateOtherPlayers,
+            GamePermissions.CancelGame,
+        ],
     };
 
     public static async Task SeedAsync(IServiceProvider services)
@@ -58,7 +68,10 @@ public static class PermissionSeeder
 
             foreach (var permission in permissions.Where(p => !existingPermissions.Contains(p)))
             {
-                await roleManager.AddClaimAsync(role, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+                await roleManager.AddClaimAsync(
+                    role,
+                    new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
+                );
             }
         }
     }

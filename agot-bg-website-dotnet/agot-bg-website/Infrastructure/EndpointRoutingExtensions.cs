@@ -53,16 +53,20 @@ public static class EndpointRoutingExtensions
     /// </summary>
     public static IApplicationBuilder UseLocalPortRestriction(this IApplicationBuilder app)
     {
-        return app.Use(async (context, next) =>
-        {
-            var metadata = context.GetEndpoint()?.Metadata.GetMetadata<RequireLocalPortMetadata>();
-            if (metadata is not null && context.Connection.LocalPort != metadata.Port)
+        return app.Use(
+            async (context, next) =>
             {
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
-            }
+                var metadata = context
+                    .GetEndpoint()
+                    ?.Metadata.GetMetadata<RequireLocalPortMetadata>();
+                if (metadata is not null && context.Connection.LocalPort != metadata.Port)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
 
-            await next(context);
-        });
+                await next(context);
+            }
+        );
     }
 }

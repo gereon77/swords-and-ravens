@@ -22,13 +22,23 @@ public class ApiJsonNamingPolicyTests
 {
     private static readonly JsonSerializerOptions Options = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
 
     [Fact]
     public void UserDto_SerializesGameTokenAsSnakeCase()
     {
-        var dto = new UserDto(Guid.NewGuid(), "robb_stark", "some-token", false, false, false, false, false, []);
+        var dto = new UserDto(
+            Guid.NewGuid(),
+            "robb_stark",
+            "some-token",
+            false,
+            false,
+            false,
+            false,
+            false,
+            []
+        );
 
         var json = JsonSerializer.Serialize(dto, Options);
 
@@ -40,7 +50,15 @@ public class ApiJsonNamingPolicyTests
     public void GameDto_SerializesOwnerAndSerializedGameAsSnakeCase()
     {
         // Matches LiveWebsiteClient.ts's getGame(): response.owner, response.serialized_game.
-        var dto = new GameDto(Guid.NewGuid(), "Some game", Guid.NewGuid(), null, "1", "Ongoing", null);
+        var dto = new GameDto(
+            Guid.NewGuid(),
+            "Some game",
+            Guid.NewGuid(),
+            null,
+            "1",
+            "Ongoing",
+            null
+        );
 
         var json = JsonSerializer.Serialize(dto, Options);
 
@@ -54,7 +72,8 @@ public class ApiJsonNamingPolicyTests
     {
         // Matches LiveWebsiteClient.ts's createPublicChatRoom()/createPrivateChatRoom() request
         // body: { name, public, users, max_retrieve_count }.
-        const string incomingJson = """{"name":"lobby","public":true,"users":[],"max_retrieve_count":30}""";
+        const string incomingJson =
+            """{"name":"lobby","public":true,"users":[],"max_retrieve_count":30}""";
 
         var dto = JsonSerializer.Deserialize<CreateRoomDto>(incomingJson, Options);
 

@@ -8,7 +8,7 @@ public enum GameState
     Ongoing,
     Finished,
     Closed,
-    Cancelled
+    Cancelled,
 }
 
 /// <summary>
@@ -66,7 +66,7 @@ public enum PlayerReplacementReason
 {
     Vote,
     ClockTimeout,
-    ReplacedByPlayer
+    ReplacedByPlayer,
 }
 
 /// <summary>

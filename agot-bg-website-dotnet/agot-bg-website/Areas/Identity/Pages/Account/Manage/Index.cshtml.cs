@@ -12,7 +12,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
 {
     public class IndexModel(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager) : PageModel
+        SignInManager<ApplicationUser> signInManager
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -47,8 +48,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         /// </summary>
         public class InputModel
         {
-            [StringLength(30, MinimumLength = 3, ErrorMessage = "The {0} must be between {2} and {1} characters long.")]
-            [RegularExpression(@"^[a-zA-Z0-9_\-\. ]+$", ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes.")]
+            [StringLength(
+                30,
+                MinimumLength = 3,
+                ErrorMessage = "The {0} must be between {2} and {1} characters long."
+            )]
+            [RegularExpression(
+                @"^[a-zA-Z0-9_\-\. ]+$",
+                ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes."
+            )]
             [Display(Name = "Username")]
             public string NewUsername { get; set; }
         }
@@ -61,10 +69,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             LastUsernameUpdateTime = user.LastUsernameUpdateTime;
             CanChangeUsername = user.LastUsernameUpdateTime == null;
 
-            Input = new InputModel
-            {
-                NewUsername = userName
-            };
+            Input = new InputModel { NewUsername = userName };
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -93,19 +98,27 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
-            if (user.LastUsernameUpdateTime == null &&
-                !string.IsNullOrWhiteSpace(Input.NewUsername) &&
-                Input.NewUsername != user.UserName)
+            if (
+                user.LastUsernameUpdateTime == null
+                && !string.IsNullOrWhiteSpace(Input.NewUsername)
+                && Input.NewUsername != user.UserName
+            )
             {
                 var existing = await _userManager.FindByNameAsync(Input.NewUsername);
                 if (existing != null && existing.Id != user.Id)
                 {
-                    ModelState.AddModelError("Input.NewUsername", "This username is already taken.");
+                    ModelState.AddModelError(
+                        "Input.NewUsername",
+                        "This username is already taken."
+                    );
                     await LoadAsync(user);
                     return Page();
                 }
 
-                var setUserNameResult = await _userManager.SetUserNameAsync(user, Input.NewUsername);
+                var setUserNameResult = await _userManager.SetUserNameAsync(
+                    user,
+                    Input.NewUsername
+                );
                 if (!setUserNameResult.Succeeded)
                 {
                     foreach (var error in setUserNameResult.Errors)
@@ -119,7 +132,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 user.LastUsernameUpdateTime = DateTimeOffset.UtcNow;
                 await _userManager.UpdateAsync(user);
                 await _signInManager.RefreshSignInAsync(user);
-                StatusMessage = "Your username has been updated. (Username can only be changed once.)";
+                StatusMessage =
+                    "Your username has been updated. (Username can only be changed once.)";
                 return RedirectToPage();
             }
 

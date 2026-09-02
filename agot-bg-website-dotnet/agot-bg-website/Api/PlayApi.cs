@@ -20,7 +20,10 @@ public static class PlayApi
     // Populated by build_and_place_game_client_into_dotnet.ps1/.sh from agot-bg-game-server/dist,
     // see MIGRATION_PLAN.md §8.1/§8.2. Falls back to the fake template so `dotnet run` alone still
     // boots a usable (if game-less) site, same developer experience Django provides today.
-    private static readonly string TemplatesDir = Path.Combine(AppContext.BaseDirectory, "GameClientTemplates");
+    private static readonly string TemplatesDir = Path.Combine(
+        AppContext.BaseDirectory,
+        "GameClientTemplates"
+    );
     private static readonly string RealTemplatePath = Path.Combine(TemplatesDir, "play.html");
     private static readonly string FakeTemplatePath = Path.Combine(TemplatesDir, "play_fake.html");
 
@@ -30,90 +33,108 @@ public static class PlayApi
     {
         var group = app.MapGroup("/play").RequireAuthorization();
 
-        group.MapGet("/{gameId:guid}/{userId:guid?}", async (
-            Guid gameId,
-            Guid? userId,
-            HttpContext ctx,
-            ApplicationDbContext db,
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IAuthorizationService authorizationService) =>
-        {
-            var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
-            if (game is null)
+        group.MapGet(
+            "/{gameId:guid}/{userId:guid?}",
+            async (
+                Guid gameId,
+                Guid? userId,
+                HttpContext ctx,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                SignInManager<ApplicationUser> signInManager,
+                IAuthorizationService authorizationService
+            ) =>
             {
-                return Results.NotFound();
-            }
-
-            var requestUser = await userManager.GetUserAsync(ctx.User);
-            if (requestUser is null)
-            {
-                return Results.Unauthorized();
-            }
-
-            if (await userManager.IsInRoleAsync(requestUser, RoleNames.Banned))
-            {
-                // Force logout of banned members, same as Django's views.play.
-                await signInManager.SignOutAsync();
-                return Results.Redirect("/games");
-            }
-
-            if (game.State == GameState.InLobby && await userManager.IsInRoleAsync(requestUser, RoleNames.OnProbation))
-            {
-                var alreadyInGame = await db.PlayersInGame.AnyAsync(p => p.GameId == gameId && p.UserId == requestUser.Id);
-                if (!alreadyInGame)
+                var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId);
+                if (game is null)
                 {
-                    // Members on probation can't join new lobby games, but can rejoin ones they're
-                    // already in and spectate ongoing/finished/cancelled games.
+                    return Results.NotFound();
+                }
+
+                var requestUser = await userManager.GetUserAsync(ctx.User);
+                if (requestUser is null)
+                {
+                    return Results.Unauthorized();
+                }
+
+                if (await userManager.IsInRoleAsync(requestUser, RoleNames.Banned))
+                {
+                    // Force logout of banned members, same as Django's views.play.
+                    await signInManager.SignOutAsync();
                     return Results.Redirect("/games");
                 }
-            }
 
-            var effectiveUser = requestUser;
-            if (userId is { } impersonateId)
-            {
-                var canImpersonate = (await authorizationService.AuthorizeAsync(ctx.User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
-
-                if (canImpersonate)
+                if (
+                    game.State == GameState.InLobby
+                    && await userManager.IsInRoleAsync(requestUser, RoleNames.OnProbation)
+                )
                 {
-                    var alreadyPlaying = await db.PlayersInGame.AnyAsync(p => p.GameId == gameId && p.UserId == requestUser.Id);
-                    if (alreadyPlaying)
+                    var alreadyInGame = await db.PlayersInGame.AnyAsync(p =>
+                        p.GameId == gameId && p.UserId == requestUser.Id
+                    );
+                    if (!alreadyInGame)
                     {
-                        // A user cannot impersonate other players of games where they participate.
-                        effectiveUser = requestUser;
-                    }
-                    else
-                    {
-                        var impersonated = await userManager.FindByIdAsync(impersonateId.ToString());
-                        if (impersonated is null)
-                        {
-                            return Results.NotFound();
-                        }
-                        effectiveUser = impersonated;
+                        // Members on probation can't join new lobby games, but can rejoin ones they're
+                        // already in and spectate ongoing/finished/cancelled games.
+                        return Results.Redirect("/games");
                     }
                 }
+
+                var effectiveUser = requestUser;
+                if (userId is { } impersonateId)
+                {
+                    var canImpersonate = (
+                        await authorizationService.AuthorizeAsync(
+                            ctx.User,
+                            GamePermissions.ImpersonateOtherPlayers
+                        )
+                    ).Succeeded;
+
+                    if (canImpersonate)
+                    {
+                        var alreadyPlaying = await db.PlayersInGame.AnyAsync(p =>
+                            p.GameId == gameId && p.UserId == requestUser.Id
+                        );
+                        if (alreadyPlaying)
+                        {
+                            // A user cannot impersonate other players of games where they participate.
+                            effectiveUser = requestUser;
+                        }
+                        else
+                        {
+                            var impersonated = await userManager.FindByIdAsync(
+                                impersonateId.ToString()
+                            );
+                            if (impersonated is null)
+                            {
+                                return Results.NotFound();
+                            }
+                            effectiveUser = impersonated;
+                        }
+                    }
+                }
+
+                var authData = new
+                {
+                    userId = effectiveUser.Id,
+                    requestUserId = requestUser.Id,
+                    gameId,
+                    authToken = effectiveUser.GameToken,
+                };
+
+                // System.Text.Json's default encoder already HTML/script-safe-escapes '<', '>', '&'
+                // etc., equivalent to what Django's json_script does before embedding JSON in a
+                // <script> tag.
+                var json = JsonSerializer.Serialize(authData);
+                var template = File.Exists(RealTemplatePath)
+                    ? await File.ReadAllTextAsync(RealTemplatePath)
+                    : await File.ReadAllTextAsync(FakeTemplatePath);
+
+                var html = template.Replace(AuthDataPlaceholder, json);
+
+                return Results.Content(html, "text/html");
             }
-
-            var authData = new
-            {
-                userId = effectiveUser.Id,
-                requestUserId = requestUser.Id,
-                gameId,
-                authToken = effectiveUser.GameToken
-            };
-
-            // System.Text.Json's default encoder already HTML/script-safe-escapes '<', '>', '&'
-            // etc., equivalent to what Django's json_script does before embedding JSON in a
-            // <script> tag.
-            var json = JsonSerializer.Serialize(authData);
-            var template = File.Exists(RealTemplatePath)
-                ? await File.ReadAllTextAsync(RealTemplatePath)
-                : await File.ReadAllTextAsync(FakeTemplatePath);
-
-            var html = template.Replace(AuthDataPlaceholder, json);
-
-            return Results.Content(html, "text/html");
-        });
+        );
 
         return group;
     }

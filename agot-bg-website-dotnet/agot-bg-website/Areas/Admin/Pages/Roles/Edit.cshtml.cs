@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace agot_bg_website.Areas.Admin.Pages.Roles;
 
-public class EditModel(RoleManager<IdentityRole<Guid>> roleManager, UserManager<ApplicationUser> userManager) : PageModel
+public class EditModel(
+    RoleManager<IdentityRole<Guid>> roleManager,
+    UserManager<ApplicationUser> userManager
+) : PageModel
 {
     [BindProperty]
     public string RoleName { get; set; } = "";
@@ -29,7 +32,10 @@ public class EditModel(RoleManager<IdentityRole<Guid>> roleManager, UserManager<
 
         RoleName = roleName;
         var claims = await roleManager.GetClaimsAsync(role);
-        SelectedPermissions = [.. claims.Where(c => c.Type == GamePermissions.ClaimType).Select(c => c.Value)];
+        SelectedPermissions =
+        [
+            .. claims.Where(c => c.Type == GamePermissions.ClaimType).Select(c => c.Value),
+        ];
         return Page();
     }
 
@@ -55,11 +61,17 @@ public class EditModel(RoleManager<IdentityRole<Guid>> roleManager, UserManager<
 
         foreach (var permission in toAdd)
         {
-            await roleManager.AddClaimAsync(role, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+            await roleManager.AddClaimAsync(
+                role,
+                new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
+            );
         }
         foreach (var permission in toRemove)
         {
-            await roleManager.RemoveClaimAsync(role, new System.Security.Claims.Claim(GamePermissions.ClaimType, permission));
+            await roleManager.RemoveClaimAsync(
+                role,
+                new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
+            );
         }
 
         if (toAdd.Length > 0 || toRemove.Length > 0)

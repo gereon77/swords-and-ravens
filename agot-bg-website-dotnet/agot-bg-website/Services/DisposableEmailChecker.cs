@@ -9,9 +9,15 @@ namespace agot_bg_website.Services;
 /// blocked outright just because the block-list couldn't be fetched. Only a confirmed match against
 /// the downloaded disposable-domain list refuses the address.
 /// </summary>
-public class DisposableEmailChecker(IEmailDisposableOnlineValidator validator, ILogger<DisposableEmailChecker> logger)
+public class DisposableEmailChecker(
+    IEmailDisposableOnlineValidator validator,
+    ILogger<DisposableEmailChecker> logger
+)
 {
-    public async Task<bool> IsDisposableAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<bool> IsDisposableAsync(
+        string email,
+        CancellationToken cancellationToken = default
+    )
     {
         try
         {
@@ -22,7 +28,11 @@ public class DisposableEmailChecker(IEmailDisposableOnlineValidator validator, I
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Disposable email domain check failed for {Email}; allowing it through (fail-open).", email);
+            logger.LogWarning(
+                ex,
+                "Disposable email domain check failed for {Email}; allowing it through (fail-open).",
+                email
+            );
             return false;
         }
     }

@@ -53,7 +53,9 @@ public class IndexModel(ApplicationDbContext db) : PageModel
             query = query.Where(m => EF.Functions.ILike(m.Text, $"%{normalized}%"));
         }
 
-        var paged = await query.OrderByDescending(m => m.CreatedAt).ToPagedResultAsync(PageNumber, PageSize);
+        var paged = await query
+            .OrderByDescending(m => m.CreatedAt)
+            .ToPagedResultAsync(PageNumber, PageSize);
         Messages = paged.Items;
         Pager = paged.Pager;
     }

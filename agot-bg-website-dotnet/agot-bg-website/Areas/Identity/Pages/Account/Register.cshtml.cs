@@ -5,14 +5,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Encodings.Web;
-using Microsoft.AspNetCore.Authentication;
 using agot_bg_website.Domain;
+using agot_bg_website.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
-using agot_bg_website.Services;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -32,7 +32,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            DisposableEmailChecker disposableEmailChecker)
+            DisposableEmailChecker disposableEmailChecker
+        )
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -69,8 +70,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         public class InputModel
         {
             [Required]
-            [StringLength(30, MinimumLength = 3, ErrorMessage = "The {0} must be between {2} and {1} characters long.")]
-            [RegularExpression(@"^[a-zA-Z0-9_\-\. ]+$", ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes.")]
+            [StringLength(
+                30,
+                MinimumLength = 3,
+                ErrorMessage = "The {0} must be between {2} and {1} characters long."
+            )]
+            [RegularExpression(
+                @"^[a-zA-Z0-9_\-\. ]+$",
+                ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes."
+            )]
             [Display(Name = "Username")]
             public string UserName { get; set; }
 
@@ -88,7 +96,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(
+                100,
+                ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.",
+                MinimumLength = 6
+            )]
             [DataType(DataType.Password)]
             [Display(Name = "Password")]
             public string Password { get; set; }
@@ -99,21 +111,27 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             /// </summary>
             [DataType(DataType.Password)]
             [Display(Name = "Confirm password")]
-            [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+            [Compare(
+                "Password",
+                ErrorMessage = "The password and confirmation password do not match."
+            )]
             public string ConfirmPassword { get; set; }
         }
-
 
         public async Task OnGetAsync(string returnUrl = null)
         {
             ReturnUrl = returnUrl;
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (
+                await _signInManager.GetExternalAuthenticationSchemesAsync()
+            ).ToList();
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (
+                await _signInManager.GetExternalAuthenticationSchemesAsync()
+            ).ToList();
             if (ModelState.IsValid)
             {
                 // Ensure the username is unique
@@ -135,15 +153,21 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     var providerNames = hasPassword
                         ? []
                         : (await _userManager.GetLoginsAsync(existingUser))
-                            .Select(l => l.ProviderDisplayName ?? l.LoginProvider).ToArray();
-                    ModelState.AddModelError(string.Empty, BuildDuplicateAccountErrorMessage(hasPassword, providerNames));
+                            .Select(l => l.ProviderDisplayName ?? l.LoginProvider)
+                            .ToArray();
+                    ModelState.AddModelError(
+                        string.Empty,
+                        BuildDuplicateAccountErrorMessage(hasPassword, providerNames)
+                    );
                     return Page();
                 }
 
                 if (await _disposableEmailChecker.IsDisposableAsync(Input.Email))
                 {
-                    ModelState.AddModelError("Input.Email",
-                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
+                    ModelState.AddModelError(
+                        "Input.Email",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at."
+                    );
                     return Page();
                 }
 
@@ -165,15 +189,28 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     var callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",
                         pageHandler: null,
-                        values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                        protocol: Request.Scheme);
+                        values: new
+                        {
+                            area = "Identity",
+                            userId = userId,
+                            code = code,
+                            returnUrl = returnUrl,
+                        },
+                        protocol: Request.Scheme
+                    );
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    await _emailSender.SendEmailAsync(
+                        Input.Email,
+                        "Confirm your email",
+                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                    );
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
-                        return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
+                        return RedirectToPage(
+                            "RegisterConfirmation",
+                            new { email = Input.Email, returnUrl = returnUrl }
+                        );
                     }
                     else
                     {
@@ -199,9 +236,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             }
             catch
             {
-                throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                    $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
-                    $"override the register page in /Areas/Identity/Pages/Account/Register.cshtml");
+                throw new InvalidOperationException(
+                    $"Can't create an instance of '{nameof(ApplicationUser)}'. "
+                        + $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor, or alternatively "
+                        + $"override the register page in /Areas/Identity/Pages/Account/Register.cshtml"
+                );
             }
         }
 
@@ -209,7 +248,9 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         {
             if (!_userManager.SupportsUserEmail)
             {
-                throw new NotSupportedException("The default UI requires a user store with email support.");
+                throw new NotSupportedException(
+                    "The default UI requires a user store with email support."
+                );
             }
             return (IUserEmailStore<ApplicationUser>)_userStore;
         }
@@ -221,18 +262,22 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         /// (registration must be forbidden here, not silently merged/duplicated). Extracted as a
         /// pure function so it's unit-testable without a live UserManager/database.
         /// </summary>
-        internal static string BuildDuplicateAccountErrorMessage(bool hasPassword, IReadOnlyList<string> externalProviderNames)
+        internal static string BuildDuplicateAccountErrorMessage(
+            bool hasPassword,
+            IReadOnlyList<string> externalProviderNames
+        )
         {
             if (hasPassword)
             {
                 return "An account with this email already exists. Please log in instead.";
             }
 
-            var providerNames = externalProviderNames.Count > 0
-                ? string.Join(" or ", externalProviderNames)
-                : "an external provider";
-            return $"This email is already linked to an account via {providerNames}. Please sign in with {providerNames} instead — " +
-                "you can add a password to your account afterwards from your profile settings.";
+            var providerNames =
+                externalProviderNames.Count > 0
+                    ? string.Join(" or ", externalProviderNames)
+                    : "an external provider";
+            return $"This email is already linked to an account via {providerNames}. Please sign in with {providerNames} instead — "
+                + "you can add a password to your account afterwards from your profile settings.";
         }
     }
 }

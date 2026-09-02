@@ -44,14 +44,25 @@ public class PlayApiAuthDataPlaceholderTests
     [Fact]
     public void ReplacingThePlaceholderProducesValidEmbeddedJson()
     {
-        var authData = new { userId = Guid.NewGuid(), requestUserId = Guid.NewGuid(), gameId = Guid.NewGuid(), authToken = "token123" };
+        var authData = new
+        {
+            userId = Guid.NewGuid(),
+            requestUserId = Guid.NewGuid(),
+            gameId = Guid.NewGuid(),
+            authToken = "token123",
+        };
         var json = JsonSerializer.Serialize(authData);
 
         var html = TemplateFragment.Replace(AuthDataPlaceholder, json);
 
         Assert.DoesNotContain(AuthDataPlaceholder, html);
 
-        var scriptStart = html.IndexOf(">", html.IndexOf("id=\"auth-data\"", StringComparison.Ordinal), StringComparison.Ordinal) + 1;
+        var scriptStart =
+            html.IndexOf(
+                ">",
+                html.IndexOf("id=\"auth-data\"", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            ) + 1;
         var scriptEnd = html.IndexOf("</script>", scriptStart, StringComparison.Ordinal);
         var embeddedJson = html[scriptStart..scriptEnd];
 

@@ -14,11 +14,16 @@ namespace agot_bg_website.Tests.Services;
 /// </summary>
 public class DisposableEmailCheckerTests
 {
-    private sealed class FakeValidator(bool? result, Exception? throwOnValidate = null) : IEmailDisposableOnlineValidator
+    private sealed class FakeValidator(bool? result, Exception? throwOnValidate = null)
+        : IEmailDisposableOnlineValidator
     {
-        public ValueTask WarmUp(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public ValueTask WarmUp(CancellationToken cancellationToken = default) =>
+            ValueTask.CompletedTask;
 
-        public ValueTask<bool?> Validate(string? email, CancellationToken cancellationToken = default)
+        public ValueTask<bool?> Validate(
+            string? email,
+            CancellationToken cancellationToken = default
+        )
         {
             if (throwOnValidate is not null)
             {
@@ -29,15 +34,16 @@ public class DisposableEmailCheckerTests
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 
     [Fact]
     public async Task IsDisposableAsync_ValidatorReturnsFalse_MeansDomainIsListed_ReturnsTrue()
     {
-        var sut = new DisposableEmailChecker(new FakeValidator(result: false), NullLogger<DisposableEmailChecker>.Instance);
+        var sut = new DisposableEmailChecker(
+            new FakeValidator(result: false),
+            NullLogger<DisposableEmailChecker>.Instance
+        );
 
         Assert.True(await sut.IsDisposableAsync("test@mailinator.com"));
     }
@@ -45,7 +51,10 @@ public class DisposableEmailCheckerTests
     [Fact]
     public async Task IsDisposableAsync_ValidatorReturnsTrue_MeansDomainIsNotListed_ReturnsFalse()
     {
-        var sut = new DisposableEmailChecker(new FakeValidator(result: true), NullLogger<DisposableEmailChecker>.Instance);
+        var sut = new DisposableEmailChecker(
+            new FakeValidator(result: true),
+            NullLogger<DisposableEmailChecker>.Instance
+        );
 
         Assert.False(await sut.IsDisposableAsync("test@example.com"));
     }
@@ -53,7 +62,10 @@ public class DisposableEmailCheckerTests
     [Fact]
     public async Task IsDisposableAsync_ValidatorReturnsNull_EmptyListTreatedAsNotDisposable()
     {
-        var sut = new DisposableEmailChecker(new FakeValidator(result: null), NullLogger<DisposableEmailChecker>.Instance);
+        var sut = new DisposableEmailChecker(
+            new FakeValidator(result: null),
+            NullLogger<DisposableEmailChecker>.Instance
+        );
 
         Assert.False(await sut.IsDisposableAsync("test@example.com"));
     }
@@ -62,8 +74,12 @@ public class DisposableEmailCheckerTests
     public async Task IsDisposableAsync_ValidatorThrows_FailsOpenInsteadOfBlockingRegistration()
     {
         var sut = new DisposableEmailChecker(
-            new FakeValidator(result: null, throwOnValidate: new HttpRequestException("list source unreachable")),
-            NullLogger<DisposableEmailChecker>.Instance);
+            new FakeValidator(
+                result: null,
+                throwOnValidate: new HttpRequestException("list source unreachable")
+            ),
+            NullLogger<DisposableEmailChecker>.Instance
+        );
 
         Assert.False(await sut.IsDisposableAsync("test@example.com"));
     }

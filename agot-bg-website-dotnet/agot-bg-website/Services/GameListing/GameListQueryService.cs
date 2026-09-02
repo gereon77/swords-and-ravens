@@ -30,34 +30,47 @@ public sealed class GameListQueryService(ApplicationDbContext db)
         DateTimeOffset CreatedAt,
         DateTimeOffset LastActiveAt,
         JsonDocument? ViewOfGame,
-        List<PlayerProjection> Players);
+        List<PlayerProjection> Players
+    );
 
-    private sealed record PlayerProjection(Guid UserId, JsonDocument? Data, DateTimeOffset UserLastActivity, string? UserDisplayName);
+    private sealed record PlayerProjection(
+        Guid UserId,
+        JsonDocument? Data,
+        DateTimeOffset UserLastActivity,
+        string? UserDisplayName
+    );
 
-    private IQueryable<GameProjection> Project(IQueryable<Game> source) => source
-        .Where(g => g.ViewOfGame != null)
-        .Select(g => new GameProjection(
-            g.Id,
-            g.Name,
-            g.State,
-            g.OwnerUserId,
-            g.OwnerUser == null ? null : (g.OwnerUser.IsDeleted ? "Took the Black" : g.OwnerUser.UserName),
-            g.CreatedAt,
-            g.LastActiveAt,
-            g.ViewOfGame,
-            g.Players.Select(p => new PlayerProjection(
-                p.UserId,
-                p.Data,
-                p.User!.LastActivity,
-                p.User.IsDeleted ? "Took the Black" : p.User.UserName)).ToList()));
+    private IQueryable<GameProjection> Project(IQueryable<Game> source) =>
+        source
+            .Where(g => g.ViewOfGame != null)
+            .Select(g => new GameProjection(
+                g.Id,
+                g.Name,
+                g.State,
+                g.OwnerUserId,
+                g.OwnerUser == null
+                    ? null
+                    : (g.OwnerUser.IsDeleted ? "Took the Black" : g.OwnerUser.UserName),
+                g.CreatedAt,
+                g.LastActiveAt,
+                g.ViewOfGame,
+                g.Players.Select(p => new PlayerProjection(
+                        p.UserId,
+                        p.Data,
+                        p.User!.LastActivity,
+                        p.User.IsDeleted ? "Took the Black" : p.User.UserName
+                    ))
+                    .ToList()
+            ));
 
     /// <summary>Open (IN_LOBBY) games, newest first.</summary>
     public async Task<List<GameListItem>> GetOpenGamesAsync(int take = 200)
     {
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.InLobby)
-                .OrderByDescending(g => g.CreatedAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.InLobby)
+                    .OrderByDescending(g => g.CreatedAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
         return rows.Select(r => Build(r, currentUserId: null)).ToList();
@@ -66,10 +79,11 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// <summary>Ongoing games, most recently active first.</summary>
     public async Task<List<GameListItem>> GetOngoingGamesAsync(int take = 200)
     {
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.Ongoing)
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.Ongoing)
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
         return rows.Select(r => Build(r, currentUserId: null)).ToList();
@@ -87,28 +101,29 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     {
         var tenMinutesAgo = DateTimeOffset.UtcNow - TenMinutes;
 
-        var rows = await Project(db.Games
-                .Where(g =>
-                    (g.State == GameState.InLobby && g.Players.Any()) ||
-                    (g.State == GameState.Ongoing && g.LastActiveAt > tenMinutesAgo))
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g =>
+                        (g.State == GameState.InLobby && g.Players.Any())
+                        || (g.State == GameState.Ongoing && g.LastActiveAt > tenMinutesAgo)
+                    )
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
-        return rows
-            .Select(r => Build(r, currentUserId: null))
-            .Where(item => !item.IsPbem)
-            .ToList();
+        return rows.Select(r => Build(r, currentUserId: null)).Where(item => !item.IsPbem).ToList();
     }
 
     /// <summary>Every open/ongoing game the given user is currently a player in.</summary>
     public async Task<List<GameListItem>> GetMyGamesAsync(Guid userId)
     {
-        var rows = await Project(db.Games
-                .Where(g =>
-                    (g.State == GameState.InLobby || g.State == GameState.Ongoing) &&
-                    g.Players.Any(p => p.UserId == userId))
-                .OrderByDescending(g => g.LastActiveAt))
+        var rows = await Project(
+                db.Games.Where(g =>
+                        (g.State == GameState.InLobby || g.State == GameState.Ongoing)
+                        && g.Players.Any(p => p.UserId == userId)
+                    )
+                    .OrderByDescending(g => g.LastActiveAt)
+            )
             .ToListAsync();
 
         var items = rows.Select(r => Build(r, userId)).ToList();
@@ -123,18 +138,28 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// used only to populate the row's own MyHouse/MyTurn so the UI can hide the "Join as ..."
     /// action when the viewer is already a player in that particular game.
     /// </summary>
-    public async Task<List<GameListItem>> GetInactiveGamesAsync(Guid? viewerId = null, int take = 200)
+    public async Task<List<GameListItem>> GetInactiveGamesAsync(
+        Guid? viewerId = null,
+        int take = 200
+    )
     {
         var fiveDaysAgo = DateTimeOffset.UtcNow - FiveDays;
 
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.Ongoing && g.LastActiveAt < fiveDaysAgo)
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.Ongoing && g.LastActiveAt < fiveDaysAgo)
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
-        return rows
-            .Select(r => Build(r, currentUserId: viewerId, computeReplacementNeeded: true, computeJoinAsWaiting: true))
+        return rows.Select(r =>
+                Build(
+                    r,
+                    currentUserId: viewerId,
+                    computeReplacementNeeded: true,
+                    computeJoinAsWaiting: true
+                )
+            )
             .Where(item => !item.IsPrivate && item.ReplacementNeededFor is null)
             .ToList();
     }
@@ -146,18 +171,21 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// is used only to populate the row's own MyHouse/MyTurn so the UI can hide the
     /// "Join as ..." action when the viewer is already a player in that particular game.
     /// </summary>
-    public async Task<List<GameListItem>> GetReplacementNeededGamesAsync(Guid? viewerId = null, int take = 200)
+    public async Task<List<GameListItem>> GetReplacementNeededGamesAsync(
+        Guid? viewerId = null,
+        int take = 200
+    )
     {
         var twoDaysAgo = DateTimeOffset.UtcNow - TwoDays;
 
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoDaysAgo)
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoDaysAgo)
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
-        return rows
-            .Select(r => Build(r, currentUserId: viewerId, computeReplacementNeeded: true))
+        return rows.Select(r => Build(r, currentUserId: viewerId, computeReplacementNeeded: true))
             .Where(item => !item.IsPrivate && item.ReplacementNeededFor is not null)
             .ToList();
     }
@@ -167,14 +195,14 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     {
         var twoDaysAgo = DateTimeOffset.UtcNow - TwoDays;
 
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoDaysAgo)
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoDaysAgo)
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
-        return rows
-            .Where(r => ViewOfGameInfo.Parse(r.ViewOfGame).IsTournamentMode)
+        return rows.Where(r => ViewOfGameInfo.Parse(r.ViewOfGame).IsTournamentMode)
             .Select(r => Build(r, currentUserId: null))
             .ToList();
     }
@@ -184,19 +212,24 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     {
         var twoWeeksAgo = DateTimeOffset.UtcNow - TwoWeeks;
 
-        var rows = await Project(db.Games
-                .Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoWeeksAgo)
-                .OrderByDescending(g => g.LastActiveAt)
-                .Take(take))
+        var rows = await Project(
+                db.Games.Where(g => g.State == GameState.Ongoing && g.LastActiveAt < twoWeeksAgo)
+                    .OrderByDescending(g => g.LastActiveAt)
+                    .Take(take)
+            )
             .ToListAsync();
 
-        return rows
-            .Select(r => Build(r, currentUserId: null))
+        return rows.Select(r => Build(r, currentUserId: null))
             .Where(item => item.IsPrivate)
             .ToList();
     }
 
-    private GameListItem Build(GameProjection row, Guid? currentUserId, bool computeReplacementNeeded = false, bool computeJoinAsWaiting = false)
+    private GameListItem Build(
+        GameProjection row,
+        Guid? currentUserId,
+        bool computeReplacementNeeded = false,
+        bool computeJoinAsWaiting = false
+    )
     {
         var view = ViewOfGameInfo.Parse(row.ViewOfGame);
 
@@ -217,8 +250,10 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             if (computeReplacementNeeded && !view.ReplacePlayerVoteOngoing)
             {
                 var eightDaysAgo = DateTimeOffset.UtcNow - EightDays;
-                var inactiveWaitedPlayers = row.Players
-                    .Where(p => view.WaitingForIds.Contains(p.UserId) && p.UserLastActivity < eightDaysAgo)
+                var inactiveWaitedPlayers = row
+                    .Players.Where(p =>
+                        view.WaitingForIds.Contains(p.UserId) && p.UserLastActivity < eightDaysAgo
+                    )
                     .ToList();
 
                 if (inactiveWaitedPlayers.Count > 0)
@@ -226,7 +261,9 @@ public sealed class GameListQueryService(ApplicationDbContext db)
                     var parts = inactiveWaitedPlayers.Select(p =>
                     {
                         var info = PlayerInGameInfo.Parse(p.Data);
-                        var house = info.House is not null ? Capitalize(info.House) : "Unknown House";
+                        var house = info.House is not null
+                            ? Capitalize(info.House)
+                            : "Unknown House";
                         return view.IsFaceless ? house : $"{house} ({p.UserDisplayName})";
                     });
                     replacementNeededFor = string.Join(", ", parts);
@@ -239,7 +276,9 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             // trigger the stricter "replacement needed" badge above - see GetInactiveGamesAsync.
             if (computeJoinAsWaiting && joinAsUserId is null)
             {
-                joinAsUserId = row.Players.FirstOrDefault(p => view.WaitingForIds.Contains(p.UserId))?.UserId;
+                joinAsUserId = row
+                    .Players.FirstOrDefault(p => view.WaitingForIds.Contains(p.UserId))
+                    ?.UserId;
             }
         }
 
@@ -265,7 +304,8 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             UnreadPublicMessages: false,
             UnreadPrivateMessages: false,
             replacementNeededFor,
-            joinAsUserId);
+            joinAsUserId
+        );
     }
 
     /// <summary>
@@ -273,7 +313,11 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     /// shows these for the signed-in player's own row, mirroring Django's enrich_important_messages.
     /// Runs as 2 queries total (not one query per room like Django's enrich_games loop).
     /// </summary>
-    private async Task EnrichUnreadMessagesAsync(List<GameListItem> items, List<GameProjection> rows, Guid userId)
+    private async Task EnrichUnreadMessagesAsync(
+        List<GameListItem> items,
+        List<GameProjection> rows,
+        Guid userId
+    )
     {
         var roomIds = new HashSet<Guid>();
         var perGamePublicRoom = new Dictionary<Guid, Guid>();
@@ -312,20 +356,23 @@ public sealed class GameListQueryService(ApplicationDbContext db)
 
         var idsList = roomIds.ToList();
 
-        var roomMaxMessageCreatedAt = await db.Messages
-            .Where(m => idsList.Contains(m.RoomId))
+        var roomMaxMessageCreatedAt = await db
+            .Messages.Where(m => idsList.Contains(m.RoomId))
             .GroupBy(m => m.RoomId)
             .Select(g => new { RoomId = g.Key, MaxCreatedAt = g.Max(m => m.CreatedAt) })
             .ToDictionaryAsync(x => x.RoomId, x => x.MaxCreatedAt);
 
-        var userLastViewedCreatedAt = await db.UsersInRoom
-            .Where(uir => uir.UserId == userId && idsList.Contains(uir.RoomId))
+        var userLastViewedCreatedAt = await db
+            .UsersInRoom.Where(uir => uir.UserId == userId && idsList.Contains(uir.RoomId))
             .Select(uir => new
             {
                 uir.RoomId,
                 LastViewedCreatedAt = uir.LastViewedMessageId == null
                     ? (DateTimeOffset?)null
-                    : db.Messages.Where(m => m.Id == uir.LastViewedMessageId).Select(m => m.CreatedAt).FirstOrDefault()
+                    : db
+                        .Messages.Where(m => m.Id == uir.LastViewedMessageId)
+                        .Select(m => m.CreatedAt)
+                        .FirstOrDefault(),
             })
             .ToDictionaryAsync(x => x.RoomId, x => x.LastViewedCreatedAt);
 
@@ -336,21 +383,35 @@ public sealed class GameListQueryService(ApplicationDbContext db)
                 return false; // room has no messages at all
             }
 
-            return !userLastViewedCreatedAt.TryGetValue(roomId, out var lastViewed) || lastViewed is null || lastViewed < maxCreatedAt;
+            return !userLastViewedCreatedAt.TryGetValue(roomId, out var lastViewed)
+                || lastViewed is null
+                || lastViewed < maxCreatedAt;
         }
 
         for (var i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            var unreadPublic = perGamePublicRoom.TryGetValue(item.Id, out var publicRoomId) && HasUnread(publicRoomId);
-            var unreadPrivate = perGamePrivateRooms.TryGetValue(item.Id, out var privateRoomIds) && privateRoomIds.Any(HasUnread);
+            var unreadPublic =
+                perGamePublicRoom.TryGetValue(item.Id, out var publicRoomId)
+                && HasUnread(publicRoomId);
+            var unreadPrivate =
+                perGamePrivateRooms.TryGetValue(item.Id, out var privateRoomIds)
+                && privateRoomIds.Any(HasUnread);
 
-            if (unreadPublic != item.UnreadPublicMessages || unreadPrivate != item.UnreadPrivateMessages)
+            if (
+                unreadPublic != item.UnreadPublicMessages
+                || unreadPrivate != item.UnreadPrivateMessages
+            )
             {
-                items[i] = item with { UnreadPublicMessages = unreadPublic, UnreadPrivateMessages = unreadPrivate };
+                items[i] = item with
+                {
+                    UnreadPublicMessages = unreadPublic,
+                    UnreadPrivateMessages = unreadPrivate,
+                };
             }
         }
     }
 
-    private static string Capitalize(string value) => value.Length == 0 ? value : char.ToUpperInvariant(value[0]) + value[1..];
+    private static string Capitalize(string value) =>
+        value.Length == 0 ? value : char.ToUpperInvariant(value[0]) + value[1..];
 }

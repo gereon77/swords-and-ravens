@@ -101,9 +101,10 @@ public class EditModel(ApplicationDbContext db) : PageModel
 
         await db.SaveChangesAsync();
 
-        StatusMessage = $"Game '{game.Name}' saved. Note: if the game server has this game loaded " +
-            "in memory, it will overwrite this on its next save — restart/reload the game server " +
-            "session first if you need this edit to stick.";
+        StatusMessage =
+            $"Game '{game.Name}' saved. Note: if the game server has this game loaded "
+            + "in memory, it will overwrite this on its next save — restart/reload the game server "
+            + "session first if you need this edit to stick.";
         return RedirectToPage(new { id });
     }
 
@@ -130,6 +131,9 @@ public class EditModel(ApplicationDbContext db) : PageModel
             return null;
         }
 
-        return JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        return JsonSerializer.Serialize(
+            doc.RootElement,
+            new JsonSerializerOptions { WriteIndented = true }
+        );
     }
 }

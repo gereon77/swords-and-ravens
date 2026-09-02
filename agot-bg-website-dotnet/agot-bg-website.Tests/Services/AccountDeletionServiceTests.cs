@@ -24,7 +24,9 @@ public class AccountDeletionServiceTests : IDisposable
     public AccountDeletionServiceTests()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddDbContext<ApplicationDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
         services.AddLogging();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -34,14 +36,22 @@ public class AccountDeletionServiceTests : IDisposable
         _provider = services.BuildServiceProvider();
         _db = _provider.GetRequiredService<ApplicationDbContext>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
-        _sut = new AccountDeletionService(_userManager, NullLogger<AccountDeletionService>.Instance);
+        _sut = new AccountDeletionService(
+            _userManager,
+            NullLogger<AccountDeletionService>.Instance
+        );
     }
 
     private async Task<ApplicationUser> CreateUserAsync()
     {
         if (!await _db.Roles.AnyAsync(r => r.Name == RoleNames.Member))
         {
-            _db.Roles.Add(new IdentityRole<Guid>(RoleNames.Member) { NormalizedName = RoleNames.Member.ToUpperInvariant() });
+            _db.Roles.Add(
+                new IdentityRole<Guid>(RoleNames.Member)
+                {
+                    NormalizedName = RoleNames.Member.ToUpperInvariant(),
+                }
+            );
             await _db.SaveChangesAsync();
         }
 
@@ -52,7 +62,7 @@ public class AccountDeletionServiceTests : IDisposable
             NormalizedEmail = "ROBB@EXAMPLE.COM",
             EmailConfirmed = true,
             ProfileText = "King in the North",
-            LastWonTournament = "Riverrun Cup"
+            LastWonTournament = "Riverrun Cup",
         };
         var createResult = await _userManager.CreateAsync(user, "P@ssw0rd123!");
         Assert.True(createResult.Succeeded);
@@ -119,7 +129,7 @@ public class AccountDeletionServiceTests : IDisposable
         {
             UserName = "robb_stark",
             Email = "robb@example.com",
-            NormalizedEmail = "ROBB@EXAMPLE.COM"
+            NormalizedEmail = "ROBB@EXAMPLE.COM",
         };
         var createResult = await _userManager.CreateAsync(newUser, "P@ssw0rd123!");
 

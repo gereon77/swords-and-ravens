@@ -13,7 +13,8 @@ namespace agot_bg_website.Migrations
             migrationBuilder.RenameColumn(
                 name: "UseResponsiveLayoutOnMobile",
                 table: "AspNetUsers",
-                newName: "GameStateColumnRight");
+                newName: "GameStateColumnRight"
+            );
         }
 
         /// <inheritdoc />
@@ -22,7 +23,8 @@ namespace agot_bg_website.Migrations
             migrationBuilder.RenameColumn(
                 name: "GameStateColumnRight",
                 table: "AspNetUsers",
-                newName: "UseResponsiveLayoutOnMobile");
+                newName: "UseResponsiveLayoutOnMobile"
+            );
         }
     }
 }

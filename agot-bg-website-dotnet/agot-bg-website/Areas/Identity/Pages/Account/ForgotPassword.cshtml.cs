@@ -14,7 +14,10 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
-    public class ForgotPasswordModel(UserManager<ApplicationUser> userManager, IEmailSender emailSender) : PageModel
+    public class ForgotPasswordModel(
+        UserManager<ApplicationUser> userManager,
+        IEmailSender emailSender
+    ) : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly IEmailSender _emailSender = emailSender;
@@ -60,12 +63,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     "/Account/ResetPassword",
                     pageHandler: null,
                     values: new { area = "Identity", code },
-                    protocol: Request.Scheme);
+                    protocol: Request.Scheme
+                );
 
                 await _emailSender.SendEmailAsync(
                     Input.Email,
                     "Reset Password",
-                    $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                );
 
                 return RedirectToPage("./ForgotPasswordConfirmation");
             }

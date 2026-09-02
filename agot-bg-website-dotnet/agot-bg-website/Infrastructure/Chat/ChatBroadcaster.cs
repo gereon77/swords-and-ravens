@@ -12,25 +12,35 @@ namespace agot_bg_website.Infrastructure.Chat;
 /// singleton (for <see cref="PublishAsync"/>) and an <see cref="IHostedService"/> (to subscribe
 /// once at startup).
 /// </summary>
-public sealed class ChatBroadcaster(IConnectionMultiplexer redis, ChatConnectionManager connections, ILogger<ChatBroadcaster> logger)
-    : IHostedService
+public sealed class ChatBroadcaster(
+    IConnectionMultiplexer redis,
+    ChatConnectionManager connections,
+    ILogger<ChatBroadcaster> logger
+) : IHostedService
 {
     private const string ChannelPrefix = "chat:room:";
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var subscriber = redis.GetSubscriber();
-        subscriber.Subscribe(RedisChannel.Pattern($"{ChannelPrefix}*"), async (channel, message) =>
-        {
-            try
+        subscriber.Subscribe(
+            RedisChannel.Pattern($"{ChannelPrefix}*"),
+            async (channel, message) =>
             {
-                await RelayToLocalConnectionsAsync(channel, message);
+                try
+                {
+                    await RelayToLocalConnectionsAsync(channel, message);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to relay a chat pub/sub message from channel {Channel}",
+                        channel
+                    );
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to relay a chat pub/sub message from channel {Channel}", channel);
-            }
-        });
+        );
         return Task.CompletedTask;
     }
 
@@ -50,8 +60,10 @@ public sealed class ChatBroadcaster(IConnectionMultiplexer redis, ChatConnection
     private async Task RelayToLocalConnectionsAsync(RedisChannel channel, RedisValue message)
     {
         var channelName = channel.ToString();
-        if (!channelName.StartsWith(ChannelPrefix, StringComparison.Ordinal) ||
-            !Guid.TryParse(channelName[ChannelPrefix.Length..], out var roomId))
+        if (
+            !channelName.StartsWith(ChannelPrefix, StringComparison.Ordinal)
+            || !Guid.TryParse(channelName[ChannelPrefix.Length..], out var roomId)
+        )
         {
             return;
         }
@@ -71,17 +83,26 @@ public sealed class ChatBroadcaster(IConnectionMultiplexer redis, ChatConnection
             // Internal-only: never forwarded verbatim. Each locally-connected user whose id was
             // pruned as stale gets a personalized force_disconnect, mirroring Django's
             // close_stale_connections (one consumer instance per user connection).
-            var prunedUserIds = doc.RootElement.GetProperty("user_ids").EnumerateArray()
+            var prunedUserIds = doc
+                .RootElement.GetProperty("user_ids")
+                .EnumerateArray()
                 .Select(e => e.GetGuid())
                 .ToHashSet();
 
             var forceDisconnectJson = JsonSerializer.Serialize(new ForceDisconnectEvent());
             var bytes = System.Text.Encoding.UTF8.GetBytes(forceDisconnectJson);
-            foreach (var connection in localConnections.Where(c => prunedUserIds.Contains(c.UserId)))
+            foreach (
+                var connection in localConnections.Where(c => prunedUserIds.Contains(c.UserId))
+            )
             {
                 if (connection.Socket.State == System.Net.WebSockets.WebSocketState.Open)
                 {
-                    await connection.Socket.SendAsync(bytes, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+                    await connection.Socket.SendAsync(
+                        bytes,
+                        System.Net.WebSockets.WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
                 }
             }
 
@@ -93,7 +114,12 @@ public sealed class ChatBroadcaster(IConnectionMultiplexer redis, ChatConnection
         {
             if (connection.Socket.State == System.Net.WebSockets.WebSocketState.Open)
             {
-                await connection.Socket.SendAsync(rawBytes, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+                await connection.Socket.SendAsync(
+                    rawBytes,
+                    System.Net.WebSockets.WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
             }
         }
     }
