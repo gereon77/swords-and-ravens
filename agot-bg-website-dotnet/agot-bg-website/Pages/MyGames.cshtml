@@ -51,10 +51,28 @@
     </script>
 }
 
-@await Html.PartialAsync("_GamesTable", new GamesTableViewModel
-{
-    Games = Model.MyGames,
-    ShowStateBadge = true,
-    IsAuthenticated = true,
-    EmptyMessage = "You are not currently part of any game."
-})
+<section class="mb-10">
+    <h2 class="text-xl font-semibold mb-3">Current live games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CurrentLiveGames.Count</span></h2>
+    @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+    {
+        Games = Model.CurrentLiveGames,
+        ShowStateBadge = true,
+        ShowJoinAsOwner = true,
+        HideOwnerAndWaitingColumns = true,
+        CanPlayAsAnotherPlayer = Model.CanPlayAsAnotherPlayer,
+        CanCancelGame = Model.CanCancelGame,
+        IsAuthenticated = true,
+        EmptyMessage = "No live games right now."
+    })
+</section>
+
+<section class="mb-10">
+    <h2 class="text-xl font-semibold mb-3">Your games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.MyGames.Count</span></h2>
+    @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
+    {
+        Games = Model.MyGames,
+        ShowStateBadge = true,
+        IsAuthenticated = true,
+        EmptyMessage = "You are not currently part of any game."
+    })
+</section>

@@ -75,6 +75,32 @@ public sealed class GameListQueryService(ApplicationDbContext db)
         return rows.Select(r => Build(r, currentUserId: null)).ToList();
     }
 
+    /// <summary>
+    /// Live (non-PBEM) games worth drawing attention to right now: open lobbies that already
+    /// have at least one player waiting, plus ongoing games active within the last 10 minutes.
+    /// Mirrors Django's `open_live_games` + `running_live_games` (agotboardgame_main.views.games/
+    /// my_games), merged into a single list here since the caller doesn't need to distinguish
+    /// lobby vs. ongoing rows - both cases are already covered by the separate Open/Ongoing
+    /// games lists elsewhere on the page, so a game legitimately shows up twice.
+    /// </summary>
+    public async Task<List<GameListItem>> GetCurrentLiveGamesAsync(int take = 200)
+    {
+        var tenMinutesAgo = DateTimeOffset.UtcNow - TenMinutes;
+
+        var rows = await Project(db.Games
+                .Where(g =>
+                    (g.State == GameState.InLobby && g.Players.Any()) ||
+                    (g.State == GameState.Ongoing && g.LastActiveAt > tenMinutesAgo))
+                .OrderByDescending(g => g.LastActiveAt)
+                .Take(take))
+            .ToListAsync();
+
+        return rows
+            .Select(r => Build(r, currentUserId: null))
+            .Where(item => !item.IsPbem)
+            .ToList();
+    }
+
     /// <summary>Every open/ongoing game the given user is currently a player in.</summary>
     public async Task<List<GameListItem>> GetMyGamesAsync(Guid userId)
     {

@@ -19,11 +19,18 @@ public class MyGamesModel(
     ApplicationDbContext db,
     GameListQueryService gameLists,
     UserManager<ApplicationUser> userManager,
-    IAuthorizationService authorizationService) : PageModel
+    IAuthorizationService authorizationService,
+    ILogger<MyGamesModel> logger) : PageModel
 {
     public List<GameListItem> MyGames { get; set; } = [];
 
+    public List<GameListItem> CurrentLiveGames { get; set; } = [];
+
     public bool CanCreateGame { get; set; }
+
+    public bool CanPlayAsAnotherPlayer { get; set; }
+
+    public bool CanCancelGame { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }
@@ -31,6 +38,10 @@ public class MyGamesModel(
     public async Task OnGetAsync()
     {
         CanCreateGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CreateGame)).Succeeded;
+        CanPlayAsAnotherPlayer = (await authorizationService.AuthorizeAsync(User, GamePermissions.ImpersonateOtherPlayers)).Succeeded;
+        CanCancelGame = (await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded;
+
+        CurrentLiveGames = await gameLists.GetCurrentLiveGamesAsync();
 
         var userId = userManager.GetUserId(User);
         if (userId is null)
@@ -75,5 +86,35 @@ public class MyGamesModel(
         await db.SaveChangesAsync();
 
         return Redirect($"/play/{game.Id}");
+    }
+
+    /// <summary>
+    /// Same behavior as <see cref="GamesModel.OnPostCancelGameAsync"/> - the "Current live games"
+    /// list on this page needs its own Cancel button target since Razor Pages page handlers are
+    /// per-page, not shared with Games.cshtml.
+    /// </summary>
+    public async Task<IActionResult> OnPostCancelGameAsync([FromForm] Guid gameId)
+    {
+        if (!(await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        var game = await db.Games.FindAsync(gameId);
+        if (game is not null)
+        {
+            game.State = GameState.Cancelled;
+            game.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+
+            logger.LogInformation(
+                "{Username} ({UserId}) cancelled game {GameName} ({GameId})",
+                User.Identity?.Name,
+                userManager.GetUserId(User),
+                game.Name,
+                game.Id);
+        }
+
+        return RedirectToPage();
     }
 }

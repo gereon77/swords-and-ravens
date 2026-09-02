@@ -24,6 +24,8 @@ public class GamesModel(
 {
     public List<GameListItem> MyGames { get; set; } = [];
 
+    public List<GameListItem> CurrentLiveGames { get; set; } = [];
+
     public List<GameListItem> OpenGames { get; set; } = [];
 
     public List<GameListItem> OngoingGames { get; set; } = [];
@@ -56,6 +58,7 @@ public class GamesModel(
 
         OpenGames = await gameLists.GetOpenGamesAsync();
         OngoingGames = await gameLists.GetOngoingGamesAsync();
+        CurrentLiveGames = await gameLists.GetCurrentLiveGamesAsync();
         ReplacementNeededGames = await gameLists.GetReplacementNeededGamesAsync(viewerId);
 
         if (viewerId is not null)

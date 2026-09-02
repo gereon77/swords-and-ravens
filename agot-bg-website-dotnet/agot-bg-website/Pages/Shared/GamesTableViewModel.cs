@@ -28,6 +28,16 @@ public sealed class GamesTableViewModel
     /// <summary>Show a "Cancel" button per row for admins/high members — Django's <c>cancel_game</c> permission, not gated to any particular list.</summary>
     public bool CanCancelGame { get; init; }
 
+    /// <summary>
+    /// Force-hide the Owner and Round/Waiting-for columns even when the list mixes open and
+    /// ongoing games (e.g. the merged "Current live games" list). Normally Owner shows only when
+    /// every row is open and Round/Waiting-for show whenever any row is ongoing; a mixed list
+    /// would otherwise show a half-empty "-" column, which is pointless when this list only
+    /// exists to draw attention to a game - the full detail is already available in the
+    /// Open games/Ongoing games/My games lists elsewhere on the page.
+    /// </summary>
+    public bool HideOwnerAndWaitingColumns { get; init; }
+
     public bool IsAuthenticated { get; init; }
 
     public bool OnProbation { get; init; }

@@ -1,8 +1,8 @@
 @model agot_bg_website.Pages.Shared.GamesTableViewModel
 @using agot_bg_website.Domain
 @{
-    var anyOngoing = Model.Games.Any(g => g.State == GameState.Ongoing);
-    var allOpen = Model.Games.All(g => g.State == GameState.InLobby);
+    var anyOngoing = !Model.HideOwnerAndWaitingColumns && Model.Games.Any(g => g.State == GameState.Ongoing);
+    var allOpen = !Model.HideOwnerAndWaitingColumns && Model.Games.All(g => g.State == GameState.InLobby);
 }
 
 @if (Model.Games.Count == 0)
