@@ -228,14 +228,20 @@ Two independent sources feed it, and both agree on the same simplified shape:
 
 - **Live saves** (`GamesApi.cs`'s PATCH handler): every save that includes a `Players` list diffs
   the old and new user-id sets against the game's existing `PreviousPlayerInGame` rows. A user
-  missing from the new list gets a row added (`Reason = null`, since the diff alone can't tell
-  vote from clock-timeout); a user who reappears (voted back in) has their row removed again. See
-  `GamesApi.DiffPreviousPlayers` and `GamesApiPreviousPlayerDiffTests`.
-- **Historical import** (`Snr.Migration/PreviousPlayersBackfill.cs`, see §10.1): reads the full
-  `SerializedGame` JSON directly — specifically `childGameState.oldPlayerIds` (→
-  `Reason = Vote`) and `childGameState.timeoutPlayerIds` (→ `Reason = ClockTimeout`) — for any
-  legacy game that doesn't already have `PreviousPlayerInGame` rows, subtracting users still
-  present in `childGameState.players[].userId` (covers being voted back in).
+  missing from the new list gets a row added, with `Reason` resolved from the just-saved
+  `ViewOfGame`'s flat `oldPlayerIds`/`timeoutPlayerIds` arrays via
+  `PreviousPlayerReasonResolver.Resolve` (null only if the user appears in neither — e.g. a
+  replace-player-by-player/vassal swap this data model doesn't otherwise track); a user who
+  reappears (voted back in) has their row removed again. See `GamesApi.DiffPreviousPlayers`,
+  `PreviousPlayerReasonResolver`, and `GamesApiPreviousPlayerDiffTests`.
+- **Historical import** (`Snr.Migration/PreviousPlayersBackfill.cs`, see §10.1): reads the game's
+  `ViewOfGame` JSON (NOT the much larger `SerializedGame`) — a flat summary object with no
+  `childGameState` nesting — specifically its top-level `oldPlayerIds` (→ `Reason = Vote`) and
+  `timeoutPlayerIds` (→ `Reason = ClockTimeout`) via the same `PreviousPlayerReasonResolver`, for
+  any legacy game that doesn't already have `PreviousPlayerInGame` rows, subtracting users still
+  present according to the legacy `agotboardgame_main_playeringame` table (covers being voted back
+  in — `ViewOfGame` itself has no raw current-player user-id list, only `victoryTrack[].player`, a
+  display username).
 
 **Deliberately not tracked:** which `House` a removed player held, whether that house ultimately
 won (`WasWinner`), or a precise stint-ordering `SequenceNumber`. Reconstructing any of that
@@ -244,9 +250,8 @@ gaps (an additional "replace-player-by-player" vote type isn't visible in
 `oldPlayerIds`/`timeoutPlayerIds`, and a user could theoretically hold more than one house across
 replacements within a single game) — and isn't needed: every `PreviousPlayerInGame` row counts as
 a loss unconditionally regardless of any of that (§10.2). `Reason` is kept (it's cheap and useful
-context on a user's profile) but is **nullable**: only the historical backfill can set it directly
-today; a future cron job could fill it in for live-added rows too by re-reading `SerializedGame`
-after the fact, without any schema change.
+context on a user's profile) but stays **nullable** for the cases `PreviousPlayerReasonResolver`
+can't resolve from either array.
 
 The natural key is `(GameId, UserId)`, unique — at most one "currently removed" row per user per
 game at a time. If a user is voted back in and later removed again, the old row was already
@@ -406,16 +411,18 @@ computed entirely by the .NET website itself, purely by diffing `Players` across
 replace) and the new one (`patch.Players`, the payload the game server always sends):
 
 - A user present in the old list but missing from the new one → a `PreviousPlayerInGame` row is
-  added for them (`Reason` left `null` — the Players-list diff alone can't tell vote from
-  clock-timeout; see §4.4).
+  added for them, with `Reason` resolved from the just-saved `ViewOfGame`'s flat top-level
+  `oldPlayerIds`/`timeoutPlayerIds` arrays via the shared `PreviousPlayerReasonResolver` (null only
+  if the user appears in neither — e.g. a replace-player-by-player/vassal swap this data model
+  doesn't otherwise track; see §4.4).
 - A user who already has a `PreviousPlayerInGame` row but reappears in the new list (voted back in)
   → that row is removed again.
 
 This pure diff logic lives in `GamesApi.DiffPreviousPlayers(oldPlayerUserIds, newPlayerUserIds,
 existingPreviousPlayerUserIds)`, `internal static` specifically so it can be unit-tested directly
-without a database (`GamesApiPreviousPlayerDiffTests`). Because `Reason` is nullable, a future cron
-job could fill it in after the fact for live-added rows by re-reading the game's `SerializedGame`
-the same way the historical backfill (§10.1) already does — nothing about the schema blocks that.
+without a database (`GamesApiPreviousPlayerDiffTests`). `Reason` resolution itself lives in
+`PreviousPlayerReasonResolver`, shared with the historical backfill (§10.1) so both paths agree on
+the same logic — see `PreviousPlayerReasonResolverTests`.
 
 **Post-implementation fix (local dev, live-tested):** the first real save-after-seating hit a
 `DbUpdateConcurrencyException` ("expected to affect 1 row(s), but actually affected 0 row(s)") on
@@ -809,29 +816,77 @@ Verification pass at the end: row counts per table compared between source and t
 check that a sample of `Game.Id`/`User.Id`/`Room.Id` values round-trip unchanged (critical, since
 those are embedded inside `serialized_game` JSON the TS server still owns).
 
+### 10.1a Performance and re-run behavior
+
+Every `Import*Async` step batches `SaveChangesAsync()` + `ChangeTracker.Clear()` (default every 500
+rows, `Games` every 20 given how much larger each row can be) instead of once at the end of a loop
+over tens of thousands of rows — without the `Clear()`, EF Core keeps every entity it has ever
+tracked in memory for the whole run even after it's been saved, a real OOM risk on `Messages`/
+`PbemResponseTime` in particular.
+
+`Games` never round-trips `SerializedGame` through `JsonDocument`/EF's value converter at all — it
+can be multi-MB per row and this importer never needs to inspect it (only `ViewOfGame`'s small
+top-level fields are read). It's written via a raw parameterized `NpgsqlBatch` `UPDATE` instead,
+letting Postgres validate/store the `jsonb` value server-side with zero .NET-side parsing.
+
+One further optimization makes **re-running** the importer against an already-populated target much
+cheaper than a from-scratch import, since that's the expected day-to-day workflow while
+building/testing the new site (games are still paged in full via `created_at, id` keyset pagination
+on every run — no incremental `updated_at` watermark; see below for why that turned out not to be
+worth it):
+
+- **Skip re-fetching `SerializedGame` for games that already have one** — this blob is assumed
+  immutable once captured (true for `Finished`/`Cancelled` games in general, and always true for
+  the one-off final cutover import, which only runs after the production site has been stopped —
+  see §11). `ImportGamesAsync` preloads which game-ids already have a non-null `SerializedGame`
+  locally, and only issues a small, targeted `ReadSerializedGamesByIdsAsync` query per batch for the
+  ids that are actually new (a brand-new game, or an existing one whose blob is still missing) —
+  the wide per-page `Games` read itself no longer selects this column at all.
+
+**Bug fixed 2026-09**: `ImportPlayersInGameAsync` used to look up each row's existing state via a
+per-row `FirstOrDefaultAsync` query straight against the database, which cannot see a row this same
+loop has already `Add`-ed but not yet flushed in the current batch. The legacy
+`agotboardgame_main_playeringame` table turns out to contain duplicate `(game_id, user_id)` rows for
+some games, so the second occurrence of a duplicate pair within one batch was inserted again
+instead of updated, violating the target's unique index and crashing the whole import partway
+through. Fixed by preloading existing `(GameId, UserId) → Id` pairs once and tracking entities
+added/attached within the current (not-yet-flushed) batch in memory, so any later duplicate — even
+one spanning a batch boundary — is always treated as an update of the same row instead.
+
 ### 10.1 Historical backfill of `PreviousPlayerInGame`
 
 Unlike every other table above, this one **cannot** be populated by a straight column copy — the
 legacy DB never stored it. It's computed directly by `Snr.Migration` in C#, straight from each
-game's `SerializedGame` JSON, inline while games are being imported (§10, step 5/6 above) — not a
-separate pass over the `Games` table afterwards, since `PreviousPlayersBackfill.Compute` only ever
-needs the `SerializedGame` JSON document that's already parsed in memory at that point.
+game's `ViewOfGame` JSON — NOT the much larger `SerializedGame` — inline while games are being
+imported (§10, step 5/6 above) — not a separate pass over the `Games` table afterwards, since
+`ViewOfGame` is already parsed in memory at that point for other purposes.
 
-Before the import loop starts, the set of game-ids that already have `PreviousPlayerInGame` rows
-is queried once and cached — this is what makes the step idempotent (never overwrites data a
-genuine live game-server save already wrote) without an extra per-game query.
+Before the import loop starts, two things are preloaded once:
 
-For every imported `Game` with `State` in `{Finished, Cancelled}` and a non-null `SerializedGame`
-whose id isn't in that preloaded set, `PreviousPlayersBackfill.Compute(gameId, serializedGame)`:
+- The set of game-ids that already have `PreviousPlayerInGame` rows — this is what makes the step
+  idempotent (never overwrites data a genuine live game-server save already wrote) without an extra
+  per-game query.
+- A `game_id → {user_id}` current-player membership map, read once from the legacy
+  `agotboardgame_main_playeringame` table (small rows, no large blobs) — needed because `ViewOfGame`
+  itself has no raw list of current player user-ids, only `victoryTrack[].player`, a display
+  username string. (`ImportPlayersInGameAsync`, called later in the same run, reads this same
+  legacy table again to actually persist `PlayerInGame` rows; the duplicate read is cheap since
+  this table carries no large per-row blobs, unlike `Games`.)
 
-- Confirms `childGameState.type == "ingame"` (defensive re-check; the state filter above should
-  already guarantee this for any game that reached the ingame phase). Returns no rows otherwise
-  (covers games cancelled before ever reaching the ingame state).
-- Reads `childGameState.oldPlayerIds` (removed by vote → `Reason = Vote`) and
-  `childGameState.timeoutPlayerIds` (removed by clock timeout → `Reason = ClockTimeout`) — these
-  two arrays are mutually exclusive by construction in `IngameGameState.ts` — and subtracts
-  everyone still present in `childGameState.players[].userId`: a voted-out player who was later
-  voted back in must **not** get a `PreviousPlayerInGame` row.
+For every imported `Game` with `State` in `{Finished, Cancelled}` and a non-null `ViewOfGame` whose
+id isn't in the preloaded existing-rows set,
+`PreviousPlayersBackfill.Compute(gameId, viewOfGame, currentPlayerUserIds)`:
+
+- Reads `ViewOfGame`'s top-level `oldPlayerIds` and `timeoutPlayerIds` string arrays directly — a
+  flat summary object with no `childGameState` nesting (see `EntireGame.getViewOfGame()`); these
+  two arrays are mutually exclusive by construction in `IngameGameState.ts`, and have been present
+  unconditionally since the feature was introduced, for any game that ever reached the ingame
+  state.
+- For each user-id found, resolves `Reason` via the shared `PreviousPlayerReasonResolver` (`Vote`
+  for `oldPlayerIds`, `ClockTimeout` for `timeoutPlayerIds` — the same resolver `GamesApi.cs`'s live
+  PATCH handler uses, see §6.1) and subtracts everyone still present in the preloaded
+  `agotboardgame_main_playeringame`-derived membership set: a voted-out player who was later voted
+  back in must **not** get a `PreviousPlayerInGame` row.
 - Does **not** attempt to resolve which `House` a removed player held, a precise removal
   timestamp, or whether their house ultimately won — see §4.4 for why. `ReplacedAt` is left `null`
   for backfilled rows.

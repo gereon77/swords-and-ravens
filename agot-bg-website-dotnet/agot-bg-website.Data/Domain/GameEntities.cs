@@ -15,10 +15,13 @@ public enum GameState
 /// A hosted game. SerializedGame/ViewOfGame remain opaque JSON blobs owned by the TS game
 /// server — see MIGRATION_PLAN.md §4.2/§4.4. Two small exceptions read a couple of top-level
 /// fields directly: <c>GamesApi.cs</c>'s PATCH handler reads <c>view_of_game.turn</c>/
-/// <c>publicChatRoomId</c> to delete games cancelled before ever leaving the lobby, and
-/// <c>Snr.Migration</c> reads <c>childGameState.oldPlayerIds</c>/<c>timeoutPlayerIds</c> to
-/// backfill historical <see cref="PreviousPlayerInGame"/> rows for legacy games (see
-/// MIGRATION_PLAN.md §10.1). Neither reconstructs the full game state.
+/// <c>publicChatRoomId</c> to delete games cancelled before ever leaving the lobby, and both
+/// <c>GamesApi.cs</c> and <c>Snr.Migration</c> read <c>view_of_game.oldPlayerIds</c>/
+/// <c>timeoutPlayerIds</c> (via <see cref="PreviousPlayerReasonResolver"/>) to resolve/backfill
+/// <see cref="PreviousPlayerInGame"/> rows (see MIGRATION_PLAN.md §10.1). Neither reconstructs the
+/// full game state. <c>SerializedGame</c> itself is never parsed by Snr.Migration at all - it's
+/// written through as raw text (see Importer.cs's ImportGamesAsync) since it can be multi-MB and
+/// its structure is never actually needed there.
 /// </summary>
 public class Game
 {
@@ -81,11 +84,12 @@ public enum PlayerReplacementReason
 /// later save (voted back in), the row is removed again. At most one row per (GameId, UserId) can
 /// exist at a time.
 ///
-/// <see cref="Reason"/> is nullable: the live save-game endpoint has no way to distinguish *why* a
-/// player left from the Players list alone, so it leaves this null. Only the historical import
-/// backfill (Snr.Migration, reading `oldPlayerIds`/`timeoutPlayerIds` off the full serialized
-/// game) can set it directly. A future cron job could fill in Reason for live-added rows the same
-/// way, by re-reading the game's SerializedGame after the fact.
+/// <see cref="Reason"/> is nullable: both the live save-game endpoint and the historical import
+/// backfill (Snr.Migration) resolve it from the game's `ViewOfGame` JSON's flat top-level
+/// `oldPlayerIds`/`timeoutPlayerIds` arrays via <see cref="PreviousPlayerReasonResolver"/>, but it
+/// stays null if the removed user appears in neither - e.g. a replace-player-by-player/vassal swap
+/// this data model otherwise doesn't track (see MIGRATION_PLAN.md §10.2 - not used for win-rate
+/// calculation either way, every row counts as a loss regardless of Reason).
 /// </summary>
 public class PreviousPlayerInGame
 {

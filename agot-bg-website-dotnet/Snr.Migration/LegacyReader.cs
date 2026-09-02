@@ -15,6 +15,26 @@ public class LegacyReader(string connectionString)
         return conn;
     }
 
+    /// <summary>
+    /// Opens a connection with a larger-than-default command timeout, for commands whose page size
+    /// is deliberately kept small (see <see cref="ReadGamesAsync"/>) but that can still take a while
+    /// per page because they transfer large JSON blobs (`serialized_game`) over a remote connection.
+    /// The default Npgsql command timeout (30s) can be too short even to execute+return a single
+    /// small page in that situation, independent of any risk from a long-lived, slowly-consumed
+    /// reader - paging bounds how much a single command has to fetch, this bounds how long it's
+    /// allowed to take doing so.
+    /// </summary>
+    private NpgsqlConnection OpenConnectionWithTimeout(int commandTimeoutSeconds)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            CommandTimeout = commandTimeoutSeconds,
+        };
+        var conn = new NpgsqlConnection(builder.ConnectionString);
+        conn.Open();
+        return conn;
+    }
+
     public async IAsyncEnumerable<LegacyUser> ReadUsersAsync()
     {
         await using var conn = OpenConnection();
@@ -104,34 +124,124 @@ public class LegacyReader(string connectionString)
         }
     }
 
+    /// <summary>
+    /// This page query no longer selects `serialized_game` (see <see
+    /// cref="ReadSerializedGamesByIdsAsync"/>) - only `view_of_game`, a small summary JSON object,
+    /// so pages can be considerably larger than when this blob was still included inline. Keyset
+    /// pagination is ordered by `created_at, id` (the same tiebreaker-safe pattern used by
+    /// `ReadMessagesAsync`) rather than `OFFSET`, which would force Postgres to re-scan and discard
+    /// all prior rows on every page. A page boundary is also a safe place to resume from if a run
+    /// needs to be retried.
+    /// </summary>
     public async IAsyncEnumerable<LegacyGame> ReadGamesAsync()
     {
-        await using var conn = OpenConnection();
-        await using var cmd = new NpgsqlCommand(
-            """
-            SELECT id, name, owner_id, view_of_game::text, serialized_game::text, version, state,
-                   created_at, updated_at, last_active_at
-            FROM agotboardgame_main_game
-            ORDER BY created_at
-            """,
-            conn
-        );
+        const int pageSize = 500;
+        DateTimeOffset? afterCreatedAt = null;
+        Guid? afterId = null;
+        while (true)
+        {
+            var page = await ReadGamesPageAsync(afterCreatedAt, afterId, pageSize);
+            if (page.Count == 0)
+            {
+                yield break;
+            }
+            foreach (var game in page)
+            {
+                yield return game;
+            }
+            var last = page[^1];
+            afterCreatedAt = last.CreatedAt;
+            afterId = last.Id;
+        }
+    }
+
+    private async Task<List<LegacyGame>> ReadGamesPageAsync(
+        DateTimeOffset? afterCreatedAt,
+        Guid? afterId,
+        int pageSize
+    )
+    {
+        await using var conn = OpenConnectionWithTimeout(120);
+        var sql = afterCreatedAt is null
+            ? """
+                SELECT id, name, owner_id, view_of_game::text, version, state,
+                       created_at, updated_at, last_active_at
+                FROM agotboardgame_main_game
+                ORDER BY created_at, id
+                LIMIT @pageSize
+                """
+            : """
+                SELECT id, name, owner_id, view_of_game::text, version, state,
+                       created_at, updated_at, last_active_at
+                FROM agotboardgame_main_game
+                WHERE (created_at, id) > (@afterCreatedAt, @afterId)
+                ORDER BY created_at, id
+                LIMIT @pageSize
+                """;
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("pageSize", pageSize);
+        if (afterCreatedAt is { } createdAt)
+        {
+            cmd.Parameters.AddWithValue("afterCreatedAt", createdAt);
+            cmd.Parameters.AddWithValue("afterId", afterId!.Value);
+        }
+
+        var result = new List<LegacyGame>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            yield return new LegacyGame(
-                reader.GetGuid(0),
-                reader.GetString(1),
-                reader.GetGuid(2),
-                reader.IsDBNull(3) ? null : reader.GetString(3),
-                reader.IsDBNull(4) ? null : reader.GetString(4),
-                reader.IsDBNull(5) ? null : reader.GetString(5),
-                reader.GetString(6),
-                reader.GetFieldValue<DateTimeOffset>(7),
-                reader.GetFieldValue<DateTimeOffset>(8),
-                reader.GetFieldValue<DateTimeOffset>(9)
+            result.Add(
+                new LegacyGame(
+                    reader.GetGuid(0),
+                    reader.GetString(1),
+                    reader.GetGuid(2),
+                    reader.IsDBNull(3) ? null : reader.GetString(3),
+                    reader.IsDBNull(4) ? null : reader.GetString(4),
+                    reader.GetString(5),
+                    reader.GetFieldValue<DateTimeOffset>(6),
+                    reader.GetFieldValue<DateTimeOffset>(7),
+                    reader.GetFieldValue<DateTimeOffset>(8)
+                )
             );
         }
+        return result;
+    }
+
+    /// <summary>
+    /// Targeted fetch of just the (potentially multi-MB) `serialized_game` blob, for a specific and
+    /// deliberately small set of game ids - used by ImportGamesAsync so the wide, keyset-paged read
+    /// above never has to transfer this column at all for games whose blob is already stored
+    /// locally (assumed immutable once captured - true for Finished/Cancelled games in general, and
+    /// always true for the one-off final cutover import, which only ever runs after the production
+    /// site has been stopped). Returns null for a game whose serialized_game is itself legitimately
+    /// null in the legacy database (as opposed to a game id that doesn't exist at all, which simply
+    /// won't appear as a key in the result).
+    /// </summary>
+    public async Task<Dictionary<Guid, string?>> ReadSerializedGamesByIdsAsync(
+        IReadOnlyCollection<Guid> ids
+    )
+    {
+        var result = new Dictionary<Guid, string?>();
+        if (ids.Count == 0)
+        {
+            return result;
+        }
+        await using var conn = OpenConnectionWithTimeout(120);
+        await using var cmd = new NpgsqlCommand(
+            """
+            SELECT id, serialized_game::text
+            FROM agotboardgame_main_game
+            WHERE id = ANY(@ids)
+            """,
+            conn
+        );
+        cmd.Parameters.AddWithValue("ids", ids.ToArray());
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            result[reader.GetGuid(0)] = reader.IsDBNull(1) ? null : reader.GetString(1);
+        }
+        return result;
     }
 
     public async IAsyncEnumerable<LegacyPlayerInGame> ReadPlayersInGameAsync()
@@ -156,27 +266,77 @@ public class LegacyReader(string connectionString)
         }
     }
 
+    /// <summary>
+    /// Chat history can be very large (potentially years of messages across tens of thousands of
+    /// rooms) - paged for the same reason as <see cref="ReadGamesAsync"/>. Django's default
+    /// auto-incrementing `id` on `chat_message` is used purely as the keyset tiebreaker; it is not
+    /// otherwise needed by the importer so it isn't exposed on <see cref="LegacyMessage"/>.
+    /// </summary>
     public async IAsyncEnumerable<LegacyMessage> ReadMessagesAsync(DateTimeOffset? sinceUtc = null)
     {
+        const int pageSize = 2000;
+        DateTimeOffset? afterCreatedAt = null;
+        long? afterId = null;
+        while (true)
+        {
+            var page = await ReadMessagesPageAsync(sinceUtc, afterCreatedAt, afterId, pageSize);
+            if (page.Count == 0)
+            {
+                yield break;
+            }
+            foreach (var (message, id) in page)
+            {
+                yield return message;
+                afterCreatedAt = message.CreatedAt;
+                afterId = id;
+            }
+        }
+    }
+
+    private async Task<List<(LegacyMessage Message, long Id)>> ReadMessagesPageAsync(
+        DateTimeOffset? sinceUtc,
+        DateTimeOffset? afterCreatedAt,
+        long? afterId,
+        int pageSize
+    )
+    {
         await using var conn = OpenConnection();
-        var sql = sinceUtc is null
-            ? "SELECT room_id, user_id, text, created_at FROM chat_message ORDER BY created_at"
-            : "SELECT room_id, user_id, text, created_at FROM chat_message WHERE created_at >= @since ORDER BY created_at";
+        var sql = afterCreatedAt is null
+            ? sinceUtc is null
+                ? "SELECT id, room_id, user_id, text, created_at FROM chat_message ORDER BY created_at, id LIMIT @pageSize"
+                : "SELECT id, room_id, user_id, text, created_at FROM chat_message WHERE created_at >= @since ORDER BY created_at, id LIMIT @pageSize"
+            : sinceUtc is null
+                ? "SELECT id, room_id, user_id, text, created_at FROM chat_message WHERE (created_at, id) > (@afterCreatedAt, @afterId) ORDER BY created_at, id LIMIT @pageSize"
+                : "SELECT id, room_id, user_id, text, created_at FROM chat_message WHERE created_at >= @since AND (created_at, id) > (@afterCreatedAt, @afterId) ORDER BY created_at, id LIMIT @pageSize";
         await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("pageSize", pageSize);
         if (sinceUtc is { } since)
         {
             cmd.Parameters.AddWithValue("since", since);
         }
+        if (afterCreatedAt is { } createdAt)
+        {
+            cmd.Parameters.AddWithValue("afterCreatedAt", createdAt);
+            cmd.Parameters.AddWithValue("afterId", afterId!.Value);
+        }
+
+        var result = new List<(LegacyMessage, long)>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            yield return new LegacyMessage(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                reader.GetString(2),
-                reader.GetFieldValue<DateTimeOffset>(3)
+            result.Add(
+                (
+                    new LegacyMessage(
+                        reader.GetGuid(1),
+                        reader.GetGuid(2),
+                        reader.GetString(3),
+                        reader.GetFieldValue<DateTimeOffset>(4)
+                    ),
+                    reader.GetInt64(0)
+                )
             );
         }
+        return result;
     }
 
     public async IAsyncEnumerable<LegacyPbemResponseTime> ReadPbemResponseTimesAsync()

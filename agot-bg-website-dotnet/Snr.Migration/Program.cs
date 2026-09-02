@@ -50,8 +50,10 @@ if (command is not ("import" or "verify") || legacy == null || target == null)
         live save-game endpoint's own cleanup-on-cancel behavior.
 
         The historical PreviousPlayerInGame backfill (§10.1) runs automatically as part of `import`,
-        computed directly from each Finished/Cancelled game's SerializedGame JSON. It never touches
-        games that already have PreviousPlayerInGame rows (e.g. from a genuine live game-server save).
+        computed directly from each Finished/Cancelled game's ViewOfGame JSON (oldPlayerIds/
+        timeoutPlayerIds) while it's already in memory for the games import - no re-query or
+        SerializedGame parsing needed. It never touches games that already have PreviousPlayerInGame
+        rows (e.g. from a genuine live game-server save).
 
         --messages-days-back controls how much chat history is imported: -1 (default) imports all
         messages, 0 imports none, and any positive N only imports messages younger than N days.

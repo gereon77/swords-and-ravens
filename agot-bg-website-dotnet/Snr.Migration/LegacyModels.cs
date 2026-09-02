@@ -40,7 +40,6 @@ public record LegacyGame(
     string Name,
     Guid OwnerId,
     string? ViewOfGame,
-    string? SerializedGame,
     string? Version,
     string State,
     DateTimeOffset CreatedAt,

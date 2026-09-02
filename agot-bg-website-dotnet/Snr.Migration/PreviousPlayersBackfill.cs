@@ -4,18 +4,19 @@ using agot_bg_website.Domain;
 namespace Snr.Migration;
 
 /// <summary>
-/// Historical backfill of <see cref="PreviousPlayerInGame"/> rows for legacy games, computed
-/// directly from the game's full <c>SerializedGame</c> JSON (never <c>ViewOfGame</c> — older
-/// <c>ViewOfGame</c> blobs may predate the introduction of <c>oldPlayerIds</c>/<c>timeoutPlayerIds</c>,
-/// while <c>SerializedGame</c> — the game server's own internal state — always has them for any
-/// game that reached the ingame state). See MIGRATION_PLAN.md §10.1.
+/// Historical backfill of <see cref="PreviousPlayerInGame"/> rows for legacy games, computed from
+/// the game's <c>ViewOfGame</c> JSON (NOT the much larger <c>SerializedGame</c>) plus that game's
+/// current player membership (sourced separately from the legacy <c>agotboardgame_main_playeringame</c>
+/// table, since <c>ViewOfGame</c> itself has no raw list of current player user-ids - only
+/// <c>victoryTrack[].player</c>, a display username string, not a userId).
 ///
-/// Reads the shape produced by agot-bg-game-server's IngameGameState.ts:
-/// - <c>childGameState.type == "ingame"</c>, with sibling <c>players</c> (still-current, keyed by
-///   <c>userId</c>), <c>oldPlayerIds</c> (removed by vote) and <c>timeoutPlayerIds</c> (removed by
-///   clock timeout) — confirmed mutually exclusive by construction (IngameGameState.ts's
-///   replacePlayerByVassal only ever pushes to one or the other, never both, depending on
-///   ReplacementReason).
+/// <c>ViewOfGame</c> is a flat summary object (see EntireGame.getViewOfGame()) - unlike
+/// <c>SerializedGame</c>, it has no <c>childGameState</c> nesting. Its top-level
+/// <c>oldPlayerIds</c>/<c>timeoutPlayerIds</c> string arrays mirror
+/// <c>ingameGameState.oldPlayerIds</c>/<c>timeoutPlayerIds</c> directly and have been present
+/// unconditionally since the feature was introduced, for any game that ever reached the ingame
+/// state - confirmed mutually exclusive by construction. Reason resolution itself is shared with
+/// the live save-game endpoint via <see cref="PreviousPlayerReasonResolver"/>.
 ///
 /// This deliberately does not attempt to resolve which House a removed player held, whether they
 /// won, or a precise removal order/timestamp: reconstructing that reliably from `votes` would
@@ -30,64 +31,30 @@ namespace Snr.Migration;
 /// </summary>
 internal static class PreviousPlayersBackfill
 {
-    public static List<PreviousPlayerInGame> Compute(Guid gameId, JsonDocument? serializedGame)
+    public static List<PreviousPlayerInGame> Compute(
+        Guid gameId,
+        JsonDocument? viewOfGame,
+        HashSet<Guid> currentPlayerUserIds
+    )
     {
         var result = new List<PreviousPlayerInGame>();
-        if (serializedGame is null)
+        if (viewOfGame is null)
         {
             return result;
         }
 
-        var root = serializedGame.RootElement;
-        if (
-            !root.TryGetProperty("childGameState", out var ingame)
-            || ingame.ValueKind != JsonValueKind.Object
-            || !ingame.TryGetProperty("type", out var typeEl)
-            || typeEl.ValueKind != JsonValueKind.String
-            || typeEl.GetString() != "ingame"
-        )
-        {
-            // Game never reached the ingame state (still in lobby, or was cancelled before
-            // drafting finished) - nothing to backfill.
-            return result;
-        }
-
-        var currentPlayerIds = new HashSet<string>();
-        if (
-            ingame.TryGetProperty("players", out var playersEl)
-            && playersEl.ValueKind == JsonValueKind.Array
-        )
-        {
-            foreach (var p in playersEl.EnumerateArray())
-            {
-                if (
-                    p.TryGetProperty("userId", out var uidEl)
-                    && uidEl.ValueKind == JsonValueKind.String
-                    && uidEl.GetString() is { } uid
-                )
-                {
-                    currentPlayerIds.Add(uid);
-                }
-            }
-        }
-
-        var oldPlayerIds = ReadStringArray(ingame, "oldPlayerIds");
-        var timeoutPlayerIds = ReadStringArray(ingame, "timeoutPlayerIds");
+        var root = viewOfGame.RootElement;
+        var oldPlayerIds = ReadGuidArray(root, "oldPlayerIds");
+        var timeoutPlayerIds = ReadGuidArray(root, "timeoutPlayerIds");
 
         foreach (var userId in oldPlayerIds.Distinct())
         {
-            AddIfRemoved(result, gameId, userId, currentPlayerIds, PlayerReplacementReason.Vote);
+            AddIfRemoved(result, gameId, userId, currentPlayerUserIds, viewOfGame);
         }
 
         foreach (var userId in timeoutPlayerIds.Distinct())
         {
-            AddIfRemoved(
-                result,
-                gameId,
-                userId,
-                currentPlayerIds,
-                PlayerReplacementReason.ClockTimeout
-            );
+            AddIfRemoved(result, gameId, userId, currentPlayerUserIds, viewOfGame);
         }
 
         return result;
@@ -96,20 +63,16 @@ internal static class PreviousPlayersBackfill
     private static void AddIfRemoved(
         List<PreviousPlayerInGame> result,
         Guid gameId,
-        string userId,
-        HashSet<string> currentPlayerIds,
-        PlayerReplacementReason reason
+        Guid userId,
+        HashSet<Guid> currentPlayerUserIds,
+        JsonDocument viewOfGame
     )
     {
-        if (currentPlayerIds.Contains(userId))
+        if (currentPlayerUserIds.Contains(userId))
         {
             return; // voted back in (or never actually left, for a malformed/duplicate entry)
         }
-        if (!Guid.TryParse(userId, out var userGuid))
-        {
-            return; // defensive: malformed/unparseable id, skip rather than throw
-        }
-        if (result.Any(r => r.UserId == userGuid))
+        if (result.Any(r => r.UserId == userId))
         {
             return; // oldPlayerIds/timeoutPlayerIds are disjoint by construction, but guard anyway
         }
@@ -119,16 +82,16 @@ internal static class PreviousPlayersBackfill
             {
                 Id = Guid.NewGuid(),
                 GameId = gameId,
-                UserId = userGuid,
-                Reason = reason,
+                UserId = userId,
+                Reason = PreviousPlayerReasonResolver.Resolve(viewOfGame, userId),
                 ReplacedAt = null, // not derivable without replaying the votes log - see class doc comment
             }
         );
     }
 
-    private static List<string> ReadStringArray(JsonElement obj, string propertyName)
+    private static List<Guid> ReadGuidArray(JsonElement obj, string propertyName)
     {
-        var list = new List<string>();
+        var list = new List<Guid>();
         if (
             obj.TryGetProperty(propertyName, out var arrEl)
             && arrEl.ValueKind == JsonValueKind.Array
@@ -136,9 +99,13 @@ internal static class PreviousPlayersBackfill
         {
             foreach (var el in arrEl.EnumerateArray())
             {
-                if (el.ValueKind == JsonValueKind.String && el.GetString() is { } s)
+                if (
+                    el.ValueKind == JsonValueKind.String
+                    && el.GetString() is { } s
+                    && Guid.TryParse(s, out var guid)
+                )
                 {
-                    list.Add(s);
+                    list.Add(guid);
                 }
             }
         }

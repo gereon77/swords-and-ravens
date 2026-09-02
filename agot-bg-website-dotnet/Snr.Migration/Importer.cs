@@ -3,6 +3,8 @@ using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Snr.Migration;
 
@@ -17,6 +19,29 @@ public class Importer(
 )
 {
     private readonly LegacyReader _legacy = new(legacyConnectionString);
+
+    // Every Import*Async loop below periodically calls SaveChangesAsync + ChangeTracker.Clear() at
+    // this granularity (rather than once at the very end of a loop that can run over 10,000+ legacy
+    // rows) - without the Clear(), EF Core keeps every entity it has ever tracked in this
+    // DbContext in memory for the DbContext's whole lifetime even after it's been saved, which is a
+    // real risk of running out of memory on large tables. Mirrors LegacyReader's own paging of
+    // reads from the legacy database for the same underlying reason.
+    private const int DefaultSaveBatchSize = 500;
+
+    private static async Task<int> FlushIfBatchFullAsync(
+        ApplicationDbContext db,
+        int pendingCount,
+        int batchSize = DefaultSaveBatchSize
+    )
+    {
+        if (pendingCount < batchSize)
+        {
+            return pendingCount;
+        }
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        return 0;
+    }
 
     private ApplicationDbContext NewTargetContext()
     {
@@ -76,17 +101,62 @@ public class Importer(
         var imported = 0;
         var updated = 0;
         var skippedClaimed = 0;
+        var renamedDuplicates = 0;
+        // Django's username is only case-sensitively unique; ASP.NET Identity's NormalizedUserName
+        // is case-insensitively unique (UserNameIndex). Two legacy users differing only by case
+        // (e.g. "JohnDoe" / "johndoe") would otherwise violate that index on insert. Preload every
+        // NormalizedUserName already in the target (both pre-existing rows and ones this loop adds)
+        // so a collision can be detected and disambiguated before it ever reaches the database -
+        // purely in-memory, so periodic batch flushes below don't affect this at all.
+        var usedNormalizedUserNames = (
+            await db.Users.Select(u => u.NormalizedUserName!).ToListAsync()
+        ).ToHashSet();
+        // Counts, per base normalized username, how many collisions have already been assigned a
+        // numbered suffix (starts at 1 for the first collision, which becomes "_2").
+        var duplicateSuffixCounters = new Dictionary<string, int>();
+        var pendingUsers = 0;
         await foreach (var legacyUser in _legacy.ReadUsersAsync())
         {
             var existing = await db.Users.FindAsync(legacyUser.Id);
             if (existing == null)
             {
-                var normalizedUserName = legacyUser.Username.ToUpperInvariant();
+                var userName = legacyUser.Username;
+                var normalizedUserName = userName.ToUpperInvariant();
+                if (usedNormalizedUserNames.Contains(normalizedUserName))
+                {
+                    // Earliest-joined user with this normalized name (ReadUsersAsync is ordered by
+                    // date_joined) keeps the plain name; every later collision gets a deterministic
+                    // "_2", "_3", ... suffix so re-running the importer always produces the same
+                    // disambiguated name.
+                    var baseNormalizedUserName = normalizedUserName;
+                    string candidateUserName;
+                    string candidateNormalizedUserName;
+                    do
+                    {
+                        var counter = duplicateSuffixCounters.GetValueOrDefault(
+                            baseNormalizedUserName,
+                            1
+                        );
+                        counter++;
+                        duplicateSuffixCounters[baseNormalizedUserName] = counter;
+                        candidateUserName = $"{legacyUser.Username}_{counter}";
+                        candidateNormalizedUserName = candidateUserName.ToUpperInvariant();
+                    } while (usedNormalizedUserNames.Contains(candidateNormalizedUserName));
+                    userName = candidateUserName;
+                    normalizedUserName = candidateNormalizedUserName;
+                    renamedDuplicates++;
+                    Console.WriteLine(
+                        $"    WARNING: username '{legacyUser.Username}' (user {legacyUser.Id}) collides case-insensitively "
+                            + $"with an already-imported user - renamed to '{userName}' for this import. Consider renaming "
+                            + "manually later."
+                    );
+                }
+                usedNormalizedUserNames.Add(normalizedUserName);
                 db.Users.Add(
                     new ApplicationUser
                     {
                         Id = legacyUser.Id,
-                        UserName = legacyUser.Username,
+                        UserName = userName,
                         NormalizedUserName = normalizedUserName,
                         Email = legacyUser.Email,
                         NormalizedEmail = legacyUser.Email?.ToUpperInvariant(),
@@ -136,17 +206,22 @@ public class Importer(
             else
             {
                 skippedClaimed++;
+                continue;
             }
+            pendingUsers = await FlushIfBatchFullAsync(db, pendingUsers + 1);
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine(
-            $"    users: {imported} imported, {updated} updated, {skippedClaimed} claimed (skipped)"
+            $"    users: {imported} imported ({renamedDuplicates} renamed due to a case-insensitive "
+                + $"username collision), {updated} updated, {skippedClaimed} claimed (skipped)"
         );
 
         // User <-> role membership, only for rows we own (imported and not yet claimed by a
         // real registration would still be correct to assign roles to; claimed rows keep
         // whatever roles the new site has already granted them, so only add missing links).
         var addedRoles = 0;
+        var pendingRoles = 0;
         await foreach (var userGroup in _legacy.ReadUserGroupsAsync())
         {
             if (!groupIdToRoleId.TryGetValue(userGroup.GroupId, out var roleId))
@@ -163,8 +238,10 @@ public class Importer(
                 new IdentityUserRole<Guid> { UserId = userGroup.UserId, RoleId = roleId }
             );
             addedRoles++;
+            pendingRoles = await FlushIfBatchFullAsync(db, pendingRoles + 1);
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine($"    role memberships: {addedRoles} added");
 
         return groupIdToRoleId;
@@ -175,6 +252,7 @@ public class Importer(
         await using var db = NewTargetContext();
         var imported = 0;
         var updated = 0;
+        var pending = 0;
         await foreach (var legacyRoom in _legacy.ReadRoomsAsync())
         {
             var existing = await db.Rooms.FindAsync(legacyRoom.Id);
@@ -199,8 +277,10 @@ public class Importer(
                 existing.MaxRetrieveCount = legacyRoom.MaxRetrieveCount;
                 updated++;
             }
+            pending = await FlushIfBatchFullAsync(db, pending + 1);
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine($"    rooms: {imported} imported, {updated} updated");
     }
 
@@ -210,10 +290,38 @@ public class Importer(
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
 
         // Preloaded once so the historical PreviousPlayerInGame backfill (computed inline below,
-        // right while each game's SerializedGame is already parsed in memory - no second pass over
+        // right while each game's ViewOfGame is already parsed in memory - no second pass over
         // Games afterwards) never overwrites rows a genuine live game-server save already wrote.
         var gameIdsWithExistingPreviousPlayers = (
             await db.PreviousPlayersInGame.Select(p => p.GameId).Distinct().ToListAsync()
+        ).ToHashSet();
+
+        // Preloaded once (separate small read of agotboardgame_main_playeringame, no large blobs)
+        // so the backfill below can tell whether a user named in ViewOfGame's oldPlayerIds/
+        // timeoutPlayerIds is still a current player - ViewOfGame itself has no raw list of current
+        // player user-ids (only victoryTrack[].player, a display username, not a userId) - see
+        // PreviousPlayersBackfill.cs's doc comment. ImportPlayersInGameAsync (called later in
+        // RunAsync) reads this same legacy table again to actually persist PlayersInGame rows; the
+        // duplicate read is cheap since this table carries no large per-row blobs.
+        var currentPlayersByGame = new Dictionary<Guid, HashSet<Guid>>();
+        await foreach (var legacyPlayer in _legacy.ReadPlayersInGameAsync())
+        {
+            if (!currentPlayersByGame.TryGetValue(legacyPlayer.GameId, out var set))
+            {
+                set = [];
+                currentPlayersByGame[legacyPlayer.GameId] = set;
+            }
+            set.Add(legacyPlayer.UserId);
+        }
+
+        // Preloaded once so games whose SerializedGame blob is already stored locally never have
+        // that (potentially multi-MB) column transferred from the legacy database again on a
+        // re-run - see the targeted fetch further below and ReadSerializedGamesByIdsAsync's doc
+        // comment. Assumes a game's SerializedGame is immutable once captured, which is exactly
+        // true for the one-off final cutover import (run only after the production site is
+        // stopped) and true in practice for Finished/Cancelled games otherwise.
+        var gameIdsWithSerializedGame = (
+            await db.Games.Where(g => g.SerializedGame != null).Select(g => g.Id).ToListAsync()
         ).ToHashSet();
 
         var imported = 0;
@@ -223,6 +331,53 @@ public class Importer(
         var deletedCancelledLobby = 0;
         var backfilledRows = 0;
         var backfilledGames = 0;
+
+        // SerializedGame can be multi-MB per row and is never inspected by this importer (only
+        // ViewOfGame's small top-level fields are ever read - see Game's doc comment), so it's
+        // deliberately never round-tripped through JsonDocument.Parse/the EF value converter here:
+        // that would mean parsing (and holding in memory) a full JSON DOM for every single game for
+        // no benefit. Instead its raw text is written straight through via a batched raw SQL
+        // UPDATE (WriteSerializedGamesRawAsync) - Postgres itself validates/stores the jsonb value
+        // - once the row already exists (i.e. right after the batch's own SaveChangesAsync, which
+        // handles every other column). This batch size is intentionally much smaller than
+        // LegacyReader's own (much lighter, blob-free) Games page size - it bounds how much raw
+        // JSON text a single targeted ReadSerializedGamesByIdsAsync call/batch holds in memory at
+        // once, since any individual SerializedGame can still be several MB. It also lets
+        // ChangeTracker.Clear() release the batch's tracked entities before moving on - see
+        // FlushIfBatchFullAsync's doc comment for why that matters at all on a table this size.
+        const int gamesBatchSize = 20;
+        var pendingSerializedGames = new List<(Guid GameId, string SerializedGame)>();
+        // Game ids in the current batch whose SerializedGame still needs to be fetched from the
+        // legacy database at all - a targeted, batch-sized query (see FlushGamesBatchAsync) rather
+        // than the wide per-page read, so re-runs only ever pay for blobs that are actually new.
+        var idsNeedingBlob = new List<Guid>();
+        var pendingInBatch = 0;
+
+        async Task FlushGamesBatchAsync()
+        {
+            if (pendingInBatch == 0)
+            {
+                return;
+            }
+            await db.SaveChangesAsync();
+            if (idsNeedingBlob.Count > 0)
+            {
+                var blobs = await _legacy.ReadSerializedGamesByIdsAsync(idsNeedingBlob);
+                foreach (var (gameId, serializedGame) in blobs)
+                {
+                    if (serializedGame is not null)
+                    {
+                        pendingSerializedGames.Add((gameId, serializedGame));
+                    }
+                }
+                idsNeedingBlob.Clear();
+            }
+            await WriteSerializedGamesRawAsync(db, pendingSerializedGames);
+            db.ChangeTracker.Clear();
+            pendingSerializedGames.Clear();
+            pendingInBatch = 0;
+        }
+
         await foreach (var legacyGame in _legacy.ReadGamesAsync())
         {
             if (!knownUserIds.Contains(legacyGame.OwnerId))
@@ -247,6 +402,9 @@ public class Importer(
             if (state == GameState.Cancelled && IsTurnMinusOne(viewOfGame))
             {
                 skippedCancelledLobby++;
+                // Rare cleanup-only path (a previous run imported this game before this rule
+                // existed) - loading the full row here (including SerializedGame) is fine since
+                // it's the exception rather than every game.
                 var existingCancelled = await db.Games.FirstOrDefaultAsync(g =>
                     g.Id == legacyGame.Id
                 );
@@ -256,25 +414,24 @@ public class Importer(
                     // same as a fresh import would (never create it in the first place).
                     await DeleteCancelledLobbyGameAsync(db, existingCancelled);
                     deletedCancelledLobby++;
+                    db.ChangeTracker.Clear();
                 }
                 continue;
             }
 
-            var serializedGame =
-                legacyGame.SerializedGame == null
-                    ? null
-                    : JsonDocument.Parse(legacyGame.SerializedGame);
-
-            var existing = await db.Games.FindAsync(legacyGame.Id);
-            if (existing == null)
+            // AnyAsync (not FindAsync) deliberately avoids transferring/materializing the existing
+            // row's columns - in particular SerializedGame - just to check whether it exists.
+            var alreadyExists = await db.Games.AnyAsync(g => g.Id == legacyGame.Id);
+            if (!alreadyExists)
             {
+                // SerializedGame intentionally left unset (defaults to null) - see the batch
+                // comment above; it's written separately, right after this row exists.
                 db.Games.Add(
                     new Game
                     {
                         Id = legacyGame.Id,
                         Name = legacyGame.Name,
                         OwnerUserId = legacyGame.OwnerId,
-                        SerializedGame = serializedGame,
                         ViewOfGame = viewOfGame,
                         Version = legacyGame.Version,
                         State = state,
@@ -287,31 +444,55 @@ public class Importer(
             }
             else
             {
-                existing.Name = legacyGame.Name;
-                existing.SerializedGame = serializedGame;
-                existing.ViewOfGame = viewOfGame;
-                existing.Version = legacyGame.Version;
-                existing.State = state;
-                existing.UpdatedAt = legacyGame.UpdatedAt;
-                existing.LastActiveAt = legacyGame.LastActiveAt;
+                // Attach-a-stub-and-mark-modified instead of FindAsync + assign: same reasoning as
+                // AnyAsync above - avoids ever loading (and JsonDocument-parsing) the existing row's
+                // SerializedGame column just to overwrite it a moment later. OwnerUserId/CreatedAt
+                // are deliberately not marked modified (never updated once set, same as before).
+                var stub = new Game
+                {
+                    Id = legacyGame.Id,
+                    Name = legacyGame.Name,
+                    ViewOfGame = viewOfGame,
+                    Version = legacyGame.Version,
+                    State = state,
+                    UpdatedAt = legacyGame.UpdatedAt,
+                    LastActiveAt = legacyGame.LastActiveAt,
+                };
+                db.Games.Attach(stub);
+                var entry = db.Entry(stub);
+                entry.Property(g => g.Name).IsModified = true;
+                entry.Property(g => g.ViewOfGame).IsModified = true;
+                entry.Property(g => g.Version).IsModified = true;
+                entry.Property(g => g.State).IsModified = true;
+                entry.Property(g => g.UpdatedAt).IsModified = true;
+                entry.Property(g => g.LastActiveAt).IsModified = true;
                 updated++;
             }
 
+            // Only fetch this game's SerializedGame blob from the legacy database at all if we
+            // don't already have one stored locally - see gameIdsWithSerializedGame's preload
+            // comment above. A brand-new game always needs it (alreadyExists is false).
+            if (!alreadyExists || !gameIdsWithSerializedGame.Contains(legacyGame.Id))
+            {
+                idsNeedingBlob.Add(legacyGame.Id);
+            }
+
             // Historical PreviousPlayerInGame backfill (§10.1) - computed right here while
-            // serializedGame is already parsed in memory, rather than re-querying every Game a
-            // second time afterwards. Only Finished/Cancelled games can have removed players worth
+            // viewOfGame is already parsed in memory, rather than re-querying every Game a second
+            // time afterwards. Only Finished/Cancelled games can have removed players worth
             // recording (InLobby/Ongoing games haven't concluded - any removal so far is still
             // "live" data the game server itself will keep saving via GamesApi.cs). Never touches a
             // game that already has rows - see the field's preload above.
             if (
                 (state == GameState.Finished || state == GameState.Cancelled)
-                && serializedGame is not null
+                && viewOfGame is not null
                 && !gameIdsWithExistingPreviousPlayers.Contains(legacyGame.Id)
             )
             {
                 var previousPlayers = PreviousPlayersBackfill.Compute(
                     legacyGame.Id,
-                    serializedGame
+                    viewOfGame,
+                    currentPlayersByGame.GetValueOrDefault(legacyGame.Id, [])
                 );
                 if (previousPlayers.Count > 0)
                 {
@@ -320,8 +501,14 @@ public class Importer(
                     backfilledGames++;
                 }
             }
+
+            pendingInBatch++;
+            if (pendingInBatch >= gamesBatchSize)
+            {
+                await FlushGamesBatchAsync();
+            }
         }
-        await db.SaveChangesAsync();
+        await FlushGamesBatchAsync();
         Console.WriteLine(
             $"    games: {imported} imported, {updated} updated, {skippedMissingOwner} skipped (missing owner), "
                 + $"{skippedCancelledLobby} skipped (cancelled lobby games, never migrated), "
@@ -330,6 +517,48 @@ public class Importer(
         Console.WriteLine(
             $"    previous players in game (historical backfill): {backfilledRows} rows backfilled across {backfilledGames} games"
         );
+    }
+
+    /// <summary>
+    /// Writes each game's SerializedGame column via a raw parameterized UPDATE, batched into a
+    /// single NpgsqlBatch round trip - deliberately bypasses JsonDocument.Parse/the EF value
+    /// converter entirely (see ImportGamesAsync's comment for why) by passing the original text
+    /// straight through as an <see cref="NpgsqlDbType.Jsonb"/> parameter and letting Postgres
+    /// itself validate/store it. Requires every referenced GameId to already exist as a row - the
+    /// batch's own SaveChangesAsync (which inserts/updates every other column) must run first.
+    /// </summary>
+    private static async Task WriteSerializedGamesRawAsync(
+        ApplicationDbContext db,
+        List<(Guid GameId, string SerializedGame)> pending
+    )
+    {
+        if (pending.Count == 0)
+        {
+            return;
+        }
+
+        var connection = (NpgsqlConnection)db.Database.GetDbConnection();
+        // Opened once and left open across batches (not explicitly closed here) so it's reused for
+        // every subsequent batch's raw write instead of paying an open/close round trip each time;
+        // `db`'s disposal at the end of ImportGamesAsync closes it for good.
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+        }
+
+        await using var batch = new NpgsqlBatch(connection);
+        foreach (var (gameId, serializedGame) in pending)
+        {
+            var command = new NpgsqlBatchCommand(
+                """UPDATE "Games" SET "SerializedGame" = @sg WHERE "Id" = @id"""
+            );
+            command.Parameters.Add(
+                new NpgsqlParameter("sg", NpgsqlDbType.Jsonb) { Value = serializedGame }
+            );
+            command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Uuid) { Value = gameId });
+            batch.BatchCommands.Add(command);
+        }
+        await batch.ExecuteNonQueryAsync();
     }
 
     /// <summary>Reads the `turn` field out of an already-parsed `view_of_game` JSON document.</summary>
@@ -381,9 +610,38 @@ public class Importer(
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
         var knownGameIds = (await db.Games.Select(g => g.Id).ToListAsync()).ToHashSet();
+
+        // Preloaded once (Id only, never the Data blob) so every row's existence can be checked
+        // purely in memory. This is necessary for correctness, not just performance: the legacy
+        // agotboardgame_main_playeringame table turns out to contain duplicate (game_id, user_id)
+        // rows for some games, and a per-row FirstOrDefaultAsync query against the database (as
+        // this used to do) cannot see a row this same loop has already Add-ed but not yet flushed -
+        // so the second occurrence of a duplicate pair within one batch would be inserted again
+        // instead of updated, violating the unique index. existingIds is kept up to date with every
+        // insert below so any later duplicate (even across a batch boundary) is always treated as
+        // an update instead.
+        var existingIds = await db
+            .PlayersInGame.Select(p => new
+            {
+                p.GameId,
+                p.UserId,
+                p.Id,
+            })
+            .ToDictionaryAsync(p => (p.GameId, p.UserId), p => p.Id);
+
+        // Entities currently tracked by this DbContext, keyed the same way, so a duplicate pair
+        // seen again before the next flush updates the very same tracked instance rather than
+        // attaching a second instance with the same key (which EF Core would reject outright).
+        // Must be cleared every time FlushIfBatchFullAsync actually flushes (ChangeTracker.Clear()
+        // detaches everything), which is why the loop checks its return value below instead of
+        // just reusing the local `pending` variable.
+        var trackedThisBatch = new Dictionary<(Guid GameId, Guid UserId), PlayerInGame>();
+
         var imported = 0;
         var updated = 0;
         var skipped = 0;
+        var duplicates = 0;
+        var pending = 0;
         await foreach (var legacyPlayer in _legacy.ReadPlayersInGameAsync())
         {
             if (
@@ -395,32 +653,52 @@ public class Importer(
                 continue;
             }
 
-            var existing = await db.PlayersInGame.FirstOrDefaultAsync(p =>
-                p.GameId == legacyPlayer.GameId && p.UserId == legacyPlayer.UserId
-            );
+            var key = (legacyPlayer.GameId, legacyPlayer.UserId);
             var data = JsonDocument.Parse(legacyPlayer.Data);
-            if (existing == null)
+            if (trackedThisBatch.TryGetValue(key, out var tracked))
             {
-                db.PlayersInGame.Add(
-                    new PlayerInGame
-                    {
-                        Id = Guid.NewGuid(),
-                        GameId = legacyPlayer.GameId,
-                        UserId = legacyPlayer.UserId,
-                        Data = data,
-                    }
-                );
-                imported++;
+                tracked.Data = data;
+                duplicates++;
+            }
+            else if (existingIds.TryGetValue(key, out var existingId))
+            {
+                var stub = new PlayerInGame { Id = existingId, Data = data };
+                db.PlayersInGame.Attach(stub);
+                db.Entry(stub).Property(p => p.Data).IsModified = true;
+                trackedThisBatch[key] = stub;
+                updated++;
             }
             else
             {
-                existing.Data = data;
-                updated++;
+                var entity = new PlayerInGame
+                {
+                    Id = Guid.NewGuid(),
+                    GameId = legacyPlayer.GameId,
+                    UserId = legacyPlayer.UserId,
+                    Data = data,
+                };
+                db.PlayersInGame.Add(entity);
+                existingIds[key] = entity.Id;
+                trackedThisBatch[key] = entity;
+                imported++;
             }
+
+            var flushed = await FlushIfBatchFullAsync(db, pending + 1);
+            if (flushed == 0)
+            {
+                trackedThisBatch.Clear();
+            }
+            pending = flushed;
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine(
             $"    players in game: {imported} imported, {updated} updated, {skipped} skipped (unknown game/user)"
+                + (
+                    duplicates > 0
+                        ? $", {duplicates} duplicate legacy rows collapsed (last one wins)"
+                        : ""
+                )
         );
     }
 
@@ -456,7 +734,6 @@ public class Importer(
 
         var imported = 0;
         var skipped = 0;
-        const int batchSize = 500;
         var pending = 0;
         await foreach (var legacyMessage in _legacy.ReadMessagesAsync(sinceUtc))
         {
@@ -489,14 +766,14 @@ public class Importer(
             );
             existingKeys.Add(key);
             imported++;
-            pending++;
-            if (pending >= batchSize)
-            {
-                await db.SaveChangesAsync();
-                pending = 0;
-            }
+            // ChangeTracker.Clear() (not just SaveChangesAsync) is the important part here: without
+            // it every Message entity ever Added stays tracked for the DbContext's whole lifetime
+            // even once saved, which is the real OOM risk on a table that can hold millions of rows
+            // - see FlushIfBatchFullAsync's doc comment.
+            pending = await FlushIfBatchFullAsync(db, pending + 1);
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine(
             $"    messages: {imported} imported, {skipped} skipped (unknown room/user)"
         );
@@ -506,8 +783,16 @@ public class Importer(
     {
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
+        // Preloaded once instead of one AnyAsync round-trip per legacy row - this table can hold
+        // over a million rows, so a per-row query would mean well over a million network
+        // round-trips. Id is the legacy table's real primary key, so no duplicate-row concerns
+        // like ImportPlayersInGameAsync has - a plain HashSet is enough here.
+        var existingIds = (
+            await db.PbemResponseTimes.Select(p => p.Id).ToListAsync()
+        ).ToHashSet();
         var imported = 0;
         var skipped = 0;
+        var pending = 0;
         await foreach (var legacyResponseTime in _legacy.ReadPbemResponseTimesAsync())
         {
             if (!knownUserIds.Contains(legacyResponseTime.UserId))
@@ -515,8 +800,7 @@ public class Importer(
                 skipped++;
                 continue;
             }
-            var exists = await db.PbemResponseTimes.AnyAsync(p => p.Id == legacyResponseTime.Id);
-            if (exists)
+            if (!existingIds.Add(legacyResponseTime.Id))
                 continue;
 
             db.PbemResponseTimes.Add(
@@ -529,8 +813,10 @@ public class Importer(
                 }
             );
             imported++;
+            pending = await FlushIfBatchFullAsync(db, pending + 1);
         }
         await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
         Console.WriteLine(
             $"    PBEM response times: {imported} imported, {skipped} skipped (unknown user)"
         );

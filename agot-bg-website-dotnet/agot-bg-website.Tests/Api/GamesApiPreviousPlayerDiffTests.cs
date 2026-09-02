@@ -160,16 +160,17 @@ public class GamesApiPreviousPlayerDiffTests
             db1.PreviousPlayersInGame.RemoveRange(
                 game.PreviousPlayers.Where(p => toRemove.Contains(p.UserId))
             );
+            // No ViewOfGame is set up on this fixture's Game, so PreviousPlayerReasonResolver
+            // resolves Reason to null here (see GamesApi.cs's real PATCH handler, which passes
+            // game.ViewOfGame - this test replicates the diff/persist steps directly rather than
+            // invoking the minimal-API lambda itself, so it calls the resolver the same way).
             db1.PreviousPlayersInGame.AddRange(
                 toAdd.Select(uid => new PreviousPlayerInGame
                 {
                     Id = Guid.NewGuid(),
                     GameId = gameId,
                     UserId = uid,
-                    // The save payload alone can't distinguish vote from clock-timeout, so live
-                    // saves leave Reason null - see GamesApi.cs and PreviousPlayerInGame's doc
-                    // comments.
-                    Reason = null,
+                    Reason = PreviousPlayerReasonResolver.Resolve(game.ViewOfGame, uid),
                     ReplacedAt = DateTimeOffset.UtcNow,
                 })
             );
@@ -231,7 +232,7 @@ public class GamesApiPreviousPlayerDiffTests
                     Id = Guid.NewGuid(),
                     GameId = gameId,
                     UserId = uid,
-                    Reason = null,
+                    Reason = PreviousPlayerReasonResolver.Resolve(game.ViewOfGame, uid),
                     ReplacedAt = DateTimeOffset.UtcNow,
                 })
             );

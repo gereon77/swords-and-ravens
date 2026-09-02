@@ -18,11 +18,12 @@ namespace agot_bg_website.Api;
 ///
 /// <c>PreviousPlayerInGame</c> is never sent by the game server (it only ever sends the current
 /// <c>Players</c> list) — it's entirely computed here by diffing the old and new player lists on
-/// every save: a user present before but missing now is recorded as removed (with <c>Reason</c>
-/// left null, since the payload gives no way to distinguish vote from clock-timeout - see
-/// <see cref="Domain.PreviousPlayerInGame"/>'s doc comment); a user with an existing row who
-/// reappears (voted back in) has that row removed again — see <see cref="DiffPreviousPlayers"/>
-/// and GamesApiPreviousPlayerDiffTests.
+/// every save: a user present before but missing now is recorded as removed, with <c>Reason</c>
+/// resolved from the just-saved <c>ViewOfGame</c>'s <c>oldPlayerIds</c>/<c>timeoutPlayerIds</c> via
+/// <see cref="Domain.PreviousPlayerReasonResolver"/> (null only if neither array names the user -
+/// see that type's doc comment); a user with an existing row who reappears (voted back in) has
+/// that row removed again — see <see cref="DiffPreviousPlayers"/> and
+/// GamesApiPreviousPlayerDiffTests.
 ///
 /// PATCH also acquires a per-game <see cref="GameSaveLock"/> first, as defense-in-depth against the
 /// game server's saves for the same game genuinely overlapping — see that type's doc comment.
@@ -166,20 +167,23 @@ public static class GamesApi
 
                     if (toAdd.Count > 0)
                     {
-                        // Can't distinguish *why* a removed player left from the save payload alone
-                        // (the game server only ever sends the current Players list, never a
-                        // reason) - Reason is left null for now (see PreviousPlayerInGame's doc
-                        // comment: a future cron job could fill it in later by re-reading
-                        // SerializedGame). Not used for win-rate calculation either way (every
-                        // PreviousPlayerInGame row counts as a loss regardless of Reason — see
-                        // MIGRATION_PLAN.md §10.2).
+                        // Reason is resolved from the just-saved ViewOfGame's flat top-level
+                        // oldPlayerIds/timeoutPlayerIds arrays (same logic Snr.Migration's historical
+                        // backfill uses, see PreviousPlayerReasonResolver) - null only if the removed
+                        // user appears in neither (e.g. a replace-player-by-player/vassal swap this
+                        // data model doesn't otherwise track). Not used for win-rate calculation
+                        // either way (every PreviousPlayerInGame row counts as a loss regardless of
+                        // Reason — see MIGRATION_PLAN.md §10.2).
                         db.PreviousPlayersInGame.AddRange(
                             toAdd.Select(userId => new PreviousPlayerInGame
                             {
                                 Id = Guid.NewGuid(),
                                 GameId = game.Id,
                                 UserId = userId,
-                                Reason = null,
+                                Reason = PreviousPlayerReasonResolver.Resolve(
+                                    game.ViewOfGame,
+                                    userId
+                                ),
                                 ReplacedAt = DateTimeOffset.UtcNow,
                             })
                         );
