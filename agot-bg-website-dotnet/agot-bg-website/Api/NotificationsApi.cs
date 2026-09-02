@@ -2,6 +2,7 @@ using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace agot_bg_website.Api;
 
@@ -17,8 +18,9 @@ public static class NotificationsApi
 {
     private sealed record NotifyRequest(List<Guid> Users);
 
-    // (subject, body) builders, one per notify* route, ported line-for-line from the matching
-    // agotboardgame_main/templates/agotboardgame_main/*_notification.html Django template.
+    // (subject, body) builders, one per notify* route, preserving the wording/structure from the
+    // matching agotboardgame_main/templates/agotboardgame_main/*_notification.html Django
+    // template, but rendered as actual HTML because SMTP sends them with IsBodyHtml=true.
     private static readonly Dictionary<
         string,
         (Func<Game, string> Subject, Func<ApplicationUser, Game, string, string> Body)
@@ -27,89 +29,84 @@ public static class NotificationsApi
         ["notifyReadyToStart"] = (
             game => $"Your game is ready to start: {game.Name}",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    Your game "{game.Name}" is ready to start:
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"Your game &quot;{HtmlEncode(game.Name)}&quot; is ready to start:",
+                    gameUrl
+                )
         ),
         ["notifyYourTurn"] = (
             game => $"It's your turn in '{game.Name}'",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    It's your turn to play in "{game.Name}":
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"It's your turn to play in &quot;{HtmlEncode(game.Name)}&quot;:",
+                    gameUrl
+                )
         ),
         ["notifyBribeForSupport"] = (
             game => $"You are attacked and now can call for support in '{game.Name}'",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    You are attacked in the game "{game.Name}"
-                    and now you can call for support or try to bribe your way there:
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"You are attacked in the game &quot;{HtmlEncode(game.Name)}&quot; and now you can call for support or try to bribe your way there:",
+                    gameUrl
+                )
         ),
         ["notifyBattleResults"] = (
             game => $"Your battle is over in '{game.Name}'",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    Your battle in "{game.Name}" is over:
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"Your battle in &quot;{HtmlEncode(game.Name)}&quot; is over:",
+                    gameUrl
+                )
         ),
         ["notifyNewVote"] = (
             game => $"Your vote is needed in '{game.Name}'",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    a new vote has been started in "{game.Name}":
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"a new vote has been started in &quot;{HtmlEncode(game.Name)}&quot;:",
+                    gameUrl
+                )
         ),
         ["notifyGameEnded"] = (
             game => $"Game has ended -  {game.Name}",
             (user, game, gameUrl) =>
-                $"""
-                    Hello {user.UserName},
-
-                    The game "{game.Name}" has ended:
-
-                    {gameUrl}
-
-                    Warmest regards,
-                    Staff @ Swords and Ravens
-                    """
+                BuildNotificationEmailHtml(
+                    user.UserName,
+                    $"The game &quot;{HtmlEncode(game.Name)}&quot; has ended:",
+                    gameUrl
+                )
         ),
     };
+
+    internal static string BuildBodyHtml(
+        string route,
+        ApplicationUser user,
+        Game game,
+        string gameUrl
+    ) => Templates[route].Body(user, game, gameUrl);
+
+    internal static string BuildNotificationEmailHtml(
+        string? userName,
+        string explanationHtml,
+        string gameUrl
+    )
+    {
+        var encodedUserName = HtmlEncode(userName);
+        var encodedGameUrl = HtmlEncode(gameUrl);
+
+        return $"""
+            <p>Hello {encodedUserName},</p>
+            <p>{explanationHtml}</p>
+            <p><a href="{encodedGameUrl}">{encodedGameUrl}</a></p>
+            <p>Warmest regards,<br />Staff @ Swords and Ravens</p>
+            """;
+    }
+
+    private static string HtmlEncode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
 
     public static RouteGroupBuilder MapNotificationsApi(this IEndpointRouteBuilder app)
     {

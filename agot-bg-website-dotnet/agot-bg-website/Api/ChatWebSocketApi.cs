@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -428,17 +429,23 @@ public static class ChatWebSocketApi
 
         var request = context.Request;
         var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
+        var encodedUserName = WebUtility.HtmlEncode(recipient.UserName ?? string.Empty);
+        var encodedGameName = WebUtility.HtmlEncode(game.Name);
+        var encodedHouse = WebUtility.HtmlEncode(fromHouse);
+        var encodedGameUrl = WebUtility.HtmlEncode(gameUrl);
+        // Preserve line breaks the sender typed in the raven message itself, same as the
+        // notification templates' <br /> handling — HTML-encode first so real "\r\n"/"\n"
+        // sequences don't collide with any encoded entity text.
+        var encodedMessage = WebUtility
+            .HtmlEncode(message.Text)
+            .Replace("\r\n", "<br />")
+            .Replace("\n", "<br />");
         var body = $"""
-            Hello {recipient.UserName},
-
-            House {fromHouse} has sent you a raven in the game "{game.Name}":
-
-            {message.Text}
-
-            {gameUrl}
-
-            Warmest regards,
-            Staff @ Swords and Ravens
+            <p>Hello {encodedUserName},</p>
+            <p>House {encodedHouse} has sent you a raven in the game &quot;{encodedGameName}&quot;:</p>
+            <blockquote>{encodedMessage}</blockquote>
+            <p><a href="{encodedGameUrl}">{encodedGameUrl}</a></p>
+            <p>Warmest regards,<br />Staff @ Swords and Ravens</p>
             """;
 
         await emailSender.SendEmailAsync(
