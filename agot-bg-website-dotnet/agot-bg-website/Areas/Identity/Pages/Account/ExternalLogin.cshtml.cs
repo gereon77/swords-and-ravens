@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using agot_bg_website.Services;
+using agot_bg_website.Infrastructure.Auth;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -103,7 +104,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
         {
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
             if (remoteError != null)
             {
                 ErrorMessage = $"Error from external provider: {remoteError}";
@@ -122,6 +123,17 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             {
                 _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
                 return LocalRedirect(returnUrl);
+            }
+            if (result.IsNotAllowed)
+            {
+                // AppSignInManager.CanSignInAsync also refuses banned members here; tell them so
+                // instead of falling through to the "let's create you an account" branch below,
+                // which would otherwise be reached for any other NotAllowed reason too.
+                var existingUser = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+                if (existingUser is not null && await _userManager.IsInRoleAsync(existingUser, RoleNames.Banned))
+                {
+                    return RedirectToPage("./Banned");
+                }
             }
             if (result.IsLockedOut)
             {
@@ -145,7 +157,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostConfirmationAsync(string returnUrl = null)
         {
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
             // Get the information about the user from the external login provider
             var info = await _signInManager.GetExternalLoginInfoAsync();
             if (info == null)

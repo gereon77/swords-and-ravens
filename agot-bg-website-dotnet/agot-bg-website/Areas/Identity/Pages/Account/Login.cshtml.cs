@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using agot_bg_website.Infrastructure.Auth;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -94,7 +95,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 ModelState.AddModelError(string.Empty, ErrorMessage);
             }
 
-            returnUrl ??= Url.Content("~/");
+            returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
 
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
@@ -106,7 +107,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
+            returnUrl = ReturnUrlHelper.NormalizeAfterLogin(returnUrl ?? Url.Content("~/"));
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
@@ -145,6 +146,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 }
                 if (result.IsNotAllowed)
                 {
+                    // AppSignInManager.CanSignInAsync also refuses banned members; distinguish that
+                    // from "email not confirmed yet" here so a banned member is sent to a plain
+                    // "you're banned" page instead of a confusing "confirm your email" message.
+                    if (user is not null && await _userManager.IsInRoleAsync(user, RoleNames.Banned))
+                    {
+                        return RedirectToPage("./Banned");
+                    }
+
                     // The most common reason SignInManager refuses an otherwise-correct password is
                     // RequireConfirmedAccount: the email hasn't been confirmed yet. Say so plainly
                     // instead of the generic "Invalid login attempt" — that's what made it look like

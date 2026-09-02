@@ -86,6 +86,11 @@ builder.Services
     .AddDefaultTokenProviders()
     .AddDefaultUI();
 
+// Replaces the SignInManager<ApplicationUser> that AddIdentity() above registered, with one whose
+// CanSignInAsync also refuses banned members — see AppSignInManager for why this is the one choke
+// point that covers password login, external OAuth login, and 2FA all at once.
+builder.Services.AddScoped<SignInManager<ApplicationUser>, AppSignInManager>();
+
 // GDPR: Identity's own sign-in cookie is essential for the site to function (you can't be signed
 // in without it), so it's exempt from the cookie-consent banner above — see
 // https://learn.microsoft.com/aspnet/core/security/gdpr.

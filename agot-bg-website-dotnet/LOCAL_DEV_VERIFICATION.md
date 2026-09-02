@@ -124,6 +124,32 @@ logic, and hasn't been written yet (see Known gaps below).
   `auth-data` JSON (`userId`/`requestUserId`/`gameId`/`authToken` all correct); unauthenticated
   request redirects (302) to `/Identity/Account/Login`; unknown `gameId` returns 404.
 
+## Banned-user login block & post-login redirect (`Infrastructure/Auth/AppSignInManager.cs`)
+
+- Mirrors Django's `User.is_active = False`, which made `authenticate()` refuse the credentials
+  outright rather than only logging the member out again on their next game-join attempt (the
+  latter is what `Api/PlayApi.cs`'s existing force-sign-out-on-join already did, and still does, as
+  a second line of defense for a member who's banned while their session/cookie is still active).
+- `AppSignInManager` (registered in `Program.cs`, replacing the `SignInManager<ApplicationUser>`
+  that `AddIdentity()` registers by default) overrides `CanSignInAsync` to additionally refuse
+  members in the `Banned` role. `CanSignInAsync` is the one choke point every sign-in path already
+  funnels through via `PreSignInCheck` (password, external OAuth, 2FA), so this blocks banned
+  members at all of them at once instead of duplicating the check per Account page.
+  `Login.cshtml.cs`/`ExternalLogin.cshtml.cs` distinguish "banned" from other `IsNotAllowed`
+  reasons (currently only "email not confirmed") by re-checking the `Banned` role, and redirect to
+  the new `/Identity/Account/Banned` page instead of showing the generic error.
+- Post-login redirect: `Infrastructure/Auth/ReturnUrlHelper.NormalizeAfterLogin` sends a visitor to
+  `/Games` instead of back to the marketing home page (`/` or `/Index`) after logging in — clicking
+  "Login" almost always means "I want to get to the Games list", and they've already seen the home
+  page or they wouldn't be here. Any other return URL (a deep link the `[Authorize]` challenge
+  captured, or a specific game/user page) is left untouched. `Pages/Shared/_LoginPartial.cshtml`'s
+  manual Login/Register links now also pass the current page as `returnUrl` so this normalization
+  actually has something other than "no returnUrl" to work with when a signed-out visitor clicks
+  Login from an arbitrary public page.
+- Verified via `dotnet build`/`dotnet test` (new `ReturnUrlHelperTests`, 10 cases) only — no live
+  browser pass yet exercising an actual banned user hitting `/Identity/Account/Login` or an OAuth
+  callback.
+
 ## Email notifications (`notify*` endpoints, `Services/SmtpEmailSender.cs`)
 
 - `Api/NotificationsApi.cs` maps the 6 real Django `notify*` routes (confirmed from
@@ -353,6 +379,14 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 - Chat's tongueless rate-limiting and private-message email notification paths are now covered by
   unit tests (see the Chat section above) rather than only code-reviewed; still no live end-to-end
   pass with a real `Tongueless`-role test user / pbem game fixture against a real socket/SMTP relay.
+- Banned-user login block and post-login redirect (see the section above) haven't had a live
+  browser pass yet (real banned test user hitting Login/OAuth callback, real click-through of the
+  home-page-to-Games redirect) - only `dotnet build`/`dotnet test` were used to verify.
+- No disposable/throwaway email address blocking (e.g. mailinator.com) on registration yet - this
+  was discussed but deliberately deferred pending a decision on which blocklist source/package to
+  adopt (see chat history around the ban/redirect work for the options considered:
+  `Disposable.Email` / `DisposableEmailDomain` / `DisposableEmailChecker` NuGet packages, all
+  wrapping community-maintained domain blocklists, vs. a paid verification API).
 - See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
   (precomputed statistics tables, public game statistics, UI library/theme).
 
