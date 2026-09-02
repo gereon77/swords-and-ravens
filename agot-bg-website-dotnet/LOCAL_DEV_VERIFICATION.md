@@ -150,6 +150,28 @@ logic, and hasn't been written yet (see Known gaps below).
   browser pass yet exercising an actual banned user hitting `/Identity/Account/Login` or an OAuth
   callback.
 
+## Disposable email address blocking (registration & email change)
+
+- Uses the `Soenneker.Validators.Email.Disposable.Online` NuGet package (free, actively maintained,
+  no API key) rather than any paid verification service - it downloads the community-maintained
+  [`disposable/disposable-email-domains`](https://github.com/disposable/disposable-email-domains)
+  domain list once (lazily, cached for the app's lifetime) and checks the email's domain against it
+  locally; the email address itself is never sent anywhere. Registered as a singleton in
+  `Program.cs` (`AddEmailDisposableOnlineValidatorAsSingleton`); the list source URI can be
+  overridden via `Validators:Email:Disposable:Uri` in config if a self-hosted/updated list is ever
+  wanted instead of the GitHub default.
+- `Services/DisposableEmailChecker.cs` wraps it and **fails open**: if the list download throws
+  (offline dev box, GitHub outage, ...), the address is allowed through rather than blocking
+  registration/email-change just because the block-list couldn't be fetched. Only a confirmed match
+  against a successfully downloaded list refuses the address.
+- Wired into the three places a member picks/changes their own email address: `Register.cshtml.cs`
+  (password registration), `ExternalLogin.cshtml.cs`'s `OnPostConfirmationAsync` (new account via
+  OAuth — only when actually creating a new account, not when linking an OAuth login to an existing
+  account by email), and `Manage/Email.cshtml.cs`'s `OnPostChangeEmailAsync`.
+- Verified via `dotnet build`/`dotnet test` (new `DisposableEmailCheckerTests`, 4 cases covering the
+  three-state validator result and the fail-open behavior) — no live pass yet against the real
+  online domain list (would require network access from the test run, deliberately avoided).
+
 ## Email notifications (`notify*` endpoints, `Services/SmtpEmailSender.cs`)
 
 - `Api/NotificationsApi.cs` maps the 6 real Django `notify*` routes (confirmed from
@@ -382,11 +404,6 @@ Then follow the rest of `MIGRATION_PLAN.md` §9 for wiring up the game server ag
 - Banned-user login block and post-login redirect (see the section above) haven't had a live
   browser pass yet (real banned test user hitting Login/OAuth callback, real click-through of the
   home-page-to-Games redirect) - only `dotnet build`/`dotnet test` were used to verify.
-- No disposable/throwaway email address blocking (e.g. mailinator.com) on registration yet - this
-  was discussed but deliberately deferred pending a decision on which blocklist source/package to
-  adopt (see chat history around the ban/redirect work for the options considered:
-  `Disposable.Email` / `DisposableEmailDomain` / `DisposableEmailChecker` NuGet packages, all
-  wrapping community-maintained domain blocklists, vs. a paid verification API).
 - See MIGRATION_PLAN.md §13 for further follow-up work intentionally deferred past this migration
   (precomputed statistics tables, public game statistics, UI library/theme).
 

@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using agot_bg_website.Domain;
+using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -21,15 +22,18 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailSender _emailSender;
+        private readonly DisposableEmailChecker _disposableEmailChecker;
 
         public EmailModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            DisposableEmailChecker disposableEmailChecker)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
+            _disposableEmailChecker = disposableEmailChecker;
         }
 
         /// <summary>
@@ -116,6 +120,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             var email = await _userManager.GetEmailAsync(user);
             if (Input.NewEmail != email)
             {
+                if (await _disposableEmailChecker.IsDisposableAsync(Input.NewEmail))
+                {
+                    ModelState.AddModelError("Input.NewEmail",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
                 var userId = await _userManager.GetUserIdAsync(user);
                 var code = await _userManager.GenerateChangeEmailTokenAsync(user, Input.NewEmail);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));

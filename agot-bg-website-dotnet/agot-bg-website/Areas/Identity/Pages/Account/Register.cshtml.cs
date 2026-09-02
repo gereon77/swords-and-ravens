@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using agot_bg_website.Services;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
@@ -30,13 +31,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly DisposableEmailChecker _disposableEmailChecker;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            DisposableEmailChecker disposableEmailChecker)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -44,6 +47,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _disposableEmailChecker = disposableEmailChecker;
         }
 
         /// <summary>
@@ -140,6 +144,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                         : (await _userManager.GetLoginsAsync(existingUser))
                             .Select(l => l.ProviderDisplayName ?? l.LoginProvider).ToArray();
                     ModelState.AddModelError(string.Empty, BuildDuplicateAccountErrorMessage(hasPassword, providerNames));
+                    return Page();
+                }
+
+                if (await _disposableEmailChecker.IsDisposableAsync(Input.Email))
+                {
+                    ModelState.AddModelError("Input.Email",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
                     return Page();
                 }
 

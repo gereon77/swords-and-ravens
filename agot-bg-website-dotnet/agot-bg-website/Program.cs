@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
+using Soenneker.Validators.Email.Disposable.Online.Registrars;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -101,6 +102,14 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAut
 builder.Services.AddScoped<AccountLinkingService>();
 builder.Services.AddScoped<AccountDeletionService>();
 builder.Services.AddScoped<agot_bg_website.Services.GameListing.GameListQueryService>();
+
+// Refuses throwaway addresses (mailinator.com and the like) on registration/email-change - see
+// LOCAL_DEV_VERIFICATION.md "Disposable email" section for why this package/approach was picked.
+// It downloads the community-maintained disposable/disposable-email-domains list once (lazily,
+// cached for the app's lifetime) and checks the domain locally, so it never sends the email
+// address itself anywhere.
+builder.Services.AddEmailDisposableOnlineValidatorAsSingleton();
+builder.Services.AddScoped<agot_bg_website.Services.DisposableEmailChecker>();
 
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.

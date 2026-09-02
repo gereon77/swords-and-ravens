@@ -33,6 +33,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
         private readonly AccountLinkingService _accountLinkingService;
+        private readonly DisposableEmailChecker _disposableEmailChecker;
 
         public ExternalLoginModel(
             SignInManager<ApplicationUser> signInManager,
@@ -40,7 +41,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             IUserStore<ApplicationUser> userStore,
             ILogger<ExternalLoginModel> logger,
             IEmailSender emailSender,
-            AccountLinkingService accountLinkingService)
+            AccountLinkingService accountLinkingService,
+            DisposableEmailChecker disposableEmailChecker)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -49,6 +51,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _accountLinkingService = accountLinkingService;
+            _disposableEmailChecker = disposableEmailChecker;
         }
 
         /// <summary>
@@ -200,6 +203,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                         ModelState.AddModelError(string.Empty, error.Description);
                     }
 
+                    ProviderDisplayName = info.ProviderDisplayName;
+                    ReturnUrl = returnUrl;
+                    return Page();
+                }
+
+                if (await _disposableEmailChecker.IsDisposableAsync(Input.Email))
+                {
+                    ModelState.AddModelError("Input.Email",
+                        "Throwaway/disposable email addresses aren't allowed. Please use an email address you can actually receive mail at.");
                     ProviderDisplayName = info.ProviderDisplayName;
                     ReturnUrl = returnUrl;
                     return Page();
