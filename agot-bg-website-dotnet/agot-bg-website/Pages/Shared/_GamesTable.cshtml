@@ -31,7 +31,7 @@ else
                     }
                     <th class="text-center">Players</th>
                     <th>@(allOpen ? "Created at" : "Last active")</th>
-                    <th></th>
+                    <th class="sticky right-0 z-10 bg-base-100"></th>
                 </tr>
             </thead>
             <tbody>
@@ -108,7 +108,7 @@ else
                         <td class="whitespace-nowrap">
                             @(isOpen ? agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.CreatedAt) : agot_bg_website.Infrastructure.RelativeTimeFormatter.Format(game.LastActiveAt))
                         </td>
-                        <td class="text-right whitespace-nowrap">
+                        <td class="sticky right-0 z-10 bg-inherit text-right whitespace-nowrap">
                             <div class="flex flex-nowrap items-center justify-end gap-1">
                                 @if (isOngoing || !Model.OnProbation || iAmPlaying)
                                 {
