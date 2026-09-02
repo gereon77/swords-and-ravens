@@ -27,12 +27,19 @@
     @apply px-2 w-full box-border;
   }
   @media (min-width: 768px) {
-    .col-md-3 { width: 25%; }
-    .col-md-4 { width: 33.3333%; }
-    .col-md-6 { width: 50%; }
-    .col-md-9 { width: 75%; }
-    .col-md-12 { width: 100%; }
-    .col-md-offset-2 { margin-left: 16.6667%; }
+    /* !important is required here: ".row > div[class*='col-']" above matches these same divs
+       (it needs the wildcard match to catch every col-md-* class) and its "w-full" @apply
+       compiles to a rule with higher specificity (0,2,1, from the two classes plus the "div"
+       type selector) than a bare ".col-md-4 { width: ... }" rule (0,1,0), so without !important
+       these overrides silently lose and every column stays full-width — which was the actual
+       cause of the two-column Login/Register layout never going side-by-side at any viewport
+       width, even far above the md breakpoint. */
+    .col-md-3 { width: 25% !important; }
+    .col-md-4 { width: 33.3333% !important; }
+    .col-md-6 { width: 50% !important; }
+    .col-md-9 { width: 75% !important; }
+    .col-md-12 { width: 100% !important; }
+    .col-md-offset-2 { margin-left: 16.6667% !important; }
   }
 
   /* Forms -------------------------------------------------------------- */
