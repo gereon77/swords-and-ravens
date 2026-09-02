@@ -4,14 +4,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Api;
 
-/// <summary>POST /api/room — see MIGRATION_PLAN.md §6.</summary>
+/// <summary>
+/// POST /api/room, DELETE /api/clearChatRoom/{roomId} — see MIGRATION_PLAN.md §6. The clear-room
+/// route must be an exact literal match for LiveWebsiteClient.ts's clearChatRoom(), which calls
+/// `DELETE {masterApiBaseUrl}/clearChatRoom/{roomId}` (not nested under /room/{id}/...) — this is
+/// called when a faceless game starts (EntireGame.proceedToIngameGameState ->
+/// GlobalServer.onClearChatRoom), so a route mismatch here throws inside the game server at the
+/// start of every faceless game.
+/// </summary>
 public static class RoomsApi
 {
     public static RouteGroupBuilder MapRoomsApi(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/room").RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
+        var group = app.MapGroup("/api").RequireAuthorization(Infrastructure.Auth.MasterApiAuthenticationHandler.SchemeName);
 
-        group.MapPost("/", async (CreateRoomDto dto, ApplicationDbContext db) =>
+        group.MapPost("/room", async (CreateRoomDto dto, ApplicationDbContext db) =>
         {
             var room = new Room
             {
@@ -32,9 +39,9 @@ public static class RoomsApi
             return Results.Ok(new RoomDto(room.Id, room.Name, room.Public));
         });
 
-        group.MapDelete("/{id:guid}/clear", async (Guid id, ApplicationDbContext db) =>
+        group.MapDelete("/clearChatRoom/{roomId:guid}", async (Guid roomId, ApplicationDbContext db) =>
         {
-            var messages = db.Messages.Where(m => m.RoomId == id);
+            var messages = db.Messages.Where(m => m.RoomId == roomId);
             await messages.ExecuteDeleteAsync();
             return Results.NoContent();
         });
@@ -42,3 +49,4 @@ public static class RoomsApi
         return group;
     }
 }
+
