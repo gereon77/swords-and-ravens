@@ -23,14 +23,12 @@ public class ApplicationUser : IdentityUser<Guid>
     internal new string? PhoneNumber { get; set; }
     internal new bool PhoneNumberConfirmed { get; set; }
 
-    [PersonalData]
     /// <summary>Bearer token the game server uses to authenticate as this user (~ Django game_token).</summary>
     public string GameToken { get; set; } = Guid.NewGuid().ToString("N");
 
     [PersonalData]
     public string? ProfileText { get; set; }
 
-    [PersonalData]
     public string? LastWonTournament { get; set; }
 
     public bool EmailNotificationActive { get; set; } = true;
