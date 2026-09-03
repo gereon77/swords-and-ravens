@@ -28,7 +28,7 @@ public static class PermissionSeeder
     /// <c>add_game</c> permission was granted to every non-banned/non-probation member); Admin and
     /// High Member can additionally impersonate other players and cancel games directly (Django's
     /// <c>can_play_as_another_player</c>/<c>cancel_game</c> permissions), and moderate other
-    /// players' On probation/Tongueless/Banned status from the public Users directory (new -
+    /// players' On probation/Tongueless/Banned status from the member-facing Users directory (new -
     /// Django delegated this entirely to staff via the Django admin instead).
     /// </summary>
     private static readonly Dictionary<string, string[]> DefaultRolePermissions = new()

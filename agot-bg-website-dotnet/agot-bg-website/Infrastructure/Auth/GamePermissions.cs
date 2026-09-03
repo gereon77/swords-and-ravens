@@ -53,7 +53,7 @@ public static class GamePermissions
     public const string CancelGame = "CancelGame";
 
     /// <summary>
-    /// Assign/unassign the "On probation", "Tongueless" and "Banned" roles from the public
+    /// Assign/unassign the "On probation", "Tongueless" and "Banned" roles from the member-facing
     /// <c>/Users</c> directory (<c>Pages/Users.cshtml.cs</c>) - lets trusted "High Member"s (and
     /// Admins) moderate misbehaving players without needing full Admin-area access. This is
     /// distinct from the Admin area's own ban toggle (<c>Areas/Admin/Pages/Users/Index.cshtml.cs</c>),

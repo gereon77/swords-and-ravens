@@ -173,6 +173,7 @@ builder.Services.AddRazorPages(options =>
     // publicly reachable terms-of-use URL during app review, before a user can log in at all.
     options.Conventions.AuthorizePage("/Games");
     options.Conventions.AuthorizePage("/MyGames");
+    options.Conventions.AuthorizePage("/Users");
 });
 
 // External logins: Google/Discord/Facebook — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
