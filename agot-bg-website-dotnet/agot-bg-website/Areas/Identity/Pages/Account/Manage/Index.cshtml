@@ -19,7 +19,7 @@
                     <span asp-validation-for="Input.NewUsername" class="text-danger"></span>
                     <div class="form-text text-muted">You can change your username once. After updating, it cannot be changed again.</div>
                 </div>
-                <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+                <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
             }
             else
             {
@@ -33,11 +33,10 @@
     </div>
 </div>
 
-<hr class="my-6 border-base-300" />
+<hr class="my-8 border-base-300" />
 
 <div class="row">
     <div class="col-md-6">
-        <h4>Say something about you</h4>
         <form id="profile-text-form" method="post" asp-page-handler="UpdateProfileText">
             <div class="form-floating mb-3">
                 <textarea asp-for="ProfileTextInput.ProfileText" class="form-control" style="height: 8rem" placeholder="Say something about you."></textarea>
@@ -49,30 +48,30 @@
     </div>
 </div>
 
-<hr class="my-6 border-base-300" />
+<hr class="my-8 border-base-300" />
 
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-9">
         <h4>Preferences</h4>
         <form id="preferences-form" method="post" asp-page-handler="UpdatePreferences">
             <div class="flex flex-col gap-2 mb-3">
-                <div class="form-check">
+                <div class="form-check text-nowrap">
                     <input asp-for="PreferencesInput.EmailNotificationActive" class="form-check-input" />
                     <label asp-for="PreferencesInput.EmailNotificationActive" class="form-check-label"></label>
                 </div>
-                <div class="form-check">
+                <div class="form-check text-nowrap">
                     <input asp-for="PreferencesInput.MuteGames" class="form-check-input" />
                     <label asp-for="PreferencesInput.MuteGames" class="form-check-label"></label>
                 </div>
-                <div class="form-check">
+                <div class="form-check text-nowrap">
                     <input asp-for="PreferencesInput.UseHouseNamesForChat" class="form-check-input" />
                     <label asp-for="PreferencesInput.UseHouseNamesForChat" class="form-check-label"></label>
                 </div>
-                <div class="form-check">
+                <div class="form-check text-nowrap">
                     <input asp-for="PreferencesInput.UseMapScrollbar" class="form-check-input" />
                     <label asp-for="PreferencesInput.UseMapScrollbar" class="form-check-label"></label>
                 </div>
-                <div class="form-check">
+                <div class="form-check text-nowrap">
                     <input asp-for="PreferencesInput.GameStateColumnRight" class="form-check-input" />
                     <label asp-for="PreferencesInput.GameStateColumnRight" class="form-check-label"></label>
                 </div>
