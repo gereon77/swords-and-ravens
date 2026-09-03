@@ -7,6 +7,7 @@ using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -271,6 +272,25 @@ builder.Services.AddOpenApi(options =>
 });
 
 var app = builder.Build();
+
+// Caddy (docker-compose.prod.yml) terminates TLS and reverse-proxies to this container over
+// plain HTTP on the shared Compose network, adding X-Forwarded-Proto/X-Forwarded-For (Caddy does
+// this by default). Without trusting those headers, Kestrel always sees Request.Scheme = "http"
+// for every request, which breaks anything that builds an absolute URL from the current request's
+// scheme - most visibly, external OAuth providers (Google/Discord/Facebook) reject the sign-in
+// callback because the generated redirect_uri comes back as "http://..." instead of "https://...",
+// even though the provider is configured with an https redirect URI. KnownNetworks/KnownProxies
+// are cleared because Caddy's container IP on the Compose bridge network isn't fixed/known ahead
+// of time (the default restriction only trusts loopback) - this is the standard pattern for
+// ASP.NET Core behind a reverse proxy in Docker. Must run before any other middleware that reads
+// Request.Scheme/Request.IsHttps (UseHttpsRedirection, authentication, etc.).
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Configure the HTTP request pipeline. No "Development" environment is ever used (see the
 // AddUserSecrets comment above), so there's no dev-only branch here anymore — every environment
