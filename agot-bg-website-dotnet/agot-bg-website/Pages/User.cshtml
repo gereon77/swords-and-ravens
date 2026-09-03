@@ -76,7 +76,7 @@
                 }
                 else
                 {
-                    <div class="overflow-x-auto rounded-box border border-base-300">
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
                         <table class="table table-zebra table-fixed w-full">
                             <colgroup>
                                 <col class="w-24" />
@@ -130,14 +130,13 @@
                                         <td class="text-center whitespace-nowrap">
                                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
                                         </td>
-                                        @if (!Model.OnProbation)
-                                        {
-                                            <td class="whitespace-nowrap">
-                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
-                                                    @(Model.IsOwnProfile ? "Rejoin" : "Spectate")
-                                                </a>
-                                            </td>
-                                        }
+                                        <td class="whitespace-nowrap">
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
+                                        </td>
                                         @if (Model.CanPlayAsAnotherPlayer)
                                         {
                                             <td class="whitespace-nowrap">
@@ -162,7 +161,7 @@
                     Cancelled games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CancelledGames.Count</span>
                 </summary>
                 <div class="collapse-content">
-                    <div class="overflow-x-auto rounded-box border border-base-300">
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
                         <table class="table table-zebra table-fixed w-full">
                             <colgroup>
                                 <col />
@@ -192,14 +191,13 @@
                                             <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
-                                        @if (!Model.OnProbation)
-                                        {
-                                            <td class="whitespace-nowrap">
-                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
-                                                    Spectate
-                                                </a>
-                                            </td>
-                                        }
+                                        <td class="whitespace-nowrap">
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
+                                        </td>
                                         @if (Model.CanPlayAsAnotherPlayer)
                                         {
                                             <td class="whitespace-nowrap">
@@ -225,7 +223,7 @@
                 </summary>
                 <div class="collapse-content">
                     <p class="opacity-70 text-sm mb-3">Games you were replaced or removed from before they ended.</p>
-                    <div class="overflow-x-auto rounded-box border border-base-300">
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
                         <table class="table table-zebra table-fixed w-full">
                             <colgroup>
                                 <col />
@@ -260,12 +258,11 @@
                                             })
                                         </td>
                                         <td class="whitespace-nowrap">
-                                            @if (!Model.OnProbation)
-                                            {
-                                                <a class="btn btn-primary btn-sm" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">
-                                                    Spectate
-                                                </a>
-                                            }
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 }

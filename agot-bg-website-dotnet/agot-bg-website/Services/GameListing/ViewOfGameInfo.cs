@@ -20,7 +20,8 @@ public sealed record ViewOfGameInfo(
     bool IsTournamentMode,
     bool ReplacePlayerVoteOngoing,
     Guid? PublicChatRoomId,
-    bool IsLearnTheGame
+    bool IsLearnTheGame,
+    string? SetupId
 )
 {
     public static readonly ViewOfGameInfo Empty = new(
@@ -35,7 +36,8 @@ public sealed record ViewOfGameInfo(
         false,
         false,
         null,
-        false
+        false,
+        null
     );
 
     public static ViewOfGameInfo Parse(JsonDocument? viewOfGame)
@@ -110,10 +112,12 @@ public sealed record ViewOfGameInfo(
         // The tutorial variant is excluded from win-rate stats entirely (MIGRATION_PLAN.md §10.2)
         // and, on the games lists, from the "faceless" filtering below - it's identified by this
         // one magic setupId rather than a dedicated boolean setting.
-        var isLearnTheGame =
+        var setupId =
             settings?.TryGetProperty("setupId", out var setupIdEl) == true
             && setupIdEl.ValueKind == JsonValueKind.String
-            && setupIdEl.GetString() == "learn-the-game";
+                ? setupIdEl.GetString()
+                : null;
+        var isLearnTheGame = setupId == "learn-the-game";
 
         return new ViewOfGameInfo(
             turn,
@@ -127,7 +131,8 @@ public sealed record ViewOfGameInfo(
             GetBoolSetting("tournamentMode"),
             replacePlayerVoteOngoing,
             publicChatRoomId,
-            isLearnTheGame
+            isLearnTheGame,
+            setupId
         );
     }
 }

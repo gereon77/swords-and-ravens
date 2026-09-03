@@ -48,7 +48,9 @@ public class UserModel(
         DateTimeOffset LastActiveAt,
         int? Turn,
         string? WaitingFor,
-        string? Winner
+        string? Winner,
+        string SetupName,
+        IReadOnlyList<string> EnabledSettingLabels
     );
 
     /// <summary>A game the viewed user was removed from (voted out/timed out) before it ended,
@@ -61,7 +63,9 @@ public class UserModel(
         int PlayersCount,
         int? MaxPlayerCount,
         DateTimeOffset? ReplacedAt,
-        PlayerReplacementReason? Reason
+        PlayerReplacementReason? Reason,
+        string SetupName,
+        IReadOnlyList<string> EnabledSettingLabels
     );
 
     public ApplicationUser ViewedUser { get; set; } = null!;
@@ -182,7 +186,9 @@ public class UserModel(
                 row.LastActiveAt,
                 view.Turn,
                 view.WaitingFor,
-                winner
+                winner,
+                GameSettingsDisplay.GetSetupName(view.SetupId),
+                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
             );
 
             if (row.State == GameState.Cancelled)
@@ -238,15 +244,21 @@ public class UserModel(
             })
             .ToListAsync();
 
-        PreviouslyParticipatedGames = rows.Select(row => new PreviouslyParticipatedGameRow(
-                row.Id,
-                row.Name,
-                row.State,
-                row.PlayersCount,
-                ViewOfGameInfo.Parse(row.ViewOfGame).MaxPlayerCount,
-                row.ReplacedAt,
-                row.Reason
-            ))
+        PreviouslyParticipatedGames = rows.Select(row =>
+            {
+                var view = ViewOfGameInfo.Parse(row.ViewOfGame);
+                return new PreviouslyParticipatedGameRow(
+                    row.Id,
+                    row.Name,
+                    row.State,
+                    row.PlayersCount,
+                    view.MaxPlayerCount,
+                    row.ReplacedAt,
+                    row.Reason,
+                    GameSettingsDisplay.GetSetupName(view.SetupId),
+                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+                );
+            })
             .ToList();
     }
 

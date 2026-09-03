@@ -30,5 +30,9 @@ public sealed record GameListItem(
     // "Replacement needed for: Stark (username), ..." - null unless there's an inactive waited-for player.
     string? ReplacementNeededFor,
     // First inactive waited-for player's user id, for the admin-only "join as ..." action.
-    Guid? JoinAsUserId
+    Guid? JoinAsUserId,
+    // Friendly setup name and every true boolean setting's friendly label, for the settings-gear
+    // popup - see GameSettingsDisplay.
+    string SetupName,
+    IReadOnlyList<string> EnabledSettingLabels
 );

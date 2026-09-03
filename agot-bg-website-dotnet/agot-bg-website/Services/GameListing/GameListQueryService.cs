@@ -310,7 +310,9 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             UnreadPublicMessages: false,
             UnreadPrivateMessages: false,
             replacementNeededFor,
-            joinAsUserId
+            joinAsUserId,
+            GameSettingsDisplay.GetSetupName(view.SetupId),
+            GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
         );
     }
 
