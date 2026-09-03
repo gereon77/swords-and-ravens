@@ -41,7 +41,7 @@
     <h4>Add another service to log in.</h4>
     <hr />
     <form id="link-login-form" asp-page-handler="LinkLogin" method="post" class="form-horizontal">
-        <div id="socialLoginList" class="space-y-3" style="max-width: 22rem;">
+        <div id="socialLoginList" class="flex flex-col gap-3" style="max-width: 22rem;">
             @foreach (var provider in Model.OtherLogins)
             {
                 var providerKey = provider.Name.ToLowerInvariant();
