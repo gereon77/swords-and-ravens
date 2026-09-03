@@ -6,6 +6,7 @@ using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -122,14 +123,29 @@ builder.Services.AddScoped<DisposableEmailChecker>();
 var redisConnectionString =
     builder.Configuration.GetConnectionString("Redis")
     ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
-    ConnectionMultiplexer.Connect(redisConnectionString)
-);
+var redisConnectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnectionMultiplexer);
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ChatConnectionManager>();
 builder.Services.AddSingleton<ChatPresenceService>();
 builder.Services.AddSingleton<ChatBroadcaster>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatBroadcaster>());
+
+// Without this, ASP.NET Core's Data Protection key ring (which encrypts/decrypts the Identity
+// auth cookie, antiforgery tokens, etc.) falls back to its default auto-discovery, which inside a
+// Docker container has nowhere durable to persist keys - so every container
+// restart/recreate generates a brand new ephemeral key ring, and every previously-issued auth
+// cookie silently fails to decrypt, forcing everyone to log in again (this is the exact "I have to
+// log in every time I restart the container" symptom). Persisting the key ring to Redis (already
+// used for chat above, and itself backed by a durable volume/restart-always container) means keys
+// - and therefore sessions - now survive container restarts. SetApplicationName pins the key ring
+// to a stable name so it isn't accidentally tied to a machine-specific/container-specific content
+// root path.
+builder
+    .Services.AddDataProtection()
+    .SetApplicationName("agot-bg-website")
+    .PersistKeysToStackExchangeRedis(redisConnectionMultiplexer, "DataProtection-Keys");
+
 
 // Real SMTP email sending — used by both Identity's own emails (password reset, email
 // confirmation) and NotificationsApi's game-notification endpoints, see MIGRATION_PLAN.md §6/§9.1.

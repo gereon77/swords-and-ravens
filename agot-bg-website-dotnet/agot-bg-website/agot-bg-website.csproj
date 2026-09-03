@@ -10,19 +10,14 @@
 
   <ItemGroup>
     <PackageReference Include="CoreAdmin" Version="4.0.0" />
-    <PackageReference
-      Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore"
-      Version="10.0.11"
-    />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.11" />
-    <PackageReference
-      Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets"
-      Version="1.24.1-preview.1"
-    />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.1-preview.1" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.2" />
     <PackageReference Include="Soenneker.Validators.Email.Disposable.Online" Version="4.0.5455" />
     <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
