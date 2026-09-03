@@ -53,10 +53,20 @@ public static class GamePermissions
     public const string CancelGame = "CancelGame";
 
     /// <summary>
+    /// Assign/unassign the "On probation", "Tongueless" and "Banned" roles from the public
+    /// <c>/Users</c> directory (<c>Pages/Users.cshtml.cs</c>) - lets trusted "High Member"s (and
+    /// Admins) moderate misbehaving players without needing full Admin-area access. This is
+    /// distinct from the Admin area's own ban toggle (<c>Areas/Admin/Pages/Users/Index.cshtml.cs</c>),
+    /// which is already gated behind the "AdminArea" policy rather than a permission claim.
+    /// </summary>
+    public const string ManageUserStatus = "ManageUserStatus";
+
+    /// <summary>
     /// All known permission values, for admin UI (<c>Areas/Admin/Pages/Roles</c> and
     /// <c>Areas/Admin/Pages/Users/Edit</c>) to render as a checkbox list.
     /// </summary>
-    public static readonly string[] All = [CreateGame, ImpersonateOtherPlayers, CancelGame];
+    public static readonly string[] All =
+        [CreateGame, ImpersonateOtherPlayers, CancelGame, ManageUserStatus];
 
     public static AuthorizationBuilder AddGamePermissionPolicies(
         this AuthorizationBuilder builder
@@ -76,5 +86,6 @@ public static class GamePermissions
                 ImpersonateOtherPlayers,
                 policy => policy.RequireClaim(ClaimType, ImpersonateOtherPlayers)
             )
-            .AddPolicy(CancelGame, policy => policy.RequireClaim(ClaimType, CancelGame));
+            .AddPolicy(CancelGame, policy => policy.RequireClaim(ClaimType, CancelGame))
+            .AddPolicy(ManageUserStatus, policy => policy.RequireClaim(ClaimType, ManageUserStatus));
 }

@@ -25,16 +25,9 @@ public class UserModel(
     WinRateRecalculationQueue winRateQueue
 ) : PageModel
 {
-    /// <summary>Badge color per role, mirroring Django's settings.GROUP_COLORS (bootstrap contextual
-    /// names mapped onto their DaisyUI badge-* equivalents).</summary>
-    private static readonly Dictionary<string, string> GroupBadgeClasses = new()
-    {
-        [RoleNames.Admin] = "badge-error",
-        [RoleNames.HighMember] = "badge-info",
-        [RoleNames.Banned] = "badge-error",
-        [RoleNames.OnProbation] = "badge-warning",
-        [RoleNames.Tongueless] = "badge-warning",
-    };
+    /// <summary>Badge color per role - see <see cref="RoleBadges"/>.</summary>
+    private static readonly IReadOnlyDictionary<string, string> GroupBadgeClasses =
+        RoleBadges.Classes;
 
     public record GameRow(
         Guid GameId,
