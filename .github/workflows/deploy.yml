@@ -73,7 +73,8 @@ jobs:
             --endpoint-url "${{ secrets.AWS_S3_ENDPOINT_URL }}" \
             --exclude "index.html" \
             --acl public-read \
-            --delete
+            --delete \
+            --debug
 
   build-website-image:
     name: Build & push website Docker image
