@@ -2,6 +2,13 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+# The Debian-slim aspnet base image doesn't ship libgssapi_krb5, so Npgsql logs
+# "Cannot load library libgssapi_krb5.so.2 ... cannot open shared object file" to stderr on every
+# single new physical connection it opens (GSSAPI is one of several auth methods Npgsql probes for
+# - it's a harmless, non-fatal warning, not a startup/connectivity error, but it's noisy enough to
+# obscure real problems in `docker logs`). Installing the library removes the warning entirely.
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 USER $APP_UID
 WORKDIR /app
 # 8000: the public site (Razor Pages, PublicApi, PlayApi, chat websocket) — publish this port.
