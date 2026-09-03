@@ -57,9 +57,15 @@ public class AccountDeletionService(
         // shows "Took the Black" everywhere the UI displays a name.
         user.UserName = user.Id.ToString();
         user.NormalizedUserName = user.UserName.ToUpperInvariant();
-        user.Email = null;
-        user.NormalizedEmail = null;
+
+        // Can't null Email out either: Identity's default UserValidator rejects a null/empty
+        // email outright whenever options.User.RequireUniqueEmail is true (see Program.cs),
+        // regardless of the column itself being nullable. ".invalid" is the RFC 2606 TLD
+        // reserved for exactly this - a syntactically valid but guaranteed-undeliverable address.
+        user.Email = $"{user.Id:N}@deleted.invalid";
+        user.NormalizedEmail = user.Email.ToUpperInvariant();
         user.EmailConfirmed = false;
+        user.EmailNotificationActive = false;
         user.PasswordHash = null;
         user.ProfileText = null;
         user.LastWonTournament = null;
@@ -81,6 +87,14 @@ public class AccountDeletionService(
         {
             await userManager.UpdateSecurityStampAsync(user);
             logger.LogInformation("User {UserId} soft-deleted ('Took the Black').", user.Id);
+        }
+        else
+        {
+            logger.LogError(
+                "Soft-deleting user {UserId} failed: {Errors}",
+                user.Id,
+                string.Join("; ", result.Errors.Select(e => $"{e.Code}: {e.Description}"))
+            );
         }
 
         return result;

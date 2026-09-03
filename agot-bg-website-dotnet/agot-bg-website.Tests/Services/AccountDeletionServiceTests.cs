@@ -29,7 +29,14 @@ public class AccountDeletionServiceTests : IDisposable
         );
         services.AddLogging();
         services
-            .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
+            .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+            {
+                // Mirror Program.cs's Identity configuration so this test exercises the same
+                // validators production actually runs under - RequireUniqueEmail rejects a
+                // null/empty Email regardless of the column itself being nullable, which is
+                // exactly what broke soft-deletion (see AccountDeletionService).
+                options.User.RequireUniqueEmail = true;
+            })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
@@ -82,12 +89,13 @@ public class AccountDeletionServiceTests : IDisposable
         Assert.True(user.IsDeleted);
         Assert.NotNull(user.DeletedAt);
         Assert.Equal(user.Id.ToString(), user.UserName);
-        Assert.Null(user.Email);
-        Assert.Null(user.NormalizedEmail);
+        Assert.Equal($"{user.Id:N}@deleted.invalid", user.Email);
+        Assert.Equal(user.Email!.ToUpperInvariant(), user.NormalizedEmail);
         Assert.Null(user.PasswordHash);
         Assert.Null(user.ProfileText);
         Assert.Null(user.LastWonTournament);
         Assert.False(user.EmailConfirmed);
+        Assert.False(user.EmailNotificationActive);
         Assert.NotEqual(originalGameToken, user.GameToken);
         Assert.Equal("Took the Black", user.DisplayName);
         Assert.Empty(await _userManager.GetRolesAsync(user));
