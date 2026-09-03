@@ -185,7 +185,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             return string.Format(
                 CultureInfo.InvariantCulture,
                 AuthenticatorUriFormat,
-                _urlEncoder.Encode("Microsoft.AspNetCore.Identity.UI"),
+                _urlEncoder.Encode("Swords and Ravens"),
                 _urlEncoder.Encode(email),
                 unformattedKey
             );
