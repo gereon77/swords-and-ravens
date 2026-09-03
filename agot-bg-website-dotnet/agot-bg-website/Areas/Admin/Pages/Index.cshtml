@@ -3,7 +3,10 @@
     ViewData["Title"] = "Admin";
 }
 
-<h1 class="text-2xl font-bold mb-4">Admin</h1>
+<div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold">Admin</h1>
+    <a class="btn btn-sm" href="/coreadmin" target="_blank" rel="noopener">Core Admin</a>
+</div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <a class="card bg-base-200 shadow p-4 hover:bg-base-300" asp-area="Admin" asp-page="/Users/Index">

@@ -34,7 +34,6 @@
                         @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
                         {
                             <a class="nav-link" asp-area="Admin" asp-page="/Index">Admin</a>
-                            <a class="nav-link" href="/coreadmin" target="_blank" rel="noopener">CoreAdmin</a>
                         }
                     </div>
                     <div class="dropdown dropdown-end lg:hidden">
@@ -53,7 +52,6 @@
                             @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
                             {
                                 <li><a asp-area="Admin" asp-page="/Index">Admin</a></li>
-                                <li><a href="/coreadmin" target="_blank" rel="noopener">CoreAdmin</a></li>
                             }
                         </ul>
                     </div>
