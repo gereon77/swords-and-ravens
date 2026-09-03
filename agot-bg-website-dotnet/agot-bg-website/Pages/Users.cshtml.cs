@@ -10,10 +10,11 @@ using Microsoft.EntityFrameworkCore;
 namespace agot_bg_website.Pages;
 
 /// <summary>
-/// Public, anonymously-accessible directory of registered users - the .NET equivalent of the
-/// individual <c>/User/{id}</c> profile page but as a searchable list (Django never had this;
-/// it only offered the individual profile page and a "currently online" chat widget). Unlike the
-/// Admin area's own Users page (<c>Areas/Admin/Pages/Users/Index.cshtml.cs</c>), this page never
+/// Directory of registered users, gated to logged-in members only (see the "/Users"
+/// AuthorizePage convention in Program.cs) - the .NET equivalent of the individual
+/// <c>/User/{id}</c> profile page but as a searchable list (Django never had this; it only
+/// offered the individual profile page and a "currently online" chat widget). Unlike the Admin
+/// area's own Users page (<c>Areas/Admin/Pages/Users/Index.cshtml.cs</c>), this page never
 /// exposes email addresses, role/permission editing, or account deletion - it only lets users with
 /// the <see cref="GamePermissions.ManageUserStatus"/> permission (Admin and High Member by
 /// default) toggle the On probation/Tongueless/Banned status of other, non-staff members.
@@ -21,7 +22,7 @@ namespace agot_bg_website.Pages;
 public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
     : PageModel
 {
-    private const int DefaultPageSize = 25;
+    private const int DefaultPageSize = 10;
 
     /// <summary>Roles a moderator is never allowed to alter here, to prevent High Members from
     /// banning/tonguing each other or Admins - only plain Members can be moderated this way.</summary>

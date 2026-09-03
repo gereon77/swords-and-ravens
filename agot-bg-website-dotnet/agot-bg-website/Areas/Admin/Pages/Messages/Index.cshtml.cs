@@ -9,7 +9,7 @@ namespace agot_bg_website.Areas.Admin.Pages.Messages;
 
 public class IndexModel(ApplicationDbContext db) : PageModel
 {
-    private const int DefaultPageSize = 50;
+    private const int DefaultPageSize = 10;
 
     /// <summary>
     /// Messages must be browsed one room at a time: the table is expected to reach 2M+ rows after

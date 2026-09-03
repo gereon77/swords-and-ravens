@@ -36,7 +36,7 @@
     var pageSizeStorageKey = "pageSize:" + Context.Request.Path;
 }
 
-<div class="flex flex-wrap items-center gap-4 mt-4 text-sm" data-page-size-widget data-storage-key="@pageSizeStorageKey" data-rendered-size="@Model.PageSize">
+<div class="flex flex-wrap items-center justify-end gap-4 mt-4 text-sm" data-page-size-widget data-storage-key="@pageSizeStorageKey" data-rendered-size="@Model.PageSize">
     <form method="get" class="flex items-center gap-2" data-page-size-form>
         @foreach (var (key, value) in HiddenParams("pageSize", "pageNumber"))
         {
