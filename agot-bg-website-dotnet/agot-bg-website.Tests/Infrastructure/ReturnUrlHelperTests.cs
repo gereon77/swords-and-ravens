@@ -27,7 +27,7 @@ public class ReturnUrlHelperTests
     [InlineData("/Games")]
     [InlineData("/MyGames")]
     [InlineData("/User/00000000-0000-0000-0000-000000000000")]
-    [InlineData("/Rules")]
+    [InlineData("/terms-of-use")]
     public void NormalizeAfterLogin_OtherPage_LeavesReturnUrlUntouched(string returnUrl)
     {
         Assert.Equal(returnUrl, ReturnUrlHelper.NormalizeAfterLogin(returnUrl));

@@ -27,9 +27,10 @@
                         {
                             <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
                             <a class="nav-link" asp-area="" asp-page="/MyGames">My Games</a>
-                            <a class="nav-link" asp-area="" asp-page="/Rules">Terms of Use</a>
                             <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
                         }
+                        <a class="nav-link" asp-area="" asp-page="/Users">Users</a>
+                        <a class="nav-link" asp-area="" asp-page="/TermsOfUse">Terms of Use</a>
                         <a class="nav-link" asp-area="" asp-page="/About">About</a>
                         @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
                         {
@@ -45,9 +46,10 @@
                             {
                                 <li><a asp-area="" asp-page="/Games">All Games</a></li>
                                 <li><a asp-area="" asp-page="/MyGames">My Games</a></li>
-                                <li><a asp-area="" asp-page="/Rules">Terms of Use</a></li>
                                 <li><a href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a></li>
                             }
+                            <li><a asp-area="" asp-page="/Users">Users</a></li>
+                            <li><a asp-area="" asp-page="/TermsOfUse">Terms of Use</a></li>
                             <li><a asp-area="" asp-page="/About">About</a></li>
                             @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
                             {

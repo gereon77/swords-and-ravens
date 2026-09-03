@@ -167,11 +167,12 @@ builder.Services.AddRazorPages(options =>
     // `user.is_staff` gate on /admin.
     options.Conventions.AuthorizeAreaFolder("Admin", "/", "AdminArea");
 
-    // All Games / My Games / Rules require a logged-in user — matches nav links only being shown
-    // to authenticated users (FAQ is an external link so it's just hidden, not gated server-side).
+    // All Games / My Games require a logged-in user — matches nav links only being shown to
+    // authenticated users (FAQ is an external link so it's just hidden, not gated server-side).
+    // Terms of Use is intentionally anonymous: OAuth providers (Discord/Google/Facebook) require a
+    // publicly reachable terms-of-use URL during app review, before a user can log in at all.
     options.Conventions.AuthorizePage("/Games");
     options.Conventions.AuthorizePage("/MyGames");
-    options.Conventions.AuthorizePage("/Rules");
 });
 
 // External logins: Google/Discord/Facebook — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
