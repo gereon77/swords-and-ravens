@@ -1,5 +1,6 @@
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -30,7 +31,7 @@ public static class NotificationsApi
             game => $"Your game is ready to start: {game.Name}",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"Your game &quot;{HtmlEncode(game.Name)}&quot; is ready to start:",
                     gameUrl
                 )
@@ -39,7 +40,7 @@ public static class NotificationsApi
             game => $"It's your turn in '{game.Name}'",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"It's your turn to play in &quot;{HtmlEncode(game.Name)}&quot;:",
                     gameUrl
                 )
@@ -48,7 +49,7 @@ public static class NotificationsApi
             game => $"You are attacked and now can call for support in '{game.Name}'",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"You are attacked in the game &quot;{HtmlEncode(game.Name)}&quot; and now you can call for support or try to bribe your way there:",
                     gameUrl
                 )
@@ -57,7 +58,7 @@ public static class NotificationsApi
             game => $"Your battle is over in '{game.Name}'",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"Your battle in &quot;{HtmlEncode(game.Name)}&quot; is over:",
                     gameUrl
                 )
@@ -66,7 +67,7 @@ public static class NotificationsApi
             game => $"Your vote is needed in '{game.Name}'",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"a new vote has been started in &quot;{HtmlEncode(game.Name)}&quot;:",
                     gameUrl
                 )
@@ -75,7 +76,7 @@ public static class NotificationsApi
             game => $"Game has ended -  {game.Name}",
             (user, game, gameUrl) =>
                 BuildNotificationEmailHtml(
-                    user.UserName,
+                    user,
                     $"The game &quot;{HtmlEncode(game.Name)}&quot; has ended:",
                     gameUrl
                 )
@@ -90,20 +91,21 @@ public static class NotificationsApi
     ) => Templates[route].Body(user, game, gameUrl);
 
     internal static string BuildNotificationEmailHtml(
-        string? userName,
+        ApplicationUser user,
         string explanationHtml,
         string gameUrl
     )
     {
-        var encodedUserName = HtmlEncode(userName);
         var encodedGameUrl = HtmlEncode(gameUrl);
 
-        return $"""
-            <p>Hello {encodedUserName},</p>
+        return EmailTemplates.Build(
+            user.UserName,
+            user.Email,
+            $"""
             <p>{explanationHtml}</p>
             <p><a href="{encodedGameUrl}">{encodedGameUrl}</a></p>
-            <p>Warmest regards,<br />Staff @ Swords and Ravens</p>
-            """;
+            """
+        );
     }
 
     private static string HtmlEncode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);

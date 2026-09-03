@@ -6,6 +6,7 @@ using agot_bg_website.Data;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
+using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -429,7 +430,6 @@ public static class ChatWebSocketApi
 
         var request = context.Request;
         var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
-        var encodedUserName = WebUtility.HtmlEncode(recipient.UserName ?? string.Empty);
         var encodedGameName = WebUtility.HtmlEncode(game.Name);
         var encodedHouse = WebUtility.HtmlEncode(fromHouse);
         var encodedGameUrl = WebUtility.HtmlEncode(gameUrl);
@@ -440,13 +440,15 @@ public static class ChatWebSocketApi
             .HtmlEncode(message.Text)
             .Replace("\r\n", "<br />")
             .Replace("\n", "<br />");
-        var body = $"""
-            <p>Hello {encodedUserName},</p>
+        var body = EmailTemplates.Build(
+            recipient.UserName,
+            recipient.Email,
+            $"""
             <p>House {encodedHouse} has sent you a raven in the game &quot;{encodedGameName}&quot;:</p>
             <blockquote>{encodedMessage}</blockquote>
             <p><a href="{encodedGameUrl}">{encodedGameUrl}</a></p>
-            <p>Warmest regards,<br />Staff @ Swords and Ravens</p>
-            """;
+            """
+        );
 
         await emailSender.SendEmailAsync(
             recipient.Email,
