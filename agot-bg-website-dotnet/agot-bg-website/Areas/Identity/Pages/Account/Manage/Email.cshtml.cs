@@ -136,7 +136,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 await _emailSender.SendEmailAsync(
                     Input.NewEmail,
                     "Confirm your email",
-                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                    EmailTemplates.Build(
+                        user.UserName,
+                        email,
+                        $"<p>Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.</p>"
+                    )
                 );
 
                 StatusMessage = "Confirmation link to change email sent. Please check your email.";
@@ -179,7 +183,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             await _emailSender.SendEmailAsync(
                 email,
                 "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                EmailTemplates.Build(
+                    user.UserName,
+                    email,
+                    $"<p>Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.</p>"
+                )
             );
 
             StatusMessage = "Verification email sent. Please check your email.";

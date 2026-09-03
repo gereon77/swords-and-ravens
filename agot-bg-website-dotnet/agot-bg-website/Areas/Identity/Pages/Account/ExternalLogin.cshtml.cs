@@ -326,7 +326,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                         await _emailSender.SendEmailAsync(
                             Input.Email,
                             "Confirm your email",
-                            $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>."
+                            EmailTemplates.Build(
+                                null,
+                                Input.Email,
+                                $"<p>Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.</p>"
+                            )
                         );
 
                         // If account confirmation is required, we need to show the link if we don't have a real email sender
