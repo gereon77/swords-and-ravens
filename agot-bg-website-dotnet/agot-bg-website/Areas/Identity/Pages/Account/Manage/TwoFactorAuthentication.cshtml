@@ -44,11 +44,11 @@
 
             if (Model.IsMachineRemembered)
             {
-                <form method="post" style="display: inline-block">
+                <form method="post" style="display: inline-block" class="mt-4">
                     <button type="submit" class="btn btn-primary">Forget this browser</button>
                 </form>
             }
-            <div class="flex flex-wrap gap-3 mb-4">
+            <div class="flex flex-wrap gap-3 mt-4 mb-4">
                 <a asp-page="./Disable2fa" class="btn btn-primary">Disable 2FA</a>
                 <a asp-page="./GenerateRecoveryCodes" class="btn btn-primary">Reset recovery codes</a>
             </div>
