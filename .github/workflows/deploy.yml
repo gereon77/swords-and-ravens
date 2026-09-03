@@ -13,8 +13,9 @@ env:
   WEBSITE_IMAGE: ghcr.io/gereon77/swords-and-ravens/website:${{ github.sha }}
   GAME_SERVER_IMAGE: ghcr.io/gereon77/swords-and-ravens/game-server:${{ github.sha }}
   # DigitalOcean Spaces CDN base URL the game client's webpack build embeds into its JS/CSS
-  # asset URLs (see webpack.client.js's ASSET_PATH). Update if the bucket/region ever changes.
-  ASSET_PATH: https://swords-and-ravens.ams3.cdn.digitaloceanspaces.com/
+  # asset URLs (see webpack.client.js's ASSET_PATH). Must match the bucket's actual region slug
+  # (fra1 = Frankfurt) - update if the bucket/region ever changes.
+  ASSET_PATH: https://swords-and-ravens.fra1.cdn.digitaloceanspaces.com/
   # `user@host` for the production droplet. The droplet must already have a one-time
   # `docker login ghcr.io` done (PAT with read:packages) so `docker compose pull` below can
   # authenticate — see MIGRATION_PLAN.md §16 Phase 2.
@@ -53,10 +54,11 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # DigitalOcean Spaces ignores the actual region value, but botocore/aws-cli crashes with
-      # "argument of type 'NoneType' is not a container or iterable" during `s3 sync --acl ...`
-      # if no region is configured at all - any non-empty value satisfies it.
-      AWS_DEFAULT_REGION: us-east-1
+      # DigitalOcean Spaces ignores the actual region value for auth, but botocore/aws-cli crashes
+      # with "argument of type 'NoneType' is not a container or iterable" during `s3 sync --acl ...`
+      # if no region is configured at all. Use the bucket's real region slug (fra1 = Frankfurt),
+      # since it's also part of the SigV4 signing scope DO Spaces validates.
+      AWS_DEFAULT_REGION: fra1
     steps:
       - uses: actions/download-artifact@v4
         with:
