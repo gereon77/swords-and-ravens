@@ -1,128 +1,138 @@
 name: Deploy
 
+# Manual trigger only for now, while the DigitalOcean droplet + repo secrets are still being
+# finished (see agot-bg-website-dotnet/MIGRATION_PLAN.md §16 Phase 2). Once ready to cut over from
+# the old Dokku deployment, change this to `push: branches: [master]` (or whatever branch becomes
+# the deploy branch after this migration branch is merged).
 on:
-  push:
-    branches:
-    - master
+  workflow_dispatch:
 
 env:
-  GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE: ghcr.io/longwelwind/swords-and-ravens/game_server:${{ github.sha }}
-  GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE: ghcr.io/longwelwind/swords-and-ravens/website:${{ github.sha }}
-  DOKKU_GAME_SERVER_DOCKER_IMAGE: dokku/play:${{ github.sha }}
-  DOKKU_WEBSITE_DOCKER_IMAGE: dokku/swordsandravens.net:${{ github.sha }}
-  DOKKU_HOST: root@swordsandravens.net
+  # GHCR image tags this run builds/deploys — pinned to the commit SHA (mirrors the old Dokku-era
+  # deploy.yml's ${{ github.sha }} tags), not `:latest`, so a deploy is always reproducible.
+  WEBSITE_IMAGE: ghcr.io/gereon77/swords-and-ravens/website:${{ github.sha }}
+  GAME_SERVER_IMAGE: ghcr.io/gereon77/swords-and-ravens/game-server:${{ github.sha }}
+  # DigitalOcean Spaces CDN base URL the game client's webpack build embeds into its JS/CSS
+  # asset URLs (see webpack.client.js's ASSET_PATH). Update if the bucket/region ever changes.
+  ASSET_PATH: https://swords-and-ravens.ams3.cdn.digitaloceanspaces.com/
+  # `user@host` for the production droplet. The droplet must already have a one-time
+  # `docker login ghcr.io` done (PAT with read:packages) so `docker compose pull` below can
+  # authenticate — see MIGRATION_PLAN.md §16 Phase 2.
+  DEPLOY_HOST: root@165.245.221.184
 
 jobs:
-  game-server-docker-build:
-    name: Game Server Docker Image Build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-    - uses: actions/checkout@v1
-    - name: Login to GitHub Container Registry
-      run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-    - name: Build game-server Docker image
-      run: docker build -f ./game_server.Dockerfile -t $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE .
-    - name: Upload Docker image to GitHub Packages
-      run: docker push $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE
-  website-docker-build:
-    name: Website Docker Image Build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-    - uses: actions/checkout@v1
-    - name: Login to GitHub Container Registry
-      run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-    - name: Build game-server Docker image
-      run: docker build -f ./website.Dockerfile -t $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE .
-    - name: Upload Docker image to GitHub Packages
-      run: docker push $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE
-  build-assets:
-    name: Build game assets
+  build-game-client-assets:
+    name: Build game client assets
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./agot-bg-game-server
-    env:
-      ASSET_PATH: https://swords-and-ravens.ams3.cdn.digitaloceanspaces.com/
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 16
-    - name: Install dependencies
-      run: yarn install --frozen-lockfile
-    - name: Build assets
-      run: yarn run generate-json-schemas && yarn run build-client
-    - uses: actions/upload-artifact@v4
-      with:
-        name: front-end-game-server
-        path: agot-bg-game-server/dist
-        retention-days: 1
-  deploy:
-    name: Deploy
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Generate JSON schemas
+        run: yarn run generate-json-schemas
+      - name: Build client
+        # Production build only — assets are served from DigitalOcean Spaces (ASSET_PATH above),
+        # never baked into the website Docker image itself.
+        run: yarn run build-client
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-client-dist
+          path: agot-bg-game-server/dist
+          retention-days: 1
+
+  upload-static-assets:
+    name: Upload static assets to DigitalOcean Spaces
+    runs-on: ubuntu-latest
+    needs: [build-game-client-assets]
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-client-dist
+          path: dist
+      - name: Sync built assets to the Spaces bucket
+        # index.html is excluded here — it isn't a static asset, it becomes the website's
+        # GameClientTemplates/play.html template instead (see build-website-image below).
+        run: |
+          aws s3 sync dist/ "s3://${{ secrets.AWS_STORAGE_BUCKET_NAME }}/" \
+            --endpoint-url "${{ secrets.AWS_S3_ENDPOINT_URL }}" \
+            --exclude "index.html" \
+            --acl public-read \
+            --delete
+
+  build-website-image:
+    name: Build & push website Docker image
+    runs-on: ubuntu-latest
+    needs: [build-game-client-assets]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-client-dist
+          path: agot-bg-game-server/dist
+      - name: Place generated play.html template
+        # PlayApi.cs reads this file at runtime (falls back to play_fake.html if absent) — see
+        # MIGRATION_PLAN.md §8.3/§8.4. Its script/link tags already point at the Spaces CDN
+        # (ASSET_PATH baked in during the build-game-client-assets job above), so the website
+        # image itself never needs the actual JS/CSS bundles.
+        run: |
+          mkdir -p agot-bg-website-dotnet/agot-bg-website/GameClientTemplates
+          cp agot-bg-game-server/dist/index.html agot-bg-website-dotnet/agot-bg-website/GameClientTemplates/play.html
+      - name: Login to GitHub Container Registry
+        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image
+        run: docker build -f agot-bg-website-dotnet/agot-bg-website/Dockerfile -t $WEBSITE_IMAGE agot-bg-website-dotnet
+      - name: Push image
+        run: docker push $WEBSITE_IMAGE
+
+  build-game-server-image:
+    name: Build & push game-server Docker image
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
-    needs: [game-server-docker-build, website-docker-build, build-assets]
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image
+        run: docker build -f game_server.Dockerfile -t $GAME_SERVER_IMAGE .
+      - name: Push image
+        run: docker push $GAME_SERVER_IMAGE
+
+  deploy:
+    name: Deploy to droplet
+    runs-on: ubuntu-latest
+    needs: [build-website-image, build-game-server-image, upload-static-assets]
     env:
       SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
     steps:
-    - name: Login to GitHub Container Registry
-      run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-    - name: Setup SSH Key
-      run: mkdir -p ~/.ssh && echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
-    - name: Pulling Game Server Docker Image
-      run: docker pull $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE
-    - name: Pulling Website Docker Image
-      run: docker pull $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE
-    - name: Tagging Game Server Docker Image
-      run: docker tag $GITHUB_PACKAGES_GAME_SERVER_DOCKER_IMAGE $DOKKU_GAME_SERVER_DOCKER_IMAGE
-    - name: Tagging Website Docker Image
-      run: docker tag $GITHUB_PACKAGES_WEBSITE_DOCKER_IMAGE $DOKKU_WEBSITE_DOCKER_IMAGE
-    - name: Upload Game Server Docker Image to Dokku
-      run: docker save $DOKKU_GAME_SERVER_DOCKER_IMAGE | bzip2 | ssh -o StrictHostKeyChecking=no $DOKKU_HOST "bunzip2 | docker load"
-    - name: Upload Website Docker Image to Dokku
-      run: docker save $DOKKU_WEBSITE_DOCKER_IMAGE | bzip2 | ssh -o StrictHostKeyChecking=no $DOKKU_HOST "bunzip2 | docker load"
-    - name: Deploy Game Server
-      run: ssh -o StrictHostKeyChecking=no $DOKKU_HOST "dokku tags:deploy play ${{ github.sha }}"
-    - name: Deploy Website
-      run: ssh -o StrictHostKeyChecking=no $DOKKU_HOST "dokku tags:deploy swordsandravens.net ${{ github.sha }}"
-    - name: Clean Host
-      run: ssh -o StrictHostKeyChecking=no $DOKKU_HOST "docker system prune -a -f --filter \"until=45m\""
-  deploy-static-assets:
-    name: Deploy Static Assets
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./agot-bg-website
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_LOCATION: ${{ secrets.AWS_LOCATION }}
-      AWS_S3_ENDPOINT_URL: ${{ secrets.AWS_S3_ENDPOINT_URL }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
-    needs: [build-assets]
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v3
-      with:
-        python-version: '3.8.16'
-    - name: Install python dependencies
-      run:  pip install -r requirements.txt
-    - name: Copy dev config
-      run: mv .env.dev .env
-    - name: Download static assets
-      uses: actions/download-artifact@v4
-      with:
-        name: front-end-game-server
-        path: agot-bg-website/dist/
-    - name: Copy assets
-      run: cp -r dist/. static_game/
-    - name: Upload assets
-      run: DEBUG=0 NO_DATABASE=1 python manage.py collectstatic --no-input
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 400 ~/.ssh/id_rsa
+      - name: Pull new images and restart containers
+        # `website`/`game-server` only — db/redis/caddy are untouched by deploys (see
+        # docker-compose.prod.yml). WEBSITE_IMAGE/GAME_SERVER_IMAGE passed as shell env vars here
+        # override whatever's sitting in .env.prod, without needing to edit that file every run.
+        run: |
+          ssh -o StrictHostKeyChecking=no $DEPLOY_HOST \
+            "cd /opt/swords-and-ravens && \
+             WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod pull website game-server && \
+             WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d website game-server"
+      - name: Clean up old images on the droplet
+        run: ssh -o StrictHostKeyChecking=no $DEPLOY_HOST "docker image prune -a -f --filter \"until=45m\""

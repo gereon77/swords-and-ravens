@@ -50,6 +50,7 @@ public static class ChatWebSocketApi
                 ChatPresenceService presence,
                 IMemoryCache memoryCache,
                 IEmailSender emailSender,
+                IConfiguration configuration,
                 ILogger<ChatBroadcaster> logger
             ) =>
             {
@@ -144,6 +145,7 @@ public static class ChatWebSocketApi
                         presence,
                         memoryCache,
                         emailSender,
+                        configuration,
                         logger
                     );
                 }
@@ -196,6 +198,7 @@ public static class ChatWebSocketApi
         ChatPresenceService presence,
         IMemoryCache memoryCache,
         IEmailSender emailSender,
+        IConfiguration configuration,
         ILogger logger
     )
     {
@@ -251,6 +254,7 @@ public static class ChatWebSocketApi
                             presence,
                             memoryCache,
                             emailSender,
+                            configuration,
                             logger
                         );
                         break;
@@ -285,6 +289,7 @@ public static class ChatWebSocketApi
         ChatPresenceService presence,
         IMemoryCache memoryCache,
         IEmailSender emailSender,
+        IConfiguration configuration,
         ILogger logger
     )
     {
@@ -365,6 +370,7 @@ public static class ChatWebSocketApi
                 db,
                 memoryCache,
                 emailSender,
+                configuration,
                 roomId,
                 user,
                 message,
@@ -382,6 +388,7 @@ public static class ChatWebSocketApi
         ApplicationDbContext db,
         IMemoryCache memoryCache,
         IEmailSender emailSender,
+        IConfiguration configuration,
         Guid roomId,
         ApplicationUser sender,
         Message message,
@@ -428,8 +435,17 @@ public static class ChatWebSocketApi
         }
         memoryCache.Set(dedupeKey, true, TimeSpan.FromMinutes(7));
 
+        // Same reasoning as NotificationsApi's NotifyEndpoint: behind the production reverse
+        // proxy, context.Request.Scheme/Host reflect the proxy's connection to Kestrel (plain
+        // http on the container network), not the public https://<site> URL a human actually
+        // browsed to — so building links from the request alone silently produces broken/
+        // insecure URLs in emails. Use the configured public site URL instead, falling back to
+        // the request's own host only if it's not configured (e.g. plain local dev).
         var request = context.Request;
-        var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
+        var publicSiteUrl = (
+            configuration["PublicSiteUrl"] ?? $"{request.Scheme}://{request.Host}"
+        ).TrimEnd('/');
+        var gameUrl = $"{publicSiteUrl}/play/{gameId}";
         var encodedGameName = WebUtility.HtmlEncode(game.Name);
         var encodedHouse = WebUtility.HtmlEncode(fromHouse);
         var encodedGameUrl = WebUtility.HtmlEncode(gameUrl);

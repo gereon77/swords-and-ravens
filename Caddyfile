@@ -1,0 +1,10 @@
+# Caddy is the reverse proxy / TLS terminator for the production/staging deployment (see
+# docker-compose.prod.yml). It automatically obtains and renews a Let's Encrypt certificate for
+# the domain(s) below the first time they're requested — no manual certbot/nginx config needed.
+#
+# Currently pointed at the pre-cutover test domain (winordie.net). Once ready to go live, add (or
+# switch to) swordsandravens.net here — Caddy will request a new certificate for it automatically,
+# no other changes required. Multiple domains can point at the same site block, comma-separated.
+winordie.net {
+	reverse_proxy website:8000
+}

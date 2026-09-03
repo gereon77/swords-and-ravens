@@ -16,6 +16,14 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// No more "Development" ASPNETCORE_ENVIRONMENT anywhere (local debugging happens via Docker +
+// user secrets, "Staging" is the DO droplet, unset/"Production" is the eventual live site —
+// see appsettings.Staging.json and README.md's "Environments" section). WebApplicationBuilder
+// only wires up user secrets automatically when the environment is "Development", so without that
+// this has to be added explicitly - keeps `dotnet user-secrets set ...` working locally exactly as
+// before, regardless of which environment name is actually active.
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+
 // The /api/* Minimal API endpoints (Api/UsersApi.cs, GamesApi.cs, RoomsApi.cs,
 // NotificationsApi.cs) are the private REST contract the TS game server's
 // WebsiteClient.ts/LiveWebsiteClient.ts speak — a straight port of Django's snake_case DRF
@@ -38,7 +46,6 @@ var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Third-party "CoreAdmin" NuGet package, kept alongside the hand-built Admin area
 // (Users/Games/Rooms/Messages) rather than replacing it. It auto-scans ApplicationDbContext and
@@ -265,15 +272,11 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseMigrationsEndPoint();
-}
-else
-{
-    app.UseExceptionHandler("/Error");
-}
+// Configure the HTTP request pipeline. No "Development" environment is ever used (see the
+// AddUserSecrets comment above), so there's no dev-only branch here anymore — every environment
+// (local Docker debug, Staging on the DO droplet, eventual Production) gets the same
+// production-safe error page rather than the EF Core migrations-endpoint/detailed-exception page.
+app.UseExceptionHandler("/Error");
 
 app.UseHttpsRedirection();
 app.UseCookiePolicy();
@@ -349,6 +352,15 @@ app.MapScalarApiReference(
 
 using (var scope = app.Services.CreateScope())
 {
+    // Applies any pending EF Core migrations automatically on startup, in every environment
+    // (including local Docker debug) - replaces a separate manual `dotnet ef database update`
+    // step that would otherwise be needed after every deploy to the DO droplet. Safe to run on
+    // every restart: EF Core tracks already-applied migrations in the `__EFMigrationsHistory`
+    // table and this is a no-op once the schema is current. docker-compose.prod.yml's `db`
+    // service has a healthcheck and `website` depends on it with `condition: service_healthy`,
+    // so Postgres is already accepting connections by the time this runs.
+    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await PermissionSeeder.SeedAsync(scope.ServiceProvider);
     await RoomSeeder.SeedAsync(scope.ServiceProvider);

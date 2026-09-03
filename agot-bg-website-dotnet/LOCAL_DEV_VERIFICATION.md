@@ -60,9 +60,10 @@ placeholder-empty values checked into `appsettings.json`:
 - the app starts up fine with zero OAuth app registrations configured;
 - `/Identity/Account/Register` and `/Identity/Account/Login` (plain Identity forms) are the only
   sign-in options shown/available;
-- `options.SignIn.RequireConfirmedAccount` is set to `!builder.Environment.IsDevelopment()`, so
-  in Development a freshly-registered local account can log in immediately without needing a
-  working email sender to confirm the address (outside Development it stays `true`).
+- `options.SignIn.RequireConfirmedAccount` is always `true`, in every environment (including local
+  Docker debugging) — see Program.cs's comment on why: it exercises the real confirm-email flow
+  everywhere rather than silently skipping it in one environment, and the local SMTP catcher
+  (smtp4dev, see "Email" below) makes that painless to test against.
 
 To add real OAuth later (locally or in production), just populate the corresponding ClientId/
 ClientSecret via `dotnet user-secrets`/environment variables/`appsettings.*.json` — no code changes
