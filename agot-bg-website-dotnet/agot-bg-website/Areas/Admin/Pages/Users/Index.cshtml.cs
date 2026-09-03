@@ -15,13 +15,16 @@ public class IndexModel(
     UserStatsService userStatsService
 ) : PageModel
 {
-    private const int PageSize = 50;
+    private const int DefaultPageSize = 25;
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = DefaultPageSize;
 
     public List<ApplicationUser> Users { get; set; } = [];
 
@@ -34,6 +37,8 @@ public class IndexModel(
 
     public async Task OnGetAsync()
     {
+        PageSize = PagingExtensions.NormalizePageSize(PageSize, DefaultPageSize);
+
         var query = userManager.Users.AsQueryable();
         if (!string.IsNullOrWhiteSpace(Search))
         {
@@ -76,7 +81,7 @@ public class IndexModel(
             StatusMessage = $"{user.UserName} has been banned.";
         }
 
-        return RedirectToPage(new { Search, PageNumber });
+        return RedirectToPage(new { Search, PageNumber, PageSize });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
@@ -91,7 +96,7 @@ public class IndexModel(
         await accountDeletionService.DeleteAccountAsync(user);
         StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
 
-        return RedirectToPage(new { Search, PageNumber });
+        return RedirectToPage(new { Search, PageNumber, PageSize });
     }
 
     /// <summary>
@@ -113,6 +118,6 @@ public class IndexModel(
         await userStatsService.RecalculateAsync(id);
         StatusMessage = $"Recalculated cached win-rate stats for {user.DisplayName}.";
 
-        return RedirectToPage(new { Search, PageNumber });
+        return RedirectToPage(new { Search, PageNumber, PageSize });
     }
 }

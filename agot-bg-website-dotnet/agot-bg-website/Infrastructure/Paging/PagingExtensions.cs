@@ -13,6 +13,26 @@ namespace agot_bg_website.Infrastructure.Paging;
 /// </summary>
 public static class PagingExtensions
 {
+    /// <summary>
+    /// Smallest/largest page size a user is allowed to pick via the "Items per page" control on
+    /// <c>Pages/Shared/_Pager.cshtml</c> - keeps a tampered querystring/localStorage value from
+    /// forcing an unreasonably large (or a useless zero/negative) page.
+    /// </summary>
+    public const int MinPageSize = 5;
+    public const int MaxPageSize = 500;
+
+    /// <summary>
+    /// Clamps a user-supplied (querystring or localStorage-sourced) page size into
+    /// [<see cref="MinPageSize"/>, <see cref="MaxPageSize"/>], falling back to
+    /// <paramref name="defaultPageSize"/> when absent or not a positive number.
+    /// </summary>
+    public static int NormalizePageSize(int requestedPageSize, int defaultPageSize) =>
+        Math.Clamp(
+            requestedPageSize <= 0 ? defaultPageSize : requestedPageSize,
+            MinPageSize,
+            MaxPageSize
+        );
+
     public static async Task<PagedResult<T>> ToPagedResultAsync<T>(
         this IQueryable<T> query,
         int pageNumber,

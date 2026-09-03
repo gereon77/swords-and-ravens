@@ -9,13 +9,16 @@ namespace agot_bg_website.Areas.Admin.Pages.Rooms;
 
 public class IndexModel(ApplicationDbContext db) : PageModel
 {
-    private const int PageSize = 50;
+    private const int DefaultPageSize = 25;
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = DefaultPageSize;
 
     public List<Room> Rooms { get; set; } = [];
 
@@ -25,6 +28,8 @@ public class IndexModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
+        PageSize = PagingExtensions.NormalizePageSize(PageSize, DefaultPageSize);
+
         var query = db.Rooms.AsQueryable();
         if (!string.IsNullOrWhiteSpace(Search))
         {

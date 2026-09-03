@@ -9,7 +9,7 @@ namespace agot_bg_website.Areas.Admin.Pages.Messages;
 
 public class IndexModel(ApplicationDbContext db) : PageModel
 {
-    private const int PageSize = 100;
+    private const int DefaultPageSize = 50;
 
     /// <summary>
     /// Messages must be browsed one room at a time: the table is expected to reach 2M+ rows after
@@ -26,6 +26,9 @@ public class IndexModel(ApplicationDbContext db) : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
 
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = DefaultPageSize;
+
     public List<Message> Messages { get; set; } = [];
 
     public PagerInfo Pager { get; set; } = null!;
@@ -36,6 +39,8 @@ public class IndexModel(ApplicationDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
+        PageSize = PagingExtensions.NormalizePageSize(PageSize, DefaultPageSize);
+
         RecentRooms = await db.Rooms.OrderByDescending(r => r.CreatedAt).Take(200).ToListAsync();
 
         if (RoomId is null)

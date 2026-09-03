@@ -21,7 +21,7 @@ namespace agot_bg_website.Pages;
 public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
     : PageModel
 {
-    private const int PageSize = 50;
+    private const int DefaultPageSize = 25;
 
     /// <summary>Roles a moderator is never allowed to alter here, to prevent High Members from
     /// banning/tonguing each other or Admins - only plain Members can be moderated this way.</summary>
@@ -32,6 +32,9 @@ public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorization
 
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = DefaultPageSize;
 
     public List<ApplicationUser> Users { get; set; } = [];
 
@@ -46,6 +49,8 @@ public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorization
 
     public async Task OnGetAsync()
     {
+        PageSize = PagingExtensions.NormalizePageSize(PageSize, DefaultPageSize);
+
         CanManageUserStatus = (
             await authorizationService.AuthorizeAsync(User, GamePermissions.ManageUserStatus)
         ).Succeeded;
@@ -94,7 +99,7 @@ public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorization
             // Refuse to touch Admins/High Members here, even if the caller crafted the request
             // manually - the UI never renders these buttons for them in the first place.
             StatusMessage = $"{user.UserName}'s status cannot be changed here.";
-            return RedirectToPage(new { Search, PageNumber });
+            return RedirectToPage(new { Search, PageNumber, PageSize });
         }
 
         var roleLabel = role switch
@@ -119,6 +124,6 @@ public class UsersModel(UserManager<ApplicationUser> userManager, IAuthorization
         // the PlayApi banned check.
         await userManager.UpdateSecurityStampAsync(user);
 
-        return RedirectToPage(new { Search, PageNumber });
+        return RedirectToPage(new { Search, PageNumber, PageSize });
     }
 }

@@ -8,11 +8,62 @@
         var pairs = query.Select(kv => new KeyValuePair<string, string?>(kv.Key, kv.Value.ToString()));
         return Context.Request.Path + QueryString.Create(pairs);
     }
+
+    // Every other current querystring param (Search, RoomId, ...) needs to be round-tripped as a
+    // hidden field on the small forms below, since a plain GET form only submits its own named
+    // inputs and would otherwise silently drop them.
+    IEnumerable<(string Key, string Value)> HiddenParams(params string[] excludedKeys)
+    {
+        foreach (var (key, values) in Context.Request.Query)
+        {
+            if (excludedKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (var value in values)
+            {
+                if (value is not null)
+                {
+                    yield return (key, value);
+                }
+            }
+        }
+    }
+
+    // Keyed by path so different list pages (Games/Rooms/Messages/Users/...) each remember their
+    // own preferred page size independently.
+    var pageSizeStorageKey = "pageSize:" + Context.Request.Path;
 }
+
+<div class="flex flex-wrap items-center gap-4 mt-4 text-sm" data-page-size-widget data-storage-key="@pageSizeStorageKey" data-rendered-size="@Model.PageSize">
+    <form method="get" class="flex items-center gap-2" data-page-size-form>
+        @foreach (var (key, value) in HiddenParams("pageSize", "pageNumber"))
+        {
+            <input type="hidden" name="@key" value="@value" />
+        }
+        <label for="pageSizeInput" class="opacity-70">Items per page:</label>
+        <input type="number" id="pageSizeInput" name="pageSize" min="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MinPageSize" max="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MaxPageSize" value="@Model.PageSize" class="input input-bordered input-sm w-20" />
+        <button type="submit" class="btn btn-sm">Apply</button>
+    </form>
+
+    @if (Model.TotalPages > 1)
+    {
+        <form method="get" class="flex items-center gap-2">
+            @foreach (var (key, value) in HiddenParams("pageNumber"))
+            {
+                <input type="hidden" name="@key" value="@value" />
+            }
+            <label for="pageNumberInput" class="opacity-70">Go to page:</label>
+            <input type="number" id="pageNumberInput" name="pageNumber" min="1" max="@Model.TotalPages" value="@Model.PageNumber" class="input input-bordered input-sm w-20" />
+            <button type="submit" class="btn btn-sm">Go</button>
+        </form>
+    }
+</div>
 
 @if (Model.TotalPages > 1)
 {
-    <div class="flex flex-wrap items-center justify-between gap-2 mt-4 text-sm">
+    <div class="flex flex-wrap items-center justify-between gap-2 mt-2 text-sm">
         <span class="opacity-70">Page @Model.PageNumber of @Model.TotalPages (@Model.TotalCount.ToString("N0") total)</span>
         <div class="join">
             @if (Model.HasPrevious)
@@ -39,3 +90,32 @@
         </div>
     </div>
 }
+
+<script>
+    (function () {
+        document.querySelectorAll('[data-page-size-widget]').forEach(function (widget) {
+            var storageKey = widget.dataset.storageKey;
+            var renderedSize = widget.dataset.renderedSize;
+            var storedSize = window.localStorage.getItem(storageKey);
+
+            // If the visitor previously picked a page size for this list and the current URL
+            // doesn't already reflect it (e.g. they navigated here fresh via a nav link), apply it
+            // now instead of showing the server's hardcoded default.
+            if (storedSize && storedSize !== renderedSize) {
+                var redirectUrl = new URL(window.location.href);
+                redirectUrl.searchParams.set('pageSize', storedSize);
+                redirectUrl.searchParams.set('pageNumber', '1');
+                window.location.replace(redirectUrl.toString());
+                return;
+            }
+
+            var form = widget.querySelector('[data-page-size-form]');
+            form?.addEventListener('submit', function () {
+                var input = form.querySelector('input[name="pageSize"]');
+                if (input) {
+                    window.localStorage.setItem(storageKey, input.value);
+                }
+            });
+        });
+    })();
+</script>

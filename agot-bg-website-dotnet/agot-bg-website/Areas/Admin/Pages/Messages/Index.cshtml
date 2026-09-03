@@ -9,6 +9,7 @@
 <h1 class="text-2xl font-bold mb-4">Messages</h1>
 
 <form method="get" class="mb-4 flex flex-wrap gap-2 items-center">
+    <input type="hidden" name="PageSize" value="@Model.PageSize" />
     <select name="RoomId" class="select select-bordered" onchange="this.form.submit()">
         <option value="">-- Select a room --</option>
         @foreach (var room in Model.RecentRooms)
