@@ -739,6 +739,7 @@ ENTRYPOINT ["dotnet", "Snr.Web.dll"]
 | `REDIS_URL` | `ConnectionStrings:Redis` |
 | `AWS_*` (S3 static storage) | `BlobStorage:*` (optional, only if you keep S3-hosted static assets) |
 | *(new, replicated from the game server's `.env`)* | `GameServer:MasterApiUsername/Password` — Basic Auth credentials the game server sends |
+| *(new)* | `PublicSiteUrl` — the public base URL (e.g. `https://swordsandravens.net`) used to build `/play/{gameId}` links in game-notification/private-message emails; the game-server-facing API only ever receives requests on its private internal port, so those emails can't derive the right host from the inbound request the way browser-triggered pages can |
 
 ### 9.2 Launching the website only
 

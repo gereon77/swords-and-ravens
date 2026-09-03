@@ -141,7 +141,8 @@ public static class NotificationsApi
                     NotifyRequest body,
                     HttpContext ctx,
                     ApplicationDbContext db,
-                    IEmailSender emailSender
+                    IEmailSender emailSender,
+                    IConfiguration configuration
                 ) =>
                 {
                     var game = await db
@@ -160,8 +161,17 @@ public static class NotificationsApi
                         )
                         .ToListAsync();
 
-                    var request = ctx.Request;
-                    var gameUrl = $"{request.Scheme}://{request.Host}/play/{gameId}";
+                    // This endpoint only ever runs on the private GameServerApi Kestrel endpoint
+                    // (see Program.cs's RequireLocalPort(gameServerApiPort)) - the TypeScript game
+                    // server dials that internal-only port/host directly, so ctx.Request.Host
+                    // here would be that internal address (e.g. "localhost:8001"), not the public
+                    // site humans actually browse to. Use the configured public site URL instead;
+                    // only fall back to the request's own host if it's not configured.
+                    var publicSiteUrl = (
+                        configuration["PublicSiteUrl"]
+                        ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}"
+                    ).TrimEnd('/');
+                    var gameUrl = $"{publicSiteUrl}/play/{gameId}";
                     var subject = template.Subject(game);
 
                     foreach (var user in users)
