@@ -212,14 +212,18 @@ public class UserModel(
     /// </summary>
     private async Task LoadPreviouslyParticipatedGamesAsync(Guid userId)
     {
-        // Filtered to Game.State == Finished to match RemovedFromGameCount/Replaced-left-early's
-        // exact same filter (LoadStatsAsync via UserStatsService) - a removal from a game that was
-        // later cancelled must never count towards, or even appear alongside, that stat (cancelled
+        // Filtered to Finished-or-Ongoing to match RemovedFromGameCount/Replaced-left-early's
+        // exact same filter (LoadStatsAsync via UserStatsService) - a removal counts as soon as
+        // it happens (even in a still-Ongoing game, since being voted out/timed out is always a
+        // loss regardless of whether anyone's won yet), but a removal from a game that was later
+        // cancelled must never count towards, or even appear alongside, that stat (cancelled
         // games never affect stats at all - MIGRATION_PLAN.md §10.2), so it's dropped here too
         // rather than only from the cached count.
         var rows = await db
             .PreviousPlayersInGame.Where(p =>
-                p.UserId == userId && p.Game != null && p.Game.State == GameState.Finished
+                p.UserId == userId
+                && p.Game != null
+                && (p.Game.State == GameState.Finished || p.Game.State == GameState.Ongoing)
             )
             .OrderByDescending(p => p.ReplacedAt)
             .Select(p => new

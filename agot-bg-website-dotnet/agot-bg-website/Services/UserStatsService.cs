@@ -10,9 +10,11 @@ namespace agot_bg_website.Services;
 /// faceless games, which the games list hides entirely too) - it deliberately excludes games left
 /// early (<paramref name="RemovedFromGameCount"/>) and never includes cancelled games, so it
 /// always reconciles with "Ongoing + Finished" on the profile's games list. <paramref
-/// name="WinRate"/>'s denominator is the only place left-early games get folded in (always as a
-/// loss), and it further excludes the tutorial variant and any row without a recorded outcome -
-/// see <see cref="WinRateCalculator"/>.</summary>
+/// name="RemovedFromGameCount"/> counts a removal as soon as it happens, whether the game has
+/// since finished or is still Ongoing - a player who was voted out/timed out doesn't get a pass
+/// just because nobody's won yet. <paramref name="WinRate"/>'s denominator is the only place
+/// left-early games get folded in (always as a loss), and it further excludes the tutorial
+/// variant and any row without a recorded outcome - see <see cref="WinRateCalculator"/>.</summary>
 public record UserStatsResult(
     int WonGamesCount,
     int FinishedGamesCount,
@@ -90,9 +92,14 @@ public sealed class UserStatsService(ApplicationDbContext db)
             })
             .ToList();
 
+        // A removal always counts as a loss regardless of whether the game has finished yet - a
+        // player voted out/timed out of a still-Ongoing game doesn't get a pass just because
+        // nobody's declared a winner yet. Only Cancelled (and InLobby, though a removal can't
+        // happen there) games are excluded, per "cancelled games never affect any stat at all".
         var removedFromGameCount = await db
             .PreviousPlayersInGame.Where(p =>
-                p.UserId == userId && p.Game!.State == GameState.Finished
+                p.UserId == userId
+                && (p.Game!.State == GameState.Finished || p.Game.State == GameState.Ongoing)
             )
             .CountAsync(cancellationToken);
 

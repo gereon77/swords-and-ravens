@@ -151,6 +151,44 @@ public class UserStatsServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RemovedFromGameCount_CountsRemovalsFromStillOngoingGamesToo()
+    {
+        var user = new ApplicationUser { UserName = "ongoing_removal_guy", Email = "o@example.com" };
+        await _userManager.CreateAsync(user);
+
+        // Voted out/timed out of a game that hasn't finished yet - still an unconditional loss,
+        // it shouldn't need to wait for the game to reach Finished before it counts.
+        var stillOngoingGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Still ongoing",
+            OwnerUserId = user.Id,
+            State = GameState.Ongoing,
+            ViewOfGame = Json("""{"settings": {"setupId": "base-game"}}"""),
+        };
+        _db.Games.Add(stillOngoingGame);
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = stillOngoingGame.Id,
+                UserId = user.Id,
+                Reason = PlayerReplacementReason.Vote,
+            }
+        );
+
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RecalculateAsync(user.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.RemovedFromGameCount);
+        // The removal counts towards the win-rate denominator as an unconditional loss even
+        // though the game the player was removed from hasn't finished yet.
+        Assert.Equal(0.0, result.WinRate);
+    }
+
+    [Fact]
     public async Task FinishedGamesCount_ExcludesFacelessGames_ButIncludesTutorialGames()
     {
         var user = new ApplicationUser { UserName = "faceless_guy", Email = "f@example.com" };
