@@ -158,7 +158,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/Rules");
 });
 
-// External logins: Google/Discord/Instagram — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
+// External logins: Google/Discord/Facebook — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
 // Auth scheme for the game server's service-to-service calls, see MIGRATION_PLAN.md §6.
 var authenticationBuilder = builder.Services.AddAuthentication();
 
@@ -184,12 +184,16 @@ if (IsConfigured("Authentication:Discord:ClientId", "Authentication:Discord:Clie
     });
 }
 
-if (IsConfigured("Authentication:Instagram:ClientId", "Authentication:Instagram:ClientSecret"))
+if (IsConfigured("Authentication:Facebook:ClientId", "Authentication:Facebook:ClientSecret"))
 {
-    authenticationBuilder.AddInstagram(options =>
+    authenticationBuilder.AddFacebook(options =>
     {
-        options.ClientId = builder.Configuration["Authentication:Instagram:ClientId"]!;
-        options.ClientSecret = builder.Configuration["Authentication:Instagram:ClientSecret"]!;
+        options.ClientId = builder.Configuration["Authentication:Facebook:ClientId"]!;
+        options.AppId = options.ClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Facebook:ClientSecret"]!;
+        options.AppSecret = options.ClientSecret;
+        options.Scope.Add("email");
+        options.Fields.Add("email");
     });
 }
 

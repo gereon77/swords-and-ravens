@@ -54,7 +54,7 @@ repo. Bugs found and fixed along the way:
 
 ## Local dev: individual (username/password) accounts only, no OAuth required
 
-`Program.cs` conditionally registers each external OAuth provider (Google/Discord/Instagram)
+`Program.cs` conditionally registers each external OAuth provider (Google/Discord/Facebook)
 **only if both its ClientId and ClientSecret are non-empty** in configuration. With the
 placeholder-empty values checked into `appsettings.json`:
 - the app starts up fine with zero OAuth app registrations configured;
@@ -325,7 +325,7 @@ dotnet build
 
 ## 3. (Optional) Configure real OAuth secrets
 
-Only needed if you want to test Google/Discord/Instagram sign-in locally — plain username/password
+Only needed if you want to test Google/Discord/Facebook sign-in locally — plain username/password
 accounts work with zero configuration (see above). Use user-secrets rather than committing real
 values to `appsettings.json`:
 
@@ -335,13 +335,13 @@ dotnet user-secrets set "Authentication:Google:ClientId" "..."
 dotnet user-secrets set "Authentication:Google:ClientSecret" "..."
 dotnet user-secrets set "Authentication:Discord:ClientId" "..."
 dotnet user-secrets set "Authentication:Discord:ClientSecret" "..."
-dotnet user-secrets set "Authentication:Instagram:ClientId" "..."
-dotnet user-secrets set "Authentication:Instagram:ClientSecret" "..."
+dotnet user-secrets set "Authentication:Facebook:ClientId" "..."
+dotnet user-secrets set "Authentication:Facebook:ClientSecret" "..."
 dotnet user-secrets set "GameServer:MasterApiPassword" "..."
 ```
 
-(Instagram in particular needs a Meta developer app with the "Instagram API with Instagram Login"
-product — see MIGRATION_PLAN.md §12 for the email-availability caveat.)
+(Facebook in particular needs a Meta developer app with app review — privacy policy URL and
+business verification — before it works for real, non-test users; see MIGRATION_PLAN.md §12.)
 
 ## 4. Create the database schema
 

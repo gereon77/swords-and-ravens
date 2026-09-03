@@ -14,7 +14,7 @@ This document assumes familiarity with the current setup described in the root `
    to game logic — only the small integration seam (REST calls, generated client template,
    basic auth) needs to keep matching, plus one deliberate additive change described in §4.4/§6.1
    to support goal 7.
-3. Support **three OIDC providers**: Google, Discord (both already supported today) **+ Instagram
+3. Support **three OIDC providers**: Google, Discord (both already supported today) **+ Facebook
    (new)**.
 4. Add **local username/password authentication** (does not exist in Django today — Django only
    ever used `social_core.backends.google.GoogleOAuth2` / `DiscordOAuth2`, plus the Django admin
@@ -36,7 +36,7 @@ This document assumes familiarity with the current setup described in the root `
 | Web framework | ASP.NET Core MVC + Razor Pages (not Blazor) | See prior discussion: the interactive part of the product is the separate React/MobX game client; the website itself is server-rendered pages + a REST API + auth, which is MVC/Razor Pages' sweet spot. |
 | ORM / DB | EF Core + Npgsql, PostgreSQL | Keeps the existing `docker-compose.yml` Postgres container; avoids a DB engine migration on top of a framework migration. |
 | Auth | ASP.NET Core Identity | Built-in local username/password, external login linking table (`AspNetUserLogins`), extensible for exactly the "claim an imported account" flow needed here. |
-| External OIDC/OAuth | `Microsoft.AspNetCore.Authentication.Google` (built-in) + `AspNet.Security.OAuth.Discord` + a small custom `OAuthHandler<T>` for Instagram (see §6.4) | Google/Discord have mature handlers; Instagram's modern "Instagram API with Instagram Login" needs a hand-rolled handler (details below) since there's no first-party or well-maintained Instagram OIDC package. |
+| External OIDC/OAuth | `Microsoft.AspNetCore.Authentication.Google` + `Microsoft.AspNetCore.Authentication.Facebook` (both built-in/official) + a small custom `OAuthHandler<T>` for Discord (see §6.4) | Google/Facebook have mature, first-party Microsoft-maintained handlers; Discord doesn't ship an official package, so it uses a hand-rolled handler (details below). |
 | Realtime chat transport | **Plain ASP.NET Core WebSockets** (`app.UseWebSockets()` + a custom handler), *not* SignalR | The existing `ChatClient.ts` speaks a raw WebSocket with a small hand-rolled JSON protocol against Django Channels. Reimplementing the same raw protocol over native ASP.NET Core WebSockets means **zero changes to `ChatClient.ts`**. SignalR would require the TS client to switch to `@microsoft/signalr` and adopt its handshake/invocation protocol — a real, non-trivial migration cost for no functional gain. Revisit SignalR later only if you want typed hubs and are willing to touch the TS client. |
 | Chat/game-state fan-out across instances | `StackExchange.Redis` pub/sub, same `REDIS_URL` | Direct replacement for `channels_redis`; still just Redis. |
 | Background jobs (mail, etc.) | `IHostedService` / minimal in-process queue, or Hangfire if volume grows | Django used synchronous `send_mass_mail` in request handlers; low volume today, no need for a heavy queue yet. |
@@ -137,7 +137,7 @@ User (Identity user, extended)
   CreatedAt                      DateTimeOffset
 
 UserLogin (= AspNetUserLogins, built into Identity)
-  LoginProvider ("Google" | "Discord" | "Instagram")
+  LoginProvider ("Google" | "Discord" | "Facebook")
   ProviderKey   (subject/user id from the provider)
   UserId -> User.Id
 
@@ -272,21 +272,16 @@ numeric, not similar to username) — replicate with Identity's `PasswordOptions
 
 - **Google** — `AddGoogle(...)` using the same `SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET` values
   (rename to `Authentication:Google:ClientId/ClientSecret`).
-- **Discord** — `AddDiscord(...)` from the community `AspNet.Security.OAuth.Providers` package,
-  same client id/secret, request `identify email` scope (same as
-  `SOCIAL_AUTH_DISCORD_SCOPE = ["identify", "email"]` today).
-- **Instagram (new)** — Instagram's old "Basic Display API" (which many old OSS OAuth handlers
-  targeted) is deprecated. The current supported flow is **"Instagram API with Instagram Login"**
-  (Meta), OAuth2-based but **frequently does not return an email address at all** — only
-  `user_id` and `username`. Implication for this project:
-  - Implement a small custom `OAuthHandler<OAuthOptions>` (same pattern as the Discord package)
-    hitting Instagram's `/oauth/authorize` + `/oauth/access_token` + Graph `me` endpoint.
-  - Because email may be missing, the post-login pipeline (§5.3) must handle "no email available"
-    as a distinct case: create/link the account by provider id alone, and show a one-time
-    "confirm your email" prompt (optional, not blocking) so the account *can* later be matched to
-    an imported legacy row or used for notifications. Don't assume Instagram behaves like
-    Google/Discord here — flag this to the user/stakeholders before committing to feature parity
-    claims ("login with Instagram" ≠ "email-verified login with Instagram").
+- **Discord** — a small custom `OAuthHandler<OAuthOptions>` (see `Infrastructure/Auth/DiscordAuthenticationExtensions.cs`,
+  since Discord doesn't ship an official Microsoft package), same client id/secret, request
+  `identify email` scope (same as `SOCIAL_AUTH_DISCORD_SCOPE = ["identify", "email"]` today).
+- **Facebook (new, replaces the originally-planned Instagram)** — `AddFacebook(...)` from the
+  official `Microsoft.AspNetCore.Authentication.Facebook` package, same shape as Google's. Request
+  the `email` scope/field explicitly (Facebook does return a verified email when the user grants
+  that permission, unlike Instagram's Login product which frequently doesn't return one at all —
+  Instagram was dropped as a provider for exactly that reason). Note Facebook does require an
+  app-review pass (privacy policy URL, business verification) before non-test users can log in
+  with a production Facebook app — see §12.
 
 ### 5.3 Account linking / "claiming" pipeline
 
@@ -739,7 +734,7 @@ ENTRYPOINT ["dotnet", "Snr.Web.dll"]
 | `DATABASE_URL` | `ConnectionStrings:Default` |
 | `SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET` | `Authentication:Google:ClientId/ClientSecret` |
 | `SOCIAL_AUTH_DISCORD_KEY/SECRET` | `Authentication:Discord:ClientId/ClientSecret` |
-| *(new)* | `Authentication:Instagram:ClientId/ClientSecret` |
+| *(new)* | `Authentication:Facebook:ClientId/ClientSecret` |
 | `EMAIL_HOST/PORT/HOST_USER/HOST_PASSWORD` | `Email:Host/Port/Username/Password` |
 | `REDIS_URL` | `ConnectionStrings:Redis` |
 | `AWS_*` (S3 static storage) | `BlobStorage:*` (optional, only if you keep S3-hosted static assets) |
@@ -756,7 +751,7 @@ dotnet run --project src/Snr.Web
 ```
 
 Use `dotnet user-secrets` for the OAuth client id/secret pairs in development, same role as
-Django's `.env` file. Since Google/Discord/Instagram auth won't work without real app credentials,
+Django's `.env` file. Since Google/Discord/Facebook auth won't work without real app credentials,
 local sign-in during development uses **the new local username/password flow** — solving the
 exact pain point Django had ("As Google and Discord authentication is not available you can login
 via `/admin`" → now: just register locally).
@@ -925,9 +920,9 @@ user's profile page using their `PreviousPlayerInGame` rows (same way wins/losse
 
 ## 12. Open questions / risks to confirm before implementation
 
-- **Instagram email availability** — see §5.2; may need a "confirm your email" nudge screen since
-  the provider often won't supply one. Also requires a Meta developer app + app review for the
-  "Instagram API with Instagram Login" product before it works for non-test users.
+- **Facebook app review** — see §5.2; requires a Meta developer app (privacy policy URL, business
+  verification, app review) before it works for real, non-test users — start that process early,
+  it can take days/weeks, same caveat that previously applied to the dropped Instagram provider.
 - **Static asset hosting** — Django currently serves `static_game`/`static` either via WhiteNoise
   (dev) or S3 (prod, `django-storages`). Decide whether ASP.NET Core continues serving
   `static_game` directly (simplest, mirrors dev behavior) or keeps the S3/CDN split used in
@@ -1145,9 +1140,9 @@ Kept up to date here so a fresh session can answer "what's next" immediately wit
 re-derive it. Update this section whenever priorities shift or an item is completed.
 
 ### Before go-live (blocking rollout, see §11/§12)
-1. **Instagram OIDC** — needs a Meta developer app + app review for the "Instagram API with
-   Instagram Login" product before it works for real (non-test) users; start the review process
-   early, it can take days/weeks.
+1. **Facebook OIDC** — needs a Meta developer app + app review (privacy policy URL, business
+   verification) before it works for real (non-test) users; start the review process early, it can
+   take days/weeks.
 2. **Full data-migration dry run** — restore a production DB snapshot, run `Snr.Migration` against
    it, and smoke-test end-to-end: login via all 3 OIDC providers + local, the account-claiming
    flow, chat, and game create/join — not just spot-checked tables.

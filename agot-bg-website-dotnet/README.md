@@ -13,7 +13,7 @@ Postgres/Redis/SMTP.
 
 | Project | Purpose |
 |---|---|
-| `agot-bg-website/` | The ASP.NET Core app itself: Razor Pages UI (top nav: All Games / My Games / Rules / About / FAQ / Admin), Identity (username/password + Google/Discord/Instagram OIDC), a Django-Admin-style `Areas/Admin` Razor Pages area (user search/ban/roles, raw game JSON view/edit — gated by the `Admin` role, see `MIGRATION_PLAN.md` §14), Minimal API groups under `Api/` (`GamesApi`, `RoomsApi`, `UsersApi`, `PublicApi`, `NotificationsApi`, `PlayApi`, `ChatWebSocketApi`), and `Infrastructure/` (chat, email, website-client contract implementation for the game server). `ClientAssets/` is a small npm project (Tailwind CSS + DaisyUI) that builds `wwwroot/css/app.css`. |
+| `agot-bg-website/` | The ASP.NET Core app itself: Razor Pages UI (top nav: All Games / My Games / Rules / About / FAQ / Admin), Identity (username/password + Google/Discord/Facebook OIDC), a Django-Admin-style `Areas/Admin` Razor Pages area (user search/ban/roles, raw game JSON view/edit — gated by the `Admin` role, see `MIGRATION_PLAN.md` §14), Minimal API groups under `Api/` (`GamesApi`, `RoomsApi`, `UsersApi`, `PublicApi`, `NotificationsApi`, `PlayApi`, `ChatWebSocketApi`), and `Infrastructure/` (chat, email, website-client contract implementation for the game server). `ClientAssets/` is a small npm project (Tailwind CSS + DaisyUI) that builds `wwwroot/css/app.css`. |
 | `agot-bg-website.Data/` | EF Core `DbContext`, entities, and migrations — the persistence layer, shared by the website and by `Snr.Migration`. |
 | `Snr.Migration/` | One-off console tool that imports the legacy Django database (users, games, rooms, ...) into the new schema. Not part of the running website. |
 | `agot-bg-website.Tests/` | xUnit test project covering domain/service logic. |
@@ -76,7 +76,7 @@ Postgres/Redis/SMTP.
    dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
    ```
 
-   View captured emails at http://localhost:5099. To test Google/Discord/Instagram sign-in
+   View captured emails at http://localhost:5099. To test Google/Discord/Facebook sign-in
    locally you'll also need your own OAuth app credentials, set the same way (`Authentication:Google:ClientId` / `:ClientSecret`, etc. — see `MIGRATION_PLAN.md` for the OIDC provider setup notes).
 
    **smtp4dev never delivers to a real inbox — that's by design** (it's a local catcher so no real
