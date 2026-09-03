@@ -13,9 +13,10 @@ env:
   WEBSITE_IMAGE: ghcr.io/gereon77/swords-and-ravens/website:${{ github.sha }}
   GAME_SERVER_IMAGE: ghcr.io/gereon77/swords-and-ravens/game-server:${{ github.sha }}
   # DigitalOcean Spaces CDN base URL the game client's webpack build embeds into its JS/CSS
-  # asset URLs (see webpack.client.js's ASSET_PATH). Must match the bucket's actual region slug
-  # (fra1 = Frankfurt) - update if the bucket/region ever changes.
-  ASSET_PATH: https://swords-and-ravens.fra1.cdn.digitaloceanspaces.com/
+  # asset URLs (see webpack.client.js's ASSET_PATH). Must match the actual bucket name
+  # (swords-and-ravens-spaces) and region slug (fra1 = Frankfurt) - update if either ever changes.
+  # CDN subdomain requires the Spaces CDN to be enabled for this bucket in the DO control panel.
+  ASSET_PATH: https://swords-and-ravens-spaces.fra1.cdn.digitaloceanspaces.com/
   # `user@host` for the production droplet. The droplet must already have a one-time
   # `docker login ghcr.io` done (PAT with read:packages) so `docker compose pull` below can
   # authenticate — see MIGRATION_PLAN.md §16 Phase 2.
