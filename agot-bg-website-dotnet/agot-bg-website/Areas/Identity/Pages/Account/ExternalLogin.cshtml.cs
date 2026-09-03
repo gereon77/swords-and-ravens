@@ -77,6 +77,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         public string ErrorMessage { get; set; }
 
         /// <summary>
+        /// True when the external provider supplied an already-verified email claim, in which case
+        /// the email field is locked (read-only) instead of user-editable. This is both a UX signal
+        /// and, together with the server-side re-derivation in <see cref="OnPostConfirmationAsync"/>,
+        /// a defense against a user typing an arbitrary email (e.g. someone else's) to try to link
+        /// their external login to a different, already-claimed account.
+        /// </summary>
+        public bool EmailIsReadOnly { get; set; }
+
+        /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
@@ -174,6 +183,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     {
                         Email = info.Principal.FindFirstValue(ClaimTypes.Email),
                     };
+                    EmailIsReadOnly = true;
                 }
                 return Page();
             }
@@ -190,6 +200,20 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
+            // The email field is only meant to be editable when the external provider didn't supply
+            // a verified email claim at all. When it did, always trust that claim over whatever was
+            // posted: the "readonly" attribute on the form is just UX, and a user could otherwise
+            // tamper with the request to submit an arbitrary (e.g. someone else's) email address to
+            // try to have their external login linked onto a different, already-claimed account.
+            if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+            {
+                Input ??= new InputModel();
+                Input.Email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                EmailIsReadOnly = true;
+                ModelState.Clear();
+                TryValidateModel(Input, nameof(Input));
+            }
+
             if (ModelState.IsValid)
             {
                 // Never create a second ApplicationUser for an email that's already registered
@@ -198,14 +222,30 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 // it's safe to just add this login to the existing account instead of erroring out
                 // on a duplicate-email conflict or silently creating a duplicate identity. See the
                 // "existing OAuth-linked / existing local account" note in MIGRATION_PLAN.md §5.3.
+                //
+                // IMPORTANT: only AccountLinkOutcome.Linked (a previously-imported, unclaimed legacy
+                // user) is safe to auto-merge into. AccountLinkOutcome.ConflictAlreadyClaimed means an
+                // *already claimed* account owns this email — auto-signing the current external login
+                // into that account would be an account takeover, so it must surface as an error
+                // instead (see AccountLinkingServiceTests.AlreadyClaimedUser_ReturnsConflict_DoesNotSilentlyMerge).
                 var normalizedEmail = _userManager.NormalizeEmail(Input.Email);
                 var linkResult = await _accountLinkingService.TryLinkByEmailAsync(normalizedEmail);
-                var existingUser = linkResult.Outcome switch
+
+                if (linkResult.Outcome == AccountLinkOutcome.ConflictAlreadyClaimed)
                 {
-                    AccountLinkOutcome.Linked => linkResult.User,
-                    AccountLinkOutcome.ConflictAlreadyClaimed => linkResult.User,
-                    _ => null,
-                };
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "This email address is already associated with an existing account. "
+                            + "Please sign in with your original method first, then add "
+                            + $"{info.ProviderDisplayName} from your account settings."
+                    );
+                    ProviderDisplayName = info.ProviderDisplayName;
+                    ReturnUrl = returnUrl;
+                    return Page();
+                }
+
+                var existingUser =
+                    linkResult.Outcome == AccountLinkOutcome.Linked ? linkResult.User : null;
 
                 if (existingUser is not null)
                 {
