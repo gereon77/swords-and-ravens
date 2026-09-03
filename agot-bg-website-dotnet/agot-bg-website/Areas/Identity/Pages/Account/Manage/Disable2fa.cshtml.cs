@@ -39,6 +39,14 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 );
             }
 
+            // 2FA can only ever have been enabled for accounts with a local password (see the
+            // matching guard in EnableAuthenticator.cshtml.cs), but guard here too in case a
+            // password is later removed from an account with 2FA still enabled.
+            if (!await _userManager.HasPasswordAsync(user))
+            {
+                return RedirectToPage("./Index");
+            }
+
             return Page();
         }
 

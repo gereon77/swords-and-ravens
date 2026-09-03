@@ -59,6 +59,16 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
+            // 2FA is only available for accounts with a local password - accounts that only ever
+            // sign in via an external provider (Google/Discord/Facebook) have no way to prove
+            // possession of a second factor independent of that provider, so don't let them reach
+            // this page at all (see _ManageNav.cshtml, which already hides the nav link for these
+            // accounts - this is the matching server-side guard against direct navigation).
+            if (!await _userManager.HasPasswordAsync(user))
+            {
+                return RedirectToPage("./Index");
+            }
+
             HasAuthenticator = await _userManager.GetAuthenticatorKeyAsync(user) != null;
             Is2faEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
             IsMachineRemembered = await _signInManager.IsTwoFactorClientRememberedAsync(user);

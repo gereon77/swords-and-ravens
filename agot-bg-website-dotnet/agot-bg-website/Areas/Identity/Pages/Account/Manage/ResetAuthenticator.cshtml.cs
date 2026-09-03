@@ -34,6 +34,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
+            // 2FA setup is only offered to accounts with a local password (see the matching
+            // guard in EnableAuthenticator.cshtml.cs).
+            if (!await _userManager.HasPasswordAsync(user))
+            {
+                return RedirectToPage("./Index");
+            }
+
             return Page();
         }
 

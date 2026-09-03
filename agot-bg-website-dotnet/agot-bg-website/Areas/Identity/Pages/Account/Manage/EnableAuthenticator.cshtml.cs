@@ -88,6 +88,12 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
+            // See the matching guard/comment in TwoFactorAuthentication.cshtml.cs.
+            if (!await _userManager.HasPasswordAsync(user))
+            {
+                return RedirectToPage("./Index");
+            }
+
             await LoadSharedKeyAndQrCodeUriAsync(user);
 
             return Page();
