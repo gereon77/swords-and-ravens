@@ -8,3 +8,15 @@
 winordie.net {
 	reverse_proxy website:8000
 }
+
+# The TypeScript game server's raw WebSocket endpoint (src/server/server.ts, `ws` package - not
+# HTTP/REST). GameClient.ts (browser client) always dials wss://play.<hostname> in production
+# (only "localhost" gets the ws://localhost:5000 fallback used by local dev) - so this subdomain
+# must exist and point at the same droplet as the main domain, with its own Let's Encrypt cert.
+# Caddy proxies WebSocket upgrades transparently, no extra directives needed. `game-server`
+# listens on 5000 by default (PORT env var, unset here - see docker-compose.prod.yml) and is never
+# published to the host, only reachable from other containers on the Compose network, same as
+# `website` above.
+play.winordie.net {
+	reverse_proxy game-server:5000
+}

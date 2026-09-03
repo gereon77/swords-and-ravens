@@ -69,6 +69,13 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         }
         catch (Exception ex)
         {
+            // Deliberately swallowed: a failed send (SMTP timeout, DNS failure, provider outage,
+            // etc.) must never abort the caller's request. Callers include user-facing flows
+            // (Register/ForgotPassword/ResendEmailConfirmation/Manage/Email, where the account
+            // action itself has already succeeded by the time we try to email) and the
+            // game server's NotificationsApi/ChatWebSocketApi raven notifications, where one
+            // recipient's failed send must not stop the rest of the batch or crash the request.
+            // Delivery failures are only observable via this log entry.
             logger.LogError(
                 ex,
                 "Failed to send email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl}): {ErrorMessage}",
@@ -79,7 +86,6 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
                 enableSsl,
                 ex.Message
             );
-            throw;
         }
     }
 }
