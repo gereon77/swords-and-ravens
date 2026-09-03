@@ -42,6 +42,12 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
         [BindProperty]
         public InputModel Input { get; set; }
 
+        [BindProperty]
+        public ProfileTextInputModel ProfileTextInput { get; set; }
+
+        [BindProperty]
+        public PreferencesInputModel PreferencesInput { get; set; }
+
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -61,6 +67,31 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             public string NewUsername { get; set; }
         }
 
+        public class ProfileTextInputModel
+        {
+            [StringLength(1000)]
+            [Display(Name = "Say something about you")]
+            public string ProfileText { get; set; }
+        }
+
+        public class PreferencesInputModel
+        {
+            [Display(Name = "PBEM Notifications")]
+            public bool EmailNotificationActive { get; set; }
+
+            [Display(Name = "Join games in the muted state")]
+            public bool MuteGames { get; set; }
+
+            [Display(Name = "Join games by using house names for in-game chat")]
+            public bool UseHouseNamesForChat { get; set; }
+
+            [Display(Name = "Join games by using the map scrollbar")]
+            public bool UseMapScrollbar { get; set; }
+
+            [Display(Name = "Align the game state column on the right (Desktop only)")]
+            public bool GameStateColumnRight { get; set; }
+        }
+
         private async Task LoadAsync(ApplicationUser user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
@@ -70,6 +101,15 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
             CanChangeUsername = user.LastUsernameUpdateTime == null;
 
             Input = new InputModel { NewUsername = userName };
+            ProfileTextInput = new ProfileTextInputModel { ProfileText = user.ProfileText };
+            PreferencesInput = new PreferencesInputModel
+            {
+                EmailNotificationActive = user.EmailNotificationActive,
+                MuteGames = user.MuteGames,
+                UseHouseNamesForChat = user.UseHouseNamesForChat,
+                UseMapScrollbar = user.UseMapScrollbar,
+                GameStateColumnRight = user.GameStateColumnRight,
+            };
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -149,6 +189,52 @@ namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostUpdateProfileTextAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await LoadAsync(user);
+                return Page();
+            }
+
+            user.ProfileText = ProfileTextInput.ProfileText;
+            await _userManager.UpdateAsync(user);
+
+            StatusMessage = "Your profile text has been updated";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostUpdatePreferencesAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await LoadAsync(user);
+                return Page();
+            }
+
+            user.EmailNotificationActive = PreferencesInput.EmailNotificationActive;
+            user.MuteGames = PreferencesInput.MuteGames;
+            user.UseHouseNamesForChat = PreferencesInput.UseHouseNamesForChat;
+            user.UseMapScrollbar = PreferencesInput.UseMapScrollbar;
+            user.GameStateColumnRight = PreferencesInput.GameStateColumnRight;
+            await _userManager.UpdateAsync(user);
+
+            StatusMessage = "Your preferences have been updated";
             return RedirectToPage();
         }
     }

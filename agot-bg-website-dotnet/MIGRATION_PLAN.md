@@ -1142,7 +1142,9 @@ re-derive it. Update this section whenever priorities shift or an item is comple
 ### Before go-live (blocking rollout, see §11/§12)
 1. **Facebook OIDC** — needs a Meta developer app + app review (privacy policy URL, business
    verification) before it works for real (non-test) users; start the review process early, it can
-   take days/weeks.
+   take days/weeks. Note Meta's Facebook Login product rejects `http://localhost` redirect URIs
+   (unlike Google/Discord), so this provider can't be smoke-tested locally at all — first real test
+   must happen against a deployed HTTPS environment (staging).
 2. **Full data-migration dry run** — restore a production DB snapshot, run `Snr.Migration` against
    it, and smoke-test end-to-end: login via all 3 OIDC providers + local, the account-claiming
    flow, chat, and game create/join — not just spot-checked tables.

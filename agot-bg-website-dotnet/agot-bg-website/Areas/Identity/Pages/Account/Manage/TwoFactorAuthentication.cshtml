@@ -42,8 +42,10 @@
                     <button type="submit" class="btn btn-primary">Forget this browser</button>
                 </form>
             }
-            <a asp-page="./Disable2fa" class="btn btn-primary">Disable 2FA</a>
-            <a asp-page="./GenerateRecoveryCodes" class="btn btn-primary">Reset recovery codes</a>
+            <div class="flex flex-wrap gap-3 mb-4">
+                <a asp-page="./Disable2fa" class="btn btn-primary">Disable 2FA</a>
+                <a asp-page="./GenerateRecoveryCodes" class="btn btn-primary">Reset recovery codes</a>
+            </div>
         }
 
         <h4>Authenticator app</h4>
@@ -53,8 +55,10 @@
         }
         else
         {
-            <a id="enable-authenticator" asp-page="./EnableAuthenticator" class="btn btn-primary">Set up authenticator app</a>
-            <a id="reset-authenticator" asp-page="./ResetAuthenticator" class="btn btn-primary">Reset authenticator app</a>
+            <div class="flex flex-wrap gap-3">
+                <a id="enable-authenticator" asp-page="./EnableAuthenticator" class="btn btn-primary">Set up authenticator app</a>
+                <a id="reset-authenticator" asp-page="./ResetAuthenticator" class="btn btn-primary">Reset authenticator app</a>
+            </div>
         }
     }
     else

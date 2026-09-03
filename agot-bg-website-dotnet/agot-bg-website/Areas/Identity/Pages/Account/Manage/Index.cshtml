@@ -33,6 +33,55 @@
     </div>
 </div>
 
+<hr class="my-6 border-base-300" />
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Say something about you</h4>
+        <form id="profile-text-form" method="post" asp-page-handler="UpdateProfileText">
+            <div class="form-floating mb-3">
+                <textarea asp-for="ProfileTextInput.ProfileText" class="form-control" style="height: 8rem" placeholder="Say something about you."></textarea>
+                <label asp-for="ProfileTextInput.ProfileText" class="form-label"></label>
+                <span asp-validation-for="ProfileTextInput.ProfileText" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Change</button>
+        </form>
+    </div>
+</div>
+
+<hr class="my-6 border-base-300" />
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Preferences</h4>
+        <form id="preferences-form" method="post" asp-page-handler="UpdatePreferences">
+            <div class="flex flex-col gap-2 mb-3">
+                <div class="form-check">
+                    <input asp-for="PreferencesInput.EmailNotificationActive" class="form-check-input" />
+                    <label asp-for="PreferencesInput.EmailNotificationActive" class="form-check-label"></label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="PreferencesInput.MuteGames" class="form-check-input" />
+                    <label asp-for="PreferencesInput.MuteGames" class="form-check-label"></label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="PreferencesInput.UseHouseNamesForChat" class="form-check-input" />
+                    <label asp-for="PreferencesInput.UseHouseNamesForChat" class="form-check-label"></label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="PreferencesInput.UseMapScrollbar" class="form-check-input" />
+                    <label asp-for="PreferencesInput.UseMapScrollbar" class="form-check-label"></label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="PreferencesInput.GameStateColumnRight" class="form-check-input" />
+                    <label asp-for="PreferencesInput.GameStateColumnRight" class="form-check-label"></label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

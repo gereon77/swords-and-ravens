@@ -343,6 +343,14 @@ dotnet user-secrets set "GameServer:MasterApiPassword" "..."
 (Facebook in particular needs a Meta developer app with app review — privacy policy URL and
 business verification — before it works for real, non-test users; see MIGRATION_PLAN.md §12.)
 
+> **Facebook login cannot be tested against plain `http://localhost:8000`.** Unlike Google/Discord,
+> Meta's Facebook Login product rejects `http` redirect URIs even for local/test apps (only `https`
+> is accepted, aside from a few disallowed loopback exceptions). Standing up a trusted HTTPS dev
+> certificate purely for this would also complicate the game server's calls into the website (it
+> would need to trust the self-signed cert too). Until the site is deployed somewhere with a real
+> HTTPS endpoint (e.g. staging), skip local Facebook login testing — Google/Discord sign-in and
+> local username/password auth already exercise the same account-linking code paths.
+
 ## 4. Create the database schema
 
 The real, Postgres/Guid-keyed `InitialCreate` migration already exists in
