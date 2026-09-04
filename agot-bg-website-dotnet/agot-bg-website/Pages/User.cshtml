@@ -125,7 +125,7 @@
                                                     <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
                                                 </span>
                                             }
-                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">
                                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
@@ -188,7 +188,7 @@
                                 {
                                     <tr>
                                         <td class="whitespace-normal break-words">
-                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
                                         <td class="whitespace-nowrap">
@@ -244,7 +244,7 @@
                                 {
                                     <tr>
                                         <td class="whitespace-normal break-words">
-                                            <a class="link link-primary font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">
                                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
