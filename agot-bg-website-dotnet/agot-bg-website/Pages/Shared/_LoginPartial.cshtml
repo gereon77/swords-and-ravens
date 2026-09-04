@@ -26,7 +26,14 @@
 }
 else
 {
-    <a class="nav-link" asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Register</a>
-    <a class="btn btn-primary btn-sm" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Login</a>
+    @* Pointing returnUrl at another Identity/Account page (e.g. this exact link rendered on
+       RegisterConfirmation, which itself already carries a nested returnUrl=/) would just bounce
+       the user right back to that transient auth page after signing in, instead of somewhere
+       useful - fall back to the home page for any current URL under the Identity area. *@
+    var safeReturnUrl = Context.Request.Path.StartsWithSegments("/Identity")
+        ? Url.Content("~/")
+        : (Context.Request.Path + Context.Request.QueryString).ToString();
+    <a class="nav-link" asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@safeReturnUrl">Register</a>
+    <a class="btn btn-primary btn-sm" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@safeReturnUrl">Login</a>
 }
 </div>
