@@ -26,7 +26,7 @@ public class SesApiEmailSender(IConfiguration configuration, ILogger<SesApiEmail
     {
         var accessKeyId = configuration["Email:Ses:AccessKeyId"];
         var secretAccessKey = configuration["Email:Ses:SecretAccessKey"];
-        var region = configuration["Email:Ses:Region"] ?? "eu-central-1";
+        var region = configuration["Email:Ses:Region"] ?? "eu-north-1";
         var fromAddress =
             configuration["Email:FromAddress"] ?? "Swords and Ravens <no-reply@winordie.net>";
 

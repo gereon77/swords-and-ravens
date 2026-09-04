@@ -37,7 +37,7 @@ services:
       Authentication__Facebook__ClientSecret: ${FACEBOOK_CLIENT_SECRET}
       Email__Ses__AccessKeyId: ${EMAIL_SES_ACCESS_KEY_ID:-}
       Email__Ses__SecretAccessKey: ${EMAIL_SES_SECRET_ACCESS_KEY:-}
-      Email__Ses__Region: ${EMAIL_SES_REGION:-eu-central-1}
+      Email__Ses__Region: ${EMAIL_SES_REGION:-eu-north-1}
       Email__Api__Key: ${EMAIL_API_KEY:-}
       Email__Api__Host: ${EMAIL_API_HOST:-}
       Email__Host: ${EMAIL_HOST}
