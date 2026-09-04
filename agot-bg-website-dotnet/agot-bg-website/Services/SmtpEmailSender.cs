@@ -7,10 +7,10 @@ namespace agot_bg_website.Services;
 /// <summary>
 /// SMTP-backed <see cref="IEmailSender"/>, used both by the built-in Identity UI (password
 /// reset/email confirmation/email change) and by <c>NotificationsApi</c>'s game-notification
-/// endpoints — see MIGRATION_PLAN.md §6/§9.1. Only registered when <c>Email:Host</c> is
-/// configured (see Program.cs); otherwise Identity's own default no-op sender is used, same
-/// "only wire it up when configured" pattern used for the OAuth providers, so local dev doesn't
-/// need a working mail server.
+/// endpoints — see MIGRATION_PLAN.md §6/§9.1. Registered (see Program.cs) when <c>Email:Host</c>
+/// is configured and no API-based provider (<see cref="ApiEmailSender"/>, <c>Email:Api:Key</c>)
+/// is; otherwise <see cref="LoggingEmailSender"/> or <see cref="ApiEmailSender"/> is registered
+/// instead, so local dev doesn't need a working mail server.
 /// </summary>
 public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
     : IEmailSender
@@ -31,8 +31,7 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         var port = int.TryParse(configuration["Email:Port"], out var parsedPort) ? parsedPort : 587;
         var username = configuration["Email:Username"];
         var password = configuration["Email:Password"];
-        var fromAddress =
-            configuration["Email:FromAddress"] ?? username ?? "no-reply@swordsandravens.net";
+        var fromAddress = configuration["Email:FromAddress"] ?? username ?? "no-reply@winordie.net";
         // Defaults to true for real SMTP providers; local test catchers (e.g. smtp4dev) usually
         // don't offer TLS on their plain SMTP port, so local dev sets Email:EnableSsl=false via
         // user-secrets — see LOCAL_DEV_VERIFICATION.md's "Email (local testing)" section.
@@ -58,7 +57,7 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         try
         {
             await client.SendMailAsync(message);
-            logger.LogInformation(
+            logger.LogDebug(
                 "Sent email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl})",
                 subject,
                 email,
@@ -69,6 +68,13 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         }
         catch (Exception ex)
         {
+            // Deliberately swallowed: a failed send (SMTP timeout, DNS failure, provider outage,
+            // etc.) must never abort the caller's request. Callers include user-facing flows
+            // (Register/ForgotPassword/ResendEmailConfirmation/Manage/Email, where the account
+            // action itself has already succeeded by the time we try to email) and the
+            // game server's NotificationsApi/ChatWebSocketApi raven notifications, where one
+            // recipient's failed send must not stop the rest of the batch or crash the request.
+            // Delivery failures are only observable via this log entry.
             logger.LogError(
                 ex,
                 "Failed to send email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl}): {ErrorMessage}",
@@ -79,7 +85,6 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
                 enableSsl,
                 ex.Message
             );
-            throw;
         }
     }
 }

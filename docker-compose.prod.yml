@@ -1,0 +1,120 @@
+# Production/staging compose file for the .NET port (agot-bg-website-dotnet) + the TypeScript
+# game server, run on a plain Docker droplet (no Dokku/Kubernetes needed — see MIGRATION_PLAN.md
+# §6.2 for why the private/public port split already works across sibling containers on a shared
+# Compose network like this one).
+#
+# Deliberately mirrors the old Dokku-era `.github/workflows/deploy.yml`: images are built and
+# pushed to GHCR by GitHub Actions, never built on the droplet itself (`website`/`game-server`
+# below reference `image:`, not `build:`). This droplet only needs this file, `Caddyfile`, and
+# `.env.prod` — no full repo clone required for deployment (a full clone is only useful if you
+# want to build locally for a one-off manual test). `deploy.yml`'s `deploy` job scp's this file and
+# `Caddyfile` to the droplet on every run, so they never silently drift from the repo again (this
+# used to be a manual one-time copy per MIGRATION_PLAN.md, which is how the Email__Api__*/
+# Email__Ses__* env mappings once went missing on the droplet for several deploys).
+#
+# Usage on the droplet (once the CI/CD pipeline exists — see MIGRATION_PLAN.md §16 Phase 2):
+#   cp .env.prod.example .env.prod   # then fill in real secrets, never commit this file
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# Only `caddy` publishes ports to the host (80/443). Every other service is reachable solely via
+# Compose's built-in service-name DNS on the shared default network — in particular,
+# `website`'s GameServerApi endpoint (8001, Basic-Auth-only, see appsettings.json's
+# Kestrel:Endpoints) is deliberately never listed under `ports:` here, so it's reachable only from
+# `game-server`, not the internet.
+services:
+  website:
+    image: ${WEBSITE_IMAGE:-ghcr.io/gereon77/swords-and-ravens/website:latest}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Staging
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=${DB_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      GameServer__MasterApiUsername: ${MASTER_API_USERNAME}
+      GameServer__MasterApiPassword: ${MASTER_API_PASSWORD}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET}
+      Authentication__Discord__ClientId: ${DISCORD_CLIENT_ID}
+      Authentication__Discord__ClientSecret: ${DISCORD_CLIENT_SECRET}
+      Authentication__Facebook__ClientId: ${FACEBOOK_CLIENT_ID}
+      Authentication__Facebook__ClientSecret: ${FACEBOOK_CLIENT_SECRET}
+      Email__Ses__AccessKeyId: ${EMAIL_SES_ACCESS_KEY_ID:-}
+      Email__Ses__SecretAccessKey: ${EMAIL_SES_SECRET_ACCESS_KEY:-}
+      Email__Ses__Region: ${EMAIL_SES_REGION:-eu-north-1}
+      Email__Api__Key: ${EMAIL_API_KEY:-}
+      Email__Api__Host: ${EMAIL_API_HOST:-}
+      Email__Host: ${EMAIL_HOST}
+      Email__Port: ${EMAIL_PORT}
+      Email__EnableSsl: ${EMAIL_ENABLE_SSL}
+      Email__Username: ${EMAIL_USERNAME}
+      Email__Password: ${EMAIL_PASSWORD}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    # No `ports:` — only `caddy` talks to this container's Public (8000) endpoint, over the
+    # default Compose network. GameServerApi (8001) is likewise unpublished, reachable only by
+    # `game-server` below via the same network.
+
+  game-server:
+    image: ${GAME_SERVER_IMAGE:-ghcr.io/gereon77/swords-and-ravens/game-server:latest}
+    restart: unless-stopped
+    environment:
+      # Any non-null value switches GlobalServer.ts from a dummy website client to
+      # LiveWebsiteClient (the real one that actually talks to `website`'s GameServerApi) — must
+      # be set for production, or the game server silently never integrates with the website.
+      MASTER_API_ENABLED: "true"
+      MASTER_API_BASE_URL: http://website:8001/api
+      MASTER_API_USERNAME: ${MASTER_API_USERNAME}
+      MASTER_API_PASSWORD: ${MASTER_API_PASSWORD}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      - website
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # Postgres 18's image changed its expected layout: mounting straight at
+      # /var/lib/postgresql/data (the pre-18 convention) is now rejected at startup. The image now
+      # wants a single mount at the parent /var/lib/postgresql, with data auto-placed in a
+      # major-version-specific subdirectory (pg_ctlcluster-compatible) — see
+      # https://github.com/docker-library/postgres/pull/1259.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No `ports:` — only sibling containers on this network reach Postgres, never the host/internet.
+
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    # No `ports:` for the same reason as `db`.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - website
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:

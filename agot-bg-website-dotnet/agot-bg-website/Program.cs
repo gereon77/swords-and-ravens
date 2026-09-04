@@ -7,6 +7,7 @@ using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -15,6 +16,47 @@ using Soenneker.Validators.Email.Disposable.Online.Registrars;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// No more "Development" ASPNETCORE_ENVIRONMENT anywhere (local debugging happens via Docker +
+// user secrets, "Staging" is the DO droplet, unset/"Production" is the eventual live site —
+// see appsettings.Staging.json and README.md's "Environments" section). WebApplicationBuilder
+// only wires up user secrets automatically when the environment is "Development", so without that
+// this has to be added explicitly - keeps `dotnet user-secrets set ...` working locally exactly as
+// before, regardless of which environment name is actually active.
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+
+// Error tracking. Deliberately reuses the SAME Sentry DSN/project as the Django site used to and
+// the TS game server still does (SENTRY_DSN env var, see docker-compose.prod.yml/
+// .env.prod.example) — one Sentry project can safely receive events from multiple SDKs/languages
+// at once (each event is tagged with its own `platform`, e.g. "csharp" vs "node"), so this keeps
+// all of Swords and Ravens' errors in one place instead of needing a second Sentry project. Only
+// initializes when a DSN is actually configured, mirroring agotboardgame/settings.py's
+// `if not DEBUG and os.environ.get('SENTRY_DSN') is not None` and server.ts's
+// `if (process.env.SENTRY_DSN)` — leaving SENTRY_DSN unset (e.g. for local debugging) disables it
+// entirely with no extra config needed.
+var sentryDsn = builder.Configuration["SENTRY_DSN"];
+if (!string.IsNullOrEmpty(sentryDsn))
+{
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = sentryDsn;
+        options.Environment = builder.Environment.EnvironmentName;
+        // Sends request/user data (matches Django's send_default_pii=True) — safe here since this
+        // is a private, non-public-facing DSN in server-side config, never shipped to the browser.
+        options.SendDefaultPii = true;
+        // Only send an event for truly unhandled exceptions - those are always captured
+        // separately by Sentry's own middleware (SentryMiddleware.InvokeAsync catches whatever
+        // propagates out of the request pipeline) regardless of this setting. Without this, the
+        // ILogger integration's default (MinimumEventLevel = LogLevel.Error) means EVERY
+        // logger.LogError(...) call anywhere in the app - including ones we deliberately catch
+        // and log without rethrowing, like the email senders' "failed to send, but don't crash
+        // the caller" handlers - also creates its own separate Sentry event, drowning out real
+        // unhandled-exception alerts. LogError/LogWarning/etc. still show up as breadcrumbs
+        // (MinimumBreadcrumbLevel stays at its Information default) for context on whatever event
+        // does get sent.
+        options.MinimumEventLevel = LogLevel.Critical;
+    });
+}
 
 // The /api/* Minimal API endpoints (Api/UsersApi.cs, GamesApi.cs, RoomsApi.cs,
 // NotificationsApi.cs) are the private REST contract the TS game server's
@@ -38,7 +80,6 @@ var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Third-party "CoreAdmin" NuGet package, kept alongside the hand-built Admin area
 // (Users/Games/Rooms/Messages) rather than replacing it. It auto-scans ApplicationDbContext and
@@ -146,16 +187,70 @@ builder
     .SetApplicationName("agot-bg-website")
     .PersistKeysToStackExchangeRedis(redisConnectionMultiplexer, "DataProtection-Keys");
 
-// Real SMTP email sending — used by both Identity's own emails (password reset, email
-// confirmation) and NotificationsApi's game-notification endpoints, see MIGRATION_PLAN.md §6/§9.1.
-// Only overrides Identity's built-in no-op IEmailSender when Email:Host is actually configured,
-// same "only wire it up when configured" pattern as the OAuth providers below, so local dev
-// doesn't need a working mail server.
-if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
+// Email sending — used by both Identity's own emails (password reset, email confirmation) and
+// NotificationsApi/ChatWebSocketApi's notification emails, see MIGRATION_PLAN.md §6/§9.1. Exactly
+// one IEmailSender implementation is registered, chosen once at startup by configuration
+// precedence: Amazon SES's own API (Email:Ses:AccessKeyId) > a generic bearer-token API provider
+// (Email:Api:Key) > SMTP (Email:Host); if none are configured (the common local-dev state),
+// LoggingEmailSender is registered instead of Identity's own built-in no-op default, so emails
+// are at least logged rather than silently dropped, and the app never crashes for lack of email
+// config. All API-based options are preferred over SMTP when both are set, since API-based
+// delivery isn't subject to outbound SMTP port blocking on some hosts (Dokku blocked it). See
+// README.md's "Email" section for setup notes and a provider/cost comparison.
+if (!string.IsNullOrEmpty(builder.Configuration["Email:Ses:AccessKeyId"]))
+{
+    // Register the AWS SDK client itself as a singleton (it's documented as thread-safe and
+    // meant to be reused across calls, same as HttpClient) instead of letting SesApiEmailSender
+    // construct-and-dispose a new one per email - that would repeat connection/TLS setup on every
+    // send and risks socket exhaustion under load.
+    builder.Services.AddSingleton<Amazon.SimpleEmailV2.IAmazonSimpleEmailServiceV2>(sp =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var region = config["Email:Ses:Region"] ?? "eu-north-1";
+        return new Amazon.SimpleEmailV2.AmazonSimpleEmailServiceV2Client(
+            config["Email:Ses:AccessKeyId"],
+            config["Email:Ses:SecretAccessKey"],
+            Amazon.RegionEndpoint.GetBySystemName(region)
+        );
+    });
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        SesApiEmailSender
+    >();
+}
+else if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
+{
+    // Email:Api:Host defaults to Resend's API but is configurable so a different API-based
+    // provider (or a test double) can be pointed at instead without a code change.
+    var apiHostConfig = builder.Configuration["Email:Api:Host"];
+    var apiHost = string.IsNullOrEmpty(apiHostConfig) ? "https://api.resend.com/" : apiHostConfig;
+    builder.Services.AddHttpClient<ApiEmailSender>(client =>
+    {
+        client.BaseAddress = new Uri(apiHost);
+    });
+    // Deliberately NOT AddTransient<IEmailSender, ApiEmailSender>() here: that would register a
+    // second, independent ApiEmailSender constructed via plain DI (with an HttpClient resolved
+    // from the default factory, BaseAddress unset), instead of reusing the instance the typed
+    // client registration above just configured - causing "invalid request URI... BaseAddress
+    // must be set" at send time (seen in production via Sentry). Resolve through the typed
+    // client's own registration so the configured HttpClient is actually used.
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        ApiEmailSender
+    >(sp => sp.GetRequiredService<ApiEmailSender>());
+}
+else if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
     builder.Services.AddTransient<
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         SmtpEmailSender
+    >();
+}
+else
+{
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        LoggingEmailSender
     >();
 }
 
@@ -265,15 +360,30 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Caddy (docker-compose.prod.yml) terminates TLS and reverse-proxies to this container over
+// plain HTTP on the shared Compose network, adding X-Forwarded-Proto/X-Forwarded-For (Caddy does
+// this by default). Without trusting those headers, Kestrel always sees Request.Scheme = "http"
+// for every request, which breaks anything that builds an absolute URL from the current request's
+// scheme - most visibly, external OAuth providers (Google/Discord/Facebook) reject the sign-in
+// callback because the generated redirect_uri comes back as "http://..." instead of "https://...",
+// even though the provider is configured with an https redirect URI. KnownNetworks/KnownProxies
+// are cleared because Caddy's container IP on the Compose bridge network isn't fixed/known ahead
+// of time (the default restriction only trusts loopback) - this is the standard pattern for
+// ASP.NET Core behind a reverse proxy in Docker. Must run before any other middleware that reads
+// Request.Scheme/Request.IsHttps (UseHttpsRedirection, authentication, etc.).
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
-    app.UseMigrationsEndPoint();
-}
-else
-{
-    app.UseExceptionHandler("/Error");
-}
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
+// Configure the HTTP request pipeline. No "Development" environment is ever used (see the
+// AddUserSecrets comment above), so there's no dev-only branch here anymore — every environment
+// (local Docker debug, Staging on the DO droplet, eventual Production) gets the same
+// production-safe error page rather than the EF Core migrations-endpoint/detailed-exception page.
+app.UseExceptionHandler("/Error");
 
 app.UseHttpsRedirection();
 app.UseCookiePolicy();
@@ -349,6 +459,15 @@ app.MapScalarApiReference(
 
 using (var scope = app.Services.CreateScope())
 {
+    // Applies any pending EF Core migrations automatically on startup, in every environment
+    // (including local Docker debug) - replaces a separate manual `dotnet ef database update`
+    // step that would otherwise be needed after every deploy to the DO droplet. Safe to run on
+    // every restart: EF Core tracks already-applied migrations in the `__EFMigrationsHistory`
+    // table and this is a no-op once the schema is current. docker-compose.prod.yml's `db`
+    // service has a healthcheck and `website` depends on it with `condition: service_healthy`,
+    // so Postgres is already accepting connections by the time this runs.
+    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await PermissionSeeder.SeedAsync(scope.ServiceProvider);
     await RoomSeeder.SeedAsync(scope.ServiceProvider);

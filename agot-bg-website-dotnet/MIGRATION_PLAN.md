@@ -729,8 +729,8 @@ ENTRYPOINT ["dotnet", "Snr.Web.dll"]
 
 | Django `.env` key | ASP.NET Core equivalent |
 |---|---|
-| `DEBUG` | `ASPNETCORE_ENVIRONMENT=Development` |
-| `SECRET_KEY` | Data Protection key ring (auto in dev; a persisted key in prod) |
+| `DEBUG` | *(none — no "Development" environment is used; `ASPNETCORE_ENVIRONMENT` is unset locally, `Staging` on the DO droplet, see appsettings.Staging.json)* |
+| `SECRET_KEY` | Data Protection key ring, persisted to Redis in every environment (see `Program.cs`'s `PersistKeysToStackExchangeRedis`) |
 | `DATABASE_URL` | `ConnectionStrings:Default` |
 | `SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET` | `Authentication:Google:ClientId/ClientSecret` |
 | `SOCIAL_AUTH_DISCORD_KEY/SECRET` | `Authentication:Discord:ClientId/ClientSecret` |
@@ -1149,11 +1149,15 @@ re-derive it. Update this section whenever priorities shift or an item is comple
 2. **Full data-migration dry run** — restore a production DB snapshot, run `Snr.Migration` against
    it, and smoke-test end-to-end: login via all 3 OIDC providers + local, the account-claiming
    flow, chat, and game create/join — not just spot-checked tables.
-3. **Static asset hosting decision** — serve `static_game` directly from Kestrel (simplest) vs.
-   keep the S3/CDN split Django uses in production (`ASSET_PATH` already supports a CDN prefix
-   either way, so this is low-risk to defer).
+3. **Static asset hosting — decided and implemented**: DigitalOcean Spaces (not Kestrel-served
+   `static_game`), matching Django's production setup. Wired into `.github/workflows/deploy.yml`
+   (see §16 Phase 2) — the game client build sets webpack's `ASSET_PATH` to the Spaces CDN URL,
+   and CI uploads the built assets there directly.
 4. **Two small open questions from §12** — should `PreviousPlayerInGame` backfill include
    `CANCELLED` games, and should win-rate stay `FINISHED`-only now that removal tracking exists.
+5. **GitHub Actions CI/CD — implemented** (`.github/workflows/deploy.yml`, see §16 Phase 2),
+   currently `workflow_dispatch`-only until the droplet/secrets are fully verified; switch to a
+   `push` trigger once ready to cut over from the old Dokku deployment.
 
 ### Deferred / nice-to-have (see §13), suggested rough order
 1. **Precomputed `PlayerStatistics` table** — win-rate/PBEM response time are recomputed on every
@@ -1171,5 +1175,105 @@ re-derive it. Update this section whenever priorities shift or an item is comple
 Pagination for Admin Users/Games/Rooms/Messages; CoreAdmin comparison tab; dead phone-number field
 cleanup; `GameStateColumnRight` rename; enhanced Games/MyGames lists with badges + inactive-game
 lists (all documented under §14 above); private game-server API split onto its own internal-only
-Kestrel endpoint, not just Basic Auth (see §6.2).
+Kestrel endpoint, not just Basic Auth (see §6.2); production docker-compose + Caddy TLS setup for
+the DO Docker droplet (see §16).
+
+## 16. Production deployment: plain Docker + Compose, no Dokku/Kubernetes (implemented)
+
+The old Django/TS stack deploys via Dokku (`deploy.sh`, `.github/workflows/deploy.yml`), which
+gives git-push deploy + its own reverse proxy/Let's Encrypt for free. The new DigitalOcean droplet
+is a plain "1-Click Docker" image (Docker + docker-compose only, no PaaS layer), so this had to be
+hand-built — nothing about it requires Dokku, since §6.2's private/public Kestrel port split was
+already designed against vanilla Compose networking from the start.
+
+**New files (repo root, sit next to the existing local-dev-only `docker-compose.yml`):**
+- **`docker-compose.prod.yml`** — `website` (this app), `game-server` (the TS game server,
+  `game_server.Dockerfile`), `db` (**`postgres:18`** — the current stable major; not 17), `redis`
+  (**`redis:8`** — current stable major), and `caddy` (reverse proxy/TLS). Only `caddy` publishes
+  ports (`80`/`443`) to the host — `website`, `game-server`, `db`, and `redis` are reachable only
+  from sibling containers on Compose's default network via service-name DNS, matching §6.2's
+  design (`GameServerApi`/8001 is never published, same as local dev's Pitfall #3 warns not to
+  carry over). **`website`/`game-server` reference `image:` tags (GHCR), not `build:` contexts** —
+  mirroring the old Dokku-era `.github/workflows/deploy.yml`'s build-in-CI approach, so the
+  droplet itself never builds anything and doesn't need a full repo clone (only this file,
+  `Caddyfile`, and `.env.prod`).
+- **`Caddyfile`** — a single reverse-proxy site block per domain; Caddy auto-obtains/renews the
+  Let's Encrypt certificate on first request, no certbot/nginx config needed. Currently proxies
+  `winordie.net` (the pre-cutover test domain — see `appsettings.Staging.json`'s
+  `PublicSiteUrl`/`AllowedHosts`); add/switch to `swordsandravens.net` at go-live.
+- **`.env.prod.example`** — template for the real secrets `docker-compose.prod.yml` interpolates
+  (`DB_PASSWORD`, `MASTER_API_USERNAME/PASSWORD`, OAuth client secrets, SMTP credentials) plus
+  `WEBSITE_IMAGE`/`GAME_SERVER_IMAGE` (which GHCR tag to deploy — defaults to `:latest`; the CI/CD
+  pipeline will instead pin a specific commit SHA per deploy, same as the old workflow's
+  `${{ github.sha }}` tags). Copy to `.env.prod` on the droplet and fill in real values —
+  `.env.prod` is gitignored, never commit it.
+- **root `.dockerignore`** — extended to exclude `agot-bg-game-server/node_modules` and the .NET
+  solution's `bin`/`obj`/`.vs` directories from the build context (both Dockerfiles now build with
+  repo-root or `agot-bg-website-dotnet/`-root context).
+- **`Program.cs`: `Database.MigrateAsync()` on startup** — pending EF Core migrations are now
+  applied automatically every time the app starts (in every environment, including local Docker
+  debug), instead of requiring a separate manual `dotnet ef database update` step after each
+  deploy. Idempotent (EF Core's `__EFMigrationsHistory` table makes re-running a no-op once the
+  schema is current) and safe against a cold-starting `db` container because
+  `docker-compose.prod.yml`'s `db` service has a healthcheck and `website` depends on it with
+  `condition: service_healthy`.
+
+**Phased first deploy on the droplet** (decided to stand up infra first, then build the CI/CD
+pipeline — including Spaces-backed static assets, §15 roadmap items 3/5 — before ever running the
+app containers; and to build images only in CI, never on the droplet, mirroring the old
+`deploy.yml`):
+
+**Phase 1 — infra only (`db`, `redis`, `caddy`), no app containers yet:**
+```bash
+ufw allow 80,443/tcp   # only 22/2375/2376 are open by default on the 1-Click Docker image;
+                       # a DigitalOcean Cloud Firewall (if configured on the droplet's Networking
+                       # page) is a *separate*, additional layer — both it and UFW must allow
+                       # 80/443, since traffic has to pass both to reach the containers
+                       # (also: close 2375/2376 unless you actually use the remote Docker API —
+                       # unauthenticated 2375 is a known instant-root-compromise vector)
+mkdir -p /opt/swords-and-ravens && cd /opt/swords-and-ravens
+# Only these 3 files are needed on the droplet — website/game-server images come from GHCR, not a
+# local build, so there's no need to clone the full source repo here at all:
+#   docker-compose.prod.yml, Caddyfile, .env.prod.example (copy from wherever is easiest, e.g.
+#   `git clone --depth 1` into a scratch dir and copy the 3 files out, or scp them directly)
+cp .env.prod.example .env.prod   # fill in real secrets — DB_PASSWORD/MASTER_API_PASSWORD can be
+                                 # generated fresh, e.g. `openssl rand -base64 32 | tr -d '/+='`;
+                                 # Postgres uses whatever's in DB_PASSWORD as its real password
+                                 # only on first-ever init of the empty `pgdata` volume
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db redis caddy
+docker compose -f docker-compose.prod.yml ps
+```
+`caddy` starts fine even though its `reverse_proxy website:8000` upstream isn't running yet —
+Caddy resolves upstreams per-request, not at startup, so it'll just 502 until `website` exists.
+That's expected during this phase.
+
+**Phase 2 — CI/CD pipeline (implemented in `.github/workflows/deploy.yml`)**: builds the game
+client (webpack `ASSET_PATH` pointed at the Spaces CDN URL), uploads its output (minus
+`index.html`) to the Spaces bucket, copies `index.html` into
+`agot-bg-website-dotnet/agot-bg-website/GameClientTemplates/play.html` before building the
+`website` image (so the image never needs the actual JS/CSS bundles — `PlayApi.cs`'s served HTML
+already points at the CDN), builds+pushes both `website` and `game-server` images to GHCR tagged
+by commit SHA (not `:latest`, unlike the local dev defaults in `.env.prod.example`), then SSHes
+into the droplet and runs `docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+website game-server && ... up -d website game-server` — `db`/`redis`/`caddy` are never touched by
+a deploy. No `--build` step ever runs on the droplet.
+
+Currently triggered only by `workflow_dispatch` (manual) while the droplet/secrets are still being
+finished — switch to `push: branches: [master]` once ready to cut over from the old Dokku
+deployment. Required GitHub repo secrets: `CI_DEPLOY_SSH_KEY` (droplet SSH key, same as the old
+workflow), `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_S3_ENDPOINT_URL`/
+`AWS_STORAGE_BUCKET_NAME` (Spaces credentials, same names as the old workflow so they can be
+reused as-is). The droplet itself needs a one-time `docker login ghcr.io` (PAT with
+`read:packages`) so `docker compose pull` can authenticate against GHCR — this isn't automated by
+the workflow since it only needs doing once, not per-deploy.
+
+`GlobalServer.ts`'s `MASTER_API_BASE_URL` default (`http://localhost:8001/api`) would **not** work
+across Compose's separate containers — `docker-compose.prod.yml`'s `game-server` service already
+overrides it explicitly to `http://website:8001/api` (Compose's service-name DNS), so no code
+change was needed there; the default only applies to genuinely standalone local dev.
+
+No separate DB migration step needed once `website` does start — it applies pending EF Core
+migrations itself on startup (see above). Point the domain's DNS A record at the droplet's IP;
+Caddy requests the TLS cert automatically on first HTTPS request once `website` is reachable.
+
 

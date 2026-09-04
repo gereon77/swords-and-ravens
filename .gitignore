@@ -2,6 +2,10 @@ agot-bg-game-server/.vscode/settings.json
 .idea/
 .favorites.json
 
+# Production/staging deployment secrets (see .env.prod.example for the template) — never commit
+# real values.
+.env.prod
+
 # Created by https://www.gitignore.io/api/macos
 # Edit at https://www.gitignore.io/?templates=macos
 

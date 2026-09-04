@@ -73,7 +73,7 @@ Postgres/Redis/SMTP.
    dotnet user-secrets set "Email:Host" "127.0.0.1"
    dotnet user-secrets set "Email:Port" "2525"
    dotnet user-secrets set "Email:EnableSsl" "false"
-   dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
+   dotnet user-secrets set "Email:FromAddress" "no-reply@winordie.local"
    ```
 
    View captured emails at http://localhost:5099. To test Google/Discord/Facebook sign-in
@@ -100,8 +100,45 @@ Postgres/Redis/SMTP.
    For Gmail, generate an [App Password](https://myaccount.google.com/apppasswords) (requires
    2-Step Verification) rather than using your normal account password — plain-password SMTP auth
    is disabled by Google for third-party apps. Any other SMTP relay you have credentials for (a
-   personal domain's mailbox, Mailtrap, SendGrid, etc.) works the same way — just fill in its
-   host/port/username/password.
+   personal domain's mailbox, Mailtrap, SendGrid, **Amazon SES**, etc.) works the same way — just
+   fill in its host/port/username/password.
+
+   **Amazon SES has two independent credential types and two independent ways to send with
+   them:**
+   - **SMTP credentials** (a username/password pair, generated in the SES console specifically
+     for SMTP) → use the SMTP path above, with `Email:Host` set to your region's SES SMTP
+     endpoint (e.g. `email-smtp.eu-central-1.amazonaws.com`), port `587`, `Email:EnableSsl`
+     `true`, and `Email:Username`/`Email:Password` set to those SES SMTP credentials. This is
+     what worked on the old Dokku host — until Dokku started blocking outbound SMTP ports.
+   - **An IAM access key ID + secret access key** (from IAM → your user → "Security
+     credentials" → "Create access key", granting `ses:SendEmail`; console/IAM access is
+     required to create one — SMTP credentials can't be converted into an access key) →
+     `Email:Ses:AccessKeyId`/`Email:Ses:SecretAccessKey`/`Email:Ses:Region` activates
+     `SesApiEmailSender`, which calls SES's own HTTPS API (via the official
+     `AWSSDK.SimpleEmailV2` package, so AWS SigV4 request signing is handled for you) instead of
+     SMTP — the fix for hosts that block outbound SMTP.
+
+   Either way, two SES-specific gotchas apply: the `Email:FromAddress` domain must be a verified
+   identity in the SES console, and while the AWS account is in **sandbox mode** SES will only
+   deliver to *verified* recipient addresses too — request production access in the SES console
+   to email arbitrary users.
+
+   **Email sending precedence** — exactly one `IEmailSender` is registered at startup (see
+   `Program.cs`), chosen by which `Email:*` config is present:
+   1. `Email:Ses:AccessKeyId` set → `SesApiEmailSender` (Amazon SES's own API, see above).
+   2. Otherwise, `Email:Api:Key` set → `ApiEmailSender`, which posts to a generic bearer-token
+      HTTP email API (defaults to [Resend](https://resend.com)'s; override the base URL with
+      `Email:Api:Host` to use a different bearer-token provider — Postmark, SendGrid, Mailgun,
+      Brevo, etc. all work the same way). Resend's free tier (3,000 emails/month, 100/day)
+      comfortably covers this project's volume; paid tiers start at $20/month for 50,000.
+   3. Otherwise, `Email:Host` set → `SmtpEmailSender` (the smtp4dev/Gmail/SES-SMTP/etc. setup
+      above).
+   4. Otherwise (no `Email:*` configured at all, e.g. a fresh checkout before any of the above
+      steps) → `LoggingEmailSender`, which just logs what would have been sent instead of
+      crashing or silently dropping the email — nothing further to configure for basic local dev.
+
+   Both API-based options (1 and 2) are preferred over SMTP when configured, since API-based
+   delivery isn't subject to outbound SMTP port blocking on some hosts.
 
 4. **Run the website**:
 

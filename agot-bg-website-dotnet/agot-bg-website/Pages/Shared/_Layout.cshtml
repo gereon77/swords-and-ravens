@@ -1,8 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@inject IWebHostEnvironment HostEnvironment
+<!DOCTYPE html>
 <html lang="en" data-theme="swordsandravens">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* Intentionally no responsive "width=device-width" viewport meta tag: like the old Django site,
+       mobile browsers fall back to their default desktop-oriented layout viewport (~980px), so the
+       whole page renders at full desktop size and simply shrinks visually - users pinch-zoom into the
+       area they want instead of the site reflowing into a separate mobile layout. *@
     <title>@ViewData["Title"] - Swords and Ravens</title>
     <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
     <script type="importmap"></script>
@@ -61,6 +65,23 @@
                 </div>
             </div>
         </nav>
+        @if (HostEnvironment.IsStaging())
+        {
+            <div class="alert alert-warning rounded-none py-2 text-sm !grid-cols-1 !justify-items-center !text-center">
+                @* DaisyUI's .alert is a two-column grid (an auto-sized icon column plus a
+                   content column) from the sm breakpoint up, meant for two separate children.
+                   Since icon and text are both wrapped in one <span> here, that single grid item
+                   lands in the narrow auto-sized first column and gets pinned to the start -
+                   plain justify-center/text-center on the container, or on the span itself, has
+                   no effect since the span never actually gets stretched to the row's full width.
+                   Force a single, full-width, centered column with "!" (important) utilities so
+                   this doesn't depend on DaisyUI's two-child grid layout at all. *@
+                <span>
+                    <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
+                    This is a test instance for trying out the new site before launch — games and accounts here may be reset or deleted without notice, so don't rely on anything created here sticking around.
+                </span>
+            </div>
+        }
     </header>
     <div class="flex-1 min-h-0 overflow-y-auto">
         <div class="container @(ViewData["WideContainer"] as bool? == true ? "container-wide" : "")">

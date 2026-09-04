@@ -60,9 +60,10 @@ placeholder-empty values checked into `appsettings.json`:
 - the app starts up fine with zero OAuth app registrations configured;
 - `/Identity/Account/Register` and `/Identity/Account/Login` (plain Identity forms) are the only
   sign-in options shown/available;
-- `options.SignIn.RequireConfirmedAccount` is set to `!builder.Environment.IsDevelopment()`, so
-  in Development a freshly-registered local account can log in immediately without needing a
-  working email sender to confirm the address (outside Development it stays `true`).
+- `options.SignIn.RequireConfirmedAccount` is always `true`, in every environment (including local
+  Docker debugging) — see Program.cs's comment on why: it exercises the real confirm-email flow
+  everywhere rather than silently skipping it in one environment, and the local SMTP catcher
+  (smtp4dev, see "Email" below) makes that painless to test against.
 
 To add real OAuth later (locally or in production), just populate the corresponding ClientId/
 ClientSecret via `dotnet user-secrets`/environment variables/`appsettings.*.json` — no code changes
@@ -222,7 +223,7 @@ needing any account/secret at all:
    dotnet user-secrets set "Email:EnableSsl" "false"
    dotnet user-secrets set "Email:Username" ""
    dotnet user-secrets set "Email:Password" ""
-   dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
+   dotnet user-secrets set "Email:FromAddress" "no-reply@winordie.local"
    ```
 3. `dotnet run`, then register a new account at `/Identity/Account/Register` — the confirmation
    email shows up immediately in the smtp4dev web UI (http://localhost:5099), no real mailbox
@@ -547,4 +548,40 @@ via `dotnet run` + `curl` with a cookie jar (not just unit tests), end to end:
 
 `dotnet build` (0 errors) and `dotnet test` (33/33 passing, 4 new `RegisterModelTests`) both
 re-verified after these changes.
+
+## 11. Fixed: local Docker container returning "Empty reply from server" for every request
+
+A long-running local `agot-bg-website` container (up ~3 hours, started before a `SnrMigration`
+full-history import was run against the *same* local `snr_dotnet` Postgres database) stopped
+answering any HTTP request at all — `curl http://localhost:8000/` returned `curl: (52) Empty
+reply from server` on every attempt, while `docker logs` showed the container had started up
+cleanly (`Application started. Press Ctrl+C to shut down.`) with no exceptions.
+
+**Investigation:** built a fresh image from the exact same code
+(`docker build -f agot-bg-website/Dockerfile .`) and ran it standalone against the same local
+`db`/`redis` containers — it worked immediately (`200 OK`, full page HTML). This proves there was
+**no code regression** in the "drop Development environment" changes; the old container had simply
+gotten into a bad/hung state (most likely: its pooled Npgsql connections were left in a broken
+state by the earlier bulk import against the same database, e.g. long lock waits or a dropped
+connection the pool never recovered from). **Fix is operational, not a code change: recreate the
+local container (`docker stop`/`rm` + re-`docker build`/`run`) any time it's been sitting idle
+across a heavy local DB operation like a full `SnrMigration` import** — don't assume it'll notice
+and reconnect on its own.
+
+**Real (if unrelated) bug fixed along the way:** while comparing logs between the old and new
+containers, both printed this on every single new Npgsql connection:
+
+```
+Cannot load library libgssapi_krb5.so.2
+Error: libgssapi_krb5.so.2: cannot open shared object file: No such file or directory
+```
+
+This is non-fatal (Npgsql just skips GSSAPI auth and falls back to the configured auth method —
+present in both the broken *and* the working container, so it was never the actual cause of the
+empty replies), but it's noisy enough to obscure real errors in `docker logs` and adds a failed
+`dlopen()` on every new physical connection. The Debian-slim `aspnet` base image doesn't ship the
+library; fixed by installing the Debian package that provides it
+(`libgssapi-krb5-2` — **not** `libkrb5-3`, which provides a different, unrelated `.so`) as root in
+the Dockerfile's `base` stage before switching to `$APP_UID`. Verified: rebuilt, re-ran against the
+same local Postgres, and the warning no longer appears; `/` still returns `200 OK`.
 

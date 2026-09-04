@@ -32,7 +32,14 @@ public static class RoomSeeder
         int maxRetrieveCount
     )
     {
-        var room = await db.Rooms.FirstOrDefaultAsync(r => r.Name == name);
+        // OrderBy(CreatedAt) makes this deterministic if duplicate rows ever exist for the same
+        // name (e.g. this seeder ran once before a legacy-data import created another room with
+        // the same name but a different id) — always prefer the oldest/original row instead of
+        // whichever Postgres happens to return first.
+        var room = await db
+            .Rooms.Where(r => r.Name == name)
+            .OrderBy(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
         if (room is null)
         {
             room = new Room

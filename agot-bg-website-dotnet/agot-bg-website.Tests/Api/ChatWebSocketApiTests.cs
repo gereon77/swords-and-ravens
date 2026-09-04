@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace agot_bg_website.Tests.Api;
@@ -83,6 +84,7 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
     private readonly IMemoryCache _memoryCache;
     private readonly FakeEmailSender _emailSender = new();
     private readonly HttpContext _httpContext;
+    private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
 
     public ChatWebSocketApiNotifyChatPartnerTests()
     {
@@ -154,6 +156,7 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
             _db,
             _memoryCache,
             _emailSender,
+            _configuration,
             roomId,
             sender,
             new Message
@@ -248,6 +251,7 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
             _db,
             _memoryCache,
             _emailSender,
+            _configuration,
             Guid.NewGuid(),
             sender,
             new Message

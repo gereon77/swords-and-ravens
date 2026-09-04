@@ -9,13 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.SimpleEmailV2" Version="4.0.104" />
     <PackageReference Include="CoreAdmin" Version="4.0.0" />
     <PackageReference
       Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis"
-      Version="10.0.11"
-    />
-    <PackageReference
-      Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore"
       Version="10.0.11"
     />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.11" />
@@ -28,7 +25,8 @@
       Version="1.24.1-preview.1"
     />
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.2" />
-    <PackageReference Include="Soenneker.Validators.Email.Disposable.Online" Version="4.0.5455" />
+    <PackageReference Include="Sentry.AspNetCore" Version="6.10.0" />
+    <PackageReference Include="Soenneker.Validators.Email.Disposable.Online" Version="4.0.5467" />
     <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
   </ItemGroup>
 
