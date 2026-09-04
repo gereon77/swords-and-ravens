@@ -24,8 +24,7 @@ public class ApiEmailSender(
     {
         var apiKey = configuration["Email:Api:Key"];
         var fromAddress =
-            configuration["Email:FromAddress"]
-            ?? "Swords and Ravens <no-reply@swordsandravens.net>";
+            configuration["Email:FromAddress"] ?? "Swords and Ravens <no-reply@winordie.net>";
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "emails")
         {

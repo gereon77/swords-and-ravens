@@ -223,7 +223,7 @@ needing any account/secret at all:
    dotnet user-secrets set "Email:EnableSsl" "false"
    dotnet user-secrets set "Email:Username" ""
    dotnet user-secrets set "Email:Password" ""
-   dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
+   dotnet user-secrets set "Email:FromAddress" "no-reply@winordie.local"
    ```
 3. `dotnet run`, then register a new account at `/Identity/Account/Register` — the confirmation
    email shows up immediately in the smtp4dev web UI (http://localhost:5099), no real mailbox

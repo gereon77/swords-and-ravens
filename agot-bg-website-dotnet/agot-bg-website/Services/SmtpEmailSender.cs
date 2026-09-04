@@ -31,8 +31,7 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         var port = int.TryParse(configuration["Email:Port"], out var parsedPort) ? parsedPort : 587;
         var username = configuration["Email:Username"];
         var password = configuration["Email:Password"];
-        var fromAddress =
-            configuration["Email:FromAddress"] ?? username ?? "no-reply@swordsandravens.net";
+        var fromAddress = configuration["Email:FromAddress"] ?? username ?? "no-reply@winordie.net";
         // Defaults to true for real SMTP providers; local test catchers (e.g. smtp4dev) usually
         // don't offer TLS on their plain SMTP port, so local dev sets Email:EnableSsl=false via
         // user-secrets — see LOCAL_DEV_VERIFICATION.md's "Email (local testing)" section.

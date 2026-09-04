@@ -28,8 +28,7 @@ public class SesApiEmailSender(IConfiguration configuration, ILogger<SesApiEmail
         var secretAccessKey = configuration["Email:Ses:SecretAccessKey"];
         var region = configuration["Email:Ses:Region"] ?? "eu-central-1";
         var fromAddress =
-            configuration["Email:FromAddress"]
-            ?? "Swords and Ravens <no-reply@swordsandravens.net>";
+            configuration["Email:FromAddress"] ?? "Swords and Ravens <no-reply@winordie.net>";
 
         using var client = new AmazonSimpleEmailServiceV2Client(
             accessKeyId,

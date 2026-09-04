@@ -73,7 +73,7 @@ Postgres/Redis/SMTP.
    dotnet user-secrets set "Email:Host" "127.0.0.1"
    dotnet user-secrets set "Email:Port" "2525"
    dotnet user-secrets set "Email:EnableSsl" "false"
-   dotnet user-secrets set "Email:FromAddress" "no-reply@swordsandravens.local"
+   dotnet user-secrets set "Email:FromAddress" "no-reply@winordie.local"
    ```
 
    View captured emails at http://localhost:5099. To test Google/Discord/Facebook sign-in
