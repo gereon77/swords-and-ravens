@@ -396,6 +396,35 @@ public class LegacyReader(string connectionString)
         return result;
     }
 
+    /// <summary>
+    /// Upfront row counts for the two tables slow enough that a progress report needs "N of M" to
+    /// be useful (chat_message can hold millions of rows, agotboardgame_main_game's SerializedGame
+    /// blobs make each row itself slow to transfer) - see ImportMessagesAsync/ImportGamesAsync.
+    /// </summary>
+    public async Task<long> CountMessagesAsync(DateTimeOffset? sinceUtc = null)
+    {
+        await using var conn = OpenConnection();
+        var sql = sinceUtc is null
+            ? "SELECT COUNT(*) FROM chat_message"
+            : "SELECT COUNT(*) FROM chat_message WHERE created_at >= @since";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        if (sinceUtc is { } since)
+        {
+            cmd.Parameters.AddWithValue("since", since);
+        }
+        return (long)(await cmd.ExecuteScalarAsync())!;
+    }
+
+    public async Task<long> CountGamesAsync()
+    {
+        await using var conn = OpenConnection();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT COUNT(*) FROM agotboardgame_main_game",
+            conn
+        );
+        return (long)(await cmd.ExecuteScalarAsync())!;
+    }
+
     public async Task<Dictionary<string, long>> ReadRowCountsAsync()
     {
         var tables = new[]

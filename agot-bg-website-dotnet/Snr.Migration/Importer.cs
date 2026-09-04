@@ -28,10 +28,24 @@ public class Importer(
     // reads from the legacy database for the same underlying reason.
     private const int DefaultSaveBatchSize = 500;
 
+    /// <summary>
+    /// <paramref name="progressLabel"/>/<paramref name="processedSoFar"/>/<paramref name="totalCount"/>
+    /// are optional and purely cosmetic - when a label is given, an actual flush (not every call -
+    /// most calls are no-ops until pendingCount reaches batchSize) prints a "still working"
+    /// progress line, so a long-running step (chat_message can hold millions of rows; the games
+    /// table's SerializedGame blobs make even a modest row count slow) never looks stuck.
+    /// <paramref name="reportEveryNRows"/> throttles how often that line actually prints (defaults
+    /// to every flush, fine for the small tables) - large tables pass a bigger value so a
+    /// million-row import doesn't spam the console with one line per (small) batch.
+    /// </summary>
     private static async Task<int> FlushIfBatchFullAsync(
         ApplicationDbContext db,
         int pendingCount,
-        int batchSize = DefaultSaveBatchSize
+        string? progressLabel = null,
+        long processedSoFar = 0,
+        long? totalCount = null,
+        int batchSize = DefaultSaveBatchSize,
+        int? reportEveryNRows = null
     )
     {
         if (pendingCount < batchSize)
@@ -40,6 +54,11 @@ public class Importer(
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
+        if (progressLabel != null && processedSoFar % (reportEveryNRows ?? batchSize) < batchSize)
+        {
+            var suffix = totalCount is { } total ? $" / {total}" : "";
+            Console.WriteLine($"    ...{progressLabel}: {processedSoFar}{suffix} processed so far");
+        }
         return 0;
     }
 
@@ -105,6 +124,7 @@ public class Importer(
         var updated = 0;
         var skippedClaimed = 0;
         var renamedDuplicates = 0;
+        var processedUsers = 0;
         // Django's username is only case-sensitively unique; ASP.NET Identity's NormalizedUserName
         // is case-insensitively unique (UserNameIndex). Two legacy users differing only by case
         // (e.g. "JohnDoe" / "johndoe") would otherwise violate that index on insert. Preload every
@@ -120,6 +140,7 @@ public class Importer(
         var pendingUsers = 0;
         await foreach (var legacyUser in _legacy.ReadUsersAsync())
         {
+            processedUsers++;
             var existing = await db.Users.FindAsync(legacyUser.Id);
             if (existing == null)
             {
@@ -211,7 +232,12 @@ public class Importer(
                 skippedClaimed++;
                 continue;
             }
-            pendingUsers = await FlushIfBatchFullAsync(db, pendingUsers + 1);
+            pendingUsers = await FlushIfBatchFullAsync(
+                db,
+                pendingUsers + 1,
+                "users",
+                processedUsers
+            );
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -225,8 +251,10 @@ public class Importer(
         // whatever roles the new site has already granted them, so only add missing links).
         var addedRoles = 0;
         var pendingRoles = 0;
+        var processedRoles = 0;
         await foreach (var userGroup in _legacy.ReadUserGroupsAsync())
         {
+            processedRoles++;
             if (!groupIdToRoleId.TryGetValue(userGroup.GroupId, out var roleId))
                 continue;
             var exists = await db.UserRoles.AnyAsync(ur =>
@@ -241,7 +269,12 @@ public class Importer(
                 new IdentityUserRole<Guid> { UserId = userGroup.UserId, RoleId = roleId }
             );
             addedRoles++;
-            pendingRoles = await FlushIfBatchFullAsync(db, pendingRoles + 1);
+            pendingRoles = await FlushIfBatchFullAsync(
+                db,
+                pendingRoles + 1,
+                "role memberships",
+                processedRoles
+            );
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -298,8 +331,10 @@ public class Importer(
         var updated = 0;
         var reconciled = 0;
         var pending = 0;
+        var processed = 0;
         await foreach (var legacyRoom in _legacy.ReadRoomsAsync())
         {
+            processed++;
             reconciled += await ReconcileSeededPublicRoomAsync(db, legacyRoom);
 
             var existing = await db.Rooms.FindAsync(legacyRoom.Id);
@@ -324,7 +359,7 @@ public class Importer(
                 existing.MaxRetrieveCount = legacyRoom.MaxRetrieveCount;
                 updated++;
             }
-            pending = await FlushIfBatchFullAsync(db, pending + 1);
+            pending = await FlushIfBatchFullAsync(db, pending + 1, "rooms", processed);
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -363,8 +398,10 @@ public class Importer(
         var updated = 0;
         var skipped = 0;
         var pending = 0;
+        var processed = 0;
         await foreach (var legacyUserInRoom in _legacy.ReadUsersInRoomAsync())
         {
+            processed++;
             if (
                 !knownUserIds.Contains(legacyUserInRoom.UserId)
                 || !knownRoomIds.Contains(legacyUserInRoom.RoomId)
@@ -409,7 +446,12 @@ public class Importer(
                 existingIds[key] = entity.Id;
                 imported++;
             }
-            pending = await FlushIfBatchFullAsync(db, pending + 1);
+            pending = await FlushIfBatchFullAsync(
+                db,
+                pending + 1,
+                "chat room memberships",
+                processed
+            );
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -422,6 +464,8 @@ public class Importer(
     {
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
+        var totalGames = await _legacy.CountGamesAsync();
+        Console.WriteLine($"    games: {totalGames} total in legacy database, importing...");
 
         // Preloaded once so the historical PreviousPlayerInGame backfill (computed inline below,
         // right while each game's ViewOfGame is already parsed in memory - no second pass over
@@ -480,6 +524,8 @@ public class Importer(
         // ChangeTracker.Clear() release the batch's tracked entities before moving on - see
         // FlushIfBatchFullAsync's doc comment for why that matters at all on a table this size.
         const int gamesBatchSize = 20;
+        const int gamesReportEveryNRows = 1000;
+        var processedGames = 0;
         var pendingSerializedGames = new List<(Guid GameId, string SerializedGame)>();
         // Game ids in the current batch whose SerializedGame still needs to be fetched from the
         // legacy database at all - a targeted, batch-sized query (see FlushGamesBatchAsync) rather
@@ -510,10 +556,17 @@ public class Importer(
             db.ChangeTracker.Clear();
             pendingSerializedGames.Clear();
             pendingInBatch = 0;
+            if (processedGames % gamesReportEveryNRows < gamesBatchSize)
+            {
+                Console.WriteLine(
+                    $"    ...games: {processedGames} / {totalGames} processed so far"
+                );
+            }
         }
 
         await foreach (var legacyGame in _legacy.ReadGamesAsync())
         {
+            processedGames++;
             if (!knownUserIds.Contains(legacyGame.OwnerId))
             {
                 // Should not happen if users were imported first, but don't let one bad row abort
@@ -776,8 +829,10 @@ public class Importer(
         var skipped = 0;
         var duplicates = 0;
         var pending = 0;
+        var processed = 0;
         await foreach (var legacyPlayer in _legacy.ReadPlayersInGameAsync())
         {
+            processed++;
             if (
                 !knownUserIds.Contains(legacyPlayer.UserId)
                 || !knownGameIds.Contains(legacyPlayer.GameId)
@@ -817,7 +872,12 @@ public class Importer(
                 imported++;
             }
 
-            var flushed = await FlushIfBatchFullAsync(db, pending + 1);
+            var flushed = await FlushIfBatchFullAsync(
+                db,
+                pending + 1,
+                "players in game",
+                processed
+            );
             if (flushed == 0)
             {
                 trackedThisBatch.Clear();
@@ -860,12 +920,16 @@ public class Importer(
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
         var knownRoomIds = (await db.Rooms.Select(r => r.Id).ToListAsync()).ToHashSet();
         var knownMessageIds = (await db.Messages.Select(m => m.Id).ToListAsync()).ToHashSet();
+        var totalMessages = await _legacy.CountMessagesAsync(sinceUtc);
+        Console.WriteLine($"    messages: {totalMessages} total in legacy database, importing...");
 
         var imported = 0;
         var skipped = 0;
         var pending = 0;
+        var processed = 0;
         await foreach (var legacyMessage in _legacy.ReadMessagesAsync(sinceUtc))
         {
+            processed++;
             if (
                 !knownUserIds.Contains(legacyMessage.UserId)
                 || !knownRoomIds.Contains(legacyMessage.RoomId)
@@ -892,8 +956,16 @@ public class Importer(
             // ChangeTracker.Clear() (not just SaveChangesAsync) is the important part here: without
             // it every Message entity ever Added stays tracked for the DbContext's whole lifetime
             // even once saved, which is the real OOM risk on a table that can hold millions of rows
-            // - see FlushIfBatchFullAsync's doc comment.
-            pending = await FlushIfBatchFullAsync(db, pending + 1);
+            // - see FlushIfBatchFullAsync's doc comment. reportEveryNRows is much larger than the
+            // 500-row save batch size so a 2-million-row import doesn't print 4,000 lines.
+            pending = await FlushIfBatchFullAsync(
+                db,
+                pending + 1,
+                "messages",
+                processed,
+                totalMessages,
+                reportEveryNRows: 100_000
+            );
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -927,8 +999,10 @@ public class Importer(
         var imported = 0;
         var skipped = 0;
         var pending = 0;
+        var processed = 0;
         await foreach (var legacyResponseTime in _legacy.ReadPbemResponseTimesAsync())
         {
+            processed++;
             if (!knownUserIds.Contains(legacyResponseTime.UserId))
             {
                 skipped++;
@@ -947,7 +1021,13 @@ public class Importer(
                 }
             );
             imported++;
-            pending = await FlushIfBatchFullAsync(db, pending + 1);
+            pending = await FlushIfBatchFullAsync(
+                db,
+                pending + 1,
+                "PBEM response times",
+                processed,
+                reportEveryNRows: 50_000
+            );
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
