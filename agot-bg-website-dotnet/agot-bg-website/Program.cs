@@ -431,6 +431,8 @@ if (Directory.Exists(staticGameDir))
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseLastActivityTracking();
+
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapDefaultControllerRoute();
