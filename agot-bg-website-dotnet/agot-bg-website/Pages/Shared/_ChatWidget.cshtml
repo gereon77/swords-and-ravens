@@ -26,9 +26,12 @@
     import htm from "./lib/preact/htm.module.js";
     const html = htm.bind(h);
 
-    const publicRoomId = @Json.Serialize(Model.PublicRoomId.ToString());
-    const issuesRoomId = @Json.Serialize(Model.IssuesRoomId.ToString());
     const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
+    // The connection itself is owned by window.SnrChatPresence (initialized from _Layout.cshtml
+    // on every authenticated page, see chat-presence.js) - this widget is just a view over it, so
+    // switching between Games/MyGames doesn't lose the connection, in-memory messages, or a
+    // user's "online" status the way tearing down/recreating page-local WebSockets would.
+    const presence = window.SnrChatPresence;
 
     // ---- Westerosi (UTC) clock ----
     const clockEl = document.getElementById("westerosi-time");
@@ -43,13 +46,18 @@
     class OnlineUsers extends Component {
         constructor() {
             super();
-            this.state = { connectedUsers: {} };
+            this.state = { connectedUsers: presence ? presence.connectedUsers : {} };
         }
 
         componentDidMount() {
-            window.addEventListener("connectedUsersUpdated", e => this.setState({ connectedUsers: e.detail }));
-            if (window.chatConnectedUsers) {
-                this.setState({ connectedUsers: window.chatConnectedUsers });
+            if (!presence) return;
+            this._onUpdate = e => this.setState({ connectedUsers: e.detail });
+            presence.addEventListener("connectedUsersUpdated", this._onUpdate);
+        }
+
+        componentWillUnmount() {
+            if (presence && this._onUpdate) {
+                presence.removeEventListener("connectedUsersUpdated", this._onUpdate);
             }
         }
 
@@ -80,160 +88,76 @@
     render(h(OnlineUsers), document.getElementById("online-users-container"));
 
     // ---- Dual (public / issues) chat ----
+    // The WebSocket connections themselves live in `presence` (window.SnrChatPresence, see
+    // chat-presence.js) so they survive independently of this widget being mounted/unmounted -
+    // this component only tracks the UI-only "unread" flag per tab and mirrors presence's message
+    // state into its own render state.
     const TABS = ["chat", "issues"];
     const TAB_LABELS = { chat: "Chat", issues: "Requests / Issues" };
-    const ROOM_IDS = { chat: publicRoomId, issues: issuesRoomId };
 
-    function emptyRoomState() {
-        return { wsState: 0, messages: [], noMoreMessages: false, lastViewedMessageId: null, hasUnread: false };
+    function roomViewState(tab, hasUnread) {
+        const room = presence ? presence.rooms[tab] : { wsState: 0, messages: [], noMoreMessages: false, lastViewedMessageId: null };
+        return { ...room, hasUnread };
     }
 
     class DualChat extends Component {
         constructor() {
             super();
-            this.state = { activeTab: "chat", rooms: { chat: emptyRoomState(), issues: emptyRoomState() } };
+            this.state = {
+                activeTab: "chat",
+                rooms: { chat: roomViewState("chat", false), issues: roomViewState("issues", false) }
+            };
             this.inputRefs = { chat: null, issues: null };
-            this.websockets = {};
-            this._wsConnected = false;
         }
 
         componentDidMount() {
-            if (!isAuthenticated) {
+            if (!isAuthenticated || !presence) {
                 // The WebSocket endpoint requires an authenticated session (401s otherwise) —
                 // matches Django only rendering message history for logged-in users, but avoids a
                 // failed connection attempt entirely for anonymous visitors.
                 return;
             }
-            this.reconnectAll();
-            this._onVisibilityChange = () => {
-                if (document.visibilityState === "hidden") {
-                    this.disconnectAll();
+            this._onRoomStateChanged = e => this.syncRoom(e.detail.tab, this.state.rooms[e.detail.tab].hasUnread);
+            this._onChatMessage = e => {
+                const { tab, message } = e.detail;
+                if (this.state.activeTab !== tab) {
+                    this.syncRoom(tab, true);
                 } else {
-                    this.reconnectAll();
+                    presence.sendViewMessage(tab, message.id);
+                    this.syncRoom(tab, false);
                 }
             };
-            this._onPageHide = () => this.disconnectAll();
-            this._onPageShow = e => { if (e.persisted) this.reconnectAll(); };
-            document.addEventListener("visibilitychange", this._onVisibilityChange);
-            window.addEventListener("pagehide", this._onPageHide);
-            window.addEventListener("pageshow", this._onPageShow);
+            this._onMessagesRetrieved = e => {
+                const tab = e.detail.tab;
+                const room = presence.rooms[tab];
+                const newestId = room.messages.length > 0 ? room.messages[room.messages.length - 1].id : null;
+                const isActive = this.state.activeTab === tab;
+                if (newestId && isActive && String(room.lastViewedMessageId) !== String(newestId)) {
+                    presence.sendViewMessage(tab, newestId);
+                }
+                const hasUnread = !isActive && newestId != null && String(room.lastViewedMessageId) !== String(newestId);
+                this.syncRoom(tab, hasUnread);
+            };
+            this._onMoreMessagesRetrieved = e => this.syncRoom(e.detail.tab, this.state.rooms[e.detail.tab].hasUnread);
+            presence.addEventListener("roomStateChanged", this._onRoomStateChanged);
+            presence.addEventListener("chatMessage", this._onChatMessage);
+            presence.addEventListener("chatMessagesRetrieved", this._onMessagesRetrieved);
+            presence.addEventListener("moreChatMessagesRetrieved", this._onMoreMessagesRetrieved);
+            // Presence connects itself on init (from _Layout.cshtml) - just sync this widget's
+            // view with whatever state it's already reached by the time we mounted.
+            TABS.forEach(tab => this.syncRoom(tab, false));
         }
 
         componentWillUnmount() {
-            document.removeEventListener("visibilitychange", this._onVisibilityChange);
-            window.removeEventListener("pagehide", this._onPageHide);
-            window.removeEventListener("pageshow", this._onPageShow);
-            this.disconnectAll();
+            if (!presence) return;
+            presence.removeEventListener("roomStateChanged", this._onRoomStateChanged);
+            presence.removeEventListener("chatMessage", this._onChatMessage);
+            presence.removeEventListener("chatMessagesRetrieved", this._onMessagesRetrieved);
+            presence.removeEventListener("moreChatMessagesRetrieved", this._onMoreMessagesRetrieved);
         }
 
-        disconnectAll() {
-            if (!this._wsConnected) return;
-            this._wsConnected = false;
-            window.chatConnectedUsers = {};
-            window.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: {} }));
-            TABS.forEach(tab => {
-                const ws = this.websockets[tab];
-                if (ws) {
-                    ws.onclose = null;
-                    ws.onmessage = null;
-                    ws.close();
-                    this.websockets[tab] = null;
-                }
-                this.patchRoom(tab, { wsState: 0 });
-            });
-        }
-
-        reconnectAll() {
-            if (this._wsConnected) return;
-            this._wsConnected = true;
-            TABS.forEach(tab => {
-                if (ROOM_IDS[tab]) {
-                    this.patchRoom(tab, { messages: [], noMoreMessages: false });
-                    this.connectRoom(tab, ROOM_IDS[tab]);
-                }
-            });
-        }
-
-        connectRoom(tab, roomId) {
-            const existing = this.websockets[tab];
-            if (existing) {
-                existing.onclose = null;
-                existing.close();
-            }
-            const url = window.location;
-            const wsProto = url.protocol === "http:" ? "ws:" : "wss:";
-            const ws = new WebSocket(`${wsProto}//${url.host}/ws/chat/room/${roomId}`);
-            this.websockets[tab] = ws;
-            ws.onopen = () => {
-                this.patchRoom(tab, { wsState: 1 });
-                ws.send(JSON.stringify({ type: "chat_retrieve", count: 20, first_message_id: null, faceless: false }));
-            };
-            ws.onclose = () => this.patchRoom(tab, { wsState: 2 });
-            ws.onmessage = e => this.handleMessage(tab, JSON.parse(e.data));
-        }
-
-        handleMessage(tab, data) {
-            if (tab === "chat" && data.type === "connected_users") {
-                if (!this._wsConnected) return;
-                window.chatConnectedUsers = data.users;
-                window.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: data.users }));
-                return;
-            }
-            if (data.type === "force_disconnect") {
-                this.disconnectAll();
-                return;
-            }
-            if (data.type === "chat_message") {
-                this.addMessage(tab, data, false);
-                if (this.state.activeTab !== tab) {
-                    this.patchRoom(tab, { hasUnread: true });
-                } else {
-                    this.sendViewMessage(tab, data.id);
-                }
-            } else if (data.type === "chat_messages_retrieved") {
-                data.messages.forEach(d => this.addMessage(tab, d, false));
-                const newestId = data.messages.length > 0 ? data.messages[data.messages.length - 1].id : null;
-                const lastViewed = data.last_viewed_message != null ? data.last_viewed_message : null;
-                const isActive = this.state.activeTab === tab;
-                if (newestId && isActive && String(lastViewed) !== String(newestId)) {
-                    this.sendViewMessage(tab, newestId);
-                }
-                const hasUnread = !isActive && newestId != null && String(lastViewed) !== String(newestId);
-                this.patchRoom(tab, { lastViewedMessageId: lastViewed, hasUnread });
-            } else if (data.type === "more_chat_messages_retrieved") {
-                if (data.messages.length === 0) {
-                    this.patchRoom(tab, { noMoreMessages: true });
-                } else {
-                    data.messages.forEach(d => this.addMessage(tab, d, true));
-                }
-            }
-        }
-
-        addMessage(tab, data, prepend) {
-            const msg = {
-                id: data.id,
-                username: data.user_username,
-                user_id: data.user_id,
-                text: data.text,
-                created_at: new Date(Date.parse(data.created_at))
-            };
-            this.setState(s => {
-                const msgs = s.rooms[tab].messages;
-                const updated = prepend ? [msg, ...msgs] : [...msgs, msg];
-                return { rooms: { ...s.rooms, [tab]: { ...s.rooms[tab], messages: updated } } };
-            });
-        }
-
-        patchRoom(tab, patch) {
-            this.setState(s => ({ rooms: { ...s.rooms, [tab]: { ...s.rooms[tab], ...patch } } }));
-        }
-
-        sendViewMessage(tab, messageId) {
-            const ws = this.websockets[tab];
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "chat_view_message", message_id: messageId }));
-            }
-            this.patchRoom(tab, { lastViewedMessageId: messageId, hasUnread: false });
+        syncRoom(tab, hasUnread) {
+            this.setState(s => ({ rooms: { ...s.rooms, [tab]: roomViewState(tab, hasUnread) } }));
         }
 
         switchTab(tab) {
@@ -242,13 +166,10 @@
                 if (room.messages.length > 0) {
                     const newestMsg = room.messages[room.messages.length - 1];
                     if (String(newestMsg.id) !== String(room.lastViewedMessageId)) {
-                        this.sendViewMessage(tab, newestMsg.id);
-                    } else {
-                        this.patchRoom(tab, { hasUnread: false });
+                        presence.sendViewMessage(tab, newestMsg.id);
                     }
-                } else {
-                    this.patchRoom(tab, { hasUnread: false });
                 }
+                this.syncRoom(tab, false);
             });
         }
 
@@ -258,23 +179,14 @@
             if (!ref) return;
             const text = ref.value.trim();
             if (!text) return;
-            const ws = this.websockets[tab];
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "chat_message", text, faceless: false }));
-            }
+            presence.sendChatMessage(tab, text);
             ref.value = "";
         }
 
         loadMore(e, tab) {
             e.preventDefault();
-            const room = this.state.rooms[tab];
-            if (room.messages.length === 0) {
-                this.patchRoom(tab, { noMoreMessages: true });
-                return;
-            }
-            const ws = this.websockets[tab];
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "chat_retrieve", count: 50, first_message_id: room.messages[0].id, faceless: false }));
+            if (!presence.loadMore(tab)) {
+                this.syncRoom(tab, this.state.rooms[tab].hasUnread);
             }
         }
 

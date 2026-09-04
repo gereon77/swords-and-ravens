@@ -16,6 +16,21 @@
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/agot_bg_website.styles.css" asp-append-version="true" />
+    @if (User.Identity?.IsAuthenticated ?? false)
+    {
+        @* Connects the public/issues chat on every authenticated page of the site, not just
+           Games/MyGames where the visible widget (_ChatWidget.cshtml) happens to be rendered -
+           see chat-presence.js for why. Placed here (in <head>, before RenderBody's own markup)
+           so this deferred module script initializes window.SnrChatPresence before _ChatWidget's
+           own module script - appearing later in the page - runs and reads from it. *@
+        <script type="module">
+            import { initChatPresence } from "/js/chat-presence.js";
+            initChatPresence({
+                chat: @Json.Serialize(agot_bg_website.Infrastructure.Chat.RoomSeeder.PublicRoomId.ToString()),
+                issues: @Json.Serialize(agot_bg_website.Infrastructure.Chat.RoomSeeder.IssuesRoomId.ToString())
+            });
+        </script>
+    }
 </head>
 <body class="h-screen bg-base-100 text-base-content flex flex-col overflow-hidden">
     <header class="shrink-0">
