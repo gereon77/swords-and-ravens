@@ -1342,6 +1342,16 @@ updated, never duplicated) and fast (a full run against production has taken wel
 historically) — safe to re-run after every legacy data change, or after a fresh `website`
 DB reset, with no extra flags needed.
 
+**Gotcha after a fresh DB reset**: `website`'s `RoomSeeder` auto-creates the "public"/"issues"
+rooms (fresh random Guids) the moment it starts against an empty database — if it starts *before*
+`Snr.Migration` runs (the normal case: a deploy restarts `website` right after the DB reset),
+`ImportRoomsAsync` detects the resulting duplicate (same Name, different Id) and merges it back
+into the legacy row automatically (reassigns any Messages/UsersInRoom, deletes the seeded stub).
+But `website`'s already-running process still has the *old* (now-deleted) Guid cached in memory
+(`RoomSeeder.PublicRoomId`/`IssuesRoomId` are static, set once at startup) — **always
+`docker compose restart website` after running `Snr.Migration` against a freshly-reset database**
+so it re-seeds/re-reads the correct (surviving, legacy-id) room.
+
 ### 17.4 Dropping/recreating the `snr_dotnet` database (local or droplet)
 
 Only do this when a schema change requires a full clean re-import (e.g. a changed primary key

@@ -250,14 +250,58 @@ public class Importer(
         return groupIdToRoleId;
     }
 
+    /// <summary>
+    /// Reconciles the "public"/"issues" rooms against RoomSeeder.cs's auto-created stubs. The
+    /// website creates those two rooms (with a fresh random Guid) on every startup if none exist
+    /// yet (see RoomSeeder.SeedAsync), so if the app has ever started against an empty/fresh
+    /// database *before* this importer ran against it - e.g. right after a schema reset - a
+    /// duplicate row with the same Name but a different Id already exists by the time we get
+    /// here. Importing the legacy row as a brand new row would then leave two "public"/"issues"
+    /// rooms behind: the live app keeps talking to the seeded stub (RoomSeeder caches its id for
+    /// the process's lifetime), while every imported historical message/UserInRoom row attaches
+    /// to the legacy Id instead - silently splitting the public chat in two, forever, since
+    /// nothing else ever merges them back. Only applies to Public rooms: private (per-game) rooms
+    /// are never seeded, and their Name isn't a reliable dedup key (not guaranteed unique).
+    /// </summary>
+    private async Task<int> ReconcileSeededPublicRoomAsync(
+        ApplicationDbContext db,
+        LegacyRoom legacyRoom
+    )
+    {
+        if (!legacyRoom.Public)
+            return 0;
+
+        var duplicates = await db
+            .Rooms.Where(r => r.Public && r.Name == legacyRoom.Name && r.Id != legacyRoom.Id)
+            .ToListAsync();
+        if (duplicates.Count == 0)
+            return 0;
+
+        foreach (var duplicate in duplicates)
+        {
+            await db
+                .Messages.Where(m => m.RoomId == duplicate.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.RoomId, legacyRoom.Id));
+            await db
+                .UsersInRoom.Where(u => u.RoomId == duplicate.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.RoomId, legacyRoom.Id));
+            db.Rooms.Remove(duplicate);
+        }
+        await db.SaveChangesAsync();
+        return duplicates.Count;
+    }
+
     private async Task ImportRoomsAsync()
     {
         await using var db = NewTargetContext();
         var imported = 0;
         var updated = 0;
+        var reconciled = 0;
         var pending = 0;
         await foreach (var legacyRoom in _legacy.ReadRoomsAsync())
         {
+            reconciled += await ReconcileSeededPublicRoomAsync(db, legacyRoom);
+
             var existing = await db.Rooms.FindAsync(legacyRoom.Id);
             if (existing == null)
             {
@@ -284,7 +328,9 @@ public class Importer(
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
-        Console.WriteLine($"    rooms: {imported} imported, {updated} updated");
+        Console.WriteLine(
+            $"    rooms: {imported} imported, {updated} updated, {reconciled} seeded duplicates merged"
+        );
     }
 
     /// <summary>
