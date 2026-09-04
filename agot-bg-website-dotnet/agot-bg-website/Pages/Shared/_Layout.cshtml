@@ -3,7 +3,10 @@
 <html lang="en" data-theme="swordsandravens">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* Intentionally no responsive "width=device-width" viewport meta tag: like the old Django site,
+       mobile browsers fall back to their default desktop-oriented layout viewport (~980px), so the
+       whole page renders at full desktop size and simply shrinks visually - users pinch-zoom into the
+       area they want instead of the site reflowing into a separate mobile layout. *@
     <title>@ViewData["Title"] - Swords and Ravens</title>
     <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
     <script type="importmap"></script>
