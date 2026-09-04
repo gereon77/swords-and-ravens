@@ -46,8 +46,16 @@ public record GameDto(
 public record CreateRoomDto(
     string Name,
     bool Public,
-    IReadOnlyList<Guid> Users,
+    IReadOnlyList<UserInRoomDto> Users,
     int? MaxRetrieveCount
 );
+
+/// <summary>
+/// One entry of CreateRoomDto.Users — matches Django's UserInRoomSerializer wire shape
+/// (`[{"user": "<id>"}, ...]`), which is what LiveWebsiteClient.ts's createPrivateChatRoom/
+/// createPublicChatRoom actually send (`users.map(u => ({user: u.id}))`), not a plain array of
+/// GUIDs. Mirrors PlayerInGamePatchDto's identical User-wrapper pattern above.
+/// </summary>
+public record UserInRoomDto(Guid User);
 
 public record RoomDto(Guid Id, string Name, bool Public);

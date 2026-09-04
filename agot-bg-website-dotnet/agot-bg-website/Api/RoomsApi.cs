@@ -33,13 +33,13 @@ public static class RoomsApi
 
                 db.Rooms.Add(room);
 
-                foreach (var userId in dto.Users)
+                foreach (var userInRoom in dto.Users)
                 {
                     db.UsersInRoom.Add(
                         new UserInRoom
                         {
                             Id = Guid.NewGuid(),
-                            UserId = userId,
+                            UserId = userInRoom.User,
                             RoomId = room.Id,
                         }
                     );

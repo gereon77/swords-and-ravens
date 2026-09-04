@@ -80,4 +80,27 @@ public class ApiJsonNamingPolicyTests
         Assert.NotNull(dto);
         Assert.Equal(30, dto!.MaxRetrieveCount);
     }
+
+    [Fact]
+    public void CreateRoomDto_DeserializesUsersAsUserWrapperObjects()
+    {
+        // Regression test for a real bug: LiveWebsiteClient.ts's createPrivateChatRoom() sends
+        // `users: users.map(u => ({user: u.id}))` (matching Django's UserInRoomSerializer wire
+        // shape), not a plain array of GUID strings. CreateRoomDto.Users used to be typed
+        // IReadOnlyList<Guid>, which fails to bind non-empty user lists like this one - the bug
+        // stayed hidden because public-room creation always sends an empty `users: []` array, so
+        // only private chat rooms (which always have exactly two users) ever exercised this path,
+        // silently creating rooms with zero UserInRoom rows and therefore no members able to join.
+        var userId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+        var incomingJson =
+            $$"""{"name":"private","public":false,"users":[{"user":"{{userId}}"},{"user":"{{otherUserId}}"}],"max_retrieve_count":null}""";
+
+        var dto = JsonSerializer.Deserialize<CreateRoomDto>(incomingJson, Options);
+
+        Assert.NotNull(dto);
+        Assert.Equal(2, dto!.Users.Count);
+        Assert.Equal(userId, dto.Users[0].User);
+        Assert.Equal(otherUserId, dto.Users[1].User);
+    }
 }
