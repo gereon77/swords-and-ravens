@@ -88,7 +88,7 @@
 
     <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" open>
         <summary class="collapse-title text-xl font-semibold">
-            Your games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.MyGames.Count</span>
+            <a asp-page="/MyGames" class="link link-hover" title="Go to My Games">Your games</a> <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.MyGames.Count</span>
         </summary>
         <div class="collapse-content">
             @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
