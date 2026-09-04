@@ -1,0 +1,277 @@
+@page "{id:guid}"
+@model UserModel
+@using agot_bg_website.Domain
+@{
+    ViewData["Title"] = Model.ViewedUser.DisplayName;
+    ViewData["WideContainer"] = true;
+}
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold flex items-center gap-2 flex-wrap">
+        @foreach (var (name, badgeClass) in Model.UserGroups)
+        {
+            <span class="badge @badgeClass badge-lg">@name</span>
+        }
+        <span>@Model.ViewedUser.DisplayName</span>
+        @if (!string.IsNullOrEmpty(Model.ViewedUser.LastWonTournament))
+        {
+            <span class="tooltip text-warning" data-tip="Winner of @Model.ViewedUser.LastWonTournament">🏆</span>
+        }
+    </h1>
+    @if (!string.IsNullOrEmpty(Model.ViewedUser.ProfileText))
+    {
+        <p class="mt-2"><b>Personal profile text:</b> @Model.ViewedUser.ProfileText</p>
+    }
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-3">
+        <div class="card bg-base-200 shadow-md border border-base-300 p-6">
+            <ul class="flex flex-col divide-y divide-base-300">
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Last activity</span>
+                    <span class="text-base-content/80 text-right">@Model.RelativeLastActivity</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Joined on</span>
+                    <span class="text-base-content/80 text-right">@Model.ViewedUser.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Ongoing games</span>
+                    <span class="badge badge-warning badge-lg">@Model.OngoingCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Finished games</span>
+                    <span class="badge badge-neutral badge-lg">@Model.FinishedCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Won games</span>
+                    <span class="badge badge-success badge-lg">@Model.WonCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Replaced / left&nbsp;early</span>
+                    <span class="badge badge-error badge-lg">@Model.RemovedFromGameCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Win rate</span>
+                    <span class="badge badge-info badge-lg">@Model.WinRateDisplay</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Average PBEM<br />response time</span>
+                    <span class="text-base-content/80 text-right">@Model.AveragePbemResponseTimeDisplay</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="lg:col-span-9 flex flex-col gap-4">
+        <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" open>
+            <summary class="collapse-title text-lg font-semibold">
+                Games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.GamesOfUser.Count</span>
+            </summary>
+            <div class="collapse-content">
+                @if (Model.GamesOfUser.Count == 0)
+                {
+                    <p class="opacity-70">No games</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col class="w-24" />
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-28" />
+                                @if (Model.CanPlayAsAnotherPlayer)
+                                {
+                                    <col class="w-28" />
+                                }
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th></th>
+                                    @if (Model.CanPlayAsAnotherPlayer)
+                                    {
+                                        <th></th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.GamesOfUser)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            @if (game.State == GameState.InLobby)
+                                            {
+                                                <span class="badge badge-success">Open</span>
+                                            }
+                                            else if (game.State == GameState.Ongoing)
+                                            {
+                                                <span class="badge badge-warning">Ongoing</span>
+                                            }
+                                            else if (game.IsWinner == true)
+                                            {
+                                                <span title="Won">👑</span>
+                                            }
+                                        </td>
+                                        <td class="whitespace-normal break-words">
+                                            @if (!string.IsNullOrEmpty(game.House))
+                                            {
+                                                <span class="house-icon tooltip" data-tip="@game.House">
+                                                    <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
+                                                </span>
+                                            }
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">
+                                            @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
+                                        </td>
+                                        @if (Model.CanPlayAsAnotherPlayer)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-secondary btn-sm" href="/play/@game.GameId/@Model.ViewedUser.Id" target="_blank" rel="noopener noreferrer">
+                                                    Join as
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </details>
+
+        @if (Model.CancelledGames.Count > 0)
+        {
+            <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300">
+                <summary class="collapse-title text-lg font-semibold">
+                    Cancelled games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CancelledGames.Count</span>
+                </summary>
+                <div class="collapse-content">
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-28" />
+                                @if (Model.CanPlayAsAnotherPlayer)
+                                {
+                                    <col class="w-28" />
+                                }
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th></th>
+                                    @if (Model.CanPlayAsAnotherPlayer)
+                                    {
+                                        <th></th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.CancelledGames)
+                                {
+                                    <tr>
+                                        <td class="whitespace-normal break-words">
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
+                                        <td class="whitespace-nowrap">
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
+                                        </td>
+                                        @if (Model.CanPlayAsAnotherPlayer)
+                                        {
+                                            <td class="whitespace-nowrap">
+                                                <a class="btn btn-secondary btn-sm" href="/play/@game.GameId/@Model.ViewedUser.Id" target="_blank" rel="noopener noreferrer">
+                                                    Join as
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+        }
+
+        @if (Model.PreviouslyParticipatedGames.Count > 0)
+        {
+            <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300">
+                <summary class="collapse-title text-lg font-semibold">
+                    Previously participated games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.PreviouslyParticipatedGames.Count</span>
+                </summary>
+                <div class="collapse-content">
+                    <p class="opacity-70 text-sm mb-3">Games you were replaced or removed from before they ended.</p>
+                    <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+                        <table class="table table-zebra table-fixed w-full">
+                            <colgroup>
+                                <col />
+                                <col class="w-20" />
+                                <col class="w-32" />
+                                <col class="w-28" />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Players</th>
+                                    <th>Reason</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var game in Model.PreviouslyParticipatedGames)
+                                {
+                                    <tr>
+                                        <td class="whitespace-normal break-words">
+                                            <a class="link font-semibold" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                        </td>
+                                        <td class="text-center whitespace-nowrap">
+                                            @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            @(game.Reason switch
+                                            {
+                                                PlayerReplacementReason.Vote => "Voted out",
+                                                PlayerReplacementReason.ClockTimeout => "Clock timeout",
+                                                _ => "Unknown",
+                                            })
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-settings="@string.Join("|", game.EnabledSettingLabels)">
+                                                <i class="fas fa-gear"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+        }
+    </div>
+</div>
+

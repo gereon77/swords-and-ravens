@@ -1,0 +1,153 @@
+﻿@inject IWebHostEnvironment HostEnvironment
+<!DOCTYPE html>
+<html lang="en" data-theme="swordsandravens">
+<head>
+    <meta charset="utf-8" />
+    @* Intentionally no responsive "width=device-width" viewport meta tag: like the old Django site,
+       mobile browsers fall back to their default desktop-oriented layout viewport (~980px), so the
+       whole page renders at full desktop size and simply shrinks visually - users pinch-zoom into the
+       area they want instead of the site reflowing into a separate mobile layout. *@
+    <title>@ViewData["Title"] - Swords and Ravens</title>
+    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/solid.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/brands.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/agot_bg_website.styles.css" asp-append-version="true" />
+    @if (User.Identity?.IsAuthenticated ?? false)
+    {
+        @* Connects the public/issues chat on every authenticated page of the site, not just
+           Games/MyGames where the visible widget (_ChatWidget.cshtml) happens to be rendered -
+           see chat-presence.js for why. Placed here (in <head>, before RenderBody's own markup)
+           so this deferred module script initializes window.SnrChatPresence before _ChatWidget's
+           own module script - appearing later in the page - runs and reads from it. *@
+        <script type="module">
+            import { initChatPresence } from "/js/chat-presence.js";
+            initChatPresence({
+                chat: @Json.Serialize(agot_bg_website.Infrastructure.Chat.RoomSeeder.PublicRoomId.ToString()),
+                issues: @Json.Serialize(agot_bg_website.Infrastructure.Chat.RoomSeeder.IssuesRoomId.ToString())
+            });
+        </script>
+    }
+</head>
+<body class="h-screen bg-base-100 text-base-content flex flex-col overflow-hidden">
+    <header class="shrink-0">
+        <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
+            <div class="container flex items-center justify-between">
+                <a class="btn btn-ghost text-xl normal-case text-primary font-bold tracking-wide shrink-0" asp-area="" asp-page="/Index">
+                    <img src="~/raven.svg" asp-append-version="true" alt="" width="24" height="24" class="inline-block" />
+                    Swords and Ravens
+                </a>
+                <div class="flex items-center gap-1">
+                    <div class="hidden lg:flex items-center gap-1">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <a class="nav-link" asp-area="" asp-page="/Games">All Games</a>
+                            <a class="nav-link" asp-area="" asp-page="/MyGames">My Games</a>
+                            <a class="nav-link" asp-area="" asp-page="/Users">Users</a>
+                            <a class="nav-link" href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a>
+                        }
+                        <a class="nav-link" asp-area="" asp-page="/TermsOfUse">Terms of Use</a>
+                        <a class="nav-link" asp-area="" asp-page="/About">About</a>
+                        @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
+                        {
+                            <a class="nav-link" asp-area="Admin" asp-page="/Index">Admin</a>
+                        }
+                    </div>
+                    <div class="dropdown dropdown-end lg:hidden">
+                        <div tabindex="0" role="button" class="btn btn-ghost btn-square" aria-label="Open menu">
+                            <i class="fas fa-bars text-lg"></i>
+                        </div>
+                        <ul tabindex="0" class="dropdown-content menu z-20 mt-2 w-56 rounded-box border border-base-300 bg-base-200 p-2 shadow-md">
+                            @if (User.Identity?.IsAuthenticated ?? false)
+                            {
+                                <li><a asp-area="" asp-page="/Games">All Games</a></li>
+                                <li><a asp-area="" asp-page="/MyGames">My Games</a></li>
+                                <li><a asp-area="" asp-page="/Users">Users</a></li>
+                                <li><a href="https://faq.swordsandravens.net" target="_blank" rel="noopener">FAQ</a></li>
+                            }
+                            <li><a asp-area="" asp-page="/TermsOfUse">Terms of Use</a></li>
+                            <li><a asp-area="" asp-page="/About">About</a></li>
+                            @if (User.IsInRole(agot_bg_website.Infrastructure.Auth.RoleNames.Admin))
+                            {
+                                <li><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+                            }
+                        </ul>
+                    </div>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+        @if (HostEnvironment.IsStaging())
+        {
+            <div class="alert alert-warning rounded-none py-2 text-sm !grid-cols-1 !justify-items-center !text-center">
+                @* DaisyUI's .alert is a two-column grid (an auto-sized icon column plus a
+                   content column) from the sm breakpoint up, meant for two separate children.
+                   Since icon and text are both wrapped in one <span> here, that single grid item
+                   lands in the narrow auto-sized first column and gets pinned to the start -
+                   plain justify-center/text-center on the container, or on the span itself, has
+                   no effect since the span never actually gets stretched to the row's full width.
+                   Force a single, full-width, centered column with "!" (important) utilities so
+                   this doesn't depend on DaisyUI's two-child grid layout at all. *@
+                <span>
+                    <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
+                    This is a test instance for trying out the new site before launch — games and accounts here may be reset or deleted without notice, so don't rely on anything created here sticking around.
+                </span>
+            </div>
+        }
+    </header>
+    <div class="flex-1 min-h-0 overflow-y-auto">
+        <div class="container @(ViewData["WideContainer"] as bool? == true ? "container-wide" : "")">
+            <main role="main" class="pb-3 pt-6">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <footer class="border-t border-base-300 py-3 text-sm opacity-70 shrink-0">
+        <div class="container flex items-center justify-center gap-1">
+            <span>&copy; 2026 - Swords and Ravens -</span>
+            <a class="link link-hover" asp-area="" asp-page="/Privacy">Privacy</a>
+        </div>
+    </footer>
+    <partial name="_CookieConsentPartial" />
+
+    <dialog id="game-settings-modal" class="modal">
+        <div class="modal-box border border-base-300">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </form>
+            <h3 id="game-settings-modal-title" class="font-bold text-lg pr-10 break-words"></h3>
+            <div class="divider my-2"></div>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <dt class="opacity-70">Setup</dt>
+                <dd id="game-settings-modal-setup"></dd>
+                <dt class="opacity-70">Players</dt>
+                <dd id="game-settings-modal-players"></dd>
+            </dl>
+            <div class="mt-4">
+                <p class="opacity-70 text-sm mb-1">Settings</p>
+                <ul id="game-settings-modal-settings" class="list-disc list-inside space-y-0.5 text-sm"></ul>
+                <p id="game-settings-modal-no-settings" class="opacity-70 italic text-sm hidden">No optional settings enabled</p>
+            </div>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-sm">Close</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
