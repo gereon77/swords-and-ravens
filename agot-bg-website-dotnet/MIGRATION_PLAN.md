@@ -1330,13 +1330,30 @@ scp -i "$env:USERPROFILE\.ssh\snr-deploy" -r publish\snr-migration-linux root@16
 ssh -i "$env:USERPROFILE\.ssh\snr-deploy" root@165.245.221.184
 cd /opt/swords-and-ravens
 grep DB_PASSWORD .env.prod   # only reveals the *new* DB's password, not the legacy one
-docker run --rm -it --network swords-and-ravens_default \
+docker run -d --network swords-and-ravens_default \
+  --name snr-migration-import \
   -v /opt/swords-and-ravens/snr-migration:/app \
   -w /app mcr.microsoft.com/dotnet/runtime-deps:10.0 \
   ./Snr.Migration import \
   --legacy "Host=<legacy host>;Port=<legacy port>;Database=agot_bg_database;Username=<legacy user>;Password=<legacy password>" \
-  --target "Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=<DB_PASSWORD>"
+  --target "Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=<new DB password>"
+# Then, from any shell (this doesn't need to be the one that started it - it's detached):
+docker logs -f snr-migration-import
 ```
+**Always run the import container detached (`-d`, not `--rm -it`)**: a full run takes long enough
+(the ~2M-row chat-message table alone) that running it attached exposes it to any local network
+hiccup or local terminal/SSH client crash for its entire duration. This bit us once already — a
+local PowerShell/SSH client process crashed mid-run (exit code 139/SIGSEGV) partway through the
+messages step, which dropped the SSH session and sent SIGHUP to the still-attached `docker run`,
+killing it before it ever reached the games step (`RunAsync`'s order is `users → rooms → messages
+→ chat memberships → games → players-in-game → PBEM times` — a mid-run kill during the slow
+messages step means everything after it, including all games, silently never ran, even though
+rooms/messages had already imported correctly up to that point). Running detached means the
+import keeps going on the droplet regardless of what happens to the local shell; just reconnect
+and `docker logs -f snr-migration-import` (or `docker logs --tail 200 snr-migration-import` for a
+quick status check without following) to see progress, and `docker rm snr-migration-import` once
+it's done so the name is free for the next run.
+
 The importer is idempotent (existing rows are matched by preserved/natural id and skipped or
 updated, never duplicated) and fast (a full run against production has taken well under a minute
 historically) — safe to re-run after every legacy data change, or after a fresh `website`
