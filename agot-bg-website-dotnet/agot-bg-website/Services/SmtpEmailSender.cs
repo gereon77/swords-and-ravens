@@ -57,7 +57,7 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         try
         {
             await client.SendMailAsync(message);
-            logger.LogInformation(
+            logger.LogDebug(
                 "Sent email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl})",
                 subject,
                 email,

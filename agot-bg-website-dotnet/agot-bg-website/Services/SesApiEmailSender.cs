@@ -50,7 +50,7 @@ public class SesApiEmailSender(
         try
         {
             await sesClient.SendEmailAsync(request);
-            logger.LogInformation(
+            logger.LogDebug(
                 "Sent email '{Subject}' to {Email} via Amazon SES API ({Region})",
                 subject,
                 email,

@@ -45,11 +45,7 @@ public class ApiEmailSender(
             using var response = await httpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation(
-                    "Sent email '{Subject}' to {Email} via Resend API",
-                    subject,
-                    email
-                );
+                logger.LogDebug("Sent email '{Subject}' to {Email} via Resend API", subject, email);
             }
             else
             {

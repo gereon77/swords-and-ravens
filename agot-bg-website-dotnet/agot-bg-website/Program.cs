@@ -44,6 +44,17 @@ if (!string.IsNullOrEmpty(sentryDsn))
         // Sends request/user data (matches Django's send_default_pii=True) — safe here since this
         // is a private, non-public-facing DSN in server-side config, never shipped to the browser.
         options.SendDefaultPii = true;
+        // Only send an event for truly unhandled exceptions - those are always captured
+        // separately by Sentry's own middleware (SentryMiddleware.InvokeAsync catches whatever
+        // propagates out of the request pipeline) regardless of this setting. Without this, the
+        // ILogger integration's default (MinimumEventLevel = LogLevel.Error) means EVERY
+        // logger.LogError(...) call anywhere in the app - including ones we deliberately catch
+        // and log without rethrowing, like the email senders' "failed to send, but don't crash
+        // the caller" handlers - also creates its own separate Sentry event, drowning out real
+        // unhandled-exception alerts. LogError/LogWarning/etc. still show up as breadcrumbs
+        // (MinimumBreadcrumbLevel stays at its Information default) for context on whatever event
+        // does get sent.
+        options.MinimumEventLevel = LogLevel.Critical;
     });
 }
 
