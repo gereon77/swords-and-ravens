@@ -35,6 +35,8 @@ services:
       Authentication__Discord__ClientSecret: ${DISCORD_CLIENT_SECRET}
       Authentication__Facebook__ClientId: ${FACEBOOK_CLIENT_ID}
       Authentication__Facebook__ClientSecret: ${FACEBOOK_CLIENT_SECRET}
+      Email__Api__Key: ${EMAIL_API_KEY:-}
+      Email__Api__Host: ${EMAIL_API_HOST:-}
       Email__Host: ${EMAIL_HOST}
       Email__Port: ${EMAIL_PORT}
       Email__EnableSsl: ${EMAIL_ENABLE_SSL}

@@ -103,6 +103,21 @@ Postgres/Redis/SMTP.
    personal domain's mailbox, Mailtrap, SendGrid, etc.) works the same way — just fill in its
    host/port/username/password.
 
+   **API-based sending (preferred in production) vs. SMTP vs. no config at all:** exactly one
+   `IEmailSender` is registered at startup (see `Program.cs`), chosen by which `Email:*` config is
+   present:
+   - `Email:Api:Key` set → `ApiEmailSender`, which posts to an HTTP email API (defaults to
+     [Resend](https://resend.com)'s; override the base URL with `Email:Api:Host` to use a
+     different API-based provider). Preferred over SMTP when both are configured, since it isn't
+     subject to outbound SMTP port blocking on some hosts. Resend's free tier (3,000 emails/month,
+     100/day) comfortably covers this project's volume; paid tiers start at $20/month for 50,000.
+     Other similar options: Postmark, SendGrid, Mailgun, Brevo — swapping providers only needs a
+     new `ApiEmailSender`-style class plus a `Program.cs` registration change, not a redesign.
+   - Otherwise, `Email:Host` set → `SmtpEmailSender` (the smtp4dev/Gmail/etc. setup above).
+   - Otherwise (no `Email:*` configured at all, e.g. a fresh checkout before either of the above
+     steps) → `LoggingEmailSender`, which just logs what would have been sent instead of crashing
+     or silently dropping the email — nothing further to configure for basic local dev.
+
 4. **Run the website**:
 
    ```powershell

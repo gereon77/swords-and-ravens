@@ -176,16 +176,41 @@ builder
     .SetApplicationName("agot-bg-website")
     .PersistKeysToStackExchangeRedis(redisConnectionMultiplexer, "DataProtection-Keys");
 
-// Real SMTP email sending — used by both Identity's own emails (password reset, email
-// confirmation) and NotificationsApi's game-notification endpoints, see MIGRATION_PLAN.md §6/§9.1.
-// Only overrides Identity's built-in no-op IEmailSender when Email:Host is actually configured,
-// same "only wire it up when configured" pattern as the OAuth providers below, so local dev
-// doesn't need a working mail server.
-if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
+// Email sending — used by both Identity's own emails (password reset, email confirmation) and
+// NotificationsApi/ChatWebSocketApi's notification emails, see MIGRATION_PLAN.md §6/§9.1. Exactly
+// one IEmailSender implementation is registered, chosen once at startup by configuration
+// precedence: an API-based provider (Email:Api:Key) is preferred over SMTP (Email:Host) when both
+// are set; if neither is configured (the common local-dev state), LoggingEmailSender is
+// registered instead of Identity's own built-in no-op default, so emails are at least logged
+// rather than silently dropped, and the app never crashes for lack of email config. See
+// README.md's "Email" section for setup notes and a provider/cost comparison.
+if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
+{
+    // Email:Api:Host defaults to Resend's API but is configurable so a different API-based
+    // provider (or a test double) can be pointed at instead without a code change.
+    var apiHostConfig = builder.Configuration["Email:Api:Host"];
+    var apiHost = string.IsNullOrEmpty(apiHostConfig) ? "https://api.resend.com/" : apiHostConfig;
+    builder.Services.AddHttpClient<ApiEmailSender>(client =>
+    {
+        client.BaseAddress = new Uri(apiHost);
+    });
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        ApiEmailSender
+    >();
+}
+else if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
     builder.Services.AddTransient<
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         SmtpEmailSender
+    >();
+}
+else
+{
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        LoggingEmailSender
     >();
 }
 

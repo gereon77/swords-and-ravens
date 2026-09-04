@@ -7,10 +7,10 @@ namespace agot_bg_website.Services;
 /// <summary>
 /// SMTP-backed <see cref="IEmailSender"/>, used both by the built-in Identity UI (password
 /// reset/email confirmation/email change) and by <c>NotificationsApi</c>'s game-notification
-/// endpoints — see MIGRATION_PLAN.md §6/§9.1. Only registered when <c>Email:Host</c> is
-/// configured (see Program.cs); otherwise Identity's own default no-op sender is used, same
-/// "only wire it up when configured" pattern used for the OAuth providers, so local dev doesn't
-/// need a working mail server.
+/// endpoints — see MIGRATION_PLAN.md §6/§9.1. Registered (see Program.cs) when <c>Email:Host</c>
+/// is configured and no API-based provider (<see cref="ApiEmailSender"/>, <c>Email:Api:Key</c>)
+/// is; otherwise <see cref="LoggingEmailSender"/> or <see cref="ApiEmailSender"/> is registered
+/// instead, so local dev doesn't need a working mail server.
 /// </summary>
 public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
     : IEmailSender
