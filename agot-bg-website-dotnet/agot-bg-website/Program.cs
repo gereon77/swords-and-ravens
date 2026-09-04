@@ -188,6 +188,20 @@ builder
 // README.md's "Email" section for setup notes and a provider/cost comparison.
 if (!string.IsNullOrEmpty(builder.Configuration["Email:Ses:AccessKeyId"]))
 {
+    // Register the AWS SDK client itself as a singleton (it's documented as thread-safe and
+    // meant to be reused across calls, same as HttpClient) instead of letting SesApiEmailSender
+    // construct-and-dispose a new one per email - that would repeat connection/TLS setup on every
+    // send and risks socket exhaustion under load.
+    builder.Services.AddSingleton<Amazon.SimpleEmailV2.IAmazonSimpleEmailServiceV2>(sp =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var region = config["Email:Ses:Region"] ?? "eu-north-1";
+        return new Amazon.SimpleEmailV2.AmazonSimpleEmailServiceV2Client(
+            config["Email:Ses:AccessKeyId"],
+            config["Email:Ses:SecretAccessKey"],
+            Amazon.RegionEndpoint.GetBySystemName(region)
+        );
+    });
     builder.Services.AddTransient<
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         SesApiEmailSender

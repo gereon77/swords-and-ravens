@@ -67,8 +67,13 @@
         </nav>
         @if (HostEnvironment.IsStaging())
         {
-            <div class="alert alert-warning rounded-none justify-center text-center py-2 text-sm">
-                <span>
+            <div class="alert alert-warning rounded-none py-2 text-sm">
+                @* DaisyUI's .alert is a grid with an auto-sized icon column plus a content
+                   column that doesn't stretch to the full row width on its own, so plain
+                   justify-center/text-center on the container had no visible effect - force the
+                   text block itself to span the full width so text-align:center actually centers
+                   it. *@
+                <span class="block w-full text-center">
                     <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
                     This is a test instance for trying out the new site before launch — games and accounts here may be reset or deleted without notice, so don't rely on anything created here sticking around.
                 </span>
