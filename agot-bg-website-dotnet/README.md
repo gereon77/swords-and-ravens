@@ -100,8 +100,18 @@ Postgres/Redis/SMTP.
    For Gmail, generate an [App Password](https://myaccount.google.com/apppasswords) (requires
    2-Step Verification) rather than using your normal account password — plain-password SMTP auth
    is disabled by Google for third-party apps. Any other SMTP relay you have credentials for (a
-   personal domain's mailbox, Mailtrap, SendGrid, etc.) works the same way — just fill in its
-   host/port/username/password.
+   personal domain's mailbox, Mailtrap, SendGrid, **Amazon SES**, etc.) works the same way — just
+   fill in its host/port/username/password.
+
+   **Using Amazon SES via SMTP:** SES issues two different credential types — IAM API keys (for
+   the AWS SDK/HTTPS API, not supported by `ApiEmailSender` since it isn't a bearer-token API) and
+   separate **SMTP credentials** (a username/password pair). If you only have the latter, use the
+   SMTP path above with `Email:Host` set to your region's SES SMTP endpoint (e.g.
+   `email-smtp.eu-central-1.amazonaws.com`), port `587`, `Email:EnableSsl` `true`, and
+   `Email:Username`/`Email:Password` set to the SES SMTP credentials. Two SES-specific gotchas:
+   the `Email:FromAddress` domain must be a verified identity in the SES console, and while the
+   AWS account is in **sandbox mode** SES will only deliver to *verified* recipient addresses too
+   — request production access in the SES console to email arbitrary users.
 
    **API-based sending (preferred in production) vs. SMTP vs. no config at all:** exactly one
    `IEmailSender` is registered at startup (see `Program.cs`), chosen by which `Email:*` config is
@@ -111,9 +121,12 @@ Postgres/Redis/SMTP.
      different API-based provider). Preferred over SMTP when both are configured, since it isn't
      subject to outbound SMTP port blocking on some hosts. Resend's free tier (3,000 emails/month,
      100/day) comfortably covers this project's volume; paid tiers start at $20/month for 50,000.
-     Other similar options: Postmark, SendGrid, Mailgun, Brevo — swapping providers only needs a
-     new `ApiEmailSender`-style class plus a `Program.cs` registration change, not a redesign.
-   - Otherwise, `Email:Host` set → `SmtpEmailSender` (the smtp4dev/Gmail/etc. setup above).
+     Other similar options: Postmark, SendGrid, Mailgun, Brevo, Amazon SES (SES's own HTTPS API
+     needs AWS SigV4 request signing, so it isn't a drop-in fit for `ApiEmailSender`'s simple
+     bearer-token pattern — use SES's SMTP credentials instead, see above). Swapping to a
+     bearer-token API provider only needs a new `ApiEmailSender`-style class plus a `Program.cs`
+     registration change, not a redesign.
+   - Otherwise, `Email:Host` set → `SmtpEmailSender` (the smtp4dev/Gmail/SES/etc. setup above).
    - Otherwise (no `Email:*` configured at all, e.g. a fresh checkout before either of the above
      steps) → `LoggingEmailSender`, which just logs what would have been sent instead of crashing
      or silently dropping the email — nothing further to configure for basic local dev.
