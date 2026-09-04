@@ -49,6 +49,18 @@ docker build . -f website.Dockerfile
 
 Before committing any C# change in `agot-bg-website-dotnet/`, run `dotnet csharpier format .` from that directory (the local dotnet tool declared in `agot-bg-website-dotnet/.config/dotnet-tools.json`) to keep formatting consistent.
 
+### Verifying changes to `agot-bg-website-dotnet/`
+
+- **Usual verify** (default after any change): `dotnet build agot-bg-website -c Release` +
+  `dotnet test agot-bg-website.Tests -c Release`. This is enough for routine changes.
+- **Extended verify** (only when explicitly requested): additionally run the app (`dotnet run` or
+  a Docker container) and `curl` against it to confirm real HTTP behavior end to end.
+- Only start a running process (`dotnet run`, `docker run`, etc.) and curl against it when the
+  user explicitly asks for "verify" or "extended verify" of a running instance — never spin one up
+  on your own initiative just to double-check a change, since it risks colliding with an instance
+  the user already has running locally (port conflicts, stale listeners) and leaves stray
+  processes/containers behind if not cleaned up.
+
 ## Game-server conventions
 
 - Client and server messages are discriminated unions in `src/messages/ClientMessage.ts` and `ServerMessage.ts`. When changing a client message, update every sender and handler and run `yarn run generate-json-schemas`; the generated `src/server/ClientMessage.json` is the AJV validation schema used before dispatch.
