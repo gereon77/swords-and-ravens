@@ -179,12 +179,21 @@ builder
 // Email sending — used by both Identity's own emails (password reset, email confirmation) and
 // NotificationsApi/ChatWebSocketApi's notification emails, see MIGRATION_PLAN.md §6/§9.1. Exactly
 // one IEmailSender implementation is registered, chosen once at startup by configuration
-// precedence: an API-based provider (Email:Api:Key) is preferred over SMTP (Email:Host) when both
-// are set; if neither is configured (the common local-dev state), LoggingEmailSender is
-// registered instead of Identity's own built-in no-op default, so emails are at least logged
-// rather than silently dropped, and the app never crashes for lack of email config. See
+// precedence: Amazon SES's own API (Email:Ses:AccessKeyId) > a generic bearer-token API provider
+// (Email:Api:Key) > SMTP (Email:Host); if none are configured (the common local-dev state),
+// LoggingEmailSender is registered instead of Identity's own built-in no-op default, so emails
+// are at least logged rather than silently dropped, and the app never crashes for lack of email
+// config. All API-based options are preferred over SMTP when both are set, since API-based
+// delivery isn't subject to outbound SMTP port blocking on some hosts (Dokku blocked it). See
 // README.md's "Email" section for setup notes and a provider/cost comparison.
-if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
+if (!string.IsNullOrEmpty(builder.Configuration["Email:Ses:AccessKeyId"]))
+{
+    builder.Services.AddTransient<
+        Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        SesApiEmailSender
+    >();
+}
+else if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
 {
     // Email:Api:Host defaults to Resend's API but is configurable so a different API-based
     // provider (or a test double) can be pointed at instead without a code change.
