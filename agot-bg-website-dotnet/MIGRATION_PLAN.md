@@ -805,8 +805,14 @@ Import order and behavior:
    `N` only imports messages younger than `N` days — useful to keep a first cutover-rehearsal
    import fast, or to intentionally leave old chat history behind.
 8. **PbemResponseTime** — copy directly, historical/statistical only.
-9. **UserInRoom** — optional; can be left to be recreated naturally as users reconnect to chat
-   rooms (the consumer/handler already creates these on demand), so it's fine to skip entirely.
+9. **UserInRoom** — copy `user_id, room_id` (chat_userinroom). **Not** optional, despite what an
+   earlier version of this doc claimed: `ChatWebSocketApi.cs` requires an existing `UserInRoom` row
+   before it lets anyone connect to a non-public room at all, and only public/issues rooms let a
+   first-time connection create that row on demand (see `ChatWebSocketApi.cs`'s connect handler) —
+   private (per-game) rooms do not. Skipping this step means every migrated private chat room comes
+   in permanently unjoinable (bug found & fixed 2026-09; `last_viewed_message_id` itself is still
+   skipped since it points at a legacy integer `chat_message.id` with no counterpart in the new
+   Guid-keyed `Message` table — see `LegacyUserInRoom`'s doc comment).
 
 Verification pass at the end: row counts per table compared between source and target, plus a spot
 check that a sample of `Game.Id`/`User.Id`/`Room.Id` values round-trip unchanged (critical, since

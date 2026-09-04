@@ -35,6 +35,15 @@ public record LegacyRoom(
     DateTimeOffset CreatedAt
 );
 
+/// <summary>
+/// chat_userinroom (chat/models.py's UserInRoom) — membership of a user in a room. Only the
+/// (user_id, room_id) pair is carried over: `last_viewed_message_id` references the legacy
+/// integer chat_message.id, which has no counterpart in the new Guid-keyed Message table (see
+/// LegacyMessage's doc comment / MIGRATION_PLAN.md §4.1 — messages get fresh ids on import), so it
+/// isn't worth threading through just to prefill an "unread" marker.
+/// </summary>
+public record LegacyUserInRoom(Guid UserId, Guid RoomId);
+
 public record LegacyGame(
     Guid Id,
     string Name,

@@ -124,6 +124,20 @@ public class LegacyReader(string connectionString)
         }
     }
 
+    public async IAsyncEnumerable<LegacyUserInRoom> ReadUsersInRoomAsync()
+    {
+        await using var conn = OpenConnection();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT user_id, room_id FROM chat_userinroom ORDER BY room_id",
+            conn
+        );
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            yield return new LegacyUserInRoom(reader.GetGuid(0), reader.GetGuid(1));
+        }
+    }
+
     /// <summary>
     /// This page query no longer selects `serialized_game` (see <see
     /// cref="ReadSerializedGamesByIdsAsync"/>) - only `view_of_game`, a small summary JSON object,

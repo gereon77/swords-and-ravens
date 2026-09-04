@@ -59,6 +59,9 @@ public class Importer(
         Console.WriteLine("---> Importing chat rooms");
         await ImportRoomsAsync();
 
+        Console.WriteLine("---> Importing chat room memberships");
+        await ImportUsersInRoomAsync();
+
         Console.WriteLine("---> Importing games");
         await ImportGamesAsync();
 
@@ -282,6 +285,61 @@ public class Importer(
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
         Console.WriteLine($"    rooms: {imported} imported, {updated} updated");
+    }
+
+    /// <summary>
+    /// Backfills chat_userinroom (Django's UserInRoom, see chat/models.py) — its absence here was
+    /// the root cause of every migrated private chat room being permanently unjoinable, since
+    /// ChatWebSocketApi.cs requires an existing UserInRoom row before it will let anyone connect
+    /// to a non-public room. Only (UserId, RoomId) matters (see LegacyUserInRoom's doc comment);
+    /// insert-only and keyed on that pair to stay idempotent on re-runs, mirroring
+    /// ImportMessagesAsync's approach for the same reason.
+    /// </summary>
+    private async Task ImportUsersInRoomAsync()
+    {
+        await using var db = NewTargetContext();
+        var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
+        var knownRoomIds = (await db.Rooms.Select(r => r.Id).ToListAsync()).ToHashSet();
+        var existingKeys = (
+            await db.UsersInRoom.Select(u => new { u.UserId, u.RoomId }).ToListAsync()
+        )
+            .Select(u => (u.UserId, u.RoomId))
+            .ToHashSet();
+
+        var imported = 0;
+        var skipped = 0;
+        var pending = 0;
+        await foreach (var legacyUserInRoom in _legacy.ReadUsersInRoomAsync())
+        {
+            if (
+                !knownUserIds.Contains(legacyUserInRoom.UserId)
+                || !knownRoomIds.Contains(legacyUserInRoom.RoomId)
+            )
+            {
+                skipped++;
+                continue;
+            }
+            var key = (legacyUserInRoom.UserId, legacyUserInRoom.RoomId);
+            if (existingKeys.Contains(key))
+            {
+                continue;
+            }
+
+            db.UsersInRoom.Add(
+                new UserInRoom
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = legacyUserInRoom.UserId,
+                    RoomId = legacyUserInRoom.RoomId,
+                }
+            );
+            existingKeys.Add(key);
+            imported++;
+            pending = await FlushIfBatchFullAsync(db, pending + 1);
+        }
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        Console.WriteLine($"    chat room memberships: {imported} imported, {skipped} skipped");
     }
 
     private async Task ImportGamesAsync()
