@@ -128,13 +128,17 @@ public class LegacyReader(string connectionString)
     {
         await using var conn = OpenConnection();
         await using var cmd = new NpgsqlCommand(
-            "SELECT user_id, room_id FROM chat_userinroom ORDER BY room_id",
+            "SELECT user_id, room_id, last_viewed_message_id FROM chat_userinroom ORDER BY room_id",
             conn
         );
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            yield return new LegacyUserInRoom(reader.GetGuid(0), reader.GetGuid(1));
+            yield return new LegacyUserInRoom(
+                reader.GetGuid(0),
+                reader.GetGuid(1),
+                reader.IsDBNull(2) ? null : reader.GetInt64(2)
+            );
         }
     }
 
@@ -283,8 +287,9 @@ public class LegacyReader(string connectionString)
     /// <summary>
     /// Chat history can be very large (potentially years of messages across tens of thousands of
     /// rooms) - paged for the same reason as <see cref="ReadGamesAsync"/>. Django's default
-    /// auto-incrementing `id` on `chat_message` is used purely as the keyset tiebreaker; it is not
-    /// otherwise needed by the importer so it isn't exposed on <see cref="LegacyMessage"/>.
+    /// auto-incrementing `id` on `chat_message` doubles as the keyset tiebreaker here AND is
+    /// carried through onto <see cref="LegacyMessage"/> itself, since Message.Id now preserves it
+    /// exactly (see LegacyMessage's doc comment) rather than generating a fresh id on import.
     /// </summary>
     public async IAsyncEnumerable<LegacyMessage> ReadMessagesAsync(DateTimeOffset? sinceUtc = null)
     {
@@ -298,16 +303,16 @@ public class LegacyReader(string connectionString)
             {
                 yield break;
             }
-            foreach (var (message, id) in page)
+            foreach (var message in page)
             {
                 yield return message;
                 afterCreatedAt = message.CreatedAt;
-                afterId = id;
+                afterId = message.Id;
             }
         }
     }
 
-    private async Task<List<(LegacyMessage Message, long Id)>> ReadMessagesPageAsync(
+    private async Task<List<LegacyMessage>> ReadMessagesPageAsync(
         DateTimeOffset? sinceUtc,
         DateTimeOffset? afterCreatedAt,
         long? afterId,
@@ -334,19 +339,17 @@ public class LegacyReader(string connectionString)
             cmd.Parameters.AddWithValue("afterId", afterId!.Value);
         }
 
-        var result = new List<(LegacyMessage, long)>();
+        var result = new List<LegacyMessage>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             result.Add(
-                (
-                    new LegacyMessage(
-                        reader.GetGuid(1),
-                        reader.GetGuid(2),
-                        reader.GetString(3),
-                        reader.GetFieldValue<DateTimeOffset>(4)
-                    ),
-                    reader.GetInt64(0)
+                new LegacyMessage(
+                    reader.GetInt64(0),
+                    reader.GetGuid(1),
+                    reader.GetGuid(2),
+                    reader.GetString(3),
+                    reader.GetFieldValue<DateTimeOffset>(4)
                 )
             );
         }

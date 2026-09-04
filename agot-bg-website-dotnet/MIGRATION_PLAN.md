@@ -1282,4 +1282,79 @@ No separate DB migration step needed once `website` does start — it applies pe
 migrations itself on startup (see above). Point the domain's DNS A record at the droplet's IP;
 Caddy requests the TLS cert automatically on first HTTPS request once `website` is reachable.
 
+## 17. Operating the droplet — quick reference (deploy + re-running `Snr.Migration`)
+
+Written down so this doesn't need re-discovering every time. Nothing here is secret by itself
+(no passwords are inlined) — actual secrets always stay in `.env.prod`/user-secrets and are piped
+in at run time, never typed into a command line or logged.
+
+### 17.1 Connecting
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\snr-deploy" root@165.245.221.184
+```
+Compose stack lives at `/opt/swords-and-ravens/` on the droplet (`docker-compose.prod.yml`,
+`Caddyfile`, `.env.prod`). Container names follow the `swords-and-ravens-<service>-1` pattern
+(`-website-1`, `-game-server-1`, `-db-1`, `-redis-1`, `-caddy-1`); all are on the same default
+Compose network (`swords-and-ravens_default`), reachable from each other by service name.
+
+### 17.2 Redeploying `website`/`game-server` (normal code change rollout)
+
+From the repo root, on this machine, once changes are pushed to the working branch:
+```powershell
+gh workflow run deploy.yml --ref migrate-website-to-dotnet
+```
+This builds+pushes both images to GHCR (tagged by commit SHA) then SSHes into the droplet itself
+and runs `docker compose ... pull website game-server && ... up -d website game-server` — `db`,
+`redis`, and `caddy` are left untouched. No manual SSH/compose step is needed for a normal deploy;
+watch the run with `gh run watch` or `gh run list --workflow=deploy.yml`.
+
+### 17.3 Running `Snr.Migration` against the droplet's production Postgres
+
+`Snr.Migration` isn't part of the deployed images (it's a one-off operator tool), so it has to be
+built self-contained and copied over manually:
+
+```powershell
+# 1. Publish a self-contained linux-x64 build (from agot-bg-website-dotnet/):
+dotnet publish Snr.Migration -c Release -r linux-x64 --self-contained true -o publish\snr-migration-linux
+
+# 2. Copy it to the droplet:
+scp -i "$env:USERPROFILE\.ssh\snr-deploy" -r publish\snr-migration-linux root@165.245.221.184:/opt/swords-and-ravens/snr-migration
+
+# 3. SSH in, then run it attached to the compose network so `db` resolves by service name.
+#    Target connection string (production Postgres, reachable as `db` on the compose network):
+#      Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=<DB_PASSWORD from .env.prod>
+#    Legacy (Django) connection string is NOT on the droplet — read it from this machine's
+#    Snr.Migration user-secrets (id 3bd17916-4f1d-470e-a8e2-d3962d7aecc2) before SSHing in, or
+#    keep it in a local password manager; never paste it into shell history on the droplet.
+ssh -i "$env:USERPROFILE\.ssh\snr-deploy" root@165.245.221.184
+cd /opt/swords-and-ravens
+grep DB_PASSWORD .env.prod   # only reveals the *new* DB's password, not the legacy one
+docker run --rm -it --network swords-and-ravens_default \
+  -v /opt/swords-and-ravens/snr-migration:/app \
+  -w /app mcr.microsoft.com/dotnet/runtime-deps:10.0 \
+  ./Snr.Migration import \
+  --legacy "Host=<legacy host>;Port=<legacy port>;Database=agot_bg_database;Username=<legacy user>;Password=<legacy password>" \
+  --target "Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=<DB_PASSWORD>"
+```
+The importer is idempotent (existing rows are matched by preserved/natural id and skipped or
+updated, never duplicated) and fast (a full run against production has taken well under a minute
+historically) — safe to re-run after every legacy data change, or after a fresh `website`
+DB reset, with no extra flags needed.
+
+### 17.4 Dropping/recreating the `snr_dotnet` database (local or droplet)
+
+Only do this when a schema change requires a full clean re-import (e.g. a changed primary key
+type) — `website` must be stopped first since `DROP DATABASE` fails while it holds connections:
+```bash
+# stop the app so it releases its DB connections (only needed on the droplet; `docker compose stop website`)
+docker compose -f docker-compose.prod.yml --env-file .env.prod stop website
+docker exec -i swords-and-ravens-db-1 psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'snr_dotnet' AND pid <> pg_backend_pid();"
+docker exec -i swords-and-ravens-db-1 psql -U postgres -c "DROP DATABASE snr_dotnet;"
+docker exec -i swords-and-ravens-db-1 psql -U postgres -c "CREATE DATABASE snr_dotnet;"
+```
+Then deploy/start `website` again (§17.2, or `docker compose ... up -d website` locally) — its
+`Database.MigrateAsync()` startup hook recreates the schema from the current migration, after
+which §17.3's `Snr.Migration import` can be re-run for a fresh full import.
+
 

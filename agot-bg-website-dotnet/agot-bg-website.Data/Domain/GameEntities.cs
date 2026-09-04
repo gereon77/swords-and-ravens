@@ -142,7 +142,7 @@ public class Room
 
 public class Message
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
 
     public Guid RoomId { get; set; }
 
@@ -169,5 +169,5 @@ public class UserInRoom
 
     public Room? Room { get; set; }
 
-    public Guid? LastViewedMessageId { get; set; }
+    public long? LastViewedMessageId { get; set; }
 }

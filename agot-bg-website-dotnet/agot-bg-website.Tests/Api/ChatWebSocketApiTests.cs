@@ -161,7 +161,6 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
             sender,
             new Message
             {
-                Id = Guid.NewGuid(),
                 RoomId = roomId,
                 UserId = sender.Id,
                 Text = text,
@@ -256,7 +255,6 @@ public class ChatWebSocketApiNotifyChatPartnerTests : IDisposable
             sender,
             new Message
             {
-                Id = Guid.NewGuid(),
                 RoomId = Guid.NewGuid(),
                 UserId = sender.Id,
                 Text = "hi",

@@ -67,6 +67,14 @@ namespace agot_bg_website.Data.Migrations
                         type: "timestamp with time zone",
                         nullable: false
                     ),
+                    CachedWonGamesCount = table.Column<int>(type: "integer", nullable: true),
+                    CachedFinishedGamesCount = table.Column<int>(type: "integer", nullable: true),
+                    CachedRemovedFromGameCount = table.Column<int>(type: "integer", nullable: true),
+                    CachedWinRate = table.Column<double>(type: "double precision", nullable: true),
+                    StatsCachedAt = table.Column<DateTimeOffset>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
@@ -343,7 +351,12 @@ namespace agot_bg_website.Data.Migrations
                 name: "Messages",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table
+                        .Column<long>(type: "bigint", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
                     RoomId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Text = table.Column<string>(
@@ -383,7 +396,7 @@ namespace agot_bg_website.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     RoomId = table.Column<Guid>(type: "uuid", nullable: false),
-                    LastViewedMessageId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastViewedMessageId = table.Column<long>(type: "bigint", nullable: true),
                 },
                 constraints: table =>
                 {

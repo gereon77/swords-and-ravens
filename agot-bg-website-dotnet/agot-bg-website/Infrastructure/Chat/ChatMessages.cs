@@ -6,7 +6,9 @@ namespace agot_bg_website.Infrastructure.Chat;
 /// Wire DTOs for the raw WebSocket JSON protocol spoken by <c>ChatClient.ts</c> and the website's
 /// preact chat widgets (games_chat.html/dual_chat.html) — property names are exactly the
 /// snake_case names the existing JS already sends/expects, so none of that client code needs to
-/// change. See MIGRATION_PLAN.md §7 and chat/consumers.py.
+/// change. See MIGRATION_PLAN.md §7 and chat/consumers.py. Message ids are plain ints here (never
+/// wrapped in a string), matching Django's own <c>consumers.py</c> (<c>'id': message.id</c>, not
+/// <c>str(message.id)</c> like every other id field there) exactly.
 /// </summary>
 public sealed record ChatMessageEvent
 {
@@ -14,7 +16,7 @@ public sealed record ChatMessageEvent
     public string Type => "chat_message";
 
     [JsonPropertyName("id")]
-    public required Guid Id { get; init; }
+    public required long Id { get; init; }
 
     [JsonPropertyName("text")]
     public required string Text { get; init; }
@@ -38,13 +40,13 @@ public sealed record MessagesRetrievedEvent
     public required List<MessageData> Messages { get; init; }
 
     [JsonPropertyName("last_viewed_message")]
-    public Guid? LastViewedMessage { get; init; }
+    public long? LastViewedMessage { get; init; }
 }
 
 public sealed record MessageData
 {
     [JsonPropertyName("id")]
-    public required Guid Id { get; init; }
+    public required long Id { get; init; }
 
     [JsonPropertyName("text")]
     public required string Text { get; init; }

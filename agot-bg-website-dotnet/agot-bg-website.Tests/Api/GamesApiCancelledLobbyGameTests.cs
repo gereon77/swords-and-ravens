@@ -78,7 +78,6 @@ public class GamesApiCancelledLobbyGameTests
             db.Messages.Add(
                 new Message
                 {
-                    Id = Guid.NewGuid(),
                     RoomId = roomId,
                     UserId = Guid.NewGuid(),
                     Text = "hello",

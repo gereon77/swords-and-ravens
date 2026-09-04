@@ -337,7 +337,6 @@ public static class ChatWebSocketApi
 
         var message = new Message
         {
-            Id = Guid.NewGuid(),
             RoomId = roomId,
             UserId = user.Id,
             Text = text,
@@ -494,7 +493,8 @@ public static class ChatWebSocketApi
     {
         if (
             !data.TryGetProperty("message_id", out var messageIdElement)
-            || !Guid.TryParse(messageIdElement.GetString(), out var messageId)
+            || messageIdElement.ValueKind != JsonValueKind.Number
+            || !messageIdElement.TryGetInt64(out var messageId)
         )
         {
             return;
@@ -529,11 +529,11 @@ public static class ChatWebSocketApi
             data.TryGetProperty("faceless", out var facelessElement)
             && facelessElement.GetBoolean();
 
-        Guid? firstMessageId = null;
+        long? firstMessageId = null;
         if (
             data.TryGetProperty("first_message_id", out var firstMessageIdElement)
-            && firstMessageIdElement.ValueKind == JsonValueKind.String
-            && Guid.TryParse(firstMessageIdElement.GetString(), out var parsedFirstMessageId)
+            && firstMessageIdElement.ValueKind == JsonValueKind.Number
+            && firstMessageIdElement.TryGetInt64(out var parsedFirstMessageId)
         )
         {
             firstMessageId = parsedFirstMessageId;
@@ -559,7 +559,7 @@ public static class ChatWebSocketApi
             .ToListAsync();
         messages.Reverse(); // oldest first — mirrors Django's [0:count:-1] slice-and-reverse trick.
 
-        Guid? lastViewedMessage = null;
+        long? lastViewedMessage = null;
         if (firstMessageId is null)
         {
             lastViewedMessage = await db

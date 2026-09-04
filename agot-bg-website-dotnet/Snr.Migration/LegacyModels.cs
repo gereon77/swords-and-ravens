@@ -36,13 +36,12 @@ public record LegacyRoom(
 );
 
 /// <summary>
-/// chat_userinroom (chat/models.py's UserInRoom) — membership of a user in a room. Only the
-/// (user_id, room_id) pair is carried over: `last_viewed_message_id` references the legacy
-/// integer chat_message.id, which has no counterpart in the new Guid-keyed Message table (see
-/// LegacyMessage's doc comment / MIGRATION_PLAN.md §4.1 — messages get fresh ids on import), so it
-/// isn't worth threading through just to prefill an "unread" marker.
+/// chat_userinroom (chat/models.py's UserInRoom) — membership of a user in a room, plus which
+/// message (if any) this user last viewed in it. last_viewed_message_id carries over directly:
+/// unlike every other chat_message reference in this migration, Message.Id itself now preserves
+/// chat_message.id exactly (see LegacyMessage's doc comment), so no id-resolution step is needed.
 /// </summary>
-public record LegacyUserInRoom(Guid UserId, Guid RoomId);
+public record LegacyUserInRoom(Guid UserId, Guid RoomId, long? LastViewedMessageId);
 
 public record LegacyGame(
     Guid Id,
@@ -58,7 +57,19 @@ public record LegacyGame(
 
 public record LegacyPlayerInGame(Guid GameId, Guid UserId, string Data);
 
-public record LegacyMessage(Guid RoomId, Guid UserId, string Text, DateTimeOffset CreatedAt);
+/// <summary>
+/// chat_message (chat/models.py's Message). Id is carried over exactly (a plain Django AutoField,
+/// confirmed via information_schema to be a 32-bit int in the legacy database, widened to long on
+/// the target side for headroom - see ApplicationDbContext's Message entity config), unlike every
+/// other table in this file's records where the target uses a freshly generated Guid.
+/// </summary>
+public record LegacyMessage(
+    long Id,
+    Guid RoomId,
+    Guid UserId,
+    string Text,
+    DateTimeOffset CreatedAt
+);
 
 public record LegacyPbemResponseTime(
     Guid Id,

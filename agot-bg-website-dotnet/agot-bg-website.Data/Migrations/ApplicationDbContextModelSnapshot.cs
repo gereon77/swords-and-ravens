@@ -327,9 +327,11 @@ namespace agot_bg_website.Data.Migrations
 
             modelBuilder.Entity("agot_bg_website.Domain.Message", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -464,8 +466,8 @@ namespace agot_bg_website.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("LastViewedMessageId")
-                        .HasColumnType("uuid");
+                    b.Property<long?>("LastViewedMessageId")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");

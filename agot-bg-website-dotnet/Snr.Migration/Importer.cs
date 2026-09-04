@@ -59,6 +59,9 @@ public class Importer(
         Console.WriteLine("---> Importing chat rooms");
         await ImportRoomsAsync();
 
+        Console.WriteLine("---> Importing chat messages");
+        await ImportMessagesAsync();
+
         Console.WriteLine("---> Importing chat room memberships");
         await ImportUsersInRoomAsync();
 
@@ -67,9 +70,6 @@ public class Importer(
 
         Console.WriteLine("---> Importing current players in game");
         await ImportPlayersInGameAsync();
-
-        Console.WriteLine("---> Importing chat messages");
-        await ImportMessagesAsync();
 
         Console.WriteLine("---> Importing PBEM response times");
         await ImportPbemResponseTimesAsync();
@@ -291,22 +291,30 @@ public class Importer(
     /// Backfills chat_userinroom (Django's UserInRoom, see chat/models.py) — its absence here was
     /// the root cause of every migrated private chat room being permanently unjoinable, since
     /// ChatWebSocketApi.cs requires an existing UserInRoom row before it will let anyone connect
-    /// to a non-public room. Only (UserId, RoomId) matters (see LegacyUserInRoom's doc comment);
-    /// insert-only and keyed on that pair to stay idempotent on re-runs, mirroring
-    /// ImportMessagesAsync's approach for the same reason.
+    /// to a non-public room. Must run after ImportMessagesAsync so LastViewedMessageId's target
+    /// value (now the same id as the legacy one - see LegacyMessage's doc comment) is guaranteed
+    /// to already exist. Keyed on (UserId, RoomId) to stay idempotent on re-runs, and - unlike the
+    /// insert-only approach this used to take - LastViewedMessageId is updated on every re-run
+    /// too, so re-running against a fresher legacy snapshot before final cutover picks up newer
+    /// "unread" markers instead of freezing them at whatever they were on the first run.
     /// </summary>
     private async Task ImportUsersInRoomAsync()
     {
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
         var knownRoomIds = (await db.Rooms.Select(r => r.Id).ToListAsync()).ToHashSet();
-        var existingKeys = (
-            await db.UsersInRoom.Select(u => new { u.UserId, u.RoomId }).ToListAsync()
-        )
-            .Select(u => (u.UserId, u.RoomId))
-            .ToHashSet();
+        var knownMessageIds = (await db.Messages.Select(m => m.Id).ToListAsync()).ToHashSet();
+        var existingIds = await db
+            .UsersInRoom.Select(u => new
+            {
+                u.UserId,
+                u.RoomId,
+                u.Id,
+            })
+            .ToDictionaryAsync(u => (u.UserId, u.RoomId), u => u.Id);
 
         var imported = 0;
+        var updated = 0;
         var skipped = 0;
         var pending = 0;
         await foreach (var legacyUserInRoom in _legacy.ReadUsersInRoomAsync())
@@ -319,27 +327,49 @@ public class Importer(
                 skipped++;
                 continue;
             }
-            var key = (legacyUserInRoom.UserId, legacyUserInRoom.RoomId);
-            if (existingKeys.Contains(key))
-            {
-                continue;
-            }
 
-            db.UsersInRoom.Add(
-                new UserInRoom
+            // A room's last-viewed marker can point at a message this pass hasn't imported (e.g.
+            // it's outside --messages-days-back's window) - fall back to null rather than fail the
+            // whole row, since losing an "unread" marker is harmless (worst case: a message that
+            // was actually already read shows as unread again).
+            var lastViewedMessageId =
+                legacyUserInRoom.LastViewedMessageId is { } messageId
+                && knownMessageIds.Contains(messageId)
+                    ? messageId
+                    : (long?)null;
+
+            var key = (legacyUserInRoom.UserId, legacyUserInRoom.RoomId);
+            if (existingIds.TryGetValue(key, out var existingId))
+            {
+                var stub = new UserInRoom
+                {
+                    Id = existingId,
+                    LastViewedMessageId = lastViewedMessageId,
+                };
+                db.UsersInRoom.Attach(stub);
+                db.Entry(stub).Property(u => u.LastViewedMessageId).IsModified = true;
+                updated++;
+            }
+            else
+            {
+                var entity = new UserInRoom
                 {
                     Id = Guid.NewGuid(),
                     UserId = legacyUserInRoom.UserId,
                     RoomId = legacyUserInRoom.RoomId,
-                }
-            );
-            existingKeys.Add(key);
-            imported++;
+                    LastViewedMessageId = lastViewedMessageId,
+                };
+                db.UsersInRoom.Add(entity);
+                existingIds[key] = entity.Id;
+                imported++;
+            }
             pending = await FlushIfBatchFullAsync(db, pending + 1);
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
-        Console.WriteLine($"    chat room memberships: {imported} imported, {skipped} skipped");
+        Console.WriteLine(
+            $"    chat room memberships: {imported} imported, {updated} updated, {skipped} skipped"
+        );
     }
 
     private async Task ImportGamesAsync()
@@ -760,6 +790,15 @@ public class Importer(
         );
     }
 
+    /// <summary>
+    /// Message.Id now preserves chat_message.id exactly instead of generating a fresh Guid (see
+    /// LegacyMessage's doc comment), so idempotency is keyed on that id directly rather than the
+    /// (RoomId, UserId, Text, CreatedAt) natural key this used to rely on. EF Core's Npgsql
+    /// provider defaults long PKs to "GENERATED BY DEFAULT AS IDENTITY", which allows inserting
+    /// these explicit ids - but doing so never advances the backing sequence, so every run (even
+    /// one that imports nothing new) ends by bumping it to MAX(Id), otherwise the next message
+    /// sent live through the app could collide with an id this import already claimed.
+    /// </summary>
     private async Task ImportMessagesAsync()
     {
         if (messagesDaysBack == 0)
@@ -774,21 +813,7 @@ public class Importer(
         await using var db = NewTargetContext();
         var knownUserIds = (await db.Users.Select(u => u.Id).ToListAsync()).ToHashSet();
         var knownRoomIds = (await db.Rooms.Select(r => r.Id).ToListAsync()).ToHashSet();
-
-        // Messages have no stable legacy id worth preserving (see MIGRATION_PLAN.md §4.1), and
-        // volume can be large, so only ever insert — treat (RoomId, UserId, Text, CreatedAt) as
-        // "already imported" to keep re-runs idempotent without loading the whole table into memory.
-        var existingKeys = (
-            await db
-                .Messages.Select(m => new
-                {
-                    m.RoomId,
-                    m.UserId,
-                    m.Text,
-                    m.CreatedAt,
-                })
-                .ToListAsync()
-        ).Select(m => (m.RoomId, m.UserId, m.Text, m.CreatedAt)).ToHashSet();
+        var knownMessageIds = (await db.Messages.Select(m => m.Id).ToListAsync()).ToHashSet();
 
         var imported = 0;
         var skipped = 0;
@@ -803,26 +828,20 @@ public class Importer(
                 skipped++;
                 continue;
             }
-            var key = (
-                legacyMessage.RoomId,
-                legacyMessage.UserId,
-                legacyMessage.Text,
-                legacyMessage.CreatedAt
-            );
-            if (existingKeys.Contains(key))
+            if (knownMessageIds.Contains(legacyMessage.Id))
                 continue;
 
             db.Messages.Add(
                 new Message
                 {
-                    Id = Guid.NewGuid(),
+                    Id = legacyMessage.Id,
                     RoomId = legacyMessage.RoomId,
                     UserId = legacyMessage.UserId,
                     Text = legacyMessage.Text,
                     CreatedAt = legacyMessage.CreatedAt,
                 }
             );
-            existingKeys.Add(key);
+            knownMessageIds.Add(legacyMessage.Id);
             imported++;
             // ChangeTracker.Clear() (not just SaveChangesAsync) is the important part here: without
             // it every Message entity ever Added stays tracked for the DbContext's whole lifetime
@@ -832,6 +851,19 @@ public class Importer(
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
+
+        // Always run, even if imported == 0: a previous run may have inserted explicit ids without
+        // ever bumping the sequence past them (e.g. the process was interrupted before reaching
+        // this point), so this must be unconditional rather than only-after-a-successful-import.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            SELECT setval(
+                pg_get_serial_sequence('"Messages"', 'Id'),
+                COALESCE((SELECT MAX("Id") FROM "Messages"), 0)
+            )
+            """
+        );
+
         Console.WriteLine(
             $"    messages: {imported} imported, {skipped} skipped (unknown room/user)"
         );

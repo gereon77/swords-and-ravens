@@ -12,7 +12,7 @@ using agot_bg_website.Data;
 namespace agot_bg_website.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260902104059_InitialCreate")]
+    [Migration("20260904220302_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -164,6 +164,18 @@ namespace agot_bg_website.Data.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("CachedFinishedGamesCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CachedRemovedFromGameCount")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("CachedWinRate")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("CachedWonGamesCount")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("Claimed")
                         .HasColumnType("boolean");
 
@@ -235,6 +247,9 @@ namespace agot_bg_website.Data.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("StatsCachedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
@@ -315,9 +330,11 @@ namespace agot_bg_website.Data.Migrations
 
             modelBuilder.Entity("agot_bg_website.Domain.Message", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -452,8 +469,8 @@ namespace agot_bg_website.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("LastViewedMessageId")
-                        .HasColumnType("uuid");
+                    b.Property<long?>("LastViewedMessageId")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
