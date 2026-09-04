@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@inject IWebHostEnvironment HostEnvironment
+<!DOCTYPE html>
 <html lang="en" data-theme="swordsandravens">
 <head>
     <meta charset="utf-8" />
@@ -61,6 +62,15 @@
                 </div>
             </div>
         </nav>
+        @if (HostEnvironment.IsStaging())
+        {
+            <div class="alert alert-warning rounded-none justify-center text-center py-2 text-sm">
+                <span>
+                    <i class="fa-solid fa-flask-vial" aria-hidden="true"></i>
+                    This is a test instance for trying out the new site before launch — games and accounts here may be reset or deleted without notice, so don't rely on anything created here sticking around.
+                </span>
+            </div>
+        }
     </header>
     <div class="flex-1 min-h-0 overflow-y-auto">
         <div class="container @(ViewData["WideContainer"] as bool? == true ? "container-wide" : "")">
