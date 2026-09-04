@@ -203,10 +203,16 @@ else if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
     {
         client.BaseAddress = new Uri(apiHost);
     });
+    // Deliberately NOT AddTransient<IEmailSender, ApiEmailSender>() here: that would register a
+    // second, independent ApiEmailSender constructed via plain DI (with an HttpClient resolved
+    // from the default factory, BaseAddress unset), instead of reusing the instance the typed
+    // client registration above just configured - causing "invalid request URI... BaseAddress
+    // must be set" at send time (seen in production via Sentry). Resolve through the typed
+    // client's own registration so the configured HttpClient is actually used.
     builder.Services.AddTransient<
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         ApiEmailSender
-    >();
+    >(sp => sp.GetRequiredService<ApiEmailSender>());
 }
 else if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
