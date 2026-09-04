@@ -145,7 +145,10 @@ jobs:
         # docker-compose.prod.yml). WEBSITE_IMAGE/GAME_SERVER_IMAGE passed as shell env vars here
         # override whatever's sitting in .env.prod, without needing to edit that file every run.
         # `caddy` is restarted too (cheap, no image pull) so a changed Caddyfile above always
-        # takes effect, even though its image/service definition rarely changes.
+        # takes effect. Its recreate uses --no-deps: without it, compose also reconciles caddy's
+        # `depends_on: website` using .env.prod's default WEBSITE_IMAGE (unset here -> falls back
+        # to the never-pushed `:latest` tag) and fails trying to pull it, even though website was
+        # already correctly updated by the command just above.
         run: |
           ssh -o StrictHostKeyChecking=no $DEPLOY_HOST \
             "cd /opt/swords-and-ravens && \
@@ -153,6 +156,6 @@ jobs:
              docker compose -f docker-compose.prod.yml --env-file .env.prod pull website game-server && \
              WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
              docker compose -f docker-compose.prod.yml --env-file .env.prod up -d website game-server && \
-             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate caddy"
+             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate --no-deps caddy"
       - name: Clean up old images on the droplet
         run: ssh -o StrictHostKeyChecking=no $DEPLOY_HOST "docker image prune -a -f --filter \"until=45m\""
