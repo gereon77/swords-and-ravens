@@ -295,6 +295,18 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+                if (EmailIsReadOnly)
+                {
+                    // The external provider already vouched for this exact email address (see the
+                    // ClaimTypes.Email checks above), so there's no need to additionally make the
+                    // user click a confirmation link mailed to that same address - that's a
+                    // redundant, easy-to-break round trip (and outright blocks sign-in in
+                    // environments where outbound email isn't configured, e.g. local dev's
+                    // LoggingEmailSender). Only email/password registration (Register.cshtml.cs),
+                    // where nobody has proven ownership of the address yet, still needs the mailed
+                    // confirmation link.
+                    await _emailStore.SetEmailConfirmedAsync(user, true, CancellationToken.None);
+                }
 
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
@@ -307,6 +319,16 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                             "User created an account using {Name} provider.",
                             info.LoginProvider
                         );
+
+                        if (EmailIsReadOnly)
+                        {
+                            await _signInManager.SignInAsync(
+                                user,
+                                isPersistent: true,
+                                info.LoginProvider
+                            );
+                            return LocalRedirect(returnUrl);
+                        }
 
                         var userId = await _userManager.GetUserIdAsync(user);
                         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
