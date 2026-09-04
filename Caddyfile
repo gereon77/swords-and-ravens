@@ -1,0 +1,22 @@
+# Caddy is the reverse proxy / TLS terminator for the production/staging deployment (see
+# docker-compose.prod.yml). It automatically obtains and renews a Let's Encrypt certificate for
+# the domain(s) below the first time they're requested — no manual certbot/nginx config needed.
+#
+# Currently pointed at the pre-cutover test domain (winordie.net). Once ready to go live, add (or
+# switch to) swordsandravens.net here — Caddy will request a new certificate for it automatically,
+# no other changes required. Multiple domains can point at the same site block, comma-separated.
+winordie.net {
+	reverse_proxy website:8000
+}
+
+# The TypeScript game server's raw WebSocket endpoint (src/server/server.ts, `ws` package - not
+# HTTP/REST). GameClient.ts (browser client) always dials wss://play.<hostname> in production
+# (only "localhost" gets the ws://localhost:5000 fallback used by local dev) - so this subdomain
+# must exist and point at the same droplet as the main domain, with its own Let's Encrypt cert.
+# Caddy proxies WebSocket upgrades transparently, no extra directives needed. `game-server`
+# listens on 5000 by default (PORT env var, unset here - see docker-compose.prod.yml) and is never
+# published to the host, only reachable from other containers on the Compose network, same as
+# `website` above.
+play.winordie.net {
+	reverse_proxy game-server:5000
+}

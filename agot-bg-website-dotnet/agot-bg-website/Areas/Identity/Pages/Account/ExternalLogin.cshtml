@@ -1,0 +1,55 @@
+﻿@page
+@model ExternalLoginModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h1>@ViewData["Title"]</h1>
+<h2 id="external-login-title">Associate your @Model.ProviderDisplayName account.</h2>
+<hr />
+
+<p id="external-login-description" class="text-info">
+    You've successfully authenticated with <strong>@Model.ProviderDisplayName</strong>.
+    Please choose a username below (this is what other players will see) and click the Register
+    button to finish logging in.
+</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.UserName" class="form-control" autocomplete="username" placeholder="Please enter a username." />
+                <label asp-for="Input.UserName" class="form-label"></label>
+                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+            </div>
+            <p class="form-text text-muted">
+                This is shown to other players (e.g. in the online users list and in-game chat) and
+                can only be changed once afterwards, from your profile settings.
+            </p>
+            <div class="form-floating mb-3">
+                @if (Model.EmailIsReadOnly)
+                {
+                    <input asp-for="Input.Email" class="form-control" autocomplete="email" readonly />
+                }
+                else
+                {
+                    <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email."/>
+                }
+                <label asp-for="Input.Email" class="form-label"></label>
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            @if (Model.EmailIsReadOnly)
+            {
+                <p class="form-text text-muted">
+                    This is the verified email address from your @Model.ProviderDisplayName account and can't be changed here.
+                </p>
+            }
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

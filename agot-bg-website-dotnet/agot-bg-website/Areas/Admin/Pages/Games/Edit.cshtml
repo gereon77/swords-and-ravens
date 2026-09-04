@@ -1,0 +1,39 @@
+@page "{id:guid}"
+@model agot_bg_website.Areas.Admin.Pages.Games.EditModel
+@using agot_bg_website.Domain
+@{
+    ViewData["Title"] = "Admin - Edit game";
+}
+
+<h1 class="text-2xl font-bold mb-4">Edit game — @Model.GameEntity.Name</h1>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+<div asp-validation-summary="All" class="text-error mb-4"></div>
+
+<form method="post" asp-page-handler="Save">
+    <div class="flex flex-col gap-1 mb-3">
+        <label class="label" asp-for="Name"></label>
+        <input asp-for="Name" class="input input-bordered w-full" />
+    </div>
+    <div class="flex flex-col gap-1 mb-3">
+        <label class="label" asp-for="State"></label>
+        <select asp-for="State" class="select select-bordered w-full" asp-items="Html.GetEnumSelectList<GameState>()"></select>
+    </div>
+    <div class="flex flex-col gap-1 mb-3">
+        <label class="label" asp-for="SerializedGameJson">Serialized game (raw JSON)</label>
+        <textarea asp-for="SerializedGameJson" rows="20" class="textarea textarea-bordered font-mono text-xs w-full"></textarea>
+    </div>
+    <div class="flex flex-col gap-1 mb-3">
+        <label class="label" asp-for="ViewOfGameJson">View of game (raw JSON)</label>
+        <textarea asp-for="ViewOfGameJson" rows="10" class="textarea textarea-bordered font-mono text-xs w-full"></textarea>
+    </div>
+    <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn" asp-page="./Index">Back</a>
+    </div>
+</form>
+
+<form method="post" asp-page-handler="CancelGame" class="mt-4"
+      onsubmit="return confirm('Are you sure you want to cancel this game?');">
+    <button type="submit" class="btn btn-error">Cancel game</button>
+</form>

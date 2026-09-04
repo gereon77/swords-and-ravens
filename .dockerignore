@@ -1,4 +1,8 @@
 agot-bg-website/venv
-agot-bg-game/node_modules
 agot-bg-website/static_game
-agot-bg-game/dist
+agot-bg-game-server/node_modules
+agot-bg-game-server/dist
+agot-bg-website-dotnet/**/bin
+agot-bg-website-dotnet/**/obj
+agot-bg-website-dotnet/**/.vs
+.git
