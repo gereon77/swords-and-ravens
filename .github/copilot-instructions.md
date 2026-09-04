@@ -47,6 +47,8 @@ docker build . -f game_server.Dockerfile
 docker build . -f website.Dockerfile
 ```
 
+Before committing any C# change in `agot-bg-website-dotnet/`, run `dotnet csharpier format .` from that directory (the local dotnet tool declared in `agot-bg-website-dotnet/.config/dotnet-tools.json`) to keep formatting consistent.
+
 ## Game-server conventions
 
 - Client and server messages are discriminated unions in `src/messages/ClientMessage.ts` and `ServerMessage.ts`. When changing a client message, update every sender and handler and run `yarn run generate-json-schemas`; the generated `src/server/ClientMessage.json` is the AJV validation schema used before dispatch.

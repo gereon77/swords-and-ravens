@@ -41,6 +41,7 @@ services:
       Email__Username: ${EMAIL_USERNAME}
       Email__Password: ${EMAIL_PASSWORD}
       Email__FromAddress: ${EMAIL_FROM_ADDRESS}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       db:
         condition: service_healthy

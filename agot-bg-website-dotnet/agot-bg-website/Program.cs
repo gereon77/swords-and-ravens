@@ -25,6 +25,28 @@ var builder = WebApplication.CreateBuilder(args);
 // before, regardless of which environment name is actually active.
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 
+// Error tracking. Deliberately reuses the SAME Sentry DSN/project as the Django site used to and
+// the TS game server still does (SENTRY_DSN env var, see docker-compose.prod.yml/
+// .env.prod.example) — one Sentry project can safely receive events from multiple SDKs/languages
+// at once (each event is tagged with its own `platform`, e.g. "csharp" vs "node"), so this keeps
+// all of Swords and Ravens' errors in one place instead of needing a second Sentry project. Only
+// initializes when a DSN is actually configured, mirroring agotboardgame/settings.py's
+// `if not DEBUG and os.environ.get('SENTRY_DSN') is not None` and server.ts's
+// `if (process.env.SENTRY_DSN)` — leaving SENTRY_DSN unset (e.g. for local debugging) disables it
+// entirely with no extra config needed.
+var sentryDsn = builder.Configuration["SENTRY_DSN"];
+if (!string.IsNullOrEmpty(sentryDsn))
+{
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = sentryDsn;
+        options.Environment = builder.Environment.EnvironmentName;
+        // Sends request/user data (matches Django's send_default_pii=True) — safe here since this
+        // is a private, non-public-facing DSN in server-side config, never shipped to the browser.
+        options.SendDefaultPii = true;
+    });
+}
+
 // The /api/* Minimal API endpoints (Api/UsersApi.cs, GamesApi.cs, RoomsApi.cs,
 // NotificationsApi.cs) are the private REST contract the TS game server's
 // WebsiteClient.ts/LiveWebsiteClient.ts speak — a straight port of Django's snake_case DRF
