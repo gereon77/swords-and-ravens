@@ -72,7 +72,7 @@
                 style.color = "darkgoldenrod";
             }
             return html`
-                <a key=${userId} style=${style} class="link link-hover font-medium" href="/User/${userId}" target="_blank" rel="noopener noreferrer">
+                <a key=${userId} style=${style} class="link link-hover font-medium" href="/user/${userId}" target="_blank" rel="noopener noreferrer">
                     ${username}
                     ${last_won_tournament ? html`<span title=${"Winner of " + last_won_tournament} style=${{ color: "goldenrod" }}> \u{1F3C6}</span>` : ""}
                 </a>
@@ -203,7 +203,7 @@
                                         <span class="opacity-60 shrink-0" title=${m.created_at.toLocaleString()}>
                                             ${("0" + m.created_at.getHours()).slice(-2)}:${("0" + m.created_at.getMinutes()).slice(-2)}
                                         </span>
-                                        <a class="link font-semibold shrink-0" href="/User/${m.user_id}" target="_blank" rel="noopener noreferrer">${m.username}</a>
+                                        <a class="link font-semibold shrink-0" href="/user/${m.user_id}" target="_blank" rel="noopener noreferrer">${m.username}</a>
                                         <span style="overflow-wrap: anywhere;">${m.text}</span>
                                     </div>
                                 `)}

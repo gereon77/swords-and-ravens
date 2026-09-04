@@ -32,7 +32,7 @@
             {
                 <tr>
                     <td>@game.Name</td>
-                    <td>@if (game.OwnerUser is not null) { <a class="link" href="/User/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
+                    <td>@if (game.OwnerUser is not null) { <a class="link" href="/user/@game.OwnerUserId" target="_blank" rel="noopener noreferrer">@game.OwnerUser.DisplayName</a> }</td>
                     <td>@game.State</td>
                     <td>@game.LastActiveAt.ToLocalTime().ToString("g")</td>
                     <td>

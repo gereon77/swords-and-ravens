@@ -14,7 +14,7 @@
             </svg>
         </div>
         <ul tabindex="0" class="dropdown-content menu z-10 mt-2 w-56 rounded-box border border-base-300 bg-base-200 p-2 shadow-md">
-            <li><a href="/User/@UserManager.GetUserId(User)" target="_blank" rel="noopener noreferrer">View profile</a></li>
+            <li><a href="/user/@UserManager.GetUserId(User)" target="_blank" rel="noopener noreferrer">View profile</a></li>
             <li><a asp-area="Identity" asp-page="/Account/Manage/Index">Manage profile</a></li>
             <li>
                 <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">

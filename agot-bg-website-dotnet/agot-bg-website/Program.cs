@@ -254,6 +254,17 @@ else
     >();
 }
 
+// Canonical, all-lowercase URLs everywhere (e.g. "/user/{id}" instead of "/User/{id}") - applies
+// to links the framework generates itself (asp-page tag helpers, Url.Page, RedirectToPage,
+// LinkGenerator, ...); routing already matched incoming URLs case-insensitively regardless, this
+// just makes what appears in the address bar/links consistent. Hardcoded literal hrefs (e.g. the
+// few "/User/{id}" links to the profile page) still need fixing by hand - see individual .cshtml
+// files.
+builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
+{
+    options.LowercaseUrls = true;
+});
+
 builder.Services.AddRazorPages(options =>
 {
     // The Admin area is the .NET equivalent of Django Admin (there's no built-in one) — gate the

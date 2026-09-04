@@ -45,7 +45,7 @@ else
                 @foreach (var message in Model.Messages)
                 {
                     <tr>
-                        <td>@if (message.User is not null) { <a class="link" href="/User/@message.UserId" target="_blank" rel="noopener noreferrer">@message.User.DisplayName</a> }</td>
+                        <td>@if (message.User is not null) { <a class="link" href="/user/@message.UserId" target="_blank" rel="noopener noreferrer">@message.User.DisplayName</a> }</td>
                         <td class="whitespace-pre-wrap break-words max-w-xl">@message.Text</td>
                         <td>@message.CreatedAt.ToLocalTime().ToString("g")</td>
                     </tr>

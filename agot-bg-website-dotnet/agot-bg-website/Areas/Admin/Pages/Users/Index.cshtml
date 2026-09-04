@@ -42,7 +42,7 @@
                         }
                         else
                         {
-                            <a class="link" href="/User/@user.Id" target="_blank" rel="noopener noreferrer">@user.DisplayName</a>
+                            <a class="link" href="/user/@user.Id" target="_blank" rel="noopener noreferrer">@user.DisplayName</a>
                         }
                     </td>
                     <td>@user.Email @(user.IsDeleted ? "" : user.EmailConfirmed ? "" : "(unconfirmed)")</td>
