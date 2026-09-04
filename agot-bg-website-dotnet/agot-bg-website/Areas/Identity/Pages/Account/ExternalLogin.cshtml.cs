@@ -98,6 +98,23 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             [Required]
             [EmailAddress]
             public string Email { get; set; }
+
+            /// <summary>
+            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+            ///     directly from your code. This API may change or be removed in future releases.
+            /// </summary>
+            [Required]
+            [StringLength(
+                30,
+                MinimumLength = 3,
+                ErrorMessage = "The {0} must be between {2} and {1} characters long."
+            )]
+            [RegularExpression(
+                @"^[a-zA-Z0-9_\-\. ]+$",
+                ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes."
+            )]
+            [Display(Name = "Username")]
+            public string UserName { get; set; }
         }
 
         public IActionResult OnGet() => RedirectToPage("./Login");
@@ -291,9 +308,34 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     return Page();
                 }
 
+                // The external provider's email claim must never be used as the UserName: it's
+                // shown as-is elsewhere (e.g. the online-users list, ChatMessages.cs), so defaulting
+                // to the email would leak it to every other visitor. Require a distinct username
+                // here instead, validated the same way as local registration (Register.cshtml.cs)
+                // and the one-time rename in Manage/Index.cshtml.cs.
+                if (Infrastructure.Auth.ReservedUsernames.IsReserved(Input.UserName))
+                {
+                    ModelState.AddModelError(
+                        "Input.UserName",
+                        "This username is reserved and can't be used."
+                    );
+                    ProviderDisplayName = info.ProviderDisplayName;
+                    ReturnUrl = returnUrl;
+                    return Page();
+                }
+
+                var existingNameUser = await _userManager.FindByNameAsync(Input.UserName);
+                if (existingNameUser is not null)
+                {
+                    ModelState.AddModelError("Input.UserName", "This username is already taken.");
+                    ProviderDisplayName = info.ProviderDisplayName;
+                    ReturnUrl = returnUrl;
+                    return Page();
+                }
+
                 var user = CreateUser();
 
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+                await _userStore.SetUserNameAsync(user, Input.UserName, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
                 if (EmailIsReadOnly)
                 {

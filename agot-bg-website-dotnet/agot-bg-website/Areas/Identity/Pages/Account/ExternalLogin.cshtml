@@ -10,14 +10,23 @@
 
 <p id="external-login-description" class="text-info">
     You've successfully authenticated with <strong>@Model.ProviderDisplayName</strong>.
-    Please enter an email address for this site below and click the Register button to finish
-    logging in.
+    Please choose a username below (this is what other players will see) and click the Register
+    button to finish logging in.
 </p>
 
 <div class="row">
     <div class="col-md-4">
         <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.UserName" class="form-control" autocomplete="username" placeholder="Please enter a username." />
+                <label asp-for="Input.UserName" class="form-label"></label>
+                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+            </div>
+            <p class="form-text text-muted">
+                This is shown to other players (e.g. in the online users list and in-game chat) and
+                can only be changed once afterwards, from your profile settings.
+            </p>
             <div class="form-floating mb-3">
                 @if (Model.EmailIsReadOnly)
                 {
