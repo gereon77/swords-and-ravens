@@ -149,6 +149,19 @@ public static class ChatWebSocketApi
                         logger
                     );
                 }
+                catch (WebSocketException ex)
+                {
+                    // Expected whenever a client disconnects abruptly (browser tab/app closed,
+                    // network drop, phone locked/backgrounded) instead of completing the normal
+                    // close handshake - socket.ReceiveAsync throws this from the read loop. Not a
+                    // bug, so log it at a low level instead of letting it bubble up to the
+                    // exception-handling middleware and get reported to Sentry as an error.
+                    logger.LogDebug(
+                        ex,
+                        "WebSocket for room {RoomId} closed abruptly without a close handshake",
+                        roomId
+                    );
+                }
                 finally
                 {
                     connections.Remove(roomId, connectionId);
