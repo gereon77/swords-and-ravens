@@ -7,7 +7,10 @@
 # pushed to GHCR by GitHub Actions, never built on the droplet itself (`website`/`game-server`
 # below reference `image:`, not `build:`). This droplet only needs this file, `Caddyfile`, and
 # `.env.prod` — no full repo clone required for deployment (a full clone is only useful if you
-# want to build locally for a one-off manual test).
+# want to build locally for a one-off manual test). `deploy.yml`'s `deploy` job scp's this file and
+# `Caddyfile` to the droplet on every run, so they never silently drift from the repo again (this
+# used to be a manual one-time copy per MIGRATION_PLAN.md, which is how the Email__Api__*/
+# Email__Ses__* env mappings once went missing on the droplet for several deploys).
 #
 # Usage on the droplet (once the CI/CD pipeline exists — see MIGRATION_PLAN.md §16 Phase 2):
 #   cp .env.prod.example .env.prod   # then fill in real secrets, never commit this file
