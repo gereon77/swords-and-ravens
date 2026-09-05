@@ -70,7 +70,7 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>
     /// Cached win-rate stats, recomputed by <see cref="Services.UserStatsService"/> in the
     /// background whenever one of this user's games transitions to Finished (see
-    /// Api.GamesApi's PATCH handler and Infrastructure.Stats.WinRateRecalculationQueue) instead of
+    /// Api.GamesApi's PATCH handler and Infrastructure.Stats.UserStatsRecalculationQueue) instead of
     /// being recalculated from PlayerInGame/PreviousPlayerInGame on every profile page view -
     /// User.cshtml.cs's LoadGamesAsync used to do exactly that, loading every one of a user's
     /// games (including the multi-megabyte SerializedGame blob) on every request. <see

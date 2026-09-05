@@ -28,7 +28,7 @@ public record UserStatsResult(
 /// <see cref="WinRateCalculator"/> already implements - see that type's doc comment and
 /// MIGRATION_PLAN.md §10.2.
 ///
-/// Called from two places: <see cref="Infrastructure.Stats.WinRateRecalculationBackgroundService"/>
+/// Called from two places: <see cref="Infrastructure.Stats.UserStatsRecalculationBackgroundService"/>
 /// in the background whenever a game finishes (see Api.GamesApi's PATCH handler, which enqueues
 /// every participant), and synchronously from Pages.UserModel as a one-time fallback for any user
 /// whose stats have never been cached yet (<see cref="ApplicationUser.StatsCachedAt"/> is null).

@@ -29,7 +29,7 @@ public class UserModelTests : IDisposable
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuthorizationService _authorizationService;
     private readonly UserStatsService _userStatsService;
-    private readonly WinRateRecalculationQueue _winRateQueue;
+    private readonly UserStatsRecalculationQueue _userStatsQueue;
 
     public UserModelTests()
     {
@@ -44,19 +44,19 @@ public class UserModelTests : IDisposable
             .AddDefaultTokenProviders();
         services.AddAuthorizationBuilder().AddGamePermissionPolicies();
         services.AddScoped<UserStatsService>();
-        services.AddSingleton<WinRateRecalculationQueue>();
+        services.AddSingleton<UserStatsRecalculationQueue>();
 
         _provider = services.BuildServiceProvider();
         _db = _provider.GetRequiredService<ApplicationDbContext>();
         _userManager = _provider.GetRequiredService<UserManager<ApplicationUser>>();
         _authorizationService = _provider.GetRequiredService<IAuthorizationService>();
         _userStatsService = _provider.GetRequiredService<UserStatsService>();
-        _winRateQueue = _provider.GetRequiredService<WinRateRecalculationQueue>();
+        _userStatsQueue = _provider.GetRequiredService<UserStatsRecalculationQueue>();
     }
 
     private UserModel CreatePageModel(ClaimsPrincipal? viewer = null)
     {
-        var model = new UserModel(_db, _userManager, _authorizationService, _winRateQueue)
+        var model = new UserModel(_db, _userManager, _authorizationService, _userStatsQueue)
         {
             PageContext = new PageContext
             {
@@ -231,7 +231,7 @@ public class UserModelTests : IDisposable
         // Stats are only ever read from the cache the profile page itself never populates
         // synchronously anymore (see StatsNotYetCached_ShowsNAAndEnqueuesRecalculation below) -
         // warm it via UserStatsService directly first, exactly as
-        // WinRateRecalculationBackgroundService would after picking this user up off the queue.
+        // UserStatsRecalculationBackgroundService would after picking this user up off the queue.
         await _userStatsService.RecalculateAsync(user.Id);
 
         var model = CreatePageModel();
@@ -283,7 +283,7 @@ public class UserModelTests : IDisposable
         Assert.Equal(0, model.RemovedFromGameCount);
         Assert.Equal("n/a", model.WinRateDisplay);
 
-        await using var enumerator = _winRateQueue
+        await using var enumerator = _userStatsQueue
             .ReadAllAsync(CancellationToken.None)
             .GetAsyncEnumerator();
         Assert.True(await enumerator.MoveNextAsync());

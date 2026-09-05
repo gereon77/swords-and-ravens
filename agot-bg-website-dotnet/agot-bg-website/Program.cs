@@ -149,11 +149,12 @@ builder.Services.AddScoped<AccountDeletionService>();
 builder.Services.AddScoped<agot_bg_website.Services.GameListing.GameListQueryService>();
 builder.Services.AddScoped<agot_bg_website.Services.UserStatsService>();
 
-// Recomputes cached win-rate stats in the background whenever a game finishes (see
-// Api.GamesApi's PATCH handler) instead of recalculating from every PlayerInGame row on every
-// profile page view - see WinRateRecalculationQueue/WinRateRecalculationBackgroundService.
-builder.Services.AddSingleton<agot_bg_website.Infrastructure.Stats.WinRateRecalculationQueue>();
-builder.Services.AddHostedService<agot_bg_website.Infrastructure.Stats.WinRateRecalculationBackgroundService>();
+// Recomputes cached user stats (won/finished/removed-from game counts and win rate) in the
+// background whenever a game finishes (see Api.GamesApi's PATCH handler) or an admin triggers a
+// bulk recalculation, instead of recalculating from every PlayerInGame row on every profile page
+// view - see UserStatsRecalculationQueue/UserStatsRecalculationBackgroundService.
+builder.Services.AddSingleton<agot_bg_website.Infrastructure.Stats.UserStatsRecalculationQueue>();
+builder.Services.AddHostedService<agot_bg_website.Infrastructure.Stats.UserStatsRecalculationBackgroundService>();
 
 // Refuses throwaway addresses (mailinator.com and the like) on registration/email-change - see
 // LOCAL_DEV_VERIFICATION.md "Disposable email" section for why this package/approach was picked.

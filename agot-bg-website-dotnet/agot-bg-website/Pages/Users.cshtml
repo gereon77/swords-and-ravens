@@ -1,17 +1,52 @@
 @page
 @model agot_bg_website.Pages.UsersModel
+@using System.Globalization
+@using Microsoft.AspNetCore.Html
+@using agot_bg_website.Infrastructure
 @using agot_bg_website.Infrastructure.Auth
 @{
     ViewData["Title"] = "Users";
+
+    // Builds a sortable column header link that preserves the current search/page-size and
+    // resets back to page 1 (sorting differently makes the previous page number meaningless).
+    IHtmlContent SortHeader(string column, string label)
+    {
+        var url = Url.Page(
+            "./Users",
+            new
+            {
+                Search = Model.Search,
+                PageNumber = 1,
+                PageSize = Model.PageSize,
+                SortBy = column,
+                SortDir = Model.NextSortDir(column),
+                StatusFilter = Model.StatusFilter,
+            }
+        );
+        var indicator = Model.SortIndicator(column);
+        var text = string.IsNullOrEmpty(indicator) ? label : $"{label} {indicator}";
+        return new HtmlString($"<a class=\"link\" href=\"{url}\">{text}</a>");
+    }
 }
 
 <h1 class="text-2xl font-bold mb-4">Users</h1>
 
 <partial name="_StatusMessage" for="StatusMessage" />
 
-<form method="get" class="mb-4 flex gap-2">
+<form method="get" class="mb-4 flex gap-2 flex-wrap items-center">
     <input type="hidden" name="pageSize" value="@Model.PageSize" />
+    <input type="hidden" name="SortBy" value="@Model.SortBy" />
+    <input type="hidden" name="SortDir" value="@Model.SortDir" />
     <input type="text" name="Search" value="@Model.Search" class="input input-bordered" placeholder="Search by username" />
+    @if (Model.CanManageUserStatus)
+    {
+        <select name="StatusFilter" class="select select-bordered" onchange="this.form.submit()">
+            <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All statuses</option>
+            <option value="probation" selected="@(Model.StatusFilter == "probation")">On probation</option>
+            <option value="tongueless" selected="@(Model.StatusFilter == "tongueless")">Tongueless</option>
+            <option value="banned" selected="@(Model.StatusFilter == "banned")">Banned</option>
+        </select>
+    }
     <button type="submit" class="btn btn-primary">Search</button>
 </form>
 
@@ -19,9 +54,13 @@
     <table class="table">
         <thead>
             <tr>
-                <th>Username</th>
-                <th>Roles</th>
-                <th>Created</th>
+                <th>@SortHeader("username", "Username")</th>
+                <th class="text-right">@SortHeader("finished", "Finished games")</th>
+                <th class="text-right">@SortHeader("won", "Won games")</th>
+                <th class="text-right">@SortHeader("removed", "Replaced games")</th>
+                <th class="text-right">@SortHeader("winrate", "Win rate")</th>
+                <th>@SortHeader("created", "Created")</th>
+                <th>@SortHeader("activity", "Last activity")</th>
                 @if (Model.CanManageUserStatus)
                 {
                     <th></th>
@@ -32,46 +71,60 @@
             @foreach (var user in Model.Users)
             {
                 var roles = Model.RolesByUserId.GetValueOrDefault(user.Id, []);
+                // "Member" is every regular user's baseline role and carries no useful signal
+                // here - only show a badge next to the username for anything beyond that (Admin,
+                // High Member, Banned, On probation, Tongueless).
+                var displayRoles = roles.Where(r => r != RoleNames.Member).ToList();
                 var isProtected = roles.Contains(RoleNames.Admin) || roles.Contains(RoleNames.HighMember);
                 var isBanned = roles.Contains(RoleNames.Banned);
                 var isOnProbation = roles.Contains(RoleNames.OnProbation);
                 var isTongueless = roles.Contains(RoleNames.Tongueless);
+                var winRateDisplay = user.CachedWinRate.HasValue
+                    ? $"{(user.CachedWinRate.Value * 100).ToString("F1", CultureInfo.InvariantCulture)} %"
+                    : "n/a";
                 <tr>
                     <td>
-                        <a class="link" href="/user/@user.Id">@user.DisplayName</a>
+                        <div class="flex flex-wrap items-center gap-1">
+                            <a class="link" href="/user/@user.Id">@user.DisplayName</a>
+                            @foreach (var role in displayRoles)
+                            {
+                                <span class="badge badge-sm @RoleBadges.Classes.GetValueOrDefault(role, "badge-neutral")">@role</span>
+                            }
+                        </div>
                     </td>
-                    <td class="flex flex-wrap gap-1">
-                        @foreach (var role in roles)
-                        {
-                            <span class="badge @RoleBadges.Classes.GetValueOrDefault(role, "badge-neutral")">@role</span>
-                        }
-                    </td>
+                    <td class="text-right">@(user.CachedFinishedGamesCount ?? 0)</td>
+                    <td class="text-right">@(user.CachedWonGamesCount ?? 0)</td>
+                    <td class="text-right">@(user.CachedRemovedFromGameCount ?? 0)</td>
+                    <td class="text-right">@winRateDisplay</td>
                     <td>@user.CreatedAt.ToLocalTime().ToString("g")</td>
+                    <td title="@user.LastActivity.ToLocalTime().ToString("g")">@RelativeTimeFormatter.Format(user.LastActivity)</td>
                     @if (Model.CanManageUserStatus)
                     {
-                        <td class="flex flex-wrap gap-2">
-                            @if (isProtected)
-                            {
-                                <span class="opacity-50 text-sm">Protected</span>
-                            }
-                            else
-                            {
-                                <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.OnProbation" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
-                                    <button type="submit" class="btn btn-sm @(isOnProbation ? "btn-success" : "btn-warning")">
-                                        @(isOnProbation ? "Remove probation" : "On probation")
-                                    </button>
-                                </form>
-                                <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.Tongueless" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
-                                    <button type="submit" class="btn btn-sm @(isTongueless ? "btn-success" : "btn-warning")">
-                                        @(isTongueless ? "Remove tongueless" : "Tongueless")
-                                    </button>
-                                </form>
-                                <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.Banned" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber">
-                                    <button type="submit" class="btn btn-sm @(isBanned ? "btn-success" : "btn-error")">
-                                        @(isBanned ? "Unban" : "Ban")
-                                    </button>
-                                </form>
-                            }
+                        <td>
+                            <div class="flex flex-nowrap gap-2">
+                                @if (isProtected)
+                                {
+                                    <span class="opacity-50 text-sm whitespace-nowrap">Protected</span>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.OnProbation" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber" asp-route-PageSize="@Model.PageSize" asp-route-SortBy="@Model.SortBy" asp-route-SortDir="@Model.SortDir" asp-route-StatusFilter="@Model.StatusFilter">
+                                        <button type="submit" class="btn btn-sm whitespace-nowrap @(isOnProbation ? "btn-success" : "btn-warning")">
+                                            @(isOnProbation ? "Remove probation" : "On probation")
+                                        </button>
+                                    </form>
+                                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.Tongueless" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber" asp-route-PageSize="@Model.PageSize" asp-route-SortBy="@Model.SortBy" asp-route-SortDir="@Model.SortDir" asp-route-StatusFilter="@Model.StatusFilter">
+                                        <button type="submit" class="btn btn-sm whitespace-nowrap @(isTongueless ? "btn-success" : "btn-warning")">
+                                            @(isTongueless ? "Remove tongueless" : "Tongueless")
+                                        </button>
+                                    </form>
+                                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@user.Id" asp-route-role="@RoleNames.Banned" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber" asp-route-PageSize="@Model.PageSize" asp-route-SortBy="@Model.SortBy" asp-route-SortDir="@Model.SortDir" asp-route-StatusFilter="@Model.StatusFilter">
+                                        <button type="submit" class="btn btn-sm whitespace-nowrap @(isBanned ? "btn-success" : "btn-error")">
+                                            @(isBanned ? "Unban" : "Ban")
+                                        </button>
+                                    </form>
+                                }
+                            </div>
                         </td>
                     }
                 </tr>

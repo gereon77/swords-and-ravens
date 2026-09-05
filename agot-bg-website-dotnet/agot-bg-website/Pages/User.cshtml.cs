@@ -22,7 +22,7 @@ public class UserModel(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     IAuthorizationService authorizationService,
-    WinRateRecalculationQueue winRateQueue
+    UserStatsRecalculationQueue userStatsQueue
 ) : PageModel
 {
     /// <summary>Badge color per role - see <see cref="RoleBadges"/>.</summary>
@@ -279,7 +279,7 @@ public class UserModel(
         }
         else
         {
-            winRateQueue.Enqueue(userId);
+            userStatsQueue.Enqueue(userId);
         }
 
         var responseTimes = await db

@@ -100,7 +100,6 @@ public static class PlayApi
                     }
                 }
 
-
                 async Task<IResult?> TryApplyImpersonationAsync(Guid impersonateId)
                 {
                     var alreadyPlaying = await db.PlayersInGame.AnyAsync(p =>

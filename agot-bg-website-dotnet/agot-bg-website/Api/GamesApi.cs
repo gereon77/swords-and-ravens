@@ -68,7 +68,7 @@ public static class GamesApi
                 Guid id,
                 GamePatchDto patch,
                 ApplicationDbContext db,
-                Infrastructure.Stats.WinRateRecalculationQueue winRateQueue
+                Infrastructure.Stats.UserStatsRecalculationQueue userStatsQueue
             ) =>
             {
                 // See GameSaveLock's doc comment: the game server can (and does, in practice) fire
@@ -220,7 +220,7 @@ public static class GamesApi
                             .Distinct()
                     )
                     {
-                        winRateQueue.Enqueue(userId);
+                        userStatsQueue.Enqueue(userId);
                     }
                 }
 

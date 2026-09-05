@@ -17,6 +17,10 @@
     <button type="submit" class="btn btn-primary">Search</button>
 </form>
 
+<form method="post" asp-page-handler="RecalculateAllStats" asp-route-Search="@Model.Search" asp-route-PageNumber="@Model.PageNumber" class="mb-4" onsubmit="return confirm('Queue a cached stats recalculation for every user? This runs in the background and may take a while for a large user base.');">
+    <button type="submit" class="btn btn-sm" title="Recalculate cached win-rate stats for every user in the background">Recalculate stats for all users</button>
+</form>
+
 <div class="overflow-x-auto">
     <table class="table">
         <thead>

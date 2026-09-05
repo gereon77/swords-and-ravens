@@ -12,7 +12,8 @@ namespace agot_bg_website.Areas.Admin.Pages.Users;
 public class IndexModel(
     UserManager<ApplicationUser> userManager,
     AccountDeletionService accountDeletionService,
-    UserStatsService userStatsService
+    UserStatsService userStatsService,
+    Infrastructure.Stats.UserStatsRecalculationQueue userStatsQueue
 ) : PageModel
 {
     private const int DefaultPageSize = 10;
@@ -131,6 +132,35 @@ public class IndexModel(
 
         await userStatsService.RecalculateAsync(id);
         StatusMessage = $"Recalculated cached win-rate stats for {user.DisplayName}.";
+
+        return RedirectToPage(
+            new
+            {
+                Search,
+                PageNumber,
+                PageSize,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Bulk variant of <see cref="OnPostRecalculateStatsAsync"/> - enqueues every non-deleted
+    /// user for background stats recalculation (see
+    /// Infrastructure.Stats.UserStatsRecalculationQueue/UserStatsRecalculationBackgroundService).
+    /// Useful after a change to the stats calculation logic itself, to refresh everyone's numbers
+    /// without waiting for each user's next game to finish. Only queues ids (no stats are
+    /// computed inline here) and the background service already throttles itself between
+    /// batches, so this responds immediately regardless of how many users exist.
+    /// </summary>
+    public async Task<IActionResult> OnPostRecalculateAllStatsAsync()
+    {
+        var userIds = await userManager
+            .Users.Where(u => !u.IsDeleted)
+            .Select(u => u.Id)
+            .ToListAsync();
+        userStatsQueue.EnqueueAll(userIds);
+        StatusMessage =
+            $"Queued cached stats recalculation for {userIds.Count} user(s). This runs in the background and may take a while.";
 
         return RedirectToPage(
             new
