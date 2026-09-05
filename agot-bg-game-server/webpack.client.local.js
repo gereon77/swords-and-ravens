@@ -27,7 +27,9 @@ module.exports = (env, argv) => {
                 {
                     test: /\.(gif|png|jpe?g|svg)$/i,
                     use: [
-                        'file-loader',
+                        // Explicit sha256 hash so loader-utils doesn't fall back to its default
+                        // md4 digest, which OpenSSL 3 (Node.js 17+) refuses to compute.
+                        { loader: 'file-loader', options: { name: '[sha256:contenthash:hex:16].[ext]' } },
                         {
                             loader: 'image-webpack-loader'
                         }
@@ -35,11 +37,11 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.(ogg|mp3|wav|mpe?g)$/i,
-                    use: 'file-loader'
+                    use: { loader: 'file-loader', options: { name: '[sha256:contenthash:hex:16].[ext]' } }
                 },
                 {
                     test: /\.(ico)$/i,
-                    use: 'file-loader'
+                    use: { loader: 'file-loader', options: { name: '[sha256:contenthash:hex:16].[ext]' } }
                 },
             ]
         },

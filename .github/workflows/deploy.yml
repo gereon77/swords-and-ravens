@@ -30,10 +30,10 @@ jobs:
       run:
         working-directory: ./agot-bg-game-server
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 16
+          node-version: lts/*
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Generate JSON schemas
@@ -42,7 +42,7 @@ jobs:
         # Production build only — assets are served from DigitalOcean Spaces (ASSET_PATH above),
         # never baked into the website Docker image itself.
         run: yarn run build-client
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: game-client-dist
           path: agot-bg-game-server/dist
@@ -61,7 +61,7 @@ jobs:
       # since it's also part of the SigV4 signing scope DO Spaces validates.
       AWS_DEFAULT_REGION: fra1
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: game-client-dist
           path: dist
@@ -83,8 +83,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
         with:
           name: game-client-dist
           path: agot-bg-game-server/dist
@@ -110,7 +110,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Login to GitHub Container Registry
         run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
       - name: Build image
@@ -125,7 +125,7 @@ jobs:
     env:
       SSH_KEY: ${{ secrets.CI_DEPLOY_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
