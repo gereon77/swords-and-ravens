@@ -70,6 +70,21 @@ public class Importer(
         return new ApplicationDbContext(options);
     }
 
+    /// <summary>
+    /// Applies any pending EF Core migrations to the target database, creating it (and its schema)
+    /// from scratch if it doesn't exist yet. Lets `import`/`verify` run against a brand-new
+    /// database without first having to start the `website` app just so its own startup-time
+    /// `Database.MigrateAsync()` call (see Program.cs) can create the schema — useful right after a
+    /// §17.4-style drop/recreate, or when standing up a fresh environment for the first time.
+    /// Idempotent (EF Core's `__EFMigrationsHistory` table makes re-running a no-op once the schema
+    /// is current), so it's safe to call unconditionally on every run.
+    /// </summary>
+    public async Task MigrateTargetAsync()
+    {
+        await using var db = NewTargetContext();
+        await db.Database.MigrateAsync();
+    }
+
     public async Task RunAsync()
     {
         Console.WriteLine("---> Importing users");

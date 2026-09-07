@@ -1,10 +1,13 @@
 name: Deploy
 
-# Manual trigger only for now, while the DigitalOcean droplet + repo secrets are still being
-# finished (see agot-bg-website-dotnet/MIGRATION_PLAN.md §16 Phase 2). Once ready to cut over from
-# the old Dokku deployment, change this to `push: branches: [master]` (or whatever branch becomes
-# the deploy branch after this migration branch is merged).
+# Runs automatically on every push to master (i.e. every merge) — merging the `migrate-website-to-
+# dotnet` branch into master is what performs the production cutover from the old Dokku deployment
+# to the DigitalOcean droplet (see agot-bg-website-dotnet/MIGRATION_PLAN.md §16 Phase 2).
+# `workflow_dispatch` is kept as well so a deploy can still be re-triggered manually without
+# needing an empty commit.
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
 
 env:

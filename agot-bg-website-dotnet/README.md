@@ -23,8 +23,9 @@ Postgres/Redis/SMTP.
 - .NET SDK matching `agot-bg-website/agot-bg-website.csproj`'s `<TargetFramework>` (currently
   `net10.0`).
 - Docker Desktop, for Postgres + Redis (+ optionally smtp4dev for local email testing).
-- Node.js 16.x and Yarn — only needed if you also want to build the real game client (see below);
-  the website runs fine without it and falls back to `GameClientTemplates/play_fake.html`.
+- Node.js LTS (currently 24.x) and Yarn — only needed if you also want to build the real game
+  client (see below); the website runs fine without it and falls back to
+  `GameClientTemplates/play_fake.html`.
 
 ## Running locally
 
@@ -194,10 +195,13 @@ pages inherit the dark theme without being rewritten by hand. Hand-written pages
 
 ## Building and serving the real game client locally
 
-In production, the React/MobX game client (`agot-bg-game-server`) is compiled and its static
-assets are served by this website, exactly like Django did — see `Dockerfile` in this project,
-which mirrors `website.Dockerfile`'s multi-stage build. For local development, the equivalent of
-the repo-root `build_and_place_game_client_into_django.sh` is:
+In production, the React/MobX game client (`agot-bg-game-server`) is built by CI
+(`.github/workflows/deploy.yml`), its static JS/CSS assets are uploaded straight to a DigitalOcean
+Spaces CDN bucket (`ASSET_PATH`), and only the generated `index.html` is baked into this project's
+`GameClientTemplates/play.html` for the website's own `Dockerfile` to publish — see
+`deploy.yml`'s `build-game-client-assets`/`upload-static-assets`/`build-website-image` jobs. For
+local development, where there's no CDN and the assets are served straight from this project's own
+`wwwroot/`, the equivalent of the old repo-root `build_and_place_game_client_into_django.sh` is:
 
 ```powershell
 # from the repository root (D:\_snr)

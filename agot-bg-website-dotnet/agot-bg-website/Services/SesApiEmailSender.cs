@@ -31,7 +31,8 @@ public class SesApiEmailSender(
     {
         var region = configuration["Email:Ses:Region"] ?? "eu-north-1";
         var fromAddress =
-            configuration["Email:FromAddress"] ?? "Swords and Ravens <no-reply@winordie.net>";
+            configuration["Email:FromAddress"]
+            ?? "Swords and Ravens <no-reply@swordsandravens.net>";
 
         var request = new SendEmailRequest
         {

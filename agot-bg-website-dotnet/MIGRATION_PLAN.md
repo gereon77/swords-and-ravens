@@ -729,7 +729,7 @@ ENTRYPOINT ["dotnet", "Snr.Web.dll"]
 
 | Django `.env` key | ASP.NET Core equivalent |
 |---|---|
-| `DEBUG` | *(none — `ASPNETCORE_ENVIRONMENT=Development` locally (Properties/launchSettings.json), `Staging` on the DO droplet, see appsettings.Staging.json)* |
+| `DEBUG` | *(none — `ASPNETCORE_ENVIRONMENT=Development` locally (Properties/launchSettings.json), `Production` on the DO droplet since cutover, `Staging` before it/if dogfooding again — see appsettings.Production.json/appsettings.Staging.json)* |
 | `SECRET_KEY` | Data Protection key ring, persisted to Redis in every environment (see `Program.cs`'s `PersistKeysToStackExchangeRedis`) |
 | `DATABASE_URL` | `ConnectionStrings:Default` |
 | `SOCIAL_AUTH_GOOGLE_OAUTH2_KEY/SECRET` | `Authentication:Google:ClientId/ClientSecret` |
@@ -1162,8 +1162,9 @@ re-derive it. Update this section whenever priorities shift or an item is comple
 4. **Two small open questions from §12** — should `PreviousPlayerInGame` backfill include
    `CANCELLED` games, and should win-rate stay `FINISHED`-only now that removal tracking exists.
 5. **GitHub Actions CI/CD — implemented** (`.github/workflows/deploy.yml`, see §16 Phase 2),
-   currently `workflow_dispatch`-only until the droplet/secrets are fully verified; switch to a
-   `push` trigger once ready to cut over from the old Dokku deployment.
+   triggered automatically on every `push` to `master` (plus a manual `workflow_dispatch` for
+   re-running a deploy without an empty commit) — merging the migration branch into `master` is
+   what performs the production cutover from the old Dokku deployment.
 
 ### Deferred / nice-to-have (see §13), suggested rough order
 1. **Precomputed `PlayerStatistics` table** — win-rate/PBEM response time are recomputed on every
@@ -1204,9 +1205,10 @@ already designed against vanilla Compose networking from the start.
   droplet itself never builds anything and doesn't need a full repo clone (only this file,
   `Caddyfile`, and `.env.prod`).
 - **`Caddyfile`** — a single reverse-proxy site block per domain; Caddy auto-obtains/renews the
-  Let's Encrypt certificate on first request, no certbot/nginx config needed. Currently proxies
+  Let's Encrypt certificate on first request, no certbot/nginx config needed. Proxied
   `winordie.net` (the pre-cutover test domain — see `appsettings.Staging.json`'s
-  `PublicSiteUrl`/`AllowedHosts`); add/switch to `swordsandravens.net` at go-live.
+  `PublicSiteUrl`/`AllowedHosts`) up to go-live; switched to `swordsandravens.net` at cutover (§18)
+  — see `appsettings.Production.json` for the matching `PublicSiteUrl`/`AllowedHosts`.
 - **`.env.prod.example`** — template for the real secrets `docker-compose.prod.yml` interpolates
   (`DB_PASSWORD`, `MASTER_API_USERNAME/PASSWORD`, OAuth client secrets, SMTP credentials) plus
   `WEBSITE_IMAGE`/`GAME_SERVER_IMAGE` (which GHCR tag to deploy — defaults to `:latest`; the CI/CD
@@ -1264,9 +1266,10 @@ into the droplet and runs `docker compose -f docker-compose.prod.yml --env-file 
 website game-server && ... up -d website game-server` — `db`/`redis`/`caddy` are never touched by
 a deploy. No `--build` step ever runs on the droplet.
 
-Currently triggered only by `workflow_dispatch` (manual) while the droplet/secrets are still being
-finished — switch to `push: branches: [master]` once ready to cut over from the old Dokku
-deployment. Required GitHub repo secrets: `CI_DEPLOY_SSH_KEY` (droplet SSH key, same as the old
+Triggered automatically on every `push` to `master` (i.e. every merge), plus a manual
+`workflow_dispatch` for re-running a deploy without needing an empty commit — merging the
+migration branch into `master` is what cuts production over from the old Dokku deployment.
+Required GitHub repo secrets: `CI_DEPLOY_SSH_KEY` (droplet SSH key, same as the old
 workflow), `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_S3_ENDPOINT_URL`/
 `AWS_STORAGE_BUCKET_NAME` (Spaces credentials, same names as the old workflow so they can be
 reused as-is). The droplet itself needs a one-time `docker login ghcr.io` (PAT with
@@ -1447,5 +1450,68 @@ The fixed `Snr.Migration` build is deliberately left in place at
 `/opt/swords-and-ravens/snr-migration` on the droplet (not cleaned up) — it's the same binary the
 real cutover import will use, so there's no need to republish/re-copy it again unless
 `Importer.cs` changes before then.
+
+## 18. Final cutover: winordie.net (staging) → swordsandravens.net (production)
+
+Code/config side of the cutover (this commit): a new **`appsettings.Production.json`** was added
+(mirroring `appsettings.Staging.json`'s structure) with `PublicSiteUrl`/`AllowedHosts` set to
+`swordsandravens.net`/`swordsandravens.net;website`; `appsettings.Staging.json` itself is left
+untouched (still `winordie.net`) so that dogfooding environment stays available if ever needed
+again. `docker-compose.prod.yml`'s `ASPNETCORE_ENVIRONMENT` now defaults to `Production` (was
+hardcoded `Staging`), overridable back to `Staging` via `.env.prod` if needed. `Caddyfile`'s site
+blocks switched from `winordie.net`/`play.winordie.net` to `swordsandravens.net`/
+`play.swordsandravens.net` — Caddy only ever proxies one live domain at a time here, so there's no
+separate "production Caddyfile"; the old `winordie.net` blocks would need restoring by hand if that
+environment is ever spun up again with its own Caddy in front. The `no-reply@winordie.net` fallback
+addresses in `SmtpEmailSender.cs`/`SesApiEmailSender.cs`/`ApiEmailSender.cs`/`appsettings.json`
+updated to `swordsandravens.net` (cosmetic fallback only — `.env.prod`'s real `EMAIL_FROM_ADDRESS`
+already points at `swordsandravens.net` and is unchanged, since the current email setup already
+sends from that domain).
+
+**OAuth callback path correction (found while verifying this cutover):** Django's
+`social_django.urls` uses python-social-auth's fixed `/complete/<backend>/` scheme —
+`AUTHENTICATION_BACKENDS` in `agot-bg-website/agotboardgame/settings.py` names the backends
+`google-oauth2` and `discord`, so the URLs the existing Google Cloud Console / Discord Developer
+Portal app registrations actually have on file are `https://swordsandravens.net/complete/google-oauth2/`
+and `https://swordsandravens.net/complete/discord/` — **not** `/signin-google`/`/signin-discord`
+(this library's own defaults). `Program.cs`'s `AddGoogle`/`AddDiscord` now set `options.CallbackPath`
+explicitly to those legacy paths, so reusing the same app registrations (same Client ID/Secret,
+copied into `.env.prod`) keeps working with **no redirect-URI change needed in either provider's
+dashboard**. If a redirect URI mismatch error ever shows up at login, this is the first thing to
+check — either the dashboard's registered URI or `CallbackPath` was changed without updating the
+other.
+
+**`Snr.Migration` now self-provisions the target schema:** `Importer.MigrateTargetAsync()` (called
+from `Program.cs` before `import`/`verify`) runs `Database.MigrateAsync()` against `--target`
+before anything else — a fresh/dropped `snr_dotnet` no longer needs `website` started first just
+to create its schema (previously required per §17.4's "then deploy/start `website` again"
+comment); `Snr.Migration import` alone is now enough against a brand-new empty database.
+
+**Remaining operational steps (not run automatically by this commit — irreversible/production
+affecting, run manually in this order when ready):**
+1. Stop the legacy Django/Dokku site (`swordsandravens.net`) so it stops accepting new
+   writes/games before the final import snapshot is taken.
+2. On the droplet: stop `website` (`docker compose -f docker-compose.prod.yml --env-file .env.prod
+   stop website`) and drop+recreate `snr_dotnet` per §17.4 to clear out the Sep-5 dry-run data
+   (or restore/keep the §17.5 post-import dry-run dump if a full re-import isn't wanted — decide
+   based on how stale that dry-run data is relative to legacy by then).
+3. Deploy this commit (`gh workflow run deploy.yml --ref migrate-website-to-dotnet`, §17.2) —
+   `website` starts under `ASPNETCORE_ENVIRONMENT=Production` (now the compose default), applies
+   migrations, comes up against the empty DB; `RoomSeeder`'s Development-only rooms are skipped as
+   expected on Production, same as they were on Staging (§17.3's "Gotcha" note).
+4. Run `Snr.Migration import` (§17.3) for the final production data import — no longer needs a
+   preceding `website` start since it self-migrates now.
+5. `docker compose ... restart website` (picks up the "public"/"issues" room ids the import just
+   inserted — same gotcha as §17.3).
+6. Copy `.env.prod.example` → `.env.prod` on the droplet (if not already) and fill in the *existing*
+   Discord/Google app Client ID/Secret (Facebook left blank/unused unless also migrated) — the
+   callback-path fix above means no dashboard changes are needed for those two.
+7. Once smoke-tested end to end (login via all 3 configured methods + local, one game
+   created/joined, chat, an email), repoint `swordsandravens.net`'s DNS A record at the droplet's
+   IP — Caddy requests its Let's Encrypt cert automatically on first HTTPS request once traffic
+   arrives.
+8. ~~Switch `deploy.yml`'s trigger from `workflow_dispatch` to `push: branches: [master]`~~ — done;
+   `deploy.yml` now triggers on every push to `master` (`workflow_dispatch` kept as a manual
+   fallback), so merging PR #31 into `master` will trigger the production deploy automatically.
 
 

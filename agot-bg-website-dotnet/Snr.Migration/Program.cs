@@ -63,6 +63,13 @@ if (command is not ("import" or "verify") || legacy == null || target == null)
 }
 
 var importer = new Importer(legacy, target, messagesDaysBack);
+
+// Creates the target database/schema from scratch if it doesn't exist yet (idempotent otherwise),
+// so `import` can run against a brand-new environment without first starting the `website` app
+// just to trigger its own startup-time Database.MigrateAsync() (see Program.cs) - see
+// MIGRATION_PLAN.md §17.4/§17.5.
+await importer.MigrateTargetAsync();
+
 if (command == "import")
 {
     await importer.RunAsync();

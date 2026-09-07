@@ -2,9 +2,9 @@
 # (agot-bg-website-dotnet) instead of Django — see agot-bg-website-dotnet/MIGRATION_PLAN.md §8.
 #
 # This script builds the game client and places it into the .NET app. It is not used to build the
-# production artifact ("website.Dockerfile"/"agot-bg-website-dotnet/agot-bg-website/Dockerfile"
-# takes care of that for production); it's only meant for local development, to check that the
-# integration between the game server and the website functions properly.
+# production artifact ("agot-bg-website-dotnet/agot-bg-website/Dockerfile" takes care of that for
+# production, see .github/workflows/deploy.yml); it's only meant for local development, to check
+# that the integration between the game server and the website functions properly.
 
 $ErrorActionPreference = "Stop"
 

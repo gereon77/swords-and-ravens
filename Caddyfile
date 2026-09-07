@@ -2,10 +2,10 @@
 # docker-compose.prod.yml). It automatically obtains and renews a Let's Encrypt certificate for
 # the domain(s) below the first time they're requested — no manual certbot/nginx config needed.
 #
-# Currently pointed at the pre-cutover test domain (winordie.net). Once ready to go live, add (or
-# switch to) swordsandravens.net here — Caddy will request a new certificate for it automatically,
-# no other changes required. Multiple domains can point at the same site block, comma-separated.
-winordie.net {
+# Cut over from the pre-cutover test domain (winordie.net) to the real production domain.
+# Caddy requests a fresh Let's Encrypt certificate for it automatically on first request, no other
+# changes required. Multiple domains can point at the same site block, comma-separated.
+swordsandravens.net {
 	reverse_proxy website:8000
 }
 
@@ -17,6 +17,6 @@ winordie.net {
 # listens on 5000 by default (PORT env var, unset here - see docker-compose.prod.yml) and is never
 # published to the host, only reachable from other containers on the Compose network, same as
 # `website` above.
-play.winordie.net {
+play.swordsandravens.net {
 	reverse_proxy game-server:5000
 }

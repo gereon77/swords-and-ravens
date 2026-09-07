@@ -3,15 +3,25 @@
 ## Repository architecture
 
 - The repository has two cooperating applications:
-  - `agot-bg-website/` is a Django 3 application. `agotboardgame_main` owns users, game records, pages, and the generated game-host template; `api` is the private REST boundary used by the game server; `chat` is a Django Channels WebSocket application backed by Redis.
+  - `agot-bg-website-dotnet/` is an ASP.NET Core application (Razor Pages + Minimal API), the sole
+    website — it fully replaces the old Django `agot-bg-website`, which has been retired
+    (only inert config/env leftovers remain in `agot-bg-website/`, no app code). The `agot-bg-website`
+    project inside it owns Identity/auth (username+password plus Google/Discord/Facebook OIDC),
+    game records, rooms, and the generated game-host template; `Api/` (`GamesApi`, `RoomsApi`,
+    `UsersApi`, `PublicApi`, `NotificationsApi`, `PlayApi`, `ChatWebSocketApi`) is the private REST
+    boundary used by the game server; chat is a hand-rolled ASP.NET Core WebSocket endpoint backed
+    by Redis pub/sub for fan-out. `agot-bg-website.Data` holds the EF Core `DbContext`/entities/
+    migrations; `Snr.Migration` is the one-off console tool that imports the legacy Django
+    database into this schema. See `agot-bg-website-dotnet/README.md` and `MIGRATION_PLAN.md` for
+    full detail.
   - `agot-bg-game-server/` is a TypeScript application containing both the authoritative WebSocket game server and the React/MobX browser client. `src/common` is shared game logic, `src/server` owns connections and persistence integration, `src/client` owns UI and the mirrored client state, and `src/messages` defines the wire protocol.
-- Django is the control and persistence plane, but the TypeScript server is authoritative while a game is running. `GlobalServer` loads and saves `Game.serialized_game`, the lightweight `view_of_game`, player metadata, state, and serialization version through `WebsiteClient`; it also calls Django for notifications and chat-room operations.
+- The website is the control and persistence plane, but the TypeScript server is authoritative while a game is running. `GlobalServer` loads and saves `Game.SerializedGame`, the lightweight `ViewOfGame`, player metadata, state, and serialization version through `WebsiteClient`/`LiveWebsiteClient`; it also calls the website's API for notifications and chat-room operations.
 - Game flow is a nested state machine rooted at `EntireGame`. Each `GameState` has a parent and optional child; the current phase is the leaf. The server processes a client action, mutates this tree, and sends either typed incremental `ServerMessage`s or a serialized changed subtree. The browser maintains the corresponding tree and MobX observables render it.
-- Production builds compile the React client into `dist/`, copy the assets to Django's `static_game/`, and use the generated `index.html` as `agotboardgame_main/templates/agotboardgame_main/play.html`. Django injects authentication JSON into that template. `build_and_place_game_client_into_django.sh` performs the same integration for local development; `website.Dockerfile` performs it for deployment.
+- Production builds compile the React client into `dist/`, copy the assets to the website's `wwwroot/static_game/`, and use the generated `index.html` as `GameClientTemplates/play.html`. `build_and_place_game_client_into_dotnet.ps1`/`.sh` performs the same integration for local development; the website's own `Dockerfile` performs it for deployment.
 
 ## Build, run, lint, and test
 
-Run TypeScript commands from `agot-bg-game-server/` (Node.js 16 and Yarn):
+Run TypeScript commands from `agot-bg-game-server/` (Node.js LTS, currently 24.x, and Yarn):
 
 ```bash
 yarn install --frozen-lockfile
@@ -19,7 +29,7 @@ yarn run generate-json-schemas
 yarn run run-server                 # ts-node WebSocket server
 yarn run run-client                 # webpack dev server
 yarn run build-client               # production browser bundle
-yarn run build-local-client         # bundle for local Django integration
+yarn run build-local-client         # bundle for local website integration
 yarn run lint
 yarn tsc --noEmit                   # type-check
 yarn jest                           # all Jest tests
@@ -27,24 +37,24 @@ yarn jest tests/path/example.test.ts
 yarn jest tests/path/example.test.ts -t "test name"
 ```
 
-Jest only discovers `agot-bg-game-server/tests/**/*test.ts`; no TypeScript tests are currently tracked. The Django `tests.py` modules are also currently placeholders.
+Jest only discovers `agot-bg-game-server/tests/**/*test.ts`; no TypeScript tests are currently tracked.
 
-Run Django commands from `agot-bg-website/` with its virtual environment active:
+Run .NET commands from `agot-bg-website-dotnet/` (see that folder's `README.md` for the full
+local-dev setup: Postgres/Redis/smtp4dev via `docker compose up -d` at the repo root, EF Core
+migrations, Tailwind/DaisyUI build, user-secrets):
 
 ```bash
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py test
-python manage.py test api.tests
-python manage.py test app.tests.TestClass.test_method
-python manage.py runserver
+dotnet build
+dotnet test
+dotnet ef database update --project agot-bg-website.Data --startup-project agot-bg-website
+dotnet run --project agot-bg-website
 ```
 
-PostgreSQL and Redis for Django are provided by `docker-compose up` at the repository root. The full local database bootstrap has special migration-copy steps; follow the root `README.md` rather than inventing a fresh migration sequence. CI validates both deployable images with:
+CI validates the deployable images with:
 
 ```bash
 docker build . -f game_server.Dockerfile
-docker build . -f website.Dockerfile
+docker build -f agot-bg-website-dotnet/agot-bg-website/Dockerfile agot-bg-website-dotnet
 ```
 
 Before committing any C# change in `agot-bg-website-dotnet/`, run `dotnet csharpier format .` from that directory (the local dotnet tool declared in `agot-bg-website-dotnet/.config/dotnet-tools.json`) to keep formatting consistent.
@@ -77,11 +87,11 @@ Before committing any C# change in `agot-bg-website-dotnet/`, run `dotnet csharp
 - Shared `src/common` classes run on both server and browser. Keep server-only I/O in `src/server`, browser APIs and presentation in `src/client`, and communicate through callbacks/messages already exposed by `EntireGame`.
 - Prefer micro-optimizations that avoid unnecessary role checks, such as checking admin role only inside the branch where it is needed.
 
-## Django and integration conventions
+## Website (`agot-bg-website-dotnet`) and integration conventions
 
-- `agotboardgame_main.models.Game.serialized_game` is the complete resumable state; `view_of_game` is the smaller denormalized summary used by website lists and the public endpoint. Changes to game status or player summaries may require updating both TypeScript serialization and `api.serializers.GameSerializer`.
-- The game server's Django contract is represented on both sides by `src/server/website-client/WebsiteClient.ts`/`LiveWebsiteClient.ts` and `agot-bg-website/api/`. Change the interface, implementation, URL/view, serializer, and permissions together.
-- Django uses the custom UUID-based `agotboardgame_main.User` model and `game_token` for game-server authentication. The React production entry reads the Django-injected `auth-data`; local webpack development instead derives synthetic credentials from the URL hash.
-- Chat does not pass through the game-server WebSocket. The React `ChatClient` connects directly to Django Channels routes, while the game server asks Django's API to create or clear rooms.
-- Django database migrations and TypeScript serialized-game migrations solve different compatibility problems. Model changes need normal Django migrations; changes to the JSON game-state shape may additionally need a serialized-game migration.
-- The generated `play.html` and files under `static_game/` are build outputs. Change `agot-bg-game-server/public/index.html` or the webpack/client source and rebuild instead of hand-editing the generated Django template or bundle.
+- `Game.SerializedGame` (EF Core entity in `agot-bg-website.Data/Domain/GameEntities.cs`) is the complete resumable state; `Game.ViewOfGame` is the smaller denormalized summary used by website lists and the public endpoint. Both are opaque `JsonDocument` blobs owned by the TS game server. Changes to game status or player summaries may require updating both TypeScript serialization and the corresponding DTOs in `Api/GamesApi.cs`.
+- The game server's website contract is represented on both sides by `src/server/website-client/WebsiteClient.ts`/`LiveWebsiteClient.ts` and `agot-bg-website-dotnet/agot-bg-website/Api/` (`GamesApi`, `RoomsApi`, `UsersApi`, `NotificationsApi`). Change the interface, implementation, Minimal API route, DTO, and authorization policy together.
+- The website uses a custom Guid-keyed `ApplicationUser` (`agot-bg-website.Data/Domain/ApplicationUser.cs`, built on ASP.NET Core Identity) and a per-user `GameToken` for game-server authentication. `PlayApi` injects an `auth-data` JSON blob (containing `authToken = user.GameToken`, etc.) into the served `play.html`, mirroring how Django injected its own `auth-data`; local webpack development instead derives synthetic credentials from the URL hash.
+- Chat does not pass through the game-server WebSocket. The React `ChatClient` connects directly to the website's own `ChatWebSocketApi` (a hand-rolled ASP.NET Core WebSocket endpoint backed by Redis pub/sub for fan-out), while the game server asks the website's API to create or clear rooms.
+- EF Core migrations (`agot-bg-website.Data/Migrations`) and TypeScript serialized-game migrations solve different compatibility problems. Entity/schema changes need a normal EF Core migration (`dotnet ef migrations add ...`); changes to the JSON game-state shape may additionally need a serialized-game migration in `agot-bg-game-server/src/server/serializedGameMigrations.ts`.
+- The generated `GameClientTemplates/play.html` and files under `wwwroot/static_game/` are build outputs. Change `agot-bg-game-server/public/index.html` or the webpack/client source and rebuild (`build_and_place_game_client_into_dotnet.ps1`/`.sh`) instead of hand-editing the generated template or bundle.

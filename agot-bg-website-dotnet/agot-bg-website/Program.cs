@@ -300,6 +300,14 @@ if (IsConfigured("Authentication:Google:ClientId", "Authentication:Google:Client
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        // Matches the callback path the legacy Django site registered with this same Google app
+        // (python-social-auth's fixed /complete/<backend>/ URL scheme - "google-oauth2" is
+        // social_core.backends.google.GoogleOAuth2's backend name, see
+        // agot-bg-website/agotboardgame/settings.py's AUTHENTICATION_BACKENDS), instead of this
+        // library's own default of "/signin-google" - so the existing app registration's
+        // Authorized redirect URI keeps working unchanged at cutover, with nothing to update in
+        // the Google Cloud Console.
+        options.CallbackPath = "/complete/google-oauth2/";
     });
 }
 
@@ -309,6 +317,11 @@ if (IsConfigured("Authentication:Discord:ClientId", "Authentication:Discord:Clie
     {
         options.ClientId = builder.Configuration["Authentication:Discord:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"]!;
+        // Same reasoning as Google above - matches Django's /complete/discord/ (backend name
+        // "discord", social_core.backends.discord.DiscordOAuth2) instead of this library's default
+        // "/signin-discord", so the existing Discord app's registered redirect URI keeps working
+        // unchanged.
+        options.CallbackPath = "/complete/discord/";
     });
 }
 

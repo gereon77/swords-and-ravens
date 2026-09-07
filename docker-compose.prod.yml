@@ -27,7 +27,10 @@ services:
     image: ${WEBSITE_IMAGE:-ghcr.io/gereon77/swords-and-ravens/website:latest}
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Staging
+      # Defaults to Production (appsettings.Production.json, swordsandravens.net) - override to
+      # Staging in .env.prod (appsettings.Staging.json, winordie.net) if this droplet ever needs to
+      # dogfood a risky change again without touching the live production site/DB.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=snr_dotnet;Username=postgres;Password=${DB_PASSWORD}
       ConnectionStrings__Redis: redis:6379
       GameServer__MasterApiUsername: ${MASTER_API_USERNAME}
