@@ -8,16 +8,19 @@ jobs:
     name: Game Server Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v5
     - name: Build game-server Docker image
       run: docker build . -f ./game_server.Dockerfile
   website-build:
     name: Website Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v5
     - name: Build website Docker image
-      run: docker build . -f ./website.Dockerfile
+      # Mirrors deploy.yml's build-website-image job: Dockerfile lives inside the project folder,
+      # build context is agot-bg-website-dotnet/ (its parent) so it can COPY the sibling
+      # agot-bg-website.Data project too.
+      run: docker build -f agot-bg-website-dotnet/agot-bg-website/Dockerfile agot-bg-website-dotnet
   # build-assets:
   #   name: Build game assets
   #   runs-on: ubuntu-latest
@@ -25,10 +28,10 @@ jobs:
   #     run:
   #       working-directory: ./agot-bg-game-server
   #   steps:
-  #   - uses: actions/checkout@v1
+  #   - uses: actions/checkout@v5
   #   - uses: actions/setup-node@v3
   #     with:
-  #       node-version: 16
+  #       node-version: lts/*
   #   - name: Install dependencies
   #     run: yarn install --frozen-lockfile
   #   - name: Build assets

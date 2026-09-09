@@ -12,4 +12,14 @@ services:
     restart: always
     ports:
       - 6379:6379
+  smtp4dev:
+    # Local SMTP catcher for testing the .NET website's outgoing email (registration
+    # confirmation, password reset, game notify* emails) without any real SMTP account/secrets.
+    # Web UI (view captured emails): http://localhost:5099. SMTP port: 2525.
+    # See agot-bg-website-dotnet/LOCAL_DEV_VERIFICATION.md "Email (local testing)" section.
+    image: rnwood/smtp4dev:v3
+    restart: always
+    ports:
+      - 5099:80
+      - 2525:25
 

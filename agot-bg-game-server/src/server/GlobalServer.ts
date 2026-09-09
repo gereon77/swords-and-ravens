@@ -743,8 +743,12 @@ export default class GlobalServer {
 
     console.log("Unloading game " + entireGame.id);
 
-    // Save the game before unloading:
-    if (entireGame.onSaveGame) {
+    if (!entireGame.onSaveGame) {
+      throw new Error("Cannot unload game without onSaveGame handler.");
+    }
+
+    // Save the game before unloading but not if it is a cancelled lobby game
+    if (!(entireGame.childGameState instanceof CancelledGameState)) {
       entireGame.onSaveGame(false);
     }
 

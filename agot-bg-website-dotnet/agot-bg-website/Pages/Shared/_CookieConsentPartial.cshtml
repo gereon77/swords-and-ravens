@@ -1,0 +1,30 @@
+@using Microsoft.AspNetCore.Http.Features
+@{
+    var consentFeature = Context.Features.Get<ITrackingConsentFeature>();
+    var showBanner = !consentFeature?.CanTrack ?? false;
+    var cookieString = consentFeature?.CreateConsentCookie();
+}
+@if (showBanner)
+{
+    <div id="cookieConsent" class="alert alert-info alert-dismissible fixed inset-x-0 bottom-0 z-50 max-h-[40vh] overflow-y-auto rounded-none flex-col sm:flex-row items-start gap-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]" role="alert">
+        <span class="text-sm">
+            We use cookies to keep you signed in and remember your game/site preferences (no
+            advertising or third-party tracking cookies). Choosing to sign in via Google, Discord,
+            or Facebook also involves those providers' own cookies once you're redirected to them.
+            See our <a class="link link-hover" asp-page="/Privacy">Privacy Policy</a> for details.
+        </span>
+        <button type="button" class="accept-policy btn btn-sm btn-primary self-end sm:self-auto shrink-0" aria-label="Accept cookies" data-cookie-string="@cookieString">
+            <span aria-hidden="true">Accept</span>
+        </button>
+    </div>
+    <script>
+        (function () {
+            var banner = document.querySelector("#cookieConsent");
+            var button = banner.querySelector("button[data-cookie-string]");
+            button.addEventListener("click", function (event) {
+                document.cookie = button.dataset.cookieString;
+                banner.classList.add("hidden");
+            }, false);
+        })();
+    </script>
+}

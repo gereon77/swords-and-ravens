@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $grid-gutter-width: 1rem;
 $grid-breakpoints: (
   xs: 0,
@@ -5,7 +7,7 @@ $grid-breakpoints: (
   md: 768px,
   lg: 992px,
   xl: 1800px,
-  xxl: 2290px,
+  xxl: 2290px
 );
 
 $container-max-widths: (
@@ -13,7 +15,7 @@ $container-max-widths: (
   md: 720px,
   lg: 960px,
   xl: 1800px,
-  xxl: 2290px,
+  xxl: 2290px
 );
 
 @import "./theme/_variables";
@@ -62,7 +64,7 @@ strong {
 }
 
 .stackable {
-  margin-bottom: $grid-gutter-width / 2;
+  margin-bottom: math.div($grid-gutter-width, 2);
 }
 
 .map .order-container {
