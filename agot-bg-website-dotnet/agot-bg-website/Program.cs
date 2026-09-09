@@ -428,7 +428,12 @@ app.Use(
     async (context, next) =>
     {
         var path = context.Request.Path;
-        if (path.HasValue && path.Value!.Length > 1 && path.Value.EndsWith('/'))
+        // Exempt the /complete/<backend>/ OAuth callback namespace (Google/Discord above): those
+        // trailing slashes are load-bearing, matching each provider's registered redirect URI
+        // exactly (options.CallbackPath). Stripping it here would 301 the provider's callback
+        // request to a path the auth handler no longer recognizes, breaking login with a 404.
+        var isOAuthCallback = path.StartsWithSegments("/complete", StringComparison.Ordinal);
+        if (!isOAuthCallback && path.HasValue && path.Value!.Length > 1 && path.Value.EndsWith('/'))
         {
             var target = path.Value.TrimEnd('/') + context.Request.QueryString;
             context.Response.Redirect(target, permanent: true);
