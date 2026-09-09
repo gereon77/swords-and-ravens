@@ -1665,8 +1665,8 @@ export default class GameLogListComponent extends Component<GameLogListComponent
         if (data.choice == 0) {
           return (
             <p>
-              <b>Preemptive Raid</b>: House <b>{house.name}</b> chose to kill 2
-              of their units.
+              <b>Preemptive Raid</b>: House <b>{house.name}</b> chose to destroy
+              2 of their units.
             </p>
           );
         } else {
@@ -3489,9 +3489,15 @@ export default class GameLogListComponent extends Component<GameLogListComponent
 
         return (
           <p>
-            <b>Arianne Martell</b>: House <b>{house.name}</b> killed a{" "}
-            <b>{this.fogOfWar ? fogOfWarUnit : unitType.name}</b> of House{" "}
-            <b>{affectedHouse.name}</b>.
+            <b>Arianne Martell</b>: House <b>{house.name}</b> forced House{" "}
+            <b>{affectedHouse.name}</b> to destroy a unit.
+            <br />
+            {!this.fogOfWar && (
+              <>
+                House <b>{affectedHouse.name}</b> chose to destroy a{" "}
+                <b>{unitType.name}</b>
+              </>
+            )}
           </p>
         );
       }
