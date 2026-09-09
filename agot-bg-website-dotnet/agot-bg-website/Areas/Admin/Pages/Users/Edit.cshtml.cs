@@ -65,14 +65,23 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
 
         var rolesToAdd = SelectedRoles.Except(currentRoles).ToArray();
         var rolesToRemove = currentRoles.Except(SelectedRoles).ToArray();
+        var errors = new List<string>();
 
         if (rolesToAdd.Length > 0)
         {
-            await userManager.AddToRolesAsync(user, rolesToAdd);
+            var result = await userManager.AddToRolesAsync(user, rolesToAdd);
+            if (!result.Succeeded)
+            {
+                errors.AddRange(result.Errors.Select(e => e.Description));
+            }
         }
         if (rolesToRemove.Length > 0)
         {
-            await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            var result = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            if (!result.Succeeded)
+            {
+                errors.AddRange(result.Errors.Select(e => e.Description));
+            }
         }
 
         var currentUserClaims = await userManager.GetClaimsAsync(user);
@@ -85,17 +94,25 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
 
         foreach (var permission in permissionsToAdd)
         {
-            await userManager.AddClaimAsync(
+            var result = await userManager.AddClaimAsync(
                 user,
                 new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
             );
+            if (!result.Succeeded)
+            {
+                errors.AddRange(result.Errors.Select(e => e.Description));
+            }
         }
         foreach (var permission in permissionsToRemove)
         {
-            await userManager.RemoveClaimAsync(
+            var result = await userManager.RemoveClaimAsync(
                 user,
                 new System.Security.Claims.Claim(GamePermissions.ClaimType, permission)
             );
+            if (!result.Succeeded)
+            {
+                errors.AddRange(result.Errors.Select(e => e.Description));
+            }
         }
 
         if (
@@ -111,7 +128,10 @@ public class EditModel(UserManager<ApplicationUser> userManager) : PageModel
             await userManager.UpdateSecurityStampAsync(user);
         }
 
-        StatusMessage = $"Roles and permissions for {user.UserName} updated.";
+        StatusMessage =
+            errors.Count > 0
+                ? $"Some changes for {user.UserName} could not be saved: {string.Join("; ", errors)}"
+                : $"Roles and permissions for {user.UserName} updated.";
         return RedirectToPage("./Index");
     }
 }
