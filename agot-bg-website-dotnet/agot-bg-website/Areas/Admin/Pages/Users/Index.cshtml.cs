@@ -73,17 +73,30 @@ public class IndexModel(
             return NotFound();
         }
 
+        IdentityResult result;
         if (await userManager.IsInRoleAsync(user, RoleNames.Banned))
         {
-            await userManager.RemoveFromRoleAsync(user, RoleNames.Banned);
-            StatusMessage = $"{user.UserName} has been unbanned.";
+            result = await userManager.RemoveFromRoleAsync(user, RoleNames.Banned);
+            if (result.Succeeded)
+            {
+                StatusMessage = $"{user.UserName} has been unbanned.";
+            }
         }
         else
         {
-            await userManager.AddToRoleAsync(user, RoleNames.Banned);
-            // Force the user out of any active session immediately, mirroring the PlayApi banned check.
-            await userManager.UpdateSecurityStampAsync(user);
-            StatusMessage = $"{user.UserName} has been banned.";
+            result = await userManager.AddToRoleAsync(user, RoleNames.Banned);
+            if (result.Succeeded)
+            {
+                // Force the user out of any active session immediately, mirroring the PlayApi banned check.
+                await userManager.UpdateSecurityStampAsync(user);
+                StatusMessage = $"{user.UserName} has been banned.";
+            }
+        }
+
+        if (!result.Succeeded)
+        {
+            StatusMessage =
+                $"Failed to update ban status for {user.UserName}: {DescribeErrors(result)}";
         }
 
         return RedirectToPage(
@@ -105,8 +118,10 @@ public class IndexModel(
         }
 
         var displayName = user.DisplayName;
-        await accountDeletionService.DeleteAccountAsync(user);
-        StatusMessage = $"{displayName} has Took the Black - their account has been deleted.";
+        var result = await accountDeletionService.DeleteAccountAsync(user);
+        StatusMessage = result.Succeeded
+            ? $"{displayName} has Took the Black - their account has been deleted."
+            : $"Failed to delete {displayName}: {DescribeErrors(result)}";
 
         return RedirectToPage(
             new
@@ -117,6 +132,9 @@ public class IndexModel(
             }
         );
     }
+
+    private static string DescribeErrors(IdentityResult result) =>
+        string.Join("; ", result.Errors.Select(e => e.Description));
 
     /// <summary>
     /// Forces an immediate, synchronous recalculation of a single user's cached win-rate stats

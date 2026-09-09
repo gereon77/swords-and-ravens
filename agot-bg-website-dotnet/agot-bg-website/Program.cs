@@ -117,6 +117,11 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 // is only wired up when its ClientId/ClientSecret are actually configured (via
 // appsettings/user-secrets/env vars), so local debugging can run with individual
 // (username/password) accounts only, with no OAuth app registrations needed.
+//
+// Registered before AddIdentity() below so its TryAddScoped<IUserValidator<TUser>, ...>() call is
+// a no-op: see SafeUserValidator's own doc comment for why the built-in UserValidator<TUser> must
+// be replaced, not just supplemented, to avoid a crash on legacy duplicate-email data.
+builder.Services.AddScoped<IUserValidator<ApplicationUser>, SafeUserValidator>();
 builder
     .Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
     {
