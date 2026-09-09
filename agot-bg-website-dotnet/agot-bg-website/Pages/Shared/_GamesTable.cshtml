@@ -46,14 +46,7 @@ else
                             <td class="text-center">
                                 @if (isOpen)
                                 {
-                                    @if (game.IsPasswordProtected)
-                                    {
-                                        <span class="badge badge-error" title="Password protected"><i class="fas fa-lock"></i></span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-success">Open</span>
-                                    }
+                                    <span class="badge badge-success">Open</span>
                                 }
                                 else if (isOngoing)
                                 {
@@ -62,6 +55,16 @@ else
                             </td>
                         }
                         <td>
+                            @if (game.IsPasswordProtected)
+                            {
+                                // isPasswordProtected is only ever true for open/lobby games
+                                // (it's propagated from the game server's LobbyGameState and is
+                                // always undefined once a game starts/finishes), so this can never
+                                // show for running/finished games. Shown here unconditionally
+                                // (regardless of ShowStateBadge) so there's a single place that
+                                // renders it, rather than duplicating the check in both cells.
+                                <span class="badge badge-error badge-sm align-middle" title="Password protected"><i class="fas fa-lock"></i></span>
+                            }
                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") badge-sm align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                 @(game.IsPbem ? "PBEM" : "Live")
                             </span>
