@@ -1,3 +1,7 @@
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
+    // Every Admin-area page is a dense data-management screen (grids, forms with many fields) -
+    // give them all the wide container (see Pages/Shared/_Layout.cshtml/app.css's
+    // ViewData["WideContainer"]/.container-wide) instead of opting in page-by-page.
+    ViewData["WideContainer"] = true;
 }

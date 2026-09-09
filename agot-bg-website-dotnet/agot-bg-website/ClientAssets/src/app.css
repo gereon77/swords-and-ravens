@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Tailwind v4 changed the default `hover:` variant to only apply under
+   `@media (hover: hover)` (i.e. only when the primary pointing device reports real hover
+   support), unlike v3 where `hover:` applied unconditionally on `:hover`. Many browsers/devices
+   (e.g. touchscreen laptops, some remote-desktop/VPN setups) report `hover: none` even though a
+   mouse is present and working, which silently breaks every `hover:` utility on this site
+   (nav links, chat widget, login partial, etc.) with no visual symptom other than "hover doesn't
+   do anything". Restore the v3-style unconditional behavior, which is Tailwind's own documented
+   recovery path for this exact regression. */
+@custom-variant hover (&:hover);
+
 /* Scans the actual Razor markup that ships classes - includes the scaffolded Identity Area pages
    too, since those still use plain HTML/DaisyUI-compatible class names (see this file's "legacy
    scaffold compatibility" layer below for the handful of Bootstrap-only names that needed a shim
@@ -93,14 +103,26 @@
  */
 @layer components {
   /* Bootstrap grid --------------------------------------------------- */
-  .container {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  /* Named `.page-container` (not `.container`) because Tailwind v4 reserves "container" as a
+     built-in utility name: any literal class="container" usage anywhere in scanned content makes
+     Tailwind auto-generate its own progressive-breakpoint utility-layer rule, which always wins
+     the cascade over a same-named components-layer rule regardless of source order - silently
+     ignoring any override of max-width/padding here. */
+  .page-container {
+    @apply mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8;
   }
-  /* Opt-in wider variant for pages with dense data tables (currently just the user profile page)
-     - see Pages/User.cshtml's ViewData["WideContainer"] and _Layout.cshtml. Keeping the default
-     `.container` at 7xl everywhere else avoids widening every other page (nav, footer, forms)
-     just for the one page that benefits from more horizontal room. */
-  .container-wide {
+  /* Wider variants for pages with dense data tables (the Users list and every Admin-area page -
+     see Pages/Users.cshtml/Areas/Admin/Pages/_ViewStart.cshtml's ViewData["WideContainer"] and
+     _Layout.cshtml) that benefit from more horizontal room than the default. `-md` (1600px) is
+     used when the Users page renders without its action-buttons column (regular members can't
+     manage user status); the full `-wide` (1800px) is used when that extra column is present, or
+     for the Admin area's own grids/forms. Keeping the default `.page-container` capped at 1200px
+     everywhere else (nav, footer, forms, chat) keeps those comfortably readable on large/
+     ultrawide screens instead of stretching line lengths. */
+  .page-container-wide {
+    @apply max-w-[1800px];
+  }
+  .page-container-wide-md {
     @apply max-w-[1600px];
   }
   .row {
@@ -277,13 +299,14 @@
  *    (see grep across Pages/**.cshtml and Areas/**.cshtml), so the invert target is hardcoded to
  *    base-content/base-100; a future colored outline variant (`.btn-outline.btn-primary`, etc.)
  *    would need its own rule using --btn-color/--btn-fg instead.
+ *
+ * Written as plain `:hover` (not gated behind `@media (hover: hover)`) to match the
+ * `@custom-variant hover` override above - see that comment for why.
  */
-@media (hover: hover) {
-  .btn:hover {
-    --btn-bg: color-mix(in oklab, var(--btn-color, var(--color-base-200)), #000 20%);
-  }
-  .btn-outline:hover {
-    --btn-bg: var(--color-base-content);
-    color: var(--color-base-100);
-  }
+.btn:hover {
+  --btn-bg: color-mix(in oklab, var(--btn-color, var(--color-base-200)), #000 20%);
+}
+.btn-outline:hover {
+  --btn-bg: var(--color-base-content);
+  color: var(--color-base-100);
 }
