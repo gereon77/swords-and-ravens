@@ -47,7 +47,7 @@
             <input type="hidden" name="@key" value="@value" />
         }
         <label for="pageSizeInput" class="opacity-70">Items per page:</label>
-        <input type="number" id="pageSizeInput" name="pageSize" min="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MinPageSize" max="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MaxPageSize" value="@Model.PageSize" class="input input-bordered input-sm w-20" />
+        <input type="number" id="pageSizeInput" name="pageSize" min="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MinPageSize" max="@agot_bg_website.Infrastructure.Paging.PagingExtensions.MaxPageSize" value="@Model.PageSize" class="input input-sm w-20" />
         <button type="submit" class="btn btn-sm">Apply</button>
     </form>
 
@@ -59,7 +59,7 @@
                 <input type="hidden" name="@key" value="@value" />
             }
             <label for="pageNumberInput" class="opacity-70">Go to page:</label>
-            <input type="number" id="pageNumberInput" name="pageNumber" min="1" max="@Model.TotalPages" value="@Model.PageNumber" class="input input-bordered input-sm w-20" />
+            <input type="number" id="pageNumberInput" name="pageNumber" min="1" max="@Model.TotalPages" value="@Model.PageNumber" class="input input-sm w-20" />
             <button type="submit" class="btn btn-sm">Go</button>
         </form>
     }

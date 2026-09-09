@@ -1,6 +1,67 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Scans the actual Razor markup that ships classes - includes the scaffolded Identity Area pages
+   too, since those still use plain HTML/DaisyUI-compatible class names (see this file's "legacy
+   scaffold compatibility" layer below for the handful of Bootstrap-only names that needed a shim
+   instead of a full rewrite). Tailwind v4 auto-detects source files from the working directory,
+   but these two directories sit one level above ClientAssets/, so they're registered explicitly
+   to guarantee they're always scanned regardless of where the build is invoked from. */
+@source "../../Pages";
+@source "../../Areas";
+
+@plugin "daisyui" {
+  themes: swordsandravens --default --prefersdark;
+}
+
+/*
+ * "Swords and Ravens" dark theme: a neutral charcoal-grey base (matching the previous
+ * Django/Bootstrap dark theme testers were used to, since the original brown/wood-toned base
+ * colors read as too dark/muddy), a steel-blue primary accent for default buttons (kept visually
+ * distinct from the Discord "blurple" (#5865F2) and Ko-fi cyan-blue (#29abe0) brand buttons
+ * rendered inline on Games/MyGames), aged crown-gold as the secondary accent, dragon-fire crimson
+ * reserved for errors/danger, and a cold Valyrian-steel/Stark blue-grey as the info accent.
+ */
+@plugin "daisyui/theme" {
+  name: "swordsandravens";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-primary: #375a7f;
+  --color-primary-content: #eef5fb;
+  --color-secondary: #444444;
+  --color-secondary-content: #eef5fb;
+  --color-accent: #4c6b8a;
+  --color-accent-content: #f5e9d9;
+  --color-neutral: #2b2f33;
+  --color-neutral-content: #d8dadc;
+  --color-base-100: #222222;
+  --color-base-200: #303030;
+  --color-base-300: #444444;
+  --color-base-content: #e8e6e3;
+  --color-info: #4c6b8a;
+  --color-info-content: #eef5fb;
+  --color-success: #4f7a52;
+  --color-success-content: #eef5fb;
+  --color-warning: #b3892f;
+  --color-warning-content: #221a08;
+  --color-error: #9c2b2b;
+  --color-error-content: #fbe9e9;
+  /* border radius */
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  /* base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  /* border size */
+  --border: 1px;
+  /* effects: keep the theme flat (no beveled highlight/shadow on buttons/inputs) - depth: 0
+     disables DaisyUI v5's --btn-inset highlight and --btn-shadow drop-shadow layers, both of
+     which are scaled by --depth and were rendering as an unwanted thin border/glow around
+     buttons compared to the previous DaisyUI v4 flat look. */
+  --depth: 0;
+  --noise: 0;
+}
 
 /*
  * Default link color. Overrides Tailwind preflight's `a { color: inherit }` (this must live in
@@ -66,10 +127,10 @@
 
   /* Forms -------------------------------------------------------------- */
   .form-control {
-    @apply input input-bordered w-full bg-base-200 text-base-content placeholder:text-base-content/40;
+    @apply input w-full bg-base-200 text-base-content placeholder:text-base-content/40;
   }
   .form-select {
-    @apply select select-bordered w-full;
+    @apply select w-full;
   }
   .form-label,
   .control-label {
@@ -181,7 +242,7 @@
     @apply list-none;
   }
   .nav-link {
-    @apply block px-3 py-2 rounded-btn text-base-content/80 hover:bg-base-200 hover:text-base-content transition-colors no-underline whitespace-nowrap;
+    @apply block px-3 py-2 rounded-field text-base-content/80 hover:bg-base-200 hover:text-base-content transition-colors no-underline whitespace-nowrap;
   }
   .nav-link.active {
     @apply bg-primary text-primary-content hover:bg-primary hover:text-primary-content;
@@ -199,5 +260,30 @@
   }
   .recovery-code {
     @apply font-mono bg-base-200 px-2 py-1 rounded;
+  }
+}
+
+/*
+ * Button hover tuning. These rules are intentionally left unlayered (outside @layer components/
+ * utilities) so they win over DaisyUI's own component-layer rules regardless of cascade-layer
+ * ordering, without needing !important.
+ *
+ * 1. DaisyUI v5 only darkens a button's background by a flat 7% on hover (color-mix(... #000 7%)),
+ *    much subtler than the darkening testers were used to. Bump it to a more noticeable 20%.
+ * 2. DaisyUI v5's default `.btn-outline:hover` just applies that same subtle 7% darken to its
+ *    (already near-transparent) background, so hovering barely reads as an interaction. DaisyUI
+ *    v4 instead inverted outline buttons to a filled state on hover, which is the look this site
+ *    wants back. Every `.btn-outline` currently on this site is the plain (colorless) variant
+ *    (see grep across Pages/**.cshtml and Areas/**.cshtml), so the invert target is hardcoded to
+ *    base-content/base-100; a future colored outline variant (`.btn-outline.btn-primary`, etc.)
+ *    would need its own rule using --btn-color/--btn-fg instead.
+ */
+@media (hover: hover) {
+  .btn:hover {
+    --btn-bg: color-mix(in oklab, var(--btn-color, var(--color-base-200)), #000 20%);
+  }
+  .btn-outline:hover {
+    --btn-bg: var(--color-base-content);
+    color: var(--color-base-100);
   }
 }

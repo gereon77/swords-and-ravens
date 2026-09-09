@@ -226,7 +226,7 @@
                     <form class="flex gap-2" style=${room.wsState !== 1 ? "display:none" : ""} onSubmit=${e => this.sendChatMessage(e, tab)}>
                         <input type="text"
                             ref=${el => this.inputRefs[tab] = el}
-                            class="input input-bordered flex-1"
+                            class="input flex-1"
                             placeholder="Message"
                             maxlength="200"
                             disabled=${!isAuthenticated}

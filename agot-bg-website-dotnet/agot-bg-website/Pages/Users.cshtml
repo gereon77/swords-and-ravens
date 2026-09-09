@@ -37,10 +37,10 @@
     <input type="hidden" name="pageSize" value="@Model.PageSize" />
     <input type="hidden" name="SortBy" value="@Model.SortBy" />
     <input type="hidden" name="SortDir" value="@Model.SortDir" />
-    <input type="text" name="Search" value="@Model.Search" class="input input-bordered" placeholder="Search by username" />
+    <input type="text" name="Search" value="@Model.Search" class="input" placeholder="Search by username" />
     @if (Model.CanManageUserStatus)
     {
-        <select name="StatusFilter" class="select select-bordered" onchange="this.form.submit()">
+        <select name="StatusFilter" class="select" onchange="this.form.submit()">
             <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All statuses</option>
             <option value="probation" selected="@(Model.StatusFilter == "probation")">On probation</option>
             <option value="tongueless" selected="@(Model.StatusFilter == "tongueless")">Tongueless</option>

@@ -167,10 +167,9 @@ Postgres/Redis/SMTP.
 
 ## Building the UI (Tailwind CSS + DaisyUI)
 
-The dark "Swords and Ravens" theme is built with Tailwind CSS v3 + DaisyUI v4 (kept on the v3/v4
-generation because this environment's Node is pinned to 16.x for `agot-bg-game-server`, and
-Tailwind v4 requires Node 20+). The compiled `wwwroot/css/app.css` is a **committed build
-artifact**, similar to the older `wwwroot/css/site.css` — you only need to rebuild it if you change
+The dark "Swords and Ravens" theme is built with Tailwind CSS v4 + DaisyUI v5, both configured
+CSS-first (no more `tailwind.config.js` — see `package.json` for the toolchain). The compiled
+`wwwroot/css/app.css` is a **committed build artifact** — you only need to rebuild it if you change
 the theme or add new component styles:
 
 ```powershell
@@ -180,13 +179,17 @@ npm run build     # one-off build, minified, writes ../wwwroot/css/app.css
 npm run watch      # rebuilds on change, for active theme/markup work
 ```
 
-`tailwind.config.js` scans `../Pages/**/*.cshtml` and `../Areas/**/*.cshtml` for class usage and
-defines the custom `swordsandravens` DaisyUI theme. Because the ASP.NET Core Identity UI is
-scaffolded Bootstrap 5 markup (`Areas/Identity/Pages/**`, 40 files), `ClientAssets/src/app.css`
-also contains a `@layer components` compatibility shim that maps every legacy Bootstrap-only class
-name still used there (`form-control`, `row`/`col-md-*`, `text-danger`, ...) to its DaisyUI/Tailwind
-equivalent, so those pages inherit the dark theme without being rewritten by hand. Hand-written
-pages (`Pages/Shared/_Layout.cshtml`, `Index.cshtml`, `Privacy.cshtml`, `_LoginPartial.cshtml`,
+`ClientAssets/src/app.css` is the single source of truth: `@import "tailwindcss";` pulls in
+Tailwind, explicit `@source "../../Pages";`/`@source "../../Areas";` directives register the Razor
+markup to scan for class usage (Tailwind v4 auto-detects most source files, but these two
+directories sit outside `ClientAssets/` so they're registered explicitly), and a
+`@plugin "daisyui/theme" { ... }` block defines the custom `swordsandravens` dark theme using
+`--color-*` CSS custom properties. Because the ASP.NET Core Identity UI is scaffolded Bootstrap 5
+markup (`Areas/Identity/Pages/**`, 40 files), `app.css` also contains a `@layer components`
+compatibility shim that maps every legacy Bootstrap-only class name still used there
+(`form-control`, `row`/`col-md-*`, `text-danger`, ...) to its DaisyUI/Tailwind equivalent, so those
+pages inherit the dark theme without being rewritten by hand. Hand-written pages
+(`Pages/Shared/_Layout.cshtml`, `Index.cshtml`, `Privacy.cshtml`, `_LoginPartial.cshtml`,
 `_CookieConsentPartial.cshtml`) use DaisyUI/Tailwind classes directly.
 
 ## Building and serving the real game client locally

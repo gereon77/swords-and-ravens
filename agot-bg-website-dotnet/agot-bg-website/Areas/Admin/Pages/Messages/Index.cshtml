@@ -10,16 +10,16 @@
 
 <form method="get" class="mb-4 flex flex-wrap gap-2 items-center">
     <input type="hidden" name="pageSize" value="@Model.PageSize" />
-    <select name="RoomId" class="select select-bordered" onchange="this.form.submit()">
+    <select name="RoomId" class="select" onchange="this.form.submit()">
         <option value="">-- Select a room --</option>
         @foreach (var room in Model.RecentRooms)
         {
             <option value="@room.Id" selected="@(room.Id == Model.RoomId)">@room.Name (@room.CreatedAt.ToLocalTime().ToString("g"))</option>
         }
     </select>
-    <input type="text" name="RoomSearch" value="@Model.RoomSearch" class="input input-bordered" placeholder="Search room name" />
+    <input type="text" name="RoomSearch" value="@Model.RoomSearch" class="input" placeholder="Search room name" />
     <button type="submit" class="btn btn-outline">Search rooms</button>
-    <input type="text" name="Search" value="@Model.Search" class="input input-bordered" placeholder="Search message text" />
+    <input type="text" name="Search" value="@Model.Search" class="input" placeholder="Search message text" />
     <button type="submit" class="btn btn-primary">Go</button>
 </form>
 
