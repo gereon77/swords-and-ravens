@@ -415,6 +415,30 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseExceptionHandler("/Error");
 
 app.UseHttpsRedirection();
+
+// Legacy Django URLs commonly ended in a trailing slash (e.g. "/games/", "/my_games/") - old
+// bookmarks/links still hit those exact paths. Razor Pages routing matches "/games/" to the same
+// page as "/games" leniently, but that isn't enough on its own: browser-relative URL resolution
+// (e.g. the ES module imports in _ChatWidget.cshtml) depends on the exact path shown in the
+// address bar - a trailing slash silently resolves "./foo" one directory too deep, which is
+// exactly what broke the "Online users" widget on "/games/" (see _ChatWidget.cshtml's now-absolute
+// import paths). Normalize every request to a slash-free path (except the root "/") with a
+// permanent redirect before routing ever sees it, so old bookmarks always land on a canonical URL.
+app.Use(
+    async (context, next) =>
+    {
+        var path = context.Request.Path;
+        if (path.HasValue && path.Value!.Length > 1 && path.Value.EndsWith('/'))
+        {
+            var target = path.Value.TrimEnd('/') + context.Request.QueryString;
+            context.Response.Redirect(target, permanent: true);
+            return;
+        }
+
+        await next();
+    }
+);
+
 app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
@@ -454,6 +478,10 @@ app.UseLastActivityTracking();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapDefaultControllerRoute();
+
+// Legacy Django bookmark: "/my_games/" (see agot-bg-website/agotboardgame_main/urls.py) -> the
+// new Razor Page is "/MyGames", served (via LowercaseUrls above) at "/mygames".
+app.MapGet("/my_games", () => Results.Redirect("/mygames", permanent: true));
 
 // Minimal API groups — the REST contract the game server speaks, see MIGRATION_PLAN.md §6.
 //
