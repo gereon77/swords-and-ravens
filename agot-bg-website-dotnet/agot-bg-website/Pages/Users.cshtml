@@ -6,6 +6,9 @@
 @using agot_bg_website.Infrastructure.Auth
 @{
     ViewData["Title"] = "Users";
+    // Wider container (1800px) when the action-buttons column is visible (Model.CanManageUserStatus);
+    // otherwise a slightly narrower one (1600px) since the table has fewer columns to show.
+    ViewData["WideContainer"] = Model.CanManageUserStatus ? (object)true : "md";
 
     // Builds a sortable column header link that preserves the current search/page-size and
     // resets back to page 1 (sorting differently makes the previous page number meaningless).
@@ -101,7 +104,7 @@
                     @if (Model.CanManageUserStatus)
                     {
                         <td>
-                            <div class="flex flex-nowrap gap-2">
+                            <div class="flex flex-nowrap items-center gap-2 h-8">
                                 @if (isProtected)
                                 {
                                     <span class="opacity-50 text-sm whitespace-nowrap">Protected</span>

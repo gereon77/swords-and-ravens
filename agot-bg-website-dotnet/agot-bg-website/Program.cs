@@ -300,14 +300,10 @@ if (IsConfigured("Authentication:Google:ClientId", "Authentication:Google:Client
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
-        // Matches the callback path the legacy Django site registered with this same Google app
-        // (python-social-auth's fixed /complete/<backend>/ URL scheme - "google-oauth2" is
-        // social_core.backends.google.GoogleOAuth2's backend name, see
-        // agot-bg-website/agotboardgame/settings.py's AUTHENTICATION_BACKENDS), instead of this
-        // library's own default of "/signin-google" - so the existing app registration's
-        // Authorized redirect URI keeps working unchanged at cutover, with nothing to update in
-        // the Google Cloud Console.
-        options.CallbackPath = "/complete/google-oauth2/";
+        // Uses this library's default CallbackPath ("/signin-google"). The legacy Django site's
+        // python-social-auth callback ("/complete/google-oauth2/") was used at cutover instead,
+        // to avoid touching the Google Cloud Console's Authorized redirect URI - now replaced
+        // with "/signin-google" as an additional authorized redirect URI, so this default applies.
     });
 }
 
@@ -317,11 +313,9 @@ if (IsConfigured("Authentication:Discord:ClientId", "Authentication:Discord:Clie
     {
         options.ClientId = builder.Configuration["Authentication:Discord:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"]!;
-        // Same reasoning as Google above - matches Django's /complete/discord/ (backend name
-        // "discord", social_core.backends.discord.DiscordOAuth2) instead of this library's default
-        // "/signin-discord", so the existing Discord app's registered redirect URI keeps working
-        // unchanged.
-        options.CallbackPath = "/complete/discord/";
+        // Uses this library's default CallbackPath ("/signin-discord"), same reasoning as Google
+        // above - "/signin-discord" is now registered as an additional authorized redirect URI in
+        // the Discord Developer Portal, replacing the legacy "/complete/discord/" shim.
     });
 }
 
@@ -415,6 +409,30 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseExceptionHandler("/Error");
 
 app.UseHttpsRedirection();
+
+// Legacy Django URLs commonly ended in a trailing slash (e.g. "/games/", "/my_games/") - old
+// bookmarks/links still hit those exact paths. Razor Pages routing matches "/games/" to the same
+// page as "/games" leniently, but that isn't enough on its own: browser-relative URL resolution
+// (e.g. the ES module imports in _ChatWidget.cshtml) depends on the exact path shown in the
+// address bar - a trailing slash silently resolves "./foo" one directory too deep, which is
+// exactly what broke the "Online users" widget on "/games/" (see _ChatWidget.cshtml's now-absolute
+// import paths). Normalize every request to a slash-free path (except the root "/") with a
+// permanent redirect before routing ever sees it, so old bookmarks always land on a canonical URL.
+app.Use(
+    async (context, next) =>
+    {
+        var path = context.Request.Path;
+        if (path.HasValue && path.Value!.Length > 1 && path.Value.EndsWith('/'))
+        {
+            var target = path.Value.TrimEnd('/') + context.Request.QueryString;
+            context.Response.Redirect(target, permanent: true);
+            return;
+        }
+
+        await next();
+    }
+);
+
 app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
@@ -454,6 +472,10 @@ app.UseLastActivityTracking();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapDefaultControllerRoute();
+
+// Legacy Django bookmark: "/my_games/" (see agot-bg-website/agotboardgame_main/urls.py) -> the
+// new Razor Page is "/MyGames", served (via LowercaseUrls above) at "/mygames".
+app.MapGet("/my_games", () => Results.Redirect("/mygames", permanent: true));
 
 // Minimal API groups — the REST contract the game server speaks, see MIGRATION_PLAN.md §6.
 //

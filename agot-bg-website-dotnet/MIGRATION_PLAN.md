@@ -1468,18 +1468,18 @@ updated to `swordsandravens.net` (cosmetic fallback only — `.env.prod`'s real 
 already points at `swordsandravens.net` and is unchanged, since the current email setup already
 sends from that domain).
 
-**OAuth callback path correction (found while verifying this cutover):** Django's
-`social_django.urls` uses python-social-auth's fixed `/complete/<backend>/` scheme —
-`AUTHENTICATION_BACKENDS` in `agot-bg-website/agotboardgame/settings.py` names the backends
-`google-oauth2` and `discord`, so the URLs the existing Google Cloud Console / Discord Developer
-Portal app registrations actually have on file are `https://swordsandravens.net/complete/google-oauth2/`
-and `https://swordsandravens.net/complete/discord/` — **not** `/signin-google`/`/signin-discord`
-(this library's own defaults). `Program.cs`'s `AddGoogle`/`AddDiscord` now set `options.CallbackPath`
-explicitly to those legacy paths, so reusing the same app registrations (same Client ID/Secret,
-copied into `.env.prod`) keeps working with **no redirect-URI change needed in either provider's
-dashboard**. If a redirect URI mismatch error ever shows up at login, this is the first thing to
-check — either the dashboard's registered URI or `CallbackPath` was changed without updating the
-other.
+**OAuth callback path (updated post-cutover):** Django's `social_django.urls` used
+python-social-auth's fixed `/complete/<backend>/` scheme (`google-oauth2`/`discord`), so at cutover
+`Program.cs`'s `AddGoogle`/`AddDiscord` temporarily set `options.CallbackPath` explicitly to those
+legacy paths (`/complete/google-oauth2/`, `/complete/discord/`) to reuse the existing Google Cloud
+Console / Discord Developer Portal app registrations unchanged. That was later found to conflict
+with the global trailing-slash-to-canonical-URL redirect in `Program.cs` (added for legacy Django
+bookmarks like `/games/`), which stripped the callback path's load-bearing trailing slash and broke
+login with a 404. Rather than special-case the redirect further, `/signin-google` and
+`/signin-discord` (this library's own `CallbackPath` defaults) were added as additional authorized
+redirect URIs in both providers' dashboards, and `Program.cs` now omits `CallbackPath` entirely,
+using those defaults. The legacy `/complete/...` redirect URIs can be removed from both dashboards
+once this has been confirmed stable in production.
 
 **`Snr.Migration` now self-provisions the target schema:** `Importer.MigrateTargetAsync()` (called
 from `Program.cs` before `import`/`verify`) runs `Database.MigrateAsync()` against `--target`

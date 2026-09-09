@@ -18,7 +18,7 @@
             <li><a class="link link-hover text-base-content" asp-area="Identity" asp-page="/Account/Manage/Index">Manage profile</a></li>
             <li>
                 <form class="contents" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
-                    <button type="submit" class="w-full rounded-field px-4 py-2 text-left hover:bg-base-300">Logout</button>
+                    <button type="submit" class="w-full rounded-field px-4 py-2 text-left cursor-pointer hover:bg-base-300">Logout</button>
                 </form>
             </li>
         </ul>
