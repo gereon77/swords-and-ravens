@@ -1,5 +1,6 @@
 using System.Text.Json;
 using agot_bg_website.Api;
+using agot_bg_website.Domain;
 using Xunit;
 
 namespace agot_bg_website.Tests.Api;
@@ -65,6 +66,31 @@ public class ApiJsonNamingPolicyTests
         Assert.Contains("\"owner\":", json);
         Assert.DoesNotContain("\"ownerUserId\"", json);
         Assert.DoesNotContain("\"serializedGame\"", json);
+    }
+
+    [Fact]
+    public void PublicGameResponseIncludesDjangoEnvelopeAndSanitizesView()
+    {
+        var gameId = Guid.NewGuid();
+        using var viewOfGame = JsonDocument.Parse(
+            """
+            {
+              "turn": 4,
+              "publicChatRoomId": "private-room",
+              "waitingFor": "House Stark"
+            }
+            """
+        );
+
+        var response = PublicApi.BuildResponse(gameId, "A game", GameState.InLobby, viewOfGame);
+
+        Assert.Equal(gameId, response["id"]!.GetValue<Guid>());
+        Assert.Equal("A game", response["name"]!.GetValue<string>());
+        Assert.Equal("IN_LOBBY", response["state"]!.GetValue<string>());
+        Assert.Equal(4, response["view_of_game"]!["round"]!.GetValue<int>());
+        Assert.Equal("House Stark", response["view_of_game"]!["waitingFor"]!.GetValue<string>());
+        Assert.Null(response["view_of_game"]!["publicChatRoomId"]);
+        Assert.Null(response["view_of_game"]!["turn"]);
     }
 
     [Fact]

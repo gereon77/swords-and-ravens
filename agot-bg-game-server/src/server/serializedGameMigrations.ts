@@ -21,6 +21,15 @@ import { SerializedEntireGame } from "../common/EntireGame";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SerializedGameLogEntry } from "../common/ingame-game-state/game-data-structure/GameLogManager";
 
+function findChildGameState(anyState: any, type: string): any | null {
+  let state = anyState.childGameState;
+  while (state && state.type != type) {
+    state = state.childGameState;
+  }
+
+  return state ?? null;
+}
+
 function replaceHouseCard(
   deck: [string, any][],
   idToRemove: string,
@@ -3098,6 +3107,49 @@ const serializedGameMigrations: {
             }
           }
         });
+      }
+
+      return serializedGame;
+    }
+  },
+  {
+    version: "136",
+    migrate: (serializedGame: any) => {
+      if (serializedGame.childGameState.type == "ingame") {
+        const ingame = serializedGame.childGameState;
+
+        const findAndFixCorruptedSerializedResolveRetreatState = (
+          anyState: any
+        ): void => {
+          if (!anyState) {
+            return;
+          }
+
+          const resolveRetreat = findChildGameState(
+            anyState,
+            "resolve-retreat"
+          );
+
+          if (resolveRetreat && !resolveRetreat.possibleRetreatRegions) {
+            if (
+              resolveRetreat.childGameState &&
+              resolveRetreat.childGameState.type == "select-region"
+            ) {
+              resolveRetreat.possibleRetreatRegions =
+                resolveRetreat.childGameState.regions;
+            } else {
+              resolveRetreat.possibleRetreatRegions = [];
+            }
+          }
+        };
+
+        findAndFixCorruptedSerializedResolveRetreatState(ingame);
+        findAndFixCorruptedSerializedResolveRetreatState(
+          ingame.childGameStateBeforeVassalsModification
+        );
+        findAndFixCorruptedSerializedResolveRetreatState(
+          ingame.childGameStateBeforeCancellation
+        );
       }
 
       return serializedGame;
