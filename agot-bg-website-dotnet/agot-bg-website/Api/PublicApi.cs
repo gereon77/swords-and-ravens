@@ -1,5 +1,7 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using agot_bg_website.Data;
+using agot_bg_website.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Api;
@@ -42,28 +44,26 @@ public static class PublicApi
                 "/game/{id:guid}",
                 async (Guid id, ApplicationDbContext db) =>
                 {
-                    var viewOfGame = await db
+                    var game = await db
                         .Games.Where(g => g.Id == id)
-                        .Select(g => g.ViewOfGame)
+                        .Select(g => new
+                        {
+                            g.Id,
+                            g.Name,
+                            g.State,
+                            g.ViewOfGame,
+                        })
                         .FirstOrDefaultAsync();
-                    if (viewOfGame is null)
+                    if (game is null)
                     {
                         return Results.NotFound();
                     }
 
-                    var node = JsonNode.Parse(viewOfGame.RootElement.GetRawText())!.AsObject();
-                    foreach (var field in FieldsToStrip)
-                    {
-                        node.Remove(field);
-                    }
-
-                    if (node.TryGetPropertyValue("turn", out var turnValue))
-                    {
-                        node.Remove("turn");
-                        node["round"] = turnValue?.DeepClone();
-                    }
-
-                    return Results.Text(node.ToJsonString(), "application/json");
+                    return Results.Text(
+                        BuildResponse(game.Id, game.Name, game.State, game.ViewOfGame)
+                            .ToJsonString(),
+                        "application/json"
+                    );
                 }
             )
             .WithName("GetPublicGame")
@@ -79,4 +79,52 @@ public static class PublicApi
 
         return group;
     }
+
+    internal static JsonObject BuildResponse(
+        Guid id,
+        string name,
+        GameState state,
+        JsonDocument? viewOfGame
+    )
+    {
+        JsonNode? sanitizedView = null;
+        if (viewOfGame is not null)
+        {
+            sanitizedView = JsonNode.Parse(viewOfGame.RootElement.GetRawText());
+            if (sanitizedView is not JsonObject viewObject)
+            {
+                throw new InvalidOperationException("Game view_of_game must be a JSON object.");
+            }
+
+            foreach (var field in FieldsToStrip)
+            {
+                viewObject.Remove(field);
+            }
+
+            if (viewObject.TryGetPropertyValue("turn", out var turnValue))
+            {
+                viewObject.Remove("turn");
+                viewObject["round"] = turnValue?.DeepClone();
+            }
+        }
+
+        return new JsonObject
+        {
+            ["id"] = id,
+            ["name"] = name,
+            ["view_of_game"] = sanitizedView,
+            ["state"] = ToLegacyState(state),
+        };
+    }
+
+    private static string ToLegacyState(GameState state) =>
+        state switch
+        {
+            GameState.InLobby => "IN_LOBBY",
+            GameState.Ongoing => "ONGOING",
+            GameState.Finished => "FINISHED",
+            GameState.Closed => "CLOSED",
+            GameState.Cancelled => "CANCELLED",
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
+        };
 }
