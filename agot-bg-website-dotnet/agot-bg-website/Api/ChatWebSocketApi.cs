@@ -36,6 +36,9 @@ public static class ChatWebSocketApi
             ? Math.Min(requestedCount, maxRetrieveCount.Value)
             : requestedCount;
 
+    internal static string GetChatDisplayName(ApplicationUser user, bool faceless) =>
+        faceless ? "" : user.DisplayName;
+
     public static IEndpointRouteBuilder MapChatWebSocket(this IEndpointRouteBuilder app)
     {
         app.Map(
@@ -362,7 +365,7 @@ public static class ChatWebSocketApi
             Id = message.Id,
             Text = message.Text,
             UserId = user.Id,
-            UserUsername = faceless ? "" : user.UserName ?? "",
+            UserUsername = GetChatDisplayName(user, faceless),
             CreatedAt = message.CreatedAt,
         };
         await broadcaster.PublishAsync(roomId, evt);
@@ -592,7 +595,7 @@ public static class ChatWebSocketApi
                     Id = m.Id,
                     Text = m.Text,
                     UserId = m.UserId,
-                    UserUsername = faceless ? "" : m.User?.UserName ?? "",
+                    UserUsername = m.User is null ? "" : GetChatDisplayName(m.User, faceless),
                     CreatedAt = m.CreatedAt,
                 })
                 .ToList(),
@@ -654,7 +657,7 @@ public static class ChatWebSocketApi
         var isHighMember = !isAdmin && roles.Contains(RoleNames.HighMember);
 
         var data = new ConnectedUserData(
-            user.UserName ?? "",
+            user.DisplayName,
             isAdmin,
             isHighMember,
             user.LastWonTournament

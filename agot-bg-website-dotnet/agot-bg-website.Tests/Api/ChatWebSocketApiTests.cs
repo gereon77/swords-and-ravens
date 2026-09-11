@@ -57,6 +57,25 @@ public class ChatWebSocketApiTests
     {
         Assert.Equal(10, ChatWebSocketApi.ResolveRetrieveCount(10, maxRetrieveCount: 50));
     }
+
+    [Fact]
+    public void GetChatDisplayName_UsesDeletedAccountLabel()
+    {
+        var user = new ApplicationUser { UserName = Guid.NewGuid().ToString(), IsDeleted = true };
+
+        Assert.Equal(
+            ApplicationUser.DeletedAccountDisplayName,
+            ChatWebSocketApi.GetChatDisplayName(user, faceless: false)
+        );
+    }
+
+    [Fact]
+    public void GetChatDisplayName_HidesFacelessSender()
+    {
+        var user = new ApplicationUser { UserName = "robb_stark" };
+
+        Assert.Equal("", ChatWebSocketApi.GetChatDisplayName(user, faceless: true));
+    }
 }
 
 /// <summary>
