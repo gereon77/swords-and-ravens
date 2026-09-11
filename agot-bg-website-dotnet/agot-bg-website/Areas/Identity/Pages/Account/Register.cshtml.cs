@@ -25,6 +25,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
         private readonly DisposableEmailChecker _disposableEmailChecker;
+        private readonly TurnstileVerifier _turnstileVerifier;
+        private readonly RegistrationRateLimiter _rateLimiter;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
@@ -32,7 +34,9 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            DisposableEmailChecker disposableEmailChecker
+            DisposableEmailChecker disposableEmailChecker,
+            TurnstileVerifier turnstileVerifier,
+            RegistrationRateLimiter rateLimiter
         )
         {
             _userManager = userManager;
@@ -42,6 +46,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _disposableEmailChecker = disposableEmailChecker;
+            _turnstileVerifier = turnstileVerifier;
+            _rateLimiter = rateLimiter;
         }
 
         /// <summary>
@@ -62,6 +68,13 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
+
+        public bool TurnstileEnabled => _turnstileVerifier.IsEnabled;
+
+        public string TurnstileSiteKey => _turnstileVerifier.SiteKey;
+
+        [BindProperty(Name = "cf-turnstile-response")]
+        public string TurnstileToken { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -116,6 +129,10 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 ErrorMessage = "The password and confirmation password do not match."
             )]
             public string ConfirmPassword { get; set; }
+
+            // Real visitors never see or fill this field, but simple registration bots commonly
+            // populate every form field.
+            public string Website { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
@@ -132,8 +149,41 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
             ExternalLogins = (
                 await _signInManager.GetExternalAuthenticationSchemesAsync()
             ).ToList();
+
+            if (!_rateLimiter.TryAcquire(HttpContext.Connection.RemoteIpAddress?.ToString()))
+            {
+                Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Too many registration attempts from your network. Please try again later."
+                );
+                return Page();
+            }
+
             if (ModelState.IsValid)
             {
+                if (!string.IsNullOrWhiteSpace(Input.Website))
+                {
+                    ModelState.AddModelError(string.Empty, "Registration could not be completed.");
+                    return Page();
+                }
+
+                if (
+                    !await _turnstileVerifier.VerifyAsync(
+                        TurnstileToken,
+                        HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        expectedAction: "register",
+                        HttpContext.RequestAborted
+                    )
+                )
+                {
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "Please complete the human verification challenge and try again."
+                    );
+                    return Page();
+                }
+
                 if (Infrastructure.Auth.ReservedUsernames.IsReserved(Input.UserName))
                 {
                     ModelState.AddModelError(

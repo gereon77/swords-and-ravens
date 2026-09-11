@@ -32,6 +32,7 @@ document.addEventListener("click", function (event) {
     }
 
     modal.querySelector("#game-settings-modal-title").textContent = gearButton.dataset.gameName || "";
+    modal.querySelector("#game-settings-modal-owner").textContent = gearButton.dataset.ownerName || "-";
     modal.querySelector("#game-settings-modal-setup").textContent = gearButton.dataset.setupName || "";
     modal.querySelector("#game-settings-modal-players").textContent = gearButton.dataset.playerCount || "";
 

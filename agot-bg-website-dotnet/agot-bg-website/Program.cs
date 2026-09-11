@@ -168,6 +168,12 @@ builder.Services.AddHostedService<agot_bg_website.Infrastructure.Stats.UserStats
 // address itself anywhere.
 builder.Services.AddEmailDisposableOnlineValidatorAsSingleton();
 builder.Services.AddScoped<DisposableEmailChecker>();
+builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection("Turnstile"));
+builder.Services.AddHttpClient<TurnstileVerifier>();
+
+// Singleton: tracks per-IP registration attempt counts across requests for the app's lifetime.
+// Scoped only to RegisterModel - not app-wide rate-limiting middleware, so no other route is affected.
+builder.Services.AddSingleton<RegistrationRateLimiter>();
 
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.

@@ -82,8 +82,15 @@ public sealed class GameListQueryService(ApplicationDbContext db)
         return rows.Select(r => Build(r, currentUserId: null)).ToList();
     }
 
-    /// <summary>Ongoing games, most recently active first.</summary>
-    public async Task<List<GameListItem>> GetOngoingGamesAsync(int take = 200)
+    /// <summary>
+    /// Ongoing games, most recently active first. <paramref name="viewerId"/> (if given) is used
+    /// only to populate each row's own MyHouse/MyTurn (so the UI can show a "Playing"/"Your turn"
+    /// badge) - this is free, since <see cref="Project"/> already loads every game's Players.
+    /// </summary>
+    public async Task<List<GameListItem>> GetOngoingGamesAsync(
+        Guid? viewerId = null,
+        int take = 200
+    )
     {
         var rows = await Project(
                 db.Games.Where(g => g.State == GameState.Ongoing)
@@ -92,7 +99,7 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             )
             .ToListAsync();
 
-        return rows.Select(r => Build(r, currentUserId: null)).ToList();
+        return rows.Select(r => Build(r, viewerId)).ToList();
     }
 
     /// <summary>

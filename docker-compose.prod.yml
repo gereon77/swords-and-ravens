@@ -52,6 +52,8 @@ services:
       Email__Username: ${EMAIL_USERNAME}
       Email__Password: ${EMAIL_PASSWORD}
       Email__FromAddress: ${EMAIL_FROM_ADDRESS}
+      Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
+      Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       db:

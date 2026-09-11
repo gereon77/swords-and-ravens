@@ -1,8 +1,8 @@
 @model agot_bg_website.Pages.Shared.GamesTableViewModel
 @using agot_bg_website.Domain
 @{
-    var anyOngoing = !Model.HideOwnerAndWaitingColumns && Model.Games.Any(g => g.State == GameState.Ongoing);
-    var allOpen = !Model.HideOwnerAndWaitingColumns && Model.Games.All(g => g.State == GameState.InLobby);
+    var anyOngoing = Model.Games.Any(g => g.State == GameState.Ongoing);
+    var allOpen = Model.Games.All(g => g.State == GameState.InLobby);
 }
 
 @if (Model.Games.Count == 0)
@@ -22,7 +22,7 @@ else
                     <th>Name</th>
                     @if (allOpen)
                     {
-                        <th>Owner</th>
+                        <th>Host</th>
                     }
                     @if (anyOngoing)
                     {
@@ -63,38 +63,38 @@ else
                                 // show for running/finished games. Shown here unconditionally
                                 // (regardless of ShowStateBadge) so there's a single place that
                                 // renders it, rather than duplicating the check in both cells.
-                                <span class="badge badge-error badge-sm align-middle" title="Password protected"><i class="fas fa-lock"></i></span>
+                                <span class="badge badge-error align-middle" title="Password protected"><i class="fas fa-lock"></i></span>
                             }
-                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") badge-sm align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
+                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                 @(game.IsPbem ? "PBEM" : "Live")
                             </span>
                             @if (iAmPlaying)
                             {
-                                <span class="badge @(game.MyTurn ? "badge-error" : "badge-info") badge-sm align-middle gap-1">
+                                <span class="badge @(game.MyTurn ? "badge-error" : "badge-info") align-middle gap-1">
                                     @if (!string.IsNullOrEmpty(game.MyHouse))
                                     {
-                                        <img src="~/house_icons/@(game.MyHouse.ToLowerInvariant()).png" alt="@game.MyHouse" style="height: 1em; vertical-align: middle;" />
+                                        <img src="~/house_icons/@(game.MyHouse.ToLowerInvariant()).png" alt="@game.MyHouse" class="h-full w-auto shrink-0" />
                                     }
-                                    @(game.MyTurn ? "YOUR TURN" : "Playing")
+                                    @(game.MyTurn ? "Your turn" : "Playing")
                                 </span>
                                 @if (game.UnreadPublicMessages)
                                 {
-                                    <span class="badge badge-warning badge-sm align-middle" title="Unread public messages"><i class="fas fa-envelope"></i></span>
+                                    <span class="badge badge-warning align-middle" title="Unread public messages"><i class="fas fa-envelope"></i></span>
                                 }
                                 @if (game.UnreadPrivateMessages)
                                 {
-                                    <span class="badge badge-error badge-sm align-middle" title="Unread private messages"><i class="fas fa-envelope"></i></span>
+                                    <span class="badge badge-error align-middle" title="Unread private messages"><i class="fas fa-envelope"></i></span>
                                 }
                                 @if (game.MyNeededForVote)
                                 {
-                                    <span class="badge badge-error badge-sm align-middle" title="There is an ongoing vote"><i class="fas fa-vote-yea"></i></span>
+                                    <span class="badge badge-error align-middle" title="There is an ongoing vote"><i class="fas fa-vote-yea"></i></span>
                                 }
                             }
                             @if (game.ReplacementNeededFor is not null)
                             {
-                                <span class="badge badge-error badge-sm align-middle" title="Replacement needed for: @game.ReplacementNeededFor"><i class="fas fa-exchange-alt"></i></span>
+                                <span class="badge badge-error align-middle" title="Replacement needed for: @game.ReplacementNeededFor"><i class="fas fa-exchange-alt"></i></span>
                             }
-                            <a class="link font-semibold text-base-content" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                            <a class="link font-semibold text-base text-base-content" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                         </td>
                         @if (allOpen)
                         {
@@ -115,6 +115,7 @@ else
                             <div class="flex flex-nowrap items-center justify-end gap-1">
                                 <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                         data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                        data-owner-name="@game.OwnerDisplayName"
                                         data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                     <i class="fas fa-gear"></i>
                                 </button>

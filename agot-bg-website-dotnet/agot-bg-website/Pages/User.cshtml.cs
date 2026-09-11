@@ -43,7 +43,9 @@ public class UserModel(
         string? WaitingFor,
         string? Winner,
         string SetupName,
-        IReadOnlyList<string> EnabledSettingLabels
+        IReadOnlyList<string> EnabledSettingLabels,
+        bool IsPbem,
+        string? OwnerDisplayName
     );
 
     /// <summary>A game the viewed user was removed from (voted out/timed out) before it ended,
@@ -58,7 +60,9 @@ public class UserModel(
         DateTimeOffset? ReplacedAt,
         PlayerReplacementReason? Reason,
         string SetupName,
-        IReadOnlyList<string> EnabledSettingLabels
+        IReadOnlyList<string> EnabledSettingLabels,
+        bool IsPbem,
+        string? OwnerDisplayName
     );
 
     public ApplicationUser ViewedUser { get; set; } = null!;
@@ -152,6 +156,13 @@ public class UserModel(
                 p.Game.CreatedAt,
                 p.Game.LastActiveAt,
                 PlayersCount = p.Game.Players.Count,
+                OwnerDisplayName = p.Game.OwnerUser == null
+                    ? null
+                    : (
+                        p.Game.OwnerUser.IsDeleted
+                            ? ApplicationUser.DeletedAccountDisplayName
+                            : p.Game.OwnerUser.UserName
+                    ),
             })
             .ToListAsync();
 
@@ -183,7 +194,9 @@ public class UserModel(
                 view.WaitingFor,
                 winner,
                 GameSettingsDisplay.GetSetupName(view.SetupId),
-                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                view.IsPbem,
+                row.OwnerDisplayName
             );
 
             if (row.State == GameState.Cancelled)
@@ -236,6 +249,13 @@ public class UserModel(
                 p.Game.State,
                 p.Game.ViewOfGame,
                 PlayersCount = p.Game.Players.Count,
+                OwnerDisplayName = p.Game.OwnerUser == null
+                    ? null
+                    : (
+                        p.Game.OwnerUser.IsDeleted
+                            ? ApplicationUser.DeletedAccountDisplayName
+                            : p.Game.OwnerUser.UserName
+                    ),
             })
             .ToListAsync();
 
@@ -251,7 +271,9 @@ public class UserModel(
                     row.ReplacedAt,
                     row.Reason,
                     GameSettingsDisplay.GetSetupName(view.SetupId),
-                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                    view.IsPbem,
+                    row.OwnerDisplayName
                 );
             })
             .ToList();
