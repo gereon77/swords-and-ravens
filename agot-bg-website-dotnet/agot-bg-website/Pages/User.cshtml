@@ -115,7 +115,7 @@
                                             }
                                             else if (game.IsWinner == true)
                                             {
-                                                <span title="Won">👑</span>
+                                                <i class="fa-solid fa-crown text-2xl align-middle" title="Won" aria-label="Won"></i>
                                             }
                                         </td>
                                         <td class="whitespace-normal break-words">
@@ -124,8 +124,8 @@
                                             </span>
                                             @if (!string.IsNullOrEmpty(game.House))
                                             {
-                                                <span class="house-icon tooltip" data-tip="@game.House">
-                                                    <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
+                                                <span class="house-icon tooltip inline-flex h-6 items-center align-middle" data-tip="@game.House">
+                                                    <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" class="h-full w-auto shrink-0" />
                                                 </span>
                                             }
                                             <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>

@@ -99,12 +99,29 @@ jobs:
         run: |
           mkdir -p agot-bg-website-dotnet/agot-bg-website/GameClientTemplates
           cp agot-bg-game-server/dist/index.html agot-bg-website-dotnet/agot-bg-website/GameClientTemplates/play.html
+      - uses: docker/setup-buildx-action@v4
       - name: Login to GitHub Container Registry
-        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-      - name: Build image
-        run: docker build -f agot-bg-website-dotnet/agot-bg-website/Dockerfile -t $WEBSITE_IMAGE agot-bg-website-dotnet
-      - name: Push image
-        run: docker push $WEBSITE_IMAGE
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        # Uses the GitHub Actions cache (type=gha) for Docker layers, keyed separately from the
+        # game-server image below via `scope`. Without this, every deploy rebuilt every layer from
+        # scratch (no caching at all) - harmless most of the time, but run 34579308503's
+        # `apt-get update` (installing libgssapi-krb5-2, see the Dockerfile) took ~4.5 minutes on a
+        # slow upstream Ubuntu archive mirror alone, blowing up that deploy to 9m32s vs. the usual
+        # ~5-6m. Caching this and the `dotnet restore`/`dotnet build` layers means an unchanged
+        # Dockerfile/csproj no longer re-runs them - and re-downloads nothing - on every push.
+        uses: docker/build-push-action@v7
+        with:
+          context: agot-bg-website-dotnet
+          file: agot-bg-website-dotnet/agot-bg-website/Dockerfile
+          push: true
+          tags: ${{ env.WEBSITE_IMAGE }}
+          cache-from: type=gha,scope=website
+          cache-to: type=gha,mode=max,scope=website
 
   build-game-server-image:
     name: Build & push game-server Docker image
@@ -114,12 +131,24 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
       - name: Login to GitHub Container Registry
-        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-      - name: Build image
-        run: docker build -f game_server.Dockerfile -t $GAME_SERVER_IMAGE .
-      - name: Push image
-        run: docker push $GAME_SERVER_IMAGE
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        # See the equivalent step in build-website-image above - same GitHub Actions layer cache,
+        # separate `scope` so the two jobs' caches don't evict each other.
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: game_server.Dockerfile
+          push: true
+          tags: ${{ env.GAME_SERVER_IMAGE }}
+          cache-from: type=gha,scope=game-server
+          cache-to: type=gha,mode=max,scope=game-server
 
   deploy:
     name: Deploy to droplet
@@ -147,6 +176,14 @@ jobs:
         # `website`/`game-server` images only — db/redis are untouched by deploys (see
         # docker-compose.prod.yml). WEBSITE_IMAGE/GAME_SERVER_IMAGE passed as shell env vars here
         # override whatever's sitting in .env.prod, without needing to edit that file every run.
+        # Stop/start order is deliberate and NOT delegated to a single `docker compose up -d
+        # website game-server` (which - despite game-server's `depends_on: website` - only
+        # guarantees website's new container exists before game-server's, not that the old
+        # game-server is stopped first): game-server is stopped before website, so no in-flight
+        # game can call the website's API while it (or the game-server itself) is restarting;
+        # website is then stopped/started, and only then is game-server started again with the
+        # website already back up. `--no-deps` on both `up -d` calls keeps this order explicit
+        # instead of letting compose reconcile the dependency itself.
         # `caddy` is restarted too (cheap, no image pull) so a changed Caddyfile above always
         # takes effect. Its recreate uses --no-deps: without it, compose also reconciles caddy's
         # `depends_on: website` using .env.prod's default WEBSITE_IMAGE (unset here -> falls back
@@ -157,8 +194,12 @@ jobs:
             "cd /opt/swords-and-ravens && \
              WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
              docker compose -f docker-compose.prod.yml --env-file .env.prod pull website game-server && \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod stop game-server && \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod stop website && \
              WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
-             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d website game-server && \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps website && \
+             WEBSITE_IMAGE=$WEBSITE_IMAGE GAME_SERVER_IMAGE=$GAME_SERVER_IMAGE \
+             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps game-server && \
              docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate --no-deps caddy"
       - name: Clean up old images on the droplet
         run: ssh -o StrictHostKeyChecking=no $DEPLOY_HOST "docker image prune -a -f --filter \"until=45m\""
