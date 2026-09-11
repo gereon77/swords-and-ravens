@@ -43,7 +43,8 @@ public class UserModel(
         string? WaitingFor,
         string? Winner,
         string SetupName,
-        IReadOnlyList<string> EnabledSettingLabels
+        IReadOnlyList<string> EnabledSettingLabels,
+        bool IsPbem
     );
 
     /// <summary>A game the viewed user was removed from (voted out/timed out) before it ended,
@@ -58,7 +59,8 @@ public class UserModel(
         DateTimeOffset? ReplacedAt,
         PlayerReplacementReason? Reason,
         string SetupName,
-        IReadOnlyList<string> EnabledSettingLabels
+        IReadOnlyList<string> EnabledSettingLabels,
+        bool IsPbem
     );
 
     public ApplicationUser ViewedUser { get; set; } = null!;
@@ -183,7 +185,8 @@ public class UserModel(
                 view.WaitingFor,
                 winner,
                 GameSettingsDisplay.GetSetupName(view.SetupId),
-                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                view.IsPbem
             );
 
             if (row.State == GameState.Cancelled)
@@ -251,7 +254,8 @@ public class UserModel(
                     row.ReplacedAt,
                     row.Reason,
                     GameSettingsDisplay.GetSetupName(view.SetupId),
-                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                    view.IsPbem
                 );
             })
             .ToList();

@@ -119,6 +119,9 @@
                                             }
                                         </td>
                                         <td class="whitespace-normal break-words">
+                                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
+                                                @(game.IsPbem ? "PBEM" : "Live")
+                                            </span>
                                             @if (!string.IsNullOrEmpty(game.House))
                                             {
                                                 <span class="house-icon tooltip" data-tip="@game.House">
@@ -188,6 +191,9 @@
                                 {
                                     <tr>
                                         <td class="whitespace-normal break-words">
+                                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
+                                                @(game.IsPbem ? "PBEM" : "Live")
+                                            </span>
                                             <a class="link font-semibold text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
@@ -244,6 +250,9 @@
                                 {
                                     <tr>
                                         <td class="whitespace-normal break-words">
+                                            <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
+                                                @(game.IsPbem ? "PBEM" : "Live")
+                                            </span>
                                             <a class="link font-semibold text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">
