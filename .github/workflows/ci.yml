@@ -9,18 +9,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
+    - uses: docker/setup-buildx-action@v4
     - name: Build game-server Docker image
-      run: docker build . -f ./game_server.Dockerfile
+      # Shares the same GitHub Actions cache (type=gha, scope=game-server) as deploy.yml's
+      # build-game-server-image job, so this and every deploy reuse each other's layers instead of
+      # each PR/push always rebuilding node_modules etc. from scratch.
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        file: game_server.Dockerfile
+        push: false
+        cache-from: type=gha,scope=game-server
+        cache-to: type=gha,mode=max,scope=game-server
   website-build:
     name: Website Build
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
+    - uses: docker/setup-buildx-action@v4
     - name: Build website Docker image
-      # Mirrors deploy.yml's build-website-image job: Dockerfile lives inside the project folder,
-      # build context is agot-bg-website-dotnet/ (its parent) so it can COPY the sibling
-      # agot-bg-website.Data project too.
-      run: docker build -f agot-bg-website-dotnet/agot-bg-website/Dockerfile agot-bg-website-dotnet
+      # Mirrors deploy.yml's build-website-image job (Dockerfile lives inside the project folder,
+      # build context is agot-bg-website-dotnet/ so it can COPY the sibling agot-bg-website.Data
+      # project too), and shares its GitHub Actions cache (type=gha, scope=website). Without this,
+      # every single PR push re-ran the base image's `apt-get update` (installing
+      # libgssapi-krb5-2) from scratch - archive.ubuntu.com has repeatedly taken 4-6 minutes to
+      # fetch its package indexes from GitHub-hosted runners (seen in both this workflow and
+      # deploy.yml), which is a widely reported slow-mirror/congestion issue for Azure-hosted CI
+      # traffic, not a per-account rate limit. Caching this layer means it's only re-run when the
+      # Dockerfile actually changes.
+      uses: docker/build-push-action@v7
+      with:
+        context: agot-bg-website-dotnet
+        file: agot-bg-website-dotnet/agot-bg-website/Dockerfile
+        push: false
+        cache-from: type=gha,scope=website
+        cache-to: type=gha,mode=max,scope=website
   # build-assets:
   #   name: Build game assets
   #   runs-on: ubuntu-latest
