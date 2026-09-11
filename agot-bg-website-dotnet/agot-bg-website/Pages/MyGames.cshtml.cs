@@ -50,16 +50,18 @@ public class MyGamesModel(
             await authorizationService.AuthorizeAsync(User, GamePermissions.CancelGame)
         ).Succeeded;
 
+        var userId = userManager.GetUserId(User);
+        var viewerId = userId is not null ? Guid.Parse(userId) : (Guid?)null;
+
         CurrentLiveGames = await gameLists.GetCurrentLiveGamesAsync();
         LastFinishedGame = await gameLists.GetLastFinishedGameAsync();
 
-        var userId = userManager.GetUserId(User);
-        if (userId is null)
+        if (viewerId is null)
         {
             return;
         }
 
-        MyGames = await gameLists.GetMyGamesAsync(Guid.Parse(userId));
+        MyGames = await gameLists.GetMyGamesAsync(viewerId.Value);
     }
 
     public async Task<IActionResult> OnPostCreateGameAsync([FromForm] string name)
