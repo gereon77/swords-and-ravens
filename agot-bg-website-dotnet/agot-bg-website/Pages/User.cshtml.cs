@@ -184,7 +184,7 @@ public class UserModel(
                 row.Id,
                 row.Name,
                 row.State,
-                player.House,
+                player.House is not null ? Capitalize(player.House) : null,
                 row.PlayersCount,
                 view.MaxPlayerCount,
                 player.IsWinner,
@@ -328,6 +328,9 @@ public class UserModel(
             ? element.GetString()
             : null;
     }
+
+    private static string Capitalize(string value) =>
+        value.Length == 0 ? value : char.ToUpperInvariant(value[0]) + value[1..];
 
     private static string FormatTimeSpan(TimeSpan span)
     {

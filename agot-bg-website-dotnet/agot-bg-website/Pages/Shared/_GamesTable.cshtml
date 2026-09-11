@@ -70,7 +70,7 @@ else
                             </span>
                             @if (iAmPlaying)
                             {
-                                <span class="badge @(game.MyTurn ? "badge-error" : "badge-info") align-middle gap-1">
+                                <span class="badge @(game.MyTurn ? "badge-error" : "badge-info") align-middle gap-1" title="@game.MyHouse">
                                     @if (!string.IsNullOrEmpty(game.MyHouse))
                                     {
                                         <img src="~/house_icons/@(game.MyHouse.ToLowerInvariant()).png" alt="@game.MyHouse" class="h-full w-auto shrink-0" />
