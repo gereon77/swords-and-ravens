@@ -128,7 +128,7 @@
                                                     <img src="~/house_icons/@(game.House.ToLowerInvariant()).png" alt="@game.House" style="height: 1.25em; vertical-align: middle;" />
                                                 </span>
                                             }
-                                            <a class="link font-semibold text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">
                                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
@@ -136,6 +136,7 @@
                                         <td class="whitespace-nowrap">
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-owner-name="@game.OwnerDisplayName"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>
@@ -194,12 +195,13 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
-                                            <a class="link font-semibold text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
                                         <td class="whitespace-nowrap">
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount"
+                                                    data-owner-name="@game.OwnerDisplayName"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>
@@ -253,7 +255,7 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
-                                            <a class="link font-semibold text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                                            <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">
                                             @game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")
@@ -269,6 +271,7 @@
                                         <td class="whitespace-nowrap">
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-owner-name="@game.OwnerDisplayName"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>

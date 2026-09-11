@@ -66,7 +66,7 @@ public class GamesModel(
         var viewerId = userId is not null ? Guid.Parse(userId) : (Guid?)null;
 
         OpenGames = await gameLists.GetOpenGamesAsync();
-        OngoingGames = await gameLists.GetOngoingGamesAsync();
+        OngoingGames = await gameLists.GetOngoingGamesAsync(viewerId);
         CurrentLiveGames = await gameLists.GetCurrentLiveGamesAsync();
         ReplacementNeededGames = await gameLists.GetReplacementNeededGamesAsync(viewerId);
         LastFinishedGame = await gameLists.GetLastFinishedGameAsync();

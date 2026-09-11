@@ -22,7 +22,7 @@ else
                     <th>Name</th>
                     @if (allOpen)
                     {
-                        <th>Owner</th>
+                        <th>Host</th>
                     }
                     @if (anyOngoing)
                     {
@@ -75,7 +75,7 @@ else
                                     {
                                         <img src="~/house_icons/@(game.MyHouse.ToLowerInvariant()).png" alt="@game.MyHouse" class="h-full w-auto shrink-0" />
                                     }
-                                    @(game.MyTurn ? "YOUR TURN" : "Playing")
+                                    @(game.MyTurn ? "Your turn" : "Playing")
                                 </span>
                                 @if (game.UnreadPublicMessages)
                                 {
@@ -94,7 +94,7 @@ else
                             {
                                 <span class="badge badge-error align-middle" title="Replacement needed for: @game.ReplacementNeededFor"><i class="fas fa-exchange-alt"></i></span>
                             }
-                            <a class="link font-semibold text-base-content" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
+                            <a class="link font-semibold text-base text-base-content" href="/play/@game.Id" target="_blank" rel="noopener noreferrer">@game.Name</a>
                         </td>
                         @if (allOpen)
                         {
@@ -115,6 +115,7 @@ else
                             <div class="flex flex-nowrap items-center justify-end gap-1">
                                 <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                         data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                        data-owner-name="@game.OwnerDisplayName"
                                         data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                     <i class="fas fa-gear"></i>
                                 </button>
