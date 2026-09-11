@@ -36,6 +36,14 @@
                 <label asp-for="Input.ConfirmPassword">Confirm Password</label>
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
             </div>
+            <div class="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+                <label asp-for="Input.Website">Website</label>
+                <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+            </div>
+            @if (Model.TurnstileEnabled)
+            {
+                <div class="cf-turnstile mb-3" data-sitekey="@Model.TurnstileSiteKey" data-action="register"></div>
+            }
             <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </form>
     </div>
@@ -110,4 +118,8 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (Model.TurnstileEnabled)
+    {
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    }
 }

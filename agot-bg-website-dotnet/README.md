@@ -77,6 +77,21 @@ Postgres/Redis/SMTP.
    dotnet user-secrets set "Email:FromAddress" "no-reply@winordie.local"
    ```
 
+   **Registration bot protection:** production password registration uses Cloudflare Turnstile
+   when both `Turnstile:SiteKey` and `Turnstile:SecretKey` are configured. Turnstile is free for
+   this use case; the server validates every token against Cloudflare before creating the user.
+   Configure the values as deployment secrets/environment variables (never commit the secret):
+
+   ```powershell
+   dotnet user-secrets set "Turnstile:SiteKey" "<public site key>"
+   dotnet user-secrets set "Turnstile:SecretKey" "<private secret key>"
+   ```
+
+   The registration form also contains a hidden honeypot field. Local development remains
+   usable without Turnstile credentials, while a deployed environment with the two values set
+   rejects registrations without a valid challenge response. Create the Turnstile widget for the
+   production hostname in the Cloudflare dashboard.
+
    View captured emails at http://localhost:5099. To test Google/Discord/Facebook sign-in
    locally you'll also need your own OAuth app credentials, set the same way (`Authentication:Google:ClientId` / `:ClientSecret`, etc. — see `MIGRATION_PLAN.md` for the OIDC provider setup notes).
 
