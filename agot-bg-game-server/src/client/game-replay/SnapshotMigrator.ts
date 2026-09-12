@@ -236,10 +236,10 @@ export default class SnapshotMigrator {
         return result;
       }
       case "leave-power-token-choice": {
-        if (!snap.gameSnapshot) return snap;
         const region = snap.getRegion(log.region);
         if (log.leftPowerToken) {
           region.controlPowerToken = log.house;
+          if (!snap.gameSnapshot) return snap;
           const house = snap.getHouse(log.house);
           house.removePowerTokens(1);
         }
