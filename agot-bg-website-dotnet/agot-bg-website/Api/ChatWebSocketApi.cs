@@ -573,7 +573,14 @@ public static class ChatWebSocketApi
             .Take(count)
             .Include(m => m.User)
             .ToListAsync();
-        messages.Reverse(); // oldest first — mirrors Django's [0:count:-1] slice-and-reverse trick.
+        if (firstMessageId is null)
+        {
+            // Initial retrieve: reverse to oldest-first, mirroring Django's [0:count:-1] slice-and-reverse trick.
+            // "Load more" retrieves intentionally stay newest-first here — the game-server chat client
+            // reverses that chunk itself before prepending it (ChatClient.ts loadMoreMessages/addMultipleMessages),
+            // matching the old Django behavior where only the initial-retrieve branch reversed.
+            messages.Reverse();
+        }
 
         long? lastViewedMessage = null;
         if (firstMessageId is null)
