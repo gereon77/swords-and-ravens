@@ -40,7 +40,7 @@ jobs:
         # deploy changes only the website, game server, or deployment configuration. ASSET_PATH
         # is part of the output because webpack embeds it in index.html and the bundles.
         id: client-assets-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: agot-bg-game-server/dist
           key: game-client-dist-${{ runner.os }}-${{ env.ASSET_PATH }}-${{ hashFiles('agot-bg-game-server/package.json', 'agot-bg-game-server/yarn.lock', 'agot-bg-game-server/tsconfig.json', 'agot-bg-game-server/webpack.client.js', 'agot-bg-game-server/public/**', 'agot-bg-game-server/data/**', 'agot-bg-game-server/src/client/**', 'agot-bg-game-server/src/common/**', 'agot-bg-game-server/src/messages/**') }}
@@ -61,7 +61,7 @@ jobs:
         run: yarn run build-client
       - name: Cache built client assets
         if: steps.client-assets-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: agot-bg-game-server/dist
           key: ${{ steps.client-assets-cache.outputs.cache-primary-key }}
