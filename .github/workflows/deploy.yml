@@ -34,17 +34,37 @@ jobs:
         working-directory: ./agot-bg-game-server
     steps:
       - uses: actions/checkout@v5
+      - name: Restore built client assets
+        # The production client build is deterministic for this set of inputs. Caching the
+        # completed dist directory avoids its >2-minute webpack/image-optimization work when a
+        # deploy changes only the website, game server, or deployment configuration. ASSET_PATH
+        # is part of the output because webpack embeds it in index.html and the bundles.
+        id: client-assets-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: agot-bg-game-server/dist
+          key: game-client-dist-${{ runner.os }}-${{ env.ASSET_PATH }}-${{ hashFiles('agot-bg-game-server/package.json', 'agot-bg-game-server/yarn.lock', 'agot-bg-game-server/tsconfig.json', 'agot-bg-game-server/webpack.client.js', 'agot-bg-game-server/public/**', 'agot-bg-game-server/data/**', 'agot-bg-game-server/src/client/**', 'agot-bg-game-server/src/common/**', 'agot-bg-game-server/src/messages/**') }}
       - uses: actions/setup-node@v5
+        if: steps.client-assets-cache.outputs.cache-hit != 'true'
         with:
           node-version: lts/*
       - name: Install dependencies
+        if: steps.client-assets-cache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
       - name: Generate JSON schemas
+        if: steps.client-assets-cache.outputs.cache-hit != 'true'
         run: yarn run generate-json-schemas
       - name: Build client
         # Production build only — assets are served from DigitalOcean Spaces (ASSET_PATH above),
         # never baked into the website Docker image itself.
+        if: steps.client-assets-cache.outputs.cache-hit != 'true'
         run: yarn run build-client
+      - name: Cache built client assets
+        if: steps.client-assets-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: agot-bg-game-server/dist
+          key: ${{ steps.client-assets-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v6
         with:
           name: game-client-dist

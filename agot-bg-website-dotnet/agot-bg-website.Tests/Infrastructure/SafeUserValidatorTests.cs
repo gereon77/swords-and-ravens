@@ -150,6 +150,33 @@ public class SafeUserValidatorTests : IDisposable
         Assert.True(result.Succeeded);
     }
 
+    // Reproduces the second production incident this validator fixes: legacy-imported usernames
+    // containing accented/diacritic letters (e.g. "Länsiauto", "LuízaWD") used to fail this
+    // validator's username check on every single UserManager.UpdateAsync call - including ones
+    // that never touch the username at all, such as AccountLinkingService flipping Claimed=true
+    // when linking a new external login onto the account - because the check compared against
+    // options.User.AllowedUserNameCharacters, whose default is ASCII-only.
+    [Theory]
+    [InlineData("Länsiauto")]
+    [InlineData("LuízaWD")]
+    public async Task ValidateAsync_LegacyUsernameWithDiacritics_Succeeds(string userName)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            Email = "diacritic@example.com",
+            NormalizedEmail = "DIACRITIC@EXAMPLE.COM",
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var validator = _provider.GetRequiredService<IUserValidator<ApplicationUser>>();
+        var result = await validator.ValidateAsync(_userManager, user);
+
+        Assert.True(result.Succeeded);
+    }
+
     public void Dispose()
     {
         _db.Dispose();

@@ -110,8 +110,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                 ErrorMessage = "The {0} must be between {2} and {1} characters long."
             )]
             [RegularExpression(
-                @"^[a-zA-Z0-9_\-\. ]+$",
-                ErrorMessage = "Username can only contain letters, numbers, spaces, dots, underscores, and dashes."
+                Infrastructure.Auth.UsernamePolicy.Pattern,
+                ErrorMessage = Infrastructure.Auth.UsernamePolicy.ErrorMessage
             )]
             [Display(Name = "Username")]
             public string UserName { get; set; }

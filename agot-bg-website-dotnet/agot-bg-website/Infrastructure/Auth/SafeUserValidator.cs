@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 using agot_bg_website.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -56,10 +57,13 @@ public class SafeUserValidator(IdentityErrorDescriber? describer = null)
             return;
         }
 
-        if (
-            !string.IsNullOrEmpty(manager.Options.User.AllowedUserNameCharacters)
-            && userName.Any(c => !manager.Options.User.AllowedUserNameCharacters.Contains(c))
-        )
+        // Deliberately checked against UsernamePolicy.Pattern (Unicode letters/digits, see its own
+        // doc comment), not manager.Options.User.AllowedUserNameCharacters: that option's default
+        // is ASCII-only, which would re-reject every existing legacy-imported username containing
+        // an accent/diacritic (e.g. "Länsiauto", "LuízaWD") on every single UserManager.UpdateAsync
+        // call - including ones that never touch the name, such as AccountLinkingService linking a
+        // new external login onto such an account.
+        if (!Regex.IsMatch(userName, UsernamePolicy.Pattern))
         {
             errors.Add(_describer.InvalidUserName(userName));
             return;
