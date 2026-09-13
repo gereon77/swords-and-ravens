@@ -56,7 +56,19 @@ public class AccountLinkingService(UserManager<ApplicationUser> userManager)
 
         unclaimedImported.Claimed = true;
         unclaimedImported.EmailConfirmed = true;
-        await userManager.UpdateAsync(unclaimedImported);
+        var updateResult = await userManager.UpdateAsync(unclaimedImported);
+        if (!updateResult.Succeeded)
+        {
+            // Don't report Linked if the Claimed/EmailConfirmed flags never actually made it to
+            // the database: the caller (ExternalLoginModel.TryAutoLinkExistingAccountAsync) would
+            // otherwise proceed straight to AddLoginAsync on a user object that *looks* claimed
+            // in-memory but isn't in the DB, which then fails validation again for the exact same
+            // reason - producing a confusing "username invalid" error that has nothing to do with
+            // whatever the visitor actually typed. Surfacing NoMatch here instead makes the caller
+            // fall through to normal registration, and callers/logs get a clear signal that this
+            // legacy row itself needs attention (e.g. a username violating current policy).
+            return new AccountLinkResult(AccountLinkOutcome.NoMatch, null);
+        }
 
         return new AccountLinkResult(AccountLinkOutcome.Linked, unclaimedImported);
     }

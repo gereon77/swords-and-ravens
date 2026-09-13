@@ -1,5 +1,6 @@
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,11 @@ public class AccountLinkingServiceTests : IDisposable
             o.UseInMemoryDatabase(Guid.NewGuid().ToString())
         );
         services.AddLogging();
+        // Mirrors Program.cs: production replaces the default UserValidator<TUser> with
+        // SafeUserValidator (and registers it before AddIdentity() so that call is a no-op) - the
+        // diacritic-username test below only reproduces the real incident if UpdateAsync goes
+        // through the same validator as production.
+        services.AddScoped<IUserValidator<ApplicationUser>, SafeUserValidator>();
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -84,6 +90,33 @@ public class AccountLinkingServiceTests : IDisposable
         var result = await _sut.TryLinkByEmailAsync("ACTIVE@EXAMPLE.COM");
 
         Assert.Equal(AccountLinkOutcome.ConflictAlreadyClaimed, result.Outcome);
+    }
+
+    // Reproduces the reported production incident: a legacy-imported username containing
+    // accented/diacritic letters (e.g. "Länsiauto", "LuízaWD") used to make the Claimed=true
+    // UpdateAsync call above fail validation (purely because of the existing, untouched username),
+    // get silently ignored, and then report Linked anyway - so the caller's follow-up
+    // AddLoginAsync failed the same way, confusingly blocking the user regardless of what
+    // username they typed on the registration fallback page.
+    [Fact]
+    public async Task ImportedUnclaimedUserWithDiacriticUsername_GetsLinkedAndClaimed()
+    {
+        var imported = new ApplicationUser
+        {
+            UserName = "Länsiauto",
+            Email = "legacy-diacritic@example.com",
+            NormalizedEmail = "LEGACY-DIACRITIC@EXAMPLE.COM",
+            ImportedFromLegacy = true,
+            Claimed = false,
+        };
+        await _userManager.CreateAsync(imported);
+
+        var result = await _sut.TryLinkByEmailAsync("LEGACY-DIACRITIC@EXAMPLE.COM");
+
+        Assert.Equal(AccountLinkOutcome.Linked, result.Outcome);
+        Assert.NotNull(result.User);
+        Assert.True(result.User!.Claimed);
+        Assert.True(result.User.EmailConfirmed);
     }
 
     public void Dispose()
