@@ -429,11 +429,20 @@ app.UseHttpsRedirection();
 // exactly what broke the "Online users" widget on "/games/" (see _ChatWidget.cshtml's now-absolute
 // import paths). Normalize every request to a slash-free path (except the root "/") with a
 // permanent redirect before routing ever sees it, so old bookmarks always land on a canonical URL.
+// Exempt the Scalar API reference UI (see MapScalarApiReference("/api/docs") below): Scalar relies
+// on the opposite convention, 302-redirecting the bare "/api/docs" to "/api/docs/" so its own
+// relative asset URLs resolve against the right base path. Without this exemption the two
+// middlewares fight over the trailing slash forever (307/301 ping-pong, never reaching the UI).
 app.Use(
     async (context, next) =>
     {
         var path = context.Request.Path;
-        if (path.HasValue && path.Value!.Length > 1 && path.Value.EndsWith('/'))
+        if (
+            path.HasValue
+            && path.Value!.Length > 1
+            && path.Value.EndsWith('/')
+            && !path.StartsWithSegments("/api/docs", StringComparison.OrdinalIgnoreCase)
+        )
         {
             var target = path.Value.TrimEnd('/') + context.Request.QueryString;
             context.Response.Redirect(target, permanent: true);
