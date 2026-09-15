@@ -98,9 +98,15 @@ public enum PlayerReplacementReason
 /// <see cref="Reason"/> is nullable: both the live save-game endpoint and the historical import
 /// backfill (Snr.Migration) resolve it from the game's `ViewOfGame` JSON's flat top-level
 /// `oldPlayerIds`/`timeoutPlayerIds` arrays via <see cref="PreviousPlayerReasonResolver"/>, but it
-/// stays null if the removed user appears in neither - e.g. a replace-player-by-player/vassal swap
-/// this data model otherwise doesn't track (see MIGRATION_PLAN.md §10.2 - not used for win-rate
-/// calculation either way, every row counts as a loss regardless of Reason).
+/// stays null if the removed user appears in neither (see MIGRATION_PLAN.md §10.2 - not used for
+/// win-rate calculation either way, every row counts as a loss regardless of Reason). On the
+/// current game server every mid-game removal path (vote/timeout vassalization as well as a
+/// player-for-player replace vote) pushes the removed user's id into one of those arrays, so a
+/// null Reason on a row created by the live endpoint (<see cref="ReplacedAt"/> set) only ever
+/// happens for the now-fixed lobby-seat-change bug - see
+/// <see cref="PreviousPlayerCleanup"/>. The historical backfill can also leave Reason null for
+/// legacy pre-feature games, but always leaves <see cref="ReplacedAt"/> null instead, which is how
+/// the two cases are told apart.
 /// </summary>
 public class PreviousPlayerInGame
 {

@@ -208,10 +208,10 @@ public static class GamesApi
                         // Reason is resolved from the just-saved ViewOfGame's flat top-level
                         // oldPlayerIds/timeoutPlayerIds arrays (same logic Snr.Migration's historical
                         // backfill uses, see PreviousPlayerReasonResolver) - null only if the removed
-                        // user appears in neither (e.g. a replace-player-by-player/vassal swap this
-                        // data model doesn't otherwise track). Not used for win-rate calculation
-                        // either way (every PreviousPlayerInGame row counts as a loss regardless of
-                        // Reason — see MIGRATION_PLAN.md §10.2).
+                        // user appears in neither, which given gameWasInLobby above should no longer
+                        // happen for a real mid-game removal (see PreviousPlayerCleanup's doc comment).
+                        // Not used for win-rate calculation either way (every PreviousPlayerInGame row
+                        // counts as a loss regardless of Reason — see MIGRATION_PLAN.md §10.2).
                         db.PreviousPlayersInGame.AddRange(
                             toAdd.Select(userId => new PreviousPlayerInGame
                             {
