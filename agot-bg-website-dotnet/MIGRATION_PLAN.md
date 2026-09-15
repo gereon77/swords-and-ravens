@@ -151,7 +151,7 @@ Game
   SerializedGame     jsonb?   // full resumable state, same shape the TS server already produces
   ViewOfGame         jsonb?   // denormalized summary, same shape as today
   Version            string?
-  State              string   // IN_LOBBY | ONGOING | FINISHED | CLOSED | CANCELLED
+  State              string   // IN_LOBBY | ONGOING | FINISHED | CANCELLED
   CreatedAt / UpdatedAt / LastActiveAt
 
 PlayerInGame
@@ -1183,7 +1183,13 @@ Pagination for Admin Users/Games/Rooms/Messages; CoreAdmin comparison tab; dead 
 cleanup; `GameStateColumnRight` rename; enhanced Games/MyGames lists with badges + inactive-game
 lists (all documented under §14 above); private game-server API split onto its own internal-only
 Kestrel endpoint, not just Basic Auth (see §6.2); production docker-compose + Caddy TLS setup for
-the DO Docker droplet (see §16).
+the DO Docker droplet (see §16); game-save hardening against a live game silently reverting to a
+stale/paused snapshot after an out-of-order or dropped save — `Game.SaveSequence` column +
+`GamesApi` PATCH rejecting any save whose sequence isn't strictly greater than what's stored
+(`GamesApi.cs`), the TS game server flushing/awaiting pending throttled saves on `SIGTERM`/`SIGINT`
+(`GlobalServer.shutdown()`, `server.ts`), bypassing the save throttle for `FINISHED`/`CANCELLED`
+transitions (`EntireGame.saveGame`), and skipping the `PlayerInGame`/`PreviousPlayerInGame`
+delete+recreate on saves where the player list didn't change (`GamesApi.PlayersUnchanged`).
 
 ## 16. Production deployment: plain Docker + Compose, no Dokku/Kubernetes (implemented)
 

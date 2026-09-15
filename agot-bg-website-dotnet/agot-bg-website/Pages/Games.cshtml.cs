@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Pages;
 
@@ -20,6 +21,7 @@ public class GamesModel(
     GameListQueryService gameLists,
     UserManager<ApplicationUser> userManager,
     IAuthorizationService authorizationService,
+    Infrastructure.Stats.UserStatsRecalculationQueue userStatsQueue,
     ILogger<GamesModel> logger
 ) : PageModel
 {
@@ -149,6 +151,22 @@ public class GamesModel(
             game.State = GameState.Cancelled;
             game.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
+
+            // A cancelled game must never count towards anyone's win-rate stats (see
+            // UserStatsService's doc comment / MIGRATION_PLAN.md §10.2), but those stats are a
+            // cache on ApplicationUser that's only refreshed when enqueued - it wouldn't
+            // otherwise happen until each affected player's next unrelated game finishes. Enqueue
+            // every current and former (voted out/timed out) participant now, exactly like
+            // GamesApi's PATCH handler already does for the Finished transition.
+            var affectedUserIds = await db
+                .PlayersInGame.Where(p => p.GameId == gameId)
+                .Select(p => p.UserId)
+                .Concat(
+                    db.PreviousPlayersInGame.Where(p => p.GameId == gameId).Select(p => p.UserId)
+                )
+                .Distinct()
+                .ToListAsync();
+            userStatsQueue.EnqueueAll(affectedUserIds);
 
             logger.LogInformation(
                 "{Username} ({UserId}) cancelled game {GameName} ({GameId})",

@@ -45,7 +45,8 @@ export default class LocalWebsiteClient implements WebsiteClient {
       name: "Local Test Game",
       ownerId: "1",
       serializedGame: serializedGame,
-      version: version.toString()
+      version: version.toString(),
+      saveSequence: 0
     };
   }
 
@@ -159,7 +160,8 @@ export default class LocalWebsiteClient implements WebsiteClient {
     _players: { userId: string; data: object }[],
     _state: string,
     _version: string,
-    updateLastActive: boolean
+    updateLastActive: boolean,
+    _saveSequence: number
   ): Promise<void> {
     console.log("updateLastActive", updateLastActive);
     if (serializedGame.childGameState.type != "ingame") {

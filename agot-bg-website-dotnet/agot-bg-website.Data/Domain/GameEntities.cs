@@ -7,7 +7,6 @@ public enum GameState
     InLobby,
     Ongoing,
     Finished,
-    Closed,
     Cancelled,
 }
 
@@ -38,6 +37,18 @@ public class Game
     public JsonDocument? ViewOfGame { get; set; }
 
     public string? Version { get; set; }
+
+    /// <summary>
+    /// Monotonically increasing counter assigned by the game server to every save attempt for
+    /// this game (see <c>GlobalServer.saveGame</c>/<c>gameSaveSequences</c> in the TS game
+    /// server). The game server's saves are fire-and-forget HTTP PATCHes, so two saves can reach
+    /// this API out of order (network/thread-pool jitter); <c>GamesApi</c>'s PATCH handler uses
+    /// this column to reject a PATCH whose sequence isn't strictly greater than what's already
+    /// stored, so an older save can never silently clobber a newer one. Defaults to 0 so
+    /// pre-existing rows (and any patch that omits the field, e.g. a mismatched game-server
+    /// version during a rolling deploy) are always accepted.
+    /// </summary>
+    public long SaveSequence { get; set; }
 
     public GameState State { get; set; } = GameState.InLobby;
 
@@ -87,9 +98,15 @@ public enum PlayerReplacementReason
 /// <see cref="Reason"/> is nullable: both the live save-game endpoint and the historical import
 /// backfill (Snr.Migration) resolve it from the game's `ViewOfGame` JSON's flat top-level
 /// `oldPlayerIds`/`timeoutPlayerIds` arrays via <see cref="PreviousPlayerReasonResolver"/>, but it
-/// stays null if the removed user appears in neither - e.g. a replace-player-by-player/vassal swap
-/// this data model otherwise doesn't track (see MIGRATION_PLAN.md §10.2 - not used for win-rate
-/// calculation either way, every row counts as a loss regardless of Reason).
+/// stays null if the removed user appears in neither (see MIGRATION_PLAN.md §10.2 - not used for
+/// win-rate calculation either way, every row counts as a loss regardless of Reason). On the
+/// current game server every mid-game removal path (vote/timeout vassalization as well as a
+/// player-for-player replace vote) pushes the removed user's id into one of those arrays, so a
+/// null Reason on a row created by the live endpoint (<see cref="ReplacedAt"/> set) only ever
+/// happens for the now-fixed lobby-seat-change bug - see
+/// <see cref="PreviousPlayerCleanup"/>. The historical backfill can also leave Reason null for
+/// legacy pre-feature games, but always leaves <see cref="ReplacedAt"/> null instead, which is how
+/// the two cases are told apart.
 /// </summary>
 public class PreviousPlayerInGame
 {

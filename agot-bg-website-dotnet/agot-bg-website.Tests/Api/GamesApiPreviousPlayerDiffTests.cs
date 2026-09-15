@@ -23,11 +23,50 @@ public class GamesApiPreviousPlayerDiffTests
         var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
             oldPlayerUserIds: [stillHere, removed],
             newPlayerUserIds: [stillHere],
-            existingPreviousPlayerUserIds: []
+            existingPreviousPlayerUserIds: [],
+            gameWasInLobby: false
         );
 
         Assert.Equal([removed], toAdd);
         Assert.Empty(toRemove);
+    }
+
+    [Fact]
+    public void PlayerMissingFromNewListIsNotAddedWhileGameIsStillInLobby()
+    {
+        // Players routinely take and leave seats before a game starts - that churn must never
+        // create a PreviousPlayerInGame row (see GamesApi.cs's class doc comment and
+        // MIGRATION_PLAN.md §10.2: every such row counts as a loss forever).
+        var stillHere = Guid.NewGuid();
+        var leftTheLobby = Guid.NewGuid();
+
+        var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
+            oldPlayerUserIds: [stillHere, leftTheLobby],
+            newPlayerUserIds: [stillHere],
+            existingPreviousPlayerUserIds: [],
+            gameWasInLobby: true
+        );
+
+        Assert.Empty(toAdd);
+        Assert.Empty(toRemove);
+    }
+
+    [Fact]
+    public void GameWasInLobbyStillRemovesAStaleExistingRowForAReturningPlayer()
+    {
+        // gameWasInLobby only suppresses ToAdd; a leftover row from before the game somehow
+        // returned to the lobby should still be cleaned up if that user is seated again.
+        var returning = Guid.NewGuid();
+
+        var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
+            oldPlayerUserIds: [],
+            newPlayerUserIds: [returning],
+            existingPreviousPlayerUserIds: [returning],
+            gameWasInLobby: true
+        );
+
+        Assert.Empty(toAdd);
+        Assert.Equal([returning], toRemove);
     }
 
     [Fact]
@@ -38,7 +77,8 @@ public class GamesApiPreviousPlayerDiffTests
         var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
             oldPlayerUserIds: [],
             newPlayerUserIds: [votedBackIn],
-            existingPreviousPlayerUserIds: [votedBackIn]
+            existingPreviousPlayerUserIds: [votedBackIn],
+            gameWasInLobby: false
         );
 
         Assert.Empty(toAdd);
@@ -53,7 +93,8 @@ public class GamesApiPreviousPlayerDiffTests
         var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
             oldPlayerUserIds: [alreadyTracked],
             newPlayerUserIds: [],
-            existingPreviousPlayerUserIds: [alreadyTracked]
+            existingPreviousPlayerUserIds: [alreadyTracked],
+            gameWasInLobby: false
         );
 
         Assert.Empty(toAdd);
@@ -68,7 +109,8 @@ public class GamesApiPreviousPlayerDiffTests
         var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
             oldPlayerUserIds: [stillHere],
             newPlayerUserIds: [stillHere],
-            existingPreviousPlayerUserIds: []
+            existingPreviousPlayerUserIds: [],
+            gameWasInLobby: false
         );
 
         Assert.Empty(toAdd);
@@ -105,6 +147,10 @@ public class GamesApiPreviousPlayerDiffTests
                 Id = gameId,
                 Name = "Test Game",
                 OwnerUserId = Guid.NewGuid(),
+                // Ongoing, not the InLobby default: this test replicates a vote-out/vote-back-in
+                // during a live game, which only ever creates PreviousPlayerInGame rows once a
+                // game has actually left its lobby (see DiffPreviousPlayers's gameWasInLobby).
+                State = GameState.Ongoing,
             }
         );
         db.PlayersInGame.AddRange(
@@ -141,7 +187,8 @@ public class GamesApiPreviousPlayerDiffTests
             var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
                 oldPlayerUserIds: game.Players.Select(p => p.UserId),
                 newPlayerUserIds: newPlayerIds,
-                existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId)
+                existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId),
+                gameWasInLobby: game.State == GameState.InLobby
             );
 
             db1.PlayersInGame.RemoveRange(game.Players);
@@ -207,7 +254,8 @@ public class GamesApiPreviousPlayerDiffTests
             var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
                 oldPlayerUserIds: game.Players.Select(p => p.UserId),
                 newPlayerUserIds: newPlayerIds,
-                existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId)
+                existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId),
+                gameWasInLobby: game.State == GameState.InLobby
             );
 
             db2.PlayersInGame.RemoveRange(game.Players);
@@ -244,6 +292,101 @@ public class GamesApiPreviousPlayerDiffTests
         );
         Assert.Empty(
             await check2.PreviousPlayersInGame.Where(p => p.GameId == gameId).ToListAsync()
+        );
+    }
+
+    /// <summary>
+    /// End-to-end companion to the test above: a player takes a seat and then leaves again while
+    /// the game is still InLobby (the default Game.State) - this must never create a
+    /// PreviousPlayerInGame row at all, unlike the exact same player-list shrink happening once
+    /// the game is Ongoing.
+    /// </summary>
+    [Fact]
+    public async Task LeavingTheLobbyNeverCreatesAPreviousPlayerRow()
+    {
+        await using var db = CreateContext(nameof(LeavingTheLobbyNeverCreatesAPreviousPlayerRow));
+
+        var gameId = Guid.NewGuid();
+        var stayingUserId = Guid.NewGuid();
+        var leftUserId = Guid.NewGuid();
+
+        db.Games.Add(
+            new Game
+            {
+                Id = gameId,
+                Name = "Test Game",
+                OwnerUserId = Guid.NewGuid(),
+                // State left at its default (InLobby) on purpose - this is the scenario being
+                // tested.
+            }
+        );
+        db.PlayersInGame.AddRange(
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = gameId,
+                UserId = stayingUserId,
+                Data = System.Text.Json.JsonDocument.Parse("{}"),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = gameId,
+                UserId = leftUserId,
+                Data = System.Text.Json.JsonDocument.Parse("{}"),
+            }
+        );
+        await db.SaveChangesAsync();
+
+        await using (var db1 = CreateContext(nameof(LeavingTheLobbyNeverCreatesAPreviousPlayerRow)))
+        {
+            var game = await db1
+                .Games.Include(g => g.Players)
+                .Include(g => g.PreviousPlayers)
+                .FirstAsync(g => g.Id == gameId);
+
+            var newPlayerIds = new[] { stayingUserId };
+            var (toAdd, toRemove) = GamesApi.DiffPreviousPlayers(
+                oldPlayerUserIds: game.Players.Select(p => p.UserId),
+                newPlayerUserIds: newPlayerIds,
+                existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId),
+                gameWasInLobby: game.State == GameState.InLobby
+            );
+
+            db1.PlayersInGame.RemoveRange(game.Players);
+            var newPlayers = newPlayerIds
+                .Select(uid => new PlayerInGame
+                {
+                    Id = Guid.NewGuid(),
+                    GameId = gameId,
+                    UserId = uid,
+                    Data = System.Text.Json.JsonDocument.Parse("{}"),
+                })
+                .ToList();
+            db1.PlayersInGame.AddRange(newPlayers);
+            game.Players = newPlayers;
+
+            db1.PreviousPlayersInGame.RemoveRange(
+                game.PreviousPlayers.Where(p => toRemove.Contains(p.UserId))
+            );
+            db1.PreviousPlayersInGame.AddRange(
+                toAdd.Select(uid => new PreviousPlayerInGame
+                {
+                    Id = Guid.NewGuid(),
+                    GameId = gameId,
+                    UserId = uid,
+                    Reason = PreviousPlayerReasonResolver.Resolve(game.ViewOfGame, uid),
+                    ReplacedAt = DateTimeOffset.UtcNow,
+                })
+            );
+            await db1.SaveChangesAsync();
+        }
+
+        await using var check = CreateContext(
+            nameof(LeavingTheLobbyNeverCreatesAPreviousPlayerRow)
+        );
+        Assert.Empty(
+            await check.PreviousPlayersInGame.Where(p => p.GameId == gameId).ToListAsync()
         );
     }
 }

@@ -14,6 +14,7 @@ export interface StoredGameData {
     ownerId: string;
     serializedGame: object | null;
     version: string | null;
+    saveSequence: number;
 }
 
 export interface StoredUserData {
@@ -27,7 +28,7 @@ export interface StoredUserData {
 export default interface WebsiteClient {
     getUser(userId: string): Promise<StoredUserData | null>;
     getGame(gameId: string): Promise<StoredGameData | null>;
-    saveGame(gameId: string, serializedGame: object, viewOfGame: object, players: {userId: string; data: object}[], state: string, version: string, updateLastActive: boolean): Promise<void>;
+    saveGame(gameId: string, serializedGame: object, viewOfGame: object, players: {userId: string; data: object}[], state: string, version: string, updateLastActive: boolean, saveSequence: number): Promise<void>;
     isGameCancelled(gameId: string): Promise<boolean>;
     notifyReadyToStart(gameId: string, userIds: string[]): Promise<void>;
     notifyYourTurn(gameId: string, userIds: string[]): Promise<void>;

@@ -123,7 +123,6 @@ public static class PublicApi
             GameState.InLobby => "IN_LOBBY",
             GameState.Ongoing => "ONGOING",
             GameState.Finished => "FINISHED",
-            GameState.Closed => "CLOSED",
             GameState.Cancelled => "CANCELLED",
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
         };

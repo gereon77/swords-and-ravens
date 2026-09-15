@@ -780,7 +780,6 @@ public class Importer(
             "IN_LOBBY" => GameState.InLobby,
             "ONGOING" => GameState.Ongoing,
             "FINISHED" => GameState.Finished,
-            "CLOSED" => GameState.Closed,
             "CANCELLED" => GameState.Cancelled,
             _ => GameState.InLobby,
         };

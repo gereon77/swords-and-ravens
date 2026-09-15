@@ -12,7 +12,10 @@ namespace agot_bg_website.Areas.Admin.Pages.Games;
 /// model-edit form gave for free, and the moderation tool this maintainer has repeatedly needed
 /// to hand-edit serialized_game or ban/punish players directly in the database (see chat history).
 /// </summary>
-public class EditModel(ApplicationDbContext db) : PageModel
+public class EditModel(
+    ApplicationDbContext db,
+    Infrastructure.Stats.UserStatsRecalculationQueue userStatsQueue
+) : PageModel
 {
     public Game GameEntity { get; set; } = null!;
 
@@ -119,6 +122,17 @@ public class EditModel(ApplicationDbContext db) : PageModel
         game.State = GameState.Cancelled;
         game.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
+
+        // See Pages.GamesModel.OnPostCancelGameAsync's identical comment: a cancelled game must
+        // never count towards anyone's cached win-rate stats, which otherwise wouldn't refresh
+        // until each affected player's next unrelated game finishes.
+        var affectedUserIds = await db
+            .PlayersInGame.Where(p => p.GameId == id)
+            .Select(p => p.UserId)
+            .Concat(db.PreviousPlayersInGame.Where(p => p.GameId == id).Select(p => p.UserId))
+            .Distinct()
+            .ToListAsync();
+        userStatsQueue.EnqueueAll(affectedUserIds);
 
         StatusMessage = $"Game '{game.Name}' cancelled.";
         return RedirectToPage(new { id });

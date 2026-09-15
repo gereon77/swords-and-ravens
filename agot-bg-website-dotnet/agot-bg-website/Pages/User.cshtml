@@ -234,6 +234,7 @@
                     <div class="overflow-x-auto overflow-y-auto rounded-box border border-base-300 bg-base-100" style="max-height: 1000px;">
                         <table class="table table-zebra table-fixed w-full">
                             <colgroup>
+                                <col class="w-24" />
                                 <col />
                                 <col class="w-20" />
                                 <col class="w-32" />
@@ -241,6 +242,7 @@
                             </colgroup>
                             <thead>
                                 <tr>
+                                    <th></th>
                                     <th>Name</th>
                                     <th>Players</th>
                                     <th>Reason</th>
@@ -251,6 +253,12 @@
                                 @foreach (var game in Model.PreviouslyParticipatedGames)
                                 {
                                     <tr>
+                                        <td class="text-center">
+                                            @if (game.State == GameState.Cancelled)
+                                            {
+                                                <span class="badge badge-neutral" title="This game was later cancelled - it never counted towards your stats.">Cancelled</span>
+                                            }
+                                        </td>
                                         <td class="whitespace-normal break-words">
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")

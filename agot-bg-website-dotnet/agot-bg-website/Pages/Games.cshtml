@@ -51,7 +51,7 @@
             <button type="submit" class="btn btn-primary w-full sm:w-auto px-8">Create Game</button>
         </form>
     </div>
-    <script>
+    <script nonce="@HttpContext.GetCspNonce()">
         document.getElementById('toggle-create-game')?.addEventListener('click', () => {
             const panel = document.getElementById('create-game-panel');
             const btn = document.getElementById('toggle-create-game');

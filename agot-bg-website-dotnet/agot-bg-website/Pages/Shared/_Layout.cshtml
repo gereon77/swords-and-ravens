@@ -9,13 +9,13 @@
        area they want instead of the site reflowing into a separate mobile layout. *@
     <title>@ViewData["Title"] - Swords and Ravens</title>
     <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
-    <script type="importmap"></script>
+    <script type="importmap" nonce="@Context.GetCspNonce()"></script>
     <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/fontawesome/css/solid.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/fontawesome/css/brands.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/agot_bg_website.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/agot-bg-website.styles.css" asp-append-version="true" />
     @if (User.Identity?.IsAuthenticated ?? false)
     {
         @* Connects the public/issues chat on every authenticated page of the site, not just
@@ -23,7 +23,7 @@
            see chat-presence.js for why. Placed here (in <head>, before RenderBody's own markup)
            so this deferred module script initializes window.SnrChatPresence before _ChatWidget's
            own module script - appearing later in the page - runs and reads from it. *@
-        <script type="module">
+        <script type="module" nonce="@Context.GetCspNonce()">
             import { initChatPresence } from "/js/chat-presence.js";
             initChatPresence({
                 chat: @Json.Serialize(agot_bg_website.Infrastructure.Chat.RoomSeeder.PublicRoomId.ToString()),

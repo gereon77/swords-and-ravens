@@ -260,6 +260,61 @@ public class UserModelTests : IDisposable
     }
 
     [Fact]
+    public async Task RemovalFromLaterCancelledGame_ShowsInPreviouslyParticipatedButNotInStats()
+    {
+        // A player voted/timed out of a still-Ongoing game (creating a PreviousPlayerInGame row),
+        // and the remaining players later vote to cancel the whole game. That removal must still
+        // be visible on the removed player's profile (it genuinely happened - see
+        // UserModel.LoadPreviouslyParticipatedGamesAsync's doc comment) but must never count
+        // towards RemovedFromGameCount/WinRate, since cancelled games never affect stats at all
+        // (MIGRATION_PLAN.md §10.2).
+        var user = new ApplicationUser
+        {
+            UserName = "removed_then_cancelled",
+            Email = "r@example.com",
+        };
+        await _userManager.CreateAsync(user);
+        var owner = new ApplicationUser { UserName = "game_owner", Email = "owner@example.com" };
+        await _userManager.CreateAsync(owner);
+
+        var cancelledGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Removed then cancelled",
+            OwnerUserId = owner.Id,
+            State = GameState.Cancelled,
+            ViewOfGame = Json(
+                """{"turn": 4, "maxPlayerCount": 6, "settings": {"setupId": "base-game"}}"""
+            ),
+        };
+        _db.Games.Add(cancelledGame);
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = cancelledGame.Id,
+                UserId = user.Id,
+                Reason = PlayerReplacementReason.ClockTimeout,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        await _userStatsService.RecalculateAsync(user.Id);
+
+        var model = CreatePageModel();
+        var result = await model.OnGetAsync(user.Id);
+
+        Assert.IsType<PageResult>(result);
+        // Never counted towards any cached stat.
+        Assert.Equal(0, model.RemovedFromGameCount);
+        Assert.Equal("n/a", model.WinRateDisplay);
+        // But still visible, badge-able as Cancelled via its own State.
+        var row = Assert.Single(model.PreviouslyParticipatedGames);
+        Assert.Equal(cancelledGame.Id, row.GameId);
+        Assert.Equal(GameState.Cancelled, row.State);
+    }
+
+    [Fact]
     public async Task StatsNotYetCached_ShowsNAAndEnqueuesRecalculation()
     {
         // A brand-new user (or any pre-existing user before this feature's background service has
