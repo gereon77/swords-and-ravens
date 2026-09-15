@@ -18,6 +18,8 @@
         </button>
     </div>
     <script nonce="@Context.GetCspNonce()">
+        (function () {
+            var banner = document.querySelector("#cookieConsent");
             var button = banner.querySelector("button[data-cookie-string]");
             button.addEventListener("click", function (event) {
                 document.cookie = button.dataset.cookieString;
