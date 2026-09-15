@@ -34,6 +34,20 @@ namespace agot_bg_website.Infrastructure;
 /// a dynamic-import bootstrap plus a per-request nonce threaded into the served HTML) - a
 /// non-trivial restructure of the client entry point that isn't worth it for what's fundamentally
 /// a CSS-injection vector, not the script-injection vector this policy is primarily hardening.
+///
+/// Rollout plan to flip from report-only to enforcing: after deploying, watch /csp-report across
+/// a real traffic window (a few days to a week) covering every page family, not just the busiest
+/// ones - /play across different game phases, Games/MyGames, Login/Register (including the
+/// Turnstile challenge) and the Google/Discord/Facebook OAuth redirects, password reset, and the
+/// chat widget. /CoreAdmin and /api/docs are excluded above, so nothing to watch for there.
+/// /csp-report only ever receives violations against THIS header - a browser extension injecting
+/// its own separate CSP (seen during the initial investigation) reports to its own target, not
+/// here, so an empty /csp-report log is a clean, non-noisy signal. Once it's been quiet for that
+/// whole window, flip by renaming the response header below from
+/// Content-Security-Policy-Report-Only to Content-Security-Policy WITHOUT also changing the
+/// policy string in the same change, so a regression is unambiguously caused by enforcement
+/// itself rather than by a simultaneous policy tweak, and is a one-line revert if it breaks
+/// something report-only didn't catch.
 /// </summary>
 public static class ContentSecurityPolicyMiddlewareExtensions
 {
