@@ -23,6 +23,31 @@ namespace agot_bg_website.Infrastructure;
 /// via 'unsafe-inline' on script-src-attr/style-src-attr instead of being retrofitted with
 /// nonces/hashes: CSP nonces don't apply to attributes at all, and hashing dozens of dynamic
 /// per-page attribute values isn't practical. This is a common, intentional trade-off.
+///
+/// style-src-elem also allows 'unsafe-inline' for the same practical reason: the game client's
+/// webpack build (agot-bg-game-server/webpack.client.js) bundles all of its CSS - bootstrap,
+/// react-bootstrap, and the app's own scss - via style-loader, which injects it as runtime
+/// &lt;style&gt; elements with no nonce attribute. Confirmed live via 100 identical
+/// "style-src-elem"/"blocked-uri":"inline" reports from /play pages within minutes of first
+/// deploying the report-only policy. style-loader/webpack CAN emit a nonce on those elements, but
+/// only via a `__webpack_nonce__` global set before any CSS-importing module evaluates (typically
+/// a dynamic-import bootstrap plus a per-request nonce threaded into the served HTML) - a
+/// non-trivial restructure of the client entry point that isn't worth it for what's fundamentally
+/// a CSS-injection vector, not the script-injection vector this policy is primarily hardening.
+///
+/// Rollout plan to flip from report-only to enforcing: after deploying, watch /csp-report across
+/// a real traffic window (a few days to a week) covering every page family, not just the busiest
+/// ones - /play across different game phases, Games/MyGames, Login/Register (including the
+/// Turnstile challenge) and the Google/Discord/Facebook OAuth redirects, password reset, and the
+/// chat widget. /CoreAdmin and /api/docs are excluded above, so nothing to watch for there.
+/// /csp-report only ever receives violations against THIS header - a browser extension injecting
+/// its own separate CSP (seen during the initial investigation) reports to its own target, not
+/// here, so an empty /csp-report log is a clean, non-noisy signal. Once it's been quiet for that
+/// whole window, flip by renaming the response header below from
+/// Content-Security-Policy-Report-Only to Content-Security-Policy WITHOUT also changing the
+/// policy string in the same change, so a regression is unambiguously caused by enforcement
+/// itself rather than by a simultaneous policy tweak, and is a one-line revert if it breaks
+/// something report-only didn't catch.
 /// </summary>
 public static class ContentSecurityPolicyMiddlewareExtensions
 {
@@ -59,11 +84,21 @@ public static class ContentSecurityPolicyMiddlewareExtensions
                 context.Response.OnStarting(() =>
                 {
                     // Scalar's bundled API reference UI (/api/docs, see Program.cs's
-                    // MapScalarApiReference) is a third-party dev tool we have no intention of
-                    // CSP-hardening - exempted so it doesn't drown real violations in noise.
+                    // MapScalarApiReference) and the third-party CoreAdmin package's own MVC
+                    // views (/CoreAdmin, see Program.cs's AddCoreAdmin) are dev/admin tools we
+                    // don't control the markup of and have no intention of CSP-hardening -
+                    // CoreAdmin's Index.cshtml and Markdown.cshtml editor template in particular
+                    // render un-nonced inline <script> blocks, which were showing up as real
+                    // script-src-elem violations in the /csp-report logs for every admin who
+                    // opened a grid or a markdown field. Exempted so neither drowns real
+                    // violations in noise.
                     if (
                         !context.Request.Path.StartsWithSegments(
                             "/api/docs",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && !context.Request.Path.StartsWithSegments(
+                            "/CoreAdmin",
                             StringComparison.OrdinalIgnoreCase
                         )
                     )
@@ -96,6 +131,7 @@ public static class ContentSecurityPolicyMiddlewareExtensions
             $"script-src-elem 'self' 'nonce-{nonce}' https://challenges.cloudflare.com {GameClientCdnOrigin}",
             "script-src-attr 'unsafe-inline'",
             "style-src 'self'",
+            "style-src-elem 'self' 'unsafe-inline'",
             "style-src-attr 'unsafe-inline'",
             "font-src 'self'",
             $"img-src 'self' data: {GameClientCdnOrigin}",
