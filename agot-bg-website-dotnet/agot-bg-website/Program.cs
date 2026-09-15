@@ -413,6 +413,11 @@ forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
+// Report-only CSP rollout (see Infrastructure/ContentSecurityPolicyMiddleware.cs) - registered
+// this early so the per-request nonce it stores in HttpContext.Items exists well before any Razor
+// Page renders further down the pipeline.
+app.UseContentSecurityPolicy();
+
 // Configure the HTTP request pipeline. No "Development" environment is ever used (see the
 // AddUserSecrets comment above), so there's no dev-only branch here anymore — every environment
 // (local Docker debug, Staging on the DO droplet, eventual Production) gets the same
@@ -518,6 +523,23 @@ app.MapPublicApi();
 app.MapNotificationsApi().RequireLocalPort(gameServerApiPort);
 app.MapPlayApi();
 app.MapChatWebSocket();
+
+// Logs Content-Security-Policy-Report-Only violations (see
+// Infrastructure/ContentSecurityPolicyMiddleware.cs) so real violations can be reviewed before
+// ever switching to an enforcing policy. Browsers POST a JSON body here - either the legacy
+// "report-uri" shape or, on newer browsers, an "application/reports+json" batch - logged as-is
+// rather than deserialized into a strict DTO, since the exact shape differs by browser and this
+// is diagnostic-only.
+app.MapPost(
+    "/csp-report",
+    async (HttpRequest request, ILogger<Program> logger) =>
+    {
+        using var reader = new StreamReader(request.Body);
+        var body = await reader.ReadToEndAsync();
+        logger.LogWarning("CSP violation report: {Report}", body);
+        return Results.NoContent();
+    }
+);
 
 // Generated OpenAPI document for the "public" group only (see AddOpenApi/ShouldInclude above),
 // raw JSON at the framework's own default route (/openapi/v1.json, since the document was left

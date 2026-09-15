@@ -31,7 +31,7 @@
     <div id="dual-chat-container"></div>
 </div>
 
-<script type="module">
+<script type="module" nonce="@Context.GetCspNonce()">
     import { h, Component, render } from "/lib/preact/preact.module.js";
     import htm from "/lib/preact/htm.module.js";
     const html = htm.bind(h);

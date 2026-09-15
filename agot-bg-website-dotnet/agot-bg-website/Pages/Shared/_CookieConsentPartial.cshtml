@@ -17,9 +17,7 @@
             <span aria-hidden="true">Accept</span>
         </button>
     </div>
-    <script>
-        (function () {
-            var banner = document.querySelector("#cookieConsent");
+    <script nonce="@Context.GetCspNonce()">
             var button = banner.querySelector("button[data-cookie-string]");
             button.addEventListener("click", function (event) {
                 document.cookie = button.dataset.cookieString;

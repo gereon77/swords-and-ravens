@@ -95,8 +95,7 @@
     </div>
 }
 
-<script>
-    // Persists the "Items per page" choice in a cookie (see PageSizeCookie.cs, which computes
+<script nonce="@Context.GetCspNonce()">
     // the exact same cookie name server-side and reads it back on the next visit to bake the
     // saved page size directly into the initial render). An earlier version of this stored the
     // value in localStorage and had to redirect client-side after first paint whenever the
