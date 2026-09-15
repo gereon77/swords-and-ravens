@@ -23,6 +23,17 @@ namespace agot_bg_website.Infrastructure;
 /// via 'unsafe-inline' on script-src-attr/style-src-attr instead of being retrofitted with
 /// nonces/hashes: CSP nonces don't apply to attributes at all, and hashing dozens of dynamic
 /// per-page attribute values isn't practical. This is a common, intentional trade-off.
+///
+/// style-src-elem also allows 'unsafe-inline' for the same practical reason: the game client's
+/// webpack build (agot-bg-game-server/webpack.client.js) bundles all of its CSS - bootstrap,
+/// react-bootstrap, and the app's own scss - via style-loader, which injects it as runtime
+/// &lt;style&gt; elements with no nonce attribute. Confirmed live via 100 identical
+/// "style-src-elem"/"blocked-uri":"inline" reports from /play pages within minutes of first
+/// deploying the report-only policy. style-loader/webpack CAN emit a nonce on those elements, but
+/// only via a `__webpack_nonce__` global set before any CSS-importing module evaluates (typically
+/// a dynamic-import bootstrap plus a per-request nonce threaded into the served HTML) - a
+/// non-trivial restructure of the client entry point that isn't worth it for what's fundamentally
+/// a CSS-injection vector, not the script-injection vector this policy is primarily hardening.
 /// </summary>
 public static class ContentSecurityPolicyMiddlewareExtensions
 {
@@ -96,6 +107,7 @@ public static class ContentSecurityPolicyMiddlewareExtensions
             $"script-src-elem 'self' 'nonce-{nonce}' https://challenges.cloudflare.com {GameClientCdnOrigin}",
             "script-src-attr 'unsafe-inline'",
             "style-src 'self'",
+            "style-src-elem 'self' 'unsafe-inline'",
             "style-src-attr 'unsafe-inline'",
             "font-src 'self'",
             $"img-src 'self' data: {GameClientCdnOrigin}",
