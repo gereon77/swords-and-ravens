@@ -70,11 +70,21 @@ public static class ContentSecurityPolicyMiddlewareExtensions
                 context.Response.OnStarting(() =>
                 {
                     // Scalar's bundled API reference UI (/api/docs, see Program.cs's
-                    // MapScalarApiReference) is a third-party dev tool we have no intention of
-                    // CSP-hardening - exempted so it doesn't drown real violations in noise.
+                    // MapScalarApiReference) and the third-party CoreAdmin package's own MVC
+                    // views (/CoreAdmin, see Program.cs's AddCoreAdmin) are dev/admin tools we
+                    // don't control the markup of and have no intention of CSP-hardening -
+                    // CoreAdmin's Index.cshtml and Markdown.cshtml editor template in particular
+                    // render un-nonced inline <script> blocks, which were showing up as real
+                    // script-src-elem violations in the /csp-report logs for every admin who
+                    // opened a grid or a markdown field. Exempted so neither drowns real
+                    // violations in noise.
                     if (
                         !context.Request.Path.StartsWithSegments(
                             "/api/docs",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && !context.Request.Path.StartsWithSegments(
+                            "/CoreAdmin",
                             StringComparison.OrdinalIgnoreCase
                         )
                     )
