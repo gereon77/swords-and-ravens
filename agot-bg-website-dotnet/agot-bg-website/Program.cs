@@ -143,7 +143,23 @@ builder.Services.AddScoped<SignInManager<ApplicationUser>, AppSignInManager>();
 // GDPR: Identity's own sign-in cookie is essential for the site to function (you can't be signed
 // in without it), so it's exempt from the cookie-consent banner above — see
 // https://learn.microsoft.com/aspnet/core/security/gdpr.
-builder.Services.ConfigureApplicationCookie(options => options.Cookie.IsEssential = true);
+//
+// SlidingExpiration is explicitly disabled: with the default (true), an active user's persisted
+// cookie (external OAuth login, always isPersistent: true - see ExternalLogin.cshtml.cs - or
+// password login with "Remember me") gets silently reissued with a fresh 14-day expiry on every
+// request once more than half of ExpireTimeSpan has elapsed, so as long as someone visits at
+// least once every ~2 weeks they are effectively never signed out. Disabling it makes
+// ExpireTimeSpan a hard cap from the moment of login: Discord/Google/Facebook users must
+// re-authenticate with the provider every 14 days, and "Remember me" password sessions expire
+// after 14 days too, instead of both renewing forever. Login without "Remember me" is unaffected
+// - PasswordSignInAsync(..., isPersistent: false, ...) issues a non-persistent session cookie with
+// no ExpiresUtc at all, so it already only lasts until the browser is closed.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.IsEssential = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.SlidingExpiration = false;
+});
 builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
     IdentityConstants.ExternalScheme,
     options => options.Cookie.IsEssential = true

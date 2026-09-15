@@ -154,10 +154,11 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
             // Sign in the user with this external login provider if the user already has a login.
             // isPersistent: true - once a user signs in via an external provider (Discord/
-            // Google/Facebook), keep them signed in with a long-lived cookie (see
-            // ConfigureApplicationCookie's ExpireTimeSpan/SlidingExpiration in Program.cs) rather
-            // than only for the current browser session, so they don't have to click through the
-            // provider's consent screen again every time they close their browser.
+            // Google/Facebook), keep them signed in with a cookie that survives closing the
+            // browser, rather than only for the current session, so they don't have to click
+            // through the provider's consent screen again every time. It still hard-expires after
+            // ExpireTimeSpan (see ConfigureApplicationCookie in Program.cs, SlidingExpiration is
+            // disabled there), so they're forced back through the provider's login every 14 days.
             var result = await _signInManager.ExternalLoginSignInAsync(
                 info.LoginProvider,
                 info.ProviderKey,
