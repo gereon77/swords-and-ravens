@@ -151,7 +151,7 @@ Game
   SerializedGame     jsonb?   // full resumable state, same shape the TS server already produces
   ViewOfGame         jsonb?   // denormalized summary, same shape as today
   Version            string?
-  State              string   // IN_LOBBY | ONGOING | FINISHED | CLOSED | CANCELLED
+  State              string   // IN_LOBBY | ONGOING | FINISHED | CANCELLED
   CreatedAt / UpdatedAt / LastActiveAt
 
 PlayerInGame

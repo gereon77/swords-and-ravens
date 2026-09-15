@@ -7,7 +7,6 @@ public enum GameState
     InLobby,
     Ongoing,
     Finished,
-    Closed,
     Cancelled,
 }
 

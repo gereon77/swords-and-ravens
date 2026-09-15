@@ -22,7 +22,9 @@ namespace agot_bg_website.Api;
 /// resolved from the just-saved <c>ViewOfGame</c>'s <c>oldPlayerIds</c>/<c>timeoutPlayerIds</c> via
 /// <see cref="Domain.PreviousPlayerReasonResolver"/> (null only if neither array names the user -
 /// see that type's doc comment); a user with an existing row who reappears (voted back in) has
-/// that row removed again — see <see cref="DiffPreviousPlayers"/> and
+/// that row removed again — except while the game is still <see cref="GameState.InLobby"/>, where
+/// no row is ever recorded at all: players routinely take and leave seats before a game starts,
+/// and none of that is a real "removal" — see <see cref="DiffPreviousPlayers"/> and
 /// GamesApiPreviousPlayerDiffTests.
 ///
 /// PATCH also acquires a per-game <see cref="GameSaveLock"/> first, as defense-in-depth against the
@@ -171,7 +173,8 @@ public static class GamesApi
                     var (toAdd, toRemove) = DiffPreviousPlayers(
                         oldPlayerUserIds: game.Players.Select(p => p.UserId),
                         newPlayerUserIds: patch.Players.Select(p => p.User),
-                        existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId)
+                        existingPreviousPlayerUserIds: game.PreviousPlayers.Select(p => p.UserId),
+                        gameWasInLobby: stateBeforePatch == GameState.InLobby
                     );
 
                     db.PlayersInGame.RemoveRange(game.Players);
@@ -332,20 +335,29 @@ public static class GamesApi
     /// Pure diff between the player list before and after a save, plus the set of users who
     /// already have a PreviousPlayerInGame row: returns who should gain a new row (present before,
     /// missing now, no existing row yet) and who should have their existing row removed (missing
-    /// before but present again now - voted back in). Extracted as a pure, internal helper so
+    /// before but present again now - voted back in). <paramref name="gameWasInLobby"/> suppresses
+    /// ToAdd entirely: players freely take and leave seats while a game is still in its lobby (no
+    /// vote/timeout has happened, nothing has been decided or played), so none of that churn is a
+    /// real "removal" - it must never create a PreviousPlayerInGame row, which would otherwise
+    /// wrongly count as a loss forever (see MIGRATION_PLAN.md §10.2). Doesn't affect ToRemove: a
+    /// leftover row from before the game somehow returned to the lobby should still be cleaned up
+    /// if that user is seated again. Extracted as a pure, internal helper so
     /// GamesApiPreviousPlayerDiffTests can exercise every case directly without a database.
     /// </summary>
     internal static (List<Guid> ToAdd, List<Guid> ToRemove) DiffPreviousPlayers(
         IEnumerable<Guid> oldPlayerUserIds,
         IEnumerable<Guid> newPlayerUserIds,
-        IEnumerable<Guid> existingPreviousPlayerUserIds
+        IEnumerable<Guid> existingPreviousPlayerUserIds,
+        bool gameWasInLobby
     )
     {
         var oldSet = oldPlayerUserIds.ToHashSet();
         var newSet = newPlayerUserIds.ToHashSet();
         var existingSet = existingPreviousPlayerUserIds.ToHashSet();
 
-        var toAdd = oldSet.Except(newSet).Where(id => !existingSet.Contains(id)).ToList();
+        var toAdd = gameWasInLobby
+            ? []
+            : oldSet.Except(newSet).Where(id => !existingSet.Contains(id)).ToList();
         var toRemove = existingSet.Where(newSet.Contains).ToList();
         return (toAdd, toRemove);
     }

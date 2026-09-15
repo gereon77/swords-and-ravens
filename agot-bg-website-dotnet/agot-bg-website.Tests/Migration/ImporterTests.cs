@@ -15,7 +15,6 @@ public class ImporterTests
     [InlineData("IN_LOBBY", GameState.InLobby)]
     [InlineData("ONGOING", GameState.Ongoing)]
     [InlineData("FINISHED", GameState.Finished)]
-    [InlineData("CLOSED", GameState.Closed)]
     [InlineData("CANCELLED", GameState.Cancelled)]
     public void ParseGameState_MapsKnownLegacyStates(string legacyState, GameState expected)
     {
@@ -25,10 +24,15 @@ public class ImporterTests
     [Fact]
     public void ParseGameState_FallsBackToInLobbyForUnknownState()
     {
+        // Covers both a genuinely unrecognized future value and CLOSED, a state Django's
+        // agotboardgame_main.models defined (models.py:16) but never actually assigned to any
+        // game (confirmed: no legacy code ever set game.state = CLOSED) - so no real imported data
+        // can contain it, but this still documents the fallback in case that assumption is wrong.
         Assert.Equal(
             GameState.InLobby,
             Importer.ParseGameState("SOME_FUTURE_STATE_WE_DONT_KNOW_YET")
         );
+        Assert.Equal(GameState.InLobby, Importer.ParseGameState("CLOSED"));
     }
 
     [Theory]
