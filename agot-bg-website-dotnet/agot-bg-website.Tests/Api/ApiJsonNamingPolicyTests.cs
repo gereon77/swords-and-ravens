@@ -58,7 +58,8 @@ public class ApiJsonNamingPolicyTests
             null,
             "1",
             "Ongoing",
-            null
+            null,
+            0
         );
 
         var json = JsonSerializer.Serialize(dto, Options);

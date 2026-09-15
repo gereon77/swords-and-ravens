@@ -30,7 +30,11 @@ public record GamePatchDto(
     string? Version,
     JsonElement? ViewOfGame,
     IReadOnlyList<PlayerInGamePatchDto>? Players,
-    bool? UpdateLastActive
+    bool? UpdateLastActive,
+    // Null when sent by a game-server build that predates this field (e.g. momentarily during a
+    // rolling deploy) - GamesApi.cs's PATCH handler skips the stale-save guard in that case rather
+    // than reject the save. See Game.SaveSequence's doc comment.
+    long? SaveSequence
 );
 
 public record GameDto(
@@ -40,7 +44,8 @@ public record GameDto(
     JsonElement? SerializedGame,
     string? Version,
     string State,
-    JsonElement? ViewOfGame
+    JsonElement? ViewOfGame,
+    long SaveSequence
 );
 
 public record CreateRoomDto(

@@ -39,6 +39,18 @@ public class Game
 
     public string? Version { get; set; }
 
+    /// <summary>
+    /// Monotonically increasing counter assigned by the game server to every save attempt for
+    /// this game (see <c>GlobalServer.saveGame</c>/<c>gameSaveSequences</c> in the TS game
+    /// server). The game server's saves are fire-and-forget HTTP PATCHes, so two saves can reach
+    /// this API out of order (network/thread-pool jitter); <c>GamesApi</c>'s PATCH handler uses
+    /// this column to reject a PATCH whose sequence isn't strictly greater than what's already
+    /// stored, so an older save can never silently clobber a newer one. Defaults to 0 so
+    /// pre-existing rows (and any patch that omits the field, e.g. a mismatched game-server
+    /// version during a rolling deploy) are always accepted.
+    /// </summary>
+    public long SaveSequence { get; set; }
+
     public GameState State { get; set; } = GameState.InLobby;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

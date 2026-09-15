@@ -27,6 +27,18 @@ namespace agot_bg_website.Api;
 ///
 /// PATCH also acquires a per-game <see cref="GameSaveLock"/> first, as defense-in-depth against the
 /// game server's saves for the same game genuinely overlapping — see that type's doc comment.
+///
+/// PATCH additionally rejects a save whose <see cref="GamePatchDto.SaveSequence"/> isn't strictly
+/// greater than the game's stored <see cref="Game.SaveSequence"/>: <see cref="GameSaveLock"/> only
+/// guarantees saves for the same game run one at a time, not that they run in the order the game
+/// server generated them, so without this check an older save that happens to arrive second could
+/// silently overwrite a newer one (no exception, no visible symptom other than a game's state
+/// regressing). See <see cref="Game.SaveSequence"/>'s doc comment for the full reasoning.
+///
+/// The Players/PreviousPlayers delete+recreate above is skipped entirely when the incoming player
+/// list is identical to what's stored (see <see cref="PlayersUnchanged"/>) — most saves during a
+/// live game (e.g. one per order placed) only change SerializedGame/ViewOfGame, so this avoids
+/// pointless churn on two extra tables on every single one of them.
 /// </summary>
 public static class GamesApi
 {
@@ -86,6 +98,22 @@ public static class GamesApi
                     return Results.NotFound();
                 }
 
+                // Reject a stale/out-of-order save outright, before touching anything: the game
+                // server's saves are fire-and-forget HTTP PATCHes that can arrive out of order
+                // (network/thread-pool jitter), and GameSaveLock only serializes execution, it
+                // doesn't reorder by intent. Without this check, an older save that happens to
+                // arrive after a newer one would silently overwrite it. See Game.SaveSequence's
+                // doc comment.
+                if (IsStaleSave(patch.SaveSequence, game.SaveSequence))
+                {
+                    return Results.Ok(ToDto(game));
+                }
+
+                if (patch.SaveSequence is { } incomingSaveSequence)
+                {
+                    game.SaveSequence = incomingSaveSequence;
+                }
+
                 var stateBeforePatch = game.State;
 
                 if (patch.SerializedGame is { } serializedGame)
@@ -136,7 +164,7 @@ public static class GamesApi
                     return Results.NoContent();
                 }
 
-                if (patch.Players is not null)
+                if (patch.Players is not null && !PlayersUnchanged(game.Players, patch.Players))
                 {
                     // Diff against the player list as it stood before this save, and the existing
                     // PreviousPlayerInGame rows, before RemoveRange below clears game.Players.
@@ -232,6 +260,56 @@ public static class GamesApi
     }
 
     /// <summary>
+    /// True when <paramref name="incomingSaveSequence"/> indicates this save is older than (or a
+    /// duplicate of) one that already applied, so it must be rejected outright rather than
+    /// overwrite newer data - see <see cref="Game.SaveSequence"/>'s doc comment. Null (a patch
+    /// from a game-server build that predates this field, e.g. momentarily during a rolling
+    /// deploy) is never considered stale: the guard quietly degrades to a no-op rather than reject
+    /// every save from an older game-server version.
+    /// </summary>
+    internal static bool IsStaleSave(long? incomingSaveSequence, long storedSaveSequence) =>
+        incomingSaveSequence is { } seq && seq <= storedSaveSequence;
+
+    /// <summary>
+    /// True when the incoming player list is identical (same set of user IDs, each with
+    /// semantically identical <c>Data</c> JSON) to what's already stored. During a live game the
+    /// vast majority of saves change only <c>SerializedGame</c>/<c>ViewOfGame</c> (e.g. every
+    /// order placed) — skipping the delete+recreate of every <c>PlayerInGame</c> row (and the
+    /// <c>PreviousPlayerInGame</c> diff) on those saves avoids churning two extra tables on every
+    /// single save of a busy game for no actual change. A save whose player list did change (join/
+    /// leave/replace, or any player's Data actually differing) still goes through the full replace
+    /// below. False if the counts differ, which implicitly requires the full path whenever a
+    /// player was actually added or removed.
+    ///
+    /// Compares with <see cref="JsonElement.DeepEquals"/> rather than raw text/string equality:
+    /// <c>PlayerInGame.Data</c> is stored in a <c>jsonb</c> column, and Postgres does not preserve
+    /// the original text of jsonb values — it reorders object keys (by key length, then
+    /// lexicographically) and reformats whitespace when it round-trips them back out. The game
+    /// server's freshly-serialized <c>patch.Players[].Data</c> never went through that
+    /// normalization, so its property order/formatting routinely differs from the stored value
+    /// even when every field's value is identical, which made a raw <c>GetRawText()</c> string
+    /// comparison return false on effectively every save (see MIGRATION_PLAN.md §15).
+    /// </summary>
+    internal static bool PlayersUnchanged(
+        IReadOnlyCollection<PlayerInGame> existingPlayers,
+        IReadOnlyCollection<PlayerInGamePatchDto> incomingPlayers
+    )
+    {
+        if (existingPlayers.Count != incomingPlayers.Count)
+        {
+            return false;
+        }
+
+        var existingByUser = existingPlayers.ToDictionary(p => p.UserId, p => p.Data);
+
+        return incomingPlayers.All(p =>
+            existingByUser.TryGetValue(p.User, out var existingData)
+            && existingData is not null
+            && JsonElement.DeepEquals(existingData.RootElement, p.Data)
+        );
+    }
+
+    /// <summary>
     /// Pure diff between the player list before and after a save, plus the set of users who
     /// already have a PreviousPlayerInGame row: returns who should gain a new row (present before,
     /// missing now, no existing row yet) and who should have their existing row removed (missing
@@ -276,6 +354,7 @@ public static class GamesApi
             game.SerializedGame?.RootElement,
             game.Version,
             game.State.ToString(),
-            game.ViewOfGame?.RootElement
+            game.ViewOfGame?.RootElement,
+            game.SaveSequence
         );
 }
