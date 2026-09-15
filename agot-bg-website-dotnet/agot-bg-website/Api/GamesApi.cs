@@ -234,12 +234,16 @@ public static class GamesApi
                 await db.SaveChangesAsync();
 
                 // Every current and former participant's cached win-rate stats become stale the
-                // moment a game they were part of finishes - recompute them in the background
-                // rather than on their next profile page view (see UserStatsService's doc
-                // comment). Not raised for any other state transition (a game going back from
-                // Finished to something else can't currently happen, and no other transition
-                // changes anyone's win-rate facts).
-                if (stateBeforePatch != GameState.Finished && game.State == GameState.Finished)
+                // moment a game they were part of finishes OR is cancelled - a PreviousPlayerInGame
+                // row only counts towards a user's cached "removed from game"/win-rate numbers
+                // while its game is Finished or Ongoing (see UserStatsService's doc comment), so a
+                // still-Ongoing game later being cancelled (e.g. a player voted/timed out earlier,
+                // then the remaining players vote to cancel the whole game) must trigger a refresh
+                // just as much as finishing does - otherwise a removed player's cached stats would
+                // keep counting that game as a loss forever, since nothing else would ever
+                // re-trigger their recalculation. Recompute in the background rather than on each
+                // participant's next profile page view (see UserStatsService's doc comment).
+                if (JustFinishedOrCancelled(stateBeforePatch, game.State))
                 {
                     foreach (
                         var userId in game
@@ -269,6 +273,21 @@ public static class GamesApi
     /// </summary>
     internal static bool IsStaleSave(long? incomingSaveSequence, long storedSaveSequence) =>
         incomingSaveSequence is { } seq && seq <= storedSaveSequence;
+
+    /// <summary>
+    /// True when this save's state transition is the one time a game's cached win-rate stats need
+    /// recomputing for everyone who ever played it: entering <see cref="GameState.Finished"/> (the
+    /// obvious case) or entering <see cref="GameState.Cancelled"/> (a <c>PreviousPlayerInGame</c>
+    /// row only counts towards a user's cached stats while its game is Finished or Ongoing - see
+    /// <see cref="Services.UserStatsService"/>'s doc comment - so a still-Ongoing game later being
+    /// cancelled must refresh stats too, or a removed player's cached numbers would keep counting
+    /// it as a loss forever). False for every other transition, including the reverse ones (a game
+    /// going back from Finished/Cancelled to something else can't currently happen, and no other
+    /// transition changes anyone's win-rate facts) and staying in the same state.
+    /// </summary>
+    internal static bool JustFinishedOrCancelled(GameState before, GameState after) =>
+        (before != GameState.Finished && after == GameState.Finished)
+        || (before != GameState.Cancelled && after == GameState.Cancelled);
 
     /// <summary>
     /// True when the incoming player list is identical (same set of user IDs, each with

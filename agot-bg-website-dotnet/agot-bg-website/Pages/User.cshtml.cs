@@ -226,19 +226,20 @@ public class UserModel(
     /// </summary>
     private async Task LoadPreviouslyParticipatedGamesAsync(Guid userId)
     {
-        // Filtered to Finished-or-Ongoing to match RemovedFromGameCount/Replaced-left-early's
-        // exact same filter (LoadStatsAsync via UserStatsService) - a removal counts as soon as
-        // it happens (even in a still-Ongoing game, since being voted out/timed out is always a
-        // loss regardless of whether anyone's won yet), but a removal from a game that was later
-        // cancelled must never count towards, or even appear alongside, that stat (cancelled
-        // games never affect stats at all - MIGRATION_PLAN.md §10.2), so it's dropped here too
-        // rather than only from the cached count.
+        // Deliberately NOT filtered the same way UserStatsService's RemovedFromGameCount/win-rate
+        // query is (Finished-or-Ongoing only, excluding Cancelled): those two concerns are
+        // intentionally decoupled. A removal must never count towards any stat once its game is
+        // cancelled (MIGRATION_PLAN.md §10.2) - UserStatsService's own query already enforces that
+        // on the stats side and doesn't need to change here. But a player who was voted out/timed
+        // out of a game that *later* got cancelled (e.g. the remaining players voted to cancel it
+        // afterwards) still genuinely got removed from something real - hiding that from their
+        // profile entirely (as excluding Cancelled here used to do) makes it look like it never
+        // happened, with nothing in "Games"/"Cancelled games" either, since they're no longer a
+        // current PlayerInGame by that point. Every row's Game.State is exposed on
+        // PreviouslyParticipatedGameRow.State so the page can badge cancelled entries distinctly.
+        // Only excludes InLobby, since a removal can't happen before a game actually starts.
         var rows = await db
-            .PreviousPlayersInGame.Where(p =>
-                p.UserId == userId
-                && p.Game != null
-                && (p.Game.State == GameState.Finished || p.Game.State == GameState.Ongoing)
-            )
+            .PreviousPlayersInGame.Where(p => p.UserId == userId && p.Game != null)
             .OrderByDescending(p => p.ReplacedAt)
             .Select(p => new
             {
@@ -259,7 +260,8 @@ public class UserModel(
             })
             .ToListAsync();
 
-        PreviouslyParticipatedGames = rows.Select(row =>
+        PreviouslyParticipatedGames = rows.Where(row => row.State != GameState.InLobby)
+            .Select(row =>
             {
                 var view = ViewOfGameInfo.Parse(row.ViewOfGame);
                 return new PreviouslyParticipatedGameRow(

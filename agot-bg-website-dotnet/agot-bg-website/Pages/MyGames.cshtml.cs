@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Pages;
 
@@ -20,6 +21,7 @@ public class MyGamesModel(
     GameListQueryService gameLists,
     UserManager<ApplicationUser> userManager,
     IAuthorizationService authorizationService,
+    Infrastructure.Stats.UserStatsRecalculationQueue userStatsQueue,
     ILogger<MyGamesModel> logger
 ) : PageModel
 {
@@ -122,6 +124,19 @@ public class MyGamesModel(
             game.State = GameState.Cancelled;
             game.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
+
+            // See GamesModel.OnPostCancelGameAsync's identical comment: a cancelled game must
+            // never count towards anyone's cached win-rate stats, which otherwise wouldn't
+            // refresh until each affected player's next unrelated game finishes.
+            var affectedUserIds = await db
+                .PlayersInGame.Where(p => p.GameId == gameId)
+                .Select(p => p.UserId)
+                .Concat(
+                    db.PreviousPlayersInGame.Where(p => p.GameId == gameId).Select(p => p.UserId)
+                )
+                .Distinct()
+                .ToListAsync();
+            userStatsQueue.EnqueueAll(affectedUserIds);
 
             logger.LogInformation(
                 "{Username} ({UserId}) cancelled game {GameName} ({GameId})",

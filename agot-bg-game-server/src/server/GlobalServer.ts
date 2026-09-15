@@ -518,11 +518,6 @@ export default class GlobalServer {
       console.error("Server instance of ingame tried to send a client message");
     };
 
-    // Check if game was cancelled by a moderator
-    if (await this.websiteClient.isGameCancelled(gameId)) {
-      this.cancelGame(entireGame);
-    }
-
     entireGame.onSendServerMessage = (users, message) =>
       this.onSendServerMessage(users, message);
     entireGame.onReadyToStart = (users) =>
@@ -547,6 +542,11 @@ export default class GlobalServer {
     // Set the connection status of all users to false
     entireGame.users.values.forEach((u) => (u.connected = false));
 
+    // Check if game was cancelled by a moderator
+    if (await this.websiteClient.isGameCancelled(gameId)) {
+      this.cancelGame(entireGame);
+    }
+
     console.log("Game loaded: " + gameId);
     this.loadedGames.set(gameId, entireGame);
 
@@ -562,6 +562,7 @@ export default class GlobalServer {
         entireGame
           .setChildGameState(new CancelledGameState(entireGame))
           .firstStart();
+        this.saveGame(entireGame, false);
       }
     } else if (entireGame.ingameGameState) {
       const ingame = entireGame.ingameGameState;
