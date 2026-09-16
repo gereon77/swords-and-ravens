@@ -14,7 +14,7 @@ import Col from "react-bootstrap/Col";
 import {
   OrderOnMapProperties,
   RegionOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "../MapControls";
 import PartialRecursive from "../../utils/PartialRecursive";
 import House from "../../common/ingame-game-state/game-data-structure/House";
@@ -69,7 +69,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
     return _.flatMap(
       this.plannedMoves.entries
         .filter(([r, _u]) => this.props.gameState.doesMoveTriggerAttack(r))
-        .map(([_r, u]) => u),
+        .map(([_r, u]) => u)
     );
   }
 
@@ -79,7 +79,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
       ? this.props.gameState.getUsedButStillValidTargetRegions(
           this.selectedMarchOrderRegion,
           this.plannedMoves,
-          this.selectedUnits,
+          this.selectedUnits
         )
       : [];
   }
@@ -90,13 +90,13 @@ export default class ResolveSingleMarchOrderComponent extends Component<
       ? this.props.gameState.getValidTargetRegions(
           this.selectedMarchOrderRegion,
           this.plannedMoves.entries,
-          this.selectedUnits,
+          this.selectedUnits
         )
       : [];
   }
 
   constructor(
-    props: GameStateComponentProps<ResolveSingleMarchOrderGameState>,
+    props: GameStateComponentProps<ResolveSingleMarchOrderGameState>
   ) {
     super(props);
     this.UNSAFE_componentWillUpdate();
@@ -105,7 +105,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
   getMarchableUnits(region: Region): Unit[] {
     return _.intersection(
       region.allUnits,
-      this.props.gameState.getValidMarchUnits(region),
+      this.props.gameState.getValidMarchUnits(region)
     );
   }
 
@@ -227,7 +227,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
               <>
                 {this.renderLeavePowerToken(
                   this.selectedMarchOrderRegion,
-                  allUnitsWillLeaveStartingRegion,
+                  allUnitsWillLeaveStartingRegion
                 )}
                 <Col xs={12}>
                   <Row className="justify-content-center">
@@ -315,7 +315,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
     const { success, reason } = this.selectedMarchOrderRegion
       ? this.props.gameState.canLeavePowerToken(
           this.selectedMarchOrderRegion,
-          this.plannedMoves,
+          this.plannedMoves
         )
       : { success: false, reason: "no-all-units-go" };
 
@@ -338,7 +338,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
 
   renderLeavePowerToken(
     startingRegion: Region,
-    allUnitsWillLeaveStartingRegion: boolean,
+    allUnitsWillLeaveStartingRegion: boolean
   ): ReactNode | null {
     const portRegion =
       startingRegion.game.world.getAdjacentPortOfCastle(startingRegion);
@@ -485,7 +485,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
       region.newUnits = newGoingArmy;
       this.selectedMarchOrderRegion.removedUnits = _.concat(
         this.selectedMarchOrderRegion.removedUnits,
-        newGoingArmy,
+        newGoingArmy
       );
     }
 
@@ -519,7 +519,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
   selectAllUnits(region: Region): void {
     this.selectedUnits = _.difference(
       this.getMarchableUnits(region),
-      this.attackingUnits,
+      this.attackingUnits
     );
   }
 
@@ -553,7 +553,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
     this.props.gameState.sendMoves(
       this.selectedMarchOrderRegion,
       this.plannedMoves,
-      this.leavePowerToken,
+      this.leavePowerToken
     );
 
     this.reset();
@@ -570,11 +570,11 @@ export default class ResolveSingleMarchOrderComponent extends Component<
         {
           highlight: {
             active: true,
-            color: this.selectedMarchOrderRegion != null ? "yellow" : "white",
+            color: this.selectedMarchOrderRegion != null ? "yellow" : "white"
           },
           onClick: (e: React.MouseEvent<HTMLDivElement>) =>
-            this.onOrderClick(e, r),
-        },
+            this.onOrderClick(e, r)
+        }
       ]);
     }
 
@@ -590,7 +590,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
       const attackingUnits = this.attackingUnits;
 
       const marchableUnits = this.getMarchableUnits(
-        this.selectedMarchOrderRegion,
+        this.selectedMarchOrderRegion
       ).map(
         (u) =>
           [
@@ -602,18 +602,18 @@ export default class ResolveSingleMarchOrderComponent extends Component<
                   ? "red"
                   : this.selectedUnits.includes(u)
                     ? "yellow"
-                    : "white",
+                    : "white"
               },
               onClick: !attackingUnits.includes(u)
                 ? () =>
                     this.onUnitClick(this.selectedMarchOrderRegion as Region, u)
-                : undefined,
-            },
-          ] as [Unit, PartialRecursive<UnitOnMapProperties>],
+                : undefined
+            }
+          ] as [Unit, PartialRecursive<UnitOnMapProperties>]
       );
 
       const movedUnits = _.flatMap(
-        this.props.gameState.world.regions.values.map((r) => r.newUnits),
+        this.props.gameState.world.regions.values.map((r) => r.newUnits)
       ).map(
         (u) =>
           [
@@ -621,10 +621,10 @@ export default class ResolveSingleMarchOrderComponent extends Component<
             {
               highlight: {
                 active: true,
-                color: "yellow",
-              },
-            },
-          ] as [Unit, PartialRecursive<UnitOnMapProperties>],
+                color: "yellow"
+              }
+            }
+          ] as [Unit, PartialRecursive<UnitOnMapProperties>]
       );
 
       return _.concat(marchableUnits, movedUnits);
@@ -639,26 +639,26 @@ export default class ResolveSingleMarchOrderComponent extends Component<
       const usedButStillValidTargetRegions =
         this.usedButStillValidTargetRegions;
       const combatRegions = this.plannedMoves.keys.filter((r) =>
-        this.props.gameState.doesMoveTriggerAttack(r),
+        this.props.gameState.doesMoveTriggerAttack(r)
       );
 
       return _.concat(
         targetRegions,
         usedButStillValidTargetRegions,
-        combatRegions,
+        combatRegions
       ).map((r) => [
         r,
         {
           highlight: {
             active: true,
-            color: combatRegions.includes(r) ? "yellow" : "white",
+            color: combatRegions.includes(r) ? "yellow" : "white"
           },
           onClick:
             targetRegions.includes(r) ||
             usedButStillValidTargetRegions.includes(r)
               ? () => this.onRegionClick(r)
-              : undefined,
-        },
+              : undefined
+        }
       ]);
     }
 
@@ -667,28 +667,28 @@ export default class ResolveSingleMarchOrderComponent extends Component<
 
   componentDidMount(): void {
     this.props.mapControls.modifyOrdersOnMap.push(
-      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap()),
+      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap())
     );
     this.props.mapControls.modifyUnitsOnMap.push(
-      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap()),
+      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap())
     );
     this.props.mapControls.modifyRegionsOnMap.push(
-      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap()),
+      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap())
     );
   }
 
   componentWillUnmount(): void {
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
-      this.modifyOrdersOnMapCallback,
+      this.modifyOrdersOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyUnitsOnMap,
-      this.modifyUnitsOnMapCallback,
+      this.modifyUnitsOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
-      this.modifyRegionsOnMapCallback,
+      this.modifyRegionsOnMapCallback
     );
   }
 }
