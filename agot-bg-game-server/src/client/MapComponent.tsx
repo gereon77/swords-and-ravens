@@ -830,11 +830,11 @@ export default class MapComponent extends Component<MapComponentProps> {
         order = orderPresent ? this.ingame.ordersOnBoard.get(region) : null;
       }
 
-      // Check if we need to animate flip:
+      // Check if we need to animate flip. `properties` is already the merge of all
+      // modifyOrdersOnMap contributors for this region, so this picks up any pending
+      // order-reveal animation for it without querying orderAnimations directly.
       if (!orderPresent) {
-        orderPresent =
-          this.ingame.ordersToBeAnimated.tryGet(region, null)?.animateFlip ??
-          false;
+        orderPresent = properties.animateFlip ?? false;
       }
 
       if (orderPresent) {
@@ -1015,6 +1015,7 @@ export default class MapComponent extends Component<MapComponentProps> {
               "pulsate-bck_fade-out": properties.animateFadeOut,
               "flip-vertical-right": properties.animateFlip
             })}
+            onAnimationEnd={properties.onAnimationEnd}
           />
         </div>
       </ConditionalWrap>

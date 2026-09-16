@@ -1119,7 +1119,13 @@ export default class IngameComponent extends Component<IngameComponentProps> {
   };
 
   modifyOrdersOnMap(): [Region, PartialRecursive<OrderOnMapProperties>][] {
-    return this.ingame.ordersToBeAnimated.entries;
+    return this.ingame.orderAnimations.map((a) => [
+      a.region,
+      {
+        ...a.properties,
+        onAnimationEnd: () => this.ingame.removeOrderAnimation(a.id)
+      }
+    ]);
   }
 
   modifyUnitsOnMap(): [Unit, PartialRecursive<UnitOnMapProperties>][] {

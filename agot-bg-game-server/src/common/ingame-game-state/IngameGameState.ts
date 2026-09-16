@@ -73,6 +73,7 @@ import WildlingCardEffectInTurnOrderGameState from "./westeros-game-state/wildli
 import getElapsedSeconds from "../../utils/getElapsedSeconds";
 import orders from "./game-data-structure/orders";
 import {
+  OrderAnimationEntry,
   OrderOnMapProperties,
   UnitOnMapProperties
 } from "../../client/MapControls";
@@ -157,8 +158,8 @@ export default class IngameGameState extends GameState<
   @observable marchMarkers: BetterMap<Unit, Region> = new BetterMap();
   @observable unitsToBeAnimated: BetterMap<Unit, UnitOnMapProperties> =
     new BetterMap();
-  @observable ordersToBeAnimated: BetterMap<Region, OrderOnMapProperties> =
-    new BetterMap();
+  @observable orderAnimations: OrderAnimationEntry[] = [];
+  private nextOrderAnimationId = 1;
 
   onVoteStarted: (() => void) | null = null;
   onPreemptiveRaidNewAttack:
@@ -170,6 +171,38 @@ export default class IngameGameState extends GameState<
 
   get entireGame(): EntireGame {
     return this.parentGameState;
+  }
+
+  /**
+   * Registers a new, independently tracked order animation for `region` and returns its id.
+   * Several entries can co-exist for the same region without clobbering each other (e.g. one
+   * order fading out while a different event highlights an order placed right after).
+   *
+   * `fallbackTimeoutMs` is a safety net that removes the entry even if the CSS animation never
+   * fires an "animationend" event (e.g. it's an infinite animation like the attention pulse, or
+   * the event is missed for some reason). The primary, precise cleanup happens via
+   * `removeOrderAnimation` being called from the rendered order icon's onAnimationEnd handler.
+   */
+  addOrderAnimation(
+    region: Region,
+    properties: OrderOnMapProperties,
+    fallbackTimeoutMs: number
+  ): number {
+    const id = this.nextOrderAnimationId++;
+    this.orderAnimations.push({ id, region, properties });
+
+    window.setTimeout(() => this.removeOrderAnimation(id), fallbackTimeoutMs);
+
+    return id;
+  }
+
+  // Safe to call multiple times or with an id that was already removed (e.g. once from
+  // onAnimationEnd and once from the fallback timeout) - it simply does nothing in that case.
+  removeOrderAnimation(id: number): void {
+    const index = this.orderAnimations.findIndex((a) => a.id == id);
+    if (index >= 0) {
+      this.orderAnimations.splice(index, 1);
+    }
   }
 
   get world(): World {
@@ -1822,13 +1855,15 @@ export default class IngameGameState extends GameState<
       if (!this.fogOfWar) {
         message.orders.forEach(([rid, _oid]) => {
           const r = this.world.regions.get(rid);
-          this.ordersToBeAnimated.set(r, { animateFlip: true });
+          // The flip-vertical-right CSS animation itself takes 2s; the entry's own
+          // onAnimationEnd/fallback-timer cleanup (added below) is independent of when we swap
+          // the underlying order data, so the animation is never cut off mid-flight anymore.
+          this.addOrderAnimation(r, { animateFlip: true }, 2500);
         });
         window.setTimeout(() => {
           this.ordersOnBoard = new BetterMap(
             message.orders.map(([rid, oid]) => {
               const r = this.world.regions.get(rid);
-              this.ordersToBeAnimated.tryDelete(r);
               return [r, orders.get(oid)];
             })
           );

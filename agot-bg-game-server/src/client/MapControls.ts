@@ -34,6 +34,18 @@ export interface OrderOnMapProperties {
   animateAttention?: boolean;
   animateFadeOut?: boolean;
   animateFlip?: boolean;
+  // Called by the rendered order icon when its CSS animation naturally finishes,
+  // so the entry that triggered it can be cleared precisely instead of guessing a duration.
+  onAnimationEnd?: () => void;
+}
+
+// A single, independently tracked pending order animation. Several of these can exist for the
+// same region at once (e.g. one order fading out while another gets highlighted) without
+// clobbering each other, because each is only ever cleared by its own id.
+export interface OrderAnimationEntry {
+  id: number;
+  region: Region;
+  properties: OrderOnMapProperties;
 }
 
 export default class MapControls {
