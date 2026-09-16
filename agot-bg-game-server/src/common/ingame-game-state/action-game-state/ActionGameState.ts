@@ -248,42 +248,27 @@ export default class ActionGameState extends GameState<
       if (order) {
         this.ordersOnBoard.set(region, order);
         if (message.animate && !this.ingame.fogOfWar) {
-          const animation = {
+          this.ingame.ordersToBeAnimated.set(region, {
             highlight: { active: true, color: message.animate },
             animateAttention: true
-          };
-          this.ingame.ordersToBeAnimated.set(region, animation);
+          });
           window.setTimeout(() => {
-            if (
-              this.ingame.ordersToBeAnimated.tryGet(region, null) == animation
-            ) {
-              this.ingame.ordersToBeAnimated.tryDelete(region);
-            }
+            this.ingame.ordersToBeAnimated.tryDelete(region);
           }, 3000);
         }
       } else {
         if (this.ordersOnBoard.has(region)) {
-          const orderToRemove = this.ordersOnBoard.get(region);
           if (message.animate && !this.ingame.fogOfWar) {
-            const animation = {
+            this.ingame.ordersToBeAnimated.set(region, {
               highlight: { active: true, color: message.animate },
               animateFadeOut: true
-            };
-            this.ingame.ordersToBeAnimated.set(region, animation);
+            });
             window.setTimeout(() => {
-              if (
-                this.ordersOnBoard.tryGet(region, null) == orderToRemove
-              ) {
-                this.ordersOnBoard.tryDelete(region);
-              }
-              if (
-                this.ingame.ordersToBeAnimated.tryGet(region, null) == animation
-              ) {
-                this.ingame.ordersToBeAnimated.tryDelete(region);
-              }
+              this.ordersOnBoard.tryDelete(region);
+              this.ingame.ordersToBeAnimated.tryDelete(region);
             }, 4000);
           } else {
-            this.ordersOnBoard.delete(region);
+            this.ordersOnBoard.tryDelete(region);
           }
         }
       }

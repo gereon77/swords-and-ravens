@@ -132,12 +132,9 @@ export default class ReplaceOrderGameState extends GameState<UseRavenGameState> 
             this.actionGameState.ordersOnBoard.set(region, order);
 
             if (!this.ingameGameState.fogOfWar) {
-                const animation = {highlight: {active: true, color: "white"}, animateAttention: true};
-                this.ingameGameState.ordersToBeAnimated.set(region, animation);
+                this.ingameGameState.ordersToBeAnimated.set(region, {highlight: {active: true, color: "white"}, animateAttention: true});
                 window.setTimeout(() => {
-                    if (this.ingameGameState.ordersToBeAnimated.tryGet(region, null) == animation) {
-                        this.ingameGameState.ordersToBeAnimated.tryDelete(region);
-                    }
+                    this.ingameGameState.ordersToBeAnimated.tryDelete(region);
                 }, 3000);
             }
         }

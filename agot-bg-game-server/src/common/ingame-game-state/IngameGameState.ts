@@ -1828,7 +1828,7 @@ export default class IngameGameState extends GameState<
           this.ordersOnBoard = new BetterMap(
             message.orders.map(([rid, oid]) => {
               const r = this.world.regions.get(rid);
-              this.ordersToBeAnimated.delete(r);
+              this.ordersToBeAnimated.tryDelete(r);
               return [r, orders.get(oid)];
             })
           );
