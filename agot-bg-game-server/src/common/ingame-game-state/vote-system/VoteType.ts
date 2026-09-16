@@ -129,9 +129,7 @@ export class PauseGame extends VoteType {
       ingame.autoResumeTimeout = setTimeout(() => {
         ingame.resumeGame();
       }, tenMinutesInMs);
-      ingame.willBeAutoResumedAt = new Date(
-        new Date().getTime() + tenMinutesInMs
-      );
+      ingame.willBeAutoResumedAt = new Date(Date.now() + tenMinutesInMs);
     }
 
     ingame.log({
