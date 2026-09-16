@@ -146,6 +146,43 @@ strong {
   filter: none;
 }
 
+// Real 3D flip scene for order-reveal: a perspective wrapper around a flipper that rotates
+// around the Y axis, with front (hidden, house-colored order back) and back (revealed order)
+// faces stacked via backface-visibility. The image swap happens purely through the 3D rotation,
+// never by abruptly replacing a background image mid-animation.
+.order-icon-scene {
+  width: 42px;
+  height: 42px;
+  // A perspective distance only a few multiples of the icon's own size exaggerates the
+  // foreshortening as it rotates, giving a much stronger sense of real 3D depth than a distance
+  // scaled for a much bigger card would.
+  perspective: 150px;
+}
+
+.order-icon-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 3s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  transform-style: preserve-3d;
+}
+
+.order-icon-flipper.flipped {
+  transform: rotateY(180deg);
+}
+
+.order-icon-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.order-icon-face-back {
+  transform: rotateY(180deg);
+}
+
 .iron-bank-content {
   background-size: contain;
   background-position: center;
