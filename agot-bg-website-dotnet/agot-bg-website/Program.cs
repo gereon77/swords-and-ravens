@@ -583,11 +583,8 @@ using (var scope = app.Services.CreateScope())
     await PermissionSeeder.SeedAsync(scope.ServiceProvider);
     await RoomSeeder.SeedAsync(scope.ServiceProvider, app.Environment);
 
-    // Nobody can possibly still be connected to a chat WebSocket the instant this process starts
-    // (ChatConnectionManager's in-memory connection tracking is obviously already empty too), so
-    // any presence entries left over in Redis from before this restart are necessarily stale -
-    // wipe them rather than let a "ghost" online user linger until someone happens to trigger the
-    // per-entry staleness pruning in ChatPresenceService.GetConnectedUsersAsync (up to an hour).
+    // Nobody can still be connected to this single website process when it starts, so remove both
+    // legacy room-wide presence blobs and per-connection records left by the previous process.
     await scope
         .ServiceProvider.GetRequiredService<ChatPresenceService>()
         .ClearAllConnectedUsersAsync();

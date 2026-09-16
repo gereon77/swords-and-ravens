@@ -80,11 +80,10 @@ public sealed class ChatBroadcaster(
 
         if (type == "__prune_check__")
         {
-            // Internal-only: never forwarded verbatim. Each locally-connected user whose id was
-            // pruned as stale gets a personalized force_disconnect, mirroring Django's
-            // close_stale_connections (one consumer instance per user connection).
-            var prunedUserIds = doc
-                .RootElement.GetProperty("user_ids")
+            // Internal-only: never forwarded verbatim. Only the socket whose expiring presence
+            // record disappeared gets a personalized force_disconnect.
+            var prunedConnectionIds = doc
+                .RootElement.GetProperty("connection_ids")
                 .EnumerateArray()
                 .Select(e => e.GetGuid())
                 .ToHashSet();
@@ -92,7 +91,9 @@ public sealed class ChatBroadcaster(
             var forceDisconnectJson = JsonSerializer.Serialize(new ForceDisconnectEvent());
             var bytes = System.Text.Encoding.UTF8.GetBytes(forceDisconnectJson);
             foreach (
-                var connection in localConnections.Where(c => prunedUserIds.Contains(c.UserId))
+                var connection in localConnections.Where(c =>
+                    prunedConnectionIds.Contains(c.ConnectionId)
+                )
             )
             {
                 if (connection.Socket.State == System.Net.WebSockets.WebSocketState.Open)

@@ -3,142 +3,182 @@ using StackExchange.Redis;
 
 namespace agot_bg_website.Infrastructure.Chat;
 
-/// <summary>One connected-user entry as tracked for the public room's presence list.</summary>
+/// <summary>Public user data associated with one or more live chat connections.</summary>
 public sealed record ConnectedUserData(
     string Username,
     bool IsAdmin,
     bool IsHighMember,
     string? LastWonTournament
-)
-{
-    public int Count { get; set; } = 1;
-    public DateTimeOffset LastActiveAt { get; set; } = DateTimeOffset.UtcNow;
-}
+);
+
+internal sealed record ConnectedUserConnectionData(Guid UserId, ConnectedUserData User);
 
 /// <summary>
-/// Redis-backed replacement for Django's <c>get/add/remove_connected_user</c> cache helpers
-/// (chat/consumers.py) — tracks who's currently connected to the public room's chat, for the
-/// "online users" list shown on the website. A single JSON blob per room (matching Django's single
-/// cache key holding a dict), stored with no expiration — staleness is pruned per-entry, same as
-/// the Python implementation (<see cref="StaleAfter"/>). See MIGRATION_PLAN.md §7.
+/// Redis-backed presence for the public chat room. Each WebSocket has its own expiring record, so
+/// concurrent connects, disconnects, and heartbeats never overwrite another connection's state.
 /// </summary>
 public sealed class ChatPresenceService(IConnectionMultiplexer redis)
 {
-    private static readonly TimeSpan StaleAfter = TimeSpan.FromHours(1);
+    internal static readonly TimeSpan ConnectionLifetime = TimeSpan.FromHours(1);
 
-    private static string CacheKey(Guid roomId) => $"chat:room:{roomId}:connected_users";
-
-    // Matches CacheKey's shape above - used only by ClearAllConnectedUsersAsync's startup scan.
-    private const string AllRoomsKeyPattern = "chat:room:*:connected_users";
+    private const string AllPresenceKeysPattern = "chat:room:*:connected_user*";
 
     private IDatabase Db => redis.GetDatabase();
 
-    public async Task<Dictionary<Guid, ConnectedUserData>> AddConnectedUserAsync(
+    private static string ConnectionsKey(Guid roomId) =>
+        $"chat:room:{roomId}:connected_user_connections";
+
+    private static string ConnectionKey(Guid roomId, Guid connectionId) =>
+        $"chat:room:{roomId}:connected_user_connection:{connectionId}";
+
+    private static string VersionKey(Guid roomId) => $"chat:room:{roomId}:connected_users_version";
+
+    public async Task AddConnectedUserAsync(
         Guid roomId,
+        Guid connectionId,
         Guid userId,
         ConnectedUserData userData
     )
     {
-        var users = await ReadAsync(roomId);
-        if (users.TryGetValue(userId, out var existing))
+        var transaction = Db.CreateTransaction();
+        _ = transaction.StringSetAsync(
+            ConnectionKey(roomId, connectionId),
+            JsonSerializer.Serialize(new ConnectedUserConnectionData(userId, userData)),
+            ConnectionLifetime
+        );
+        _ = transaction.SetAddAsync(ConnectionsKey(roomId), connectionId.ToString());
+        _ = transaction.StringIncrementAsync(VersionKey(roomId));
+        if (!await transaction.ExecuteAsync())
         {
-            existing.Count++;
-            existing.LastActiveAt = DateTimeOffset.UtcNow;
+            throw new InvalidOperationException("Failed to add the chat presence record.");
         }
-        else
-        {
-            users[userId] = userData;
-        }
-
-        await WriteAsync(roomId, users);
-        return users;
     }
 
-    public async Task<Dictionary<Guid, ConnectedUserData>> RemoveConnectedUserAsync(
-        Guid roomId,
-        Guid userId
-    )
+    public async Task RemoveConnectedUserAsync(Guid roomId, Guid connectionId)
     {
-        var users = await ReadAsync(roomId);
-        if (users.TryGetValue(userId, out var existing))
+        var transaction = Db.CreateTransaction();
+        _ = transaction.KeyDeleteAsync(ConnectionKey(roomId, connectionId));
+        _ = transaction.SetRemoveAsync(ConnectionsKey(roomId), connectionId.ToString());
+        _ = transaction.StringIncrementAsync(VersionKey(roomId));
+        if (!await transaction.ExecuteAsync())
         {
-            existing.Count--;
-            if (existing.Count <= 0)
-            {
-                users.Remove(userId);
-            }
+            throw new InvalidOperationException("Failed to remove the chat presence record.");
         }
-
-        await WriteAsync(roomId, users);
-        return users;
     }
 
-    /// <summary>Returns the still-live users plus the ids of any stale entries pruned along the way.</summary>
+    public Task<bool> RefreshConnectionAsync(Guid roomId, Guid connectionId) =>
+        Db.KeyExpireAsync(ConnectionKey(roomId, connectionId), ConnectionLifetime);
+
     public async Task<(
         Dictionary<Guid, ConnectedUserData> Users,
-        List<Guid> PrunedUserIds
+        List<Guid> PrunedConnectionIds,
+        long Version
     )> GetConnectedUsersAsync(Guid roomId)
     {
-        var users = await ReadAsync(roomId);
-        var cutoff = DateTimeOffset.UtcNow - StaleAfter;
-        var stale = users.Where(kv => kv.Value.LastActiveAt < cutoff).Select(kv => kv.Key).ToList();
-        foreach (var uid in stale)
+        var prunedConnectionIds = new HashSet<Guid>();
+        while (true)
         {
-            users.Remove(uid);
-        }
+            var versionBefore = await GetVersionAsync(roomId);
+            var snapshot = await ReadConnectionsAsync(roomId);
+            if (snapshot.PrunedConnectionIds.Count > 0 || snapshot.MalformedValues.Length > 0)
+            {
+                prunedConnectionIds.UnionWith(snapshot.PrunedConnectionIds);
+                var transaction = Db.CreateTransaction();
+                var staleIndexValues = snapshot
+                    .MalformedValues.Concat(
+                        snapshot.PrunedConnectionIds.Select(id => (RedisValue)id.ToString())
+                    )
+                    .ToArray();
+                _ = transaction.SetRemoveAsync(ConnectionsKey(roomId), staleIndexValues);
+                _ = transaction.StringIncrementAsync(VersionKey(roomId));
+                if (!await transaction.ExecuteAsync())
+                {
+                    throw new InvalidOperationException(
+                        "Failed to prune stale chat presence records."
+                    );
+                }
 
-        if (stale.Count > 0)
-        {
-            await WriteAsync(roomId, users);
-        }
+                continue;
+            }
 
-        return (users, stale);
+            var versionAfter = await GetVersionAsync(roomId);
+            if (versionBefore == versionAfter)
+            {
+                return (
+                    CollapseConnections(snapshot.LiveConnections),
+                    [.. prunedConnectionIds],
+                    versionAfter
+                );
+            }
+        }
     }
 
-    public async Task RefreshLastActiveAtAsync(Guid roomId, Guid userId)
+    private async Task<(
+        List<ConnectedUserConnectionData> LiveConnections,
+        List<Guid> PrunedConnectionIds,
+        RedisValue[] MalformedValues
+    )> ReadConnectionsAsync(Guid roomId)
     {
-        var users = await ReadAsync(roomId);
-        if (users.TryGetValue(userId, out var existing))
+        var indexKey = ConnectionsKey(roomId);
+        var indexedValues = await Db.SetMembersAsync(indexKey);
+        var indexedConnections = indexedValues
+            .Select(value => Guid.TryParse(value.ToString(), out var id) ? id : (Guid?)null)
+            .ToList();
+
+        var malformedValues = indexedValues
+            .Where((_, index) => indexedConnections[index] is null)
+            .ToArray();
+        var connectionIds = indexedConnections.OfType<Guid>().ToArray();
+        var values =
+            connectionIds.Length == 0
+                ? []
+                : await Db.StringGetAsync(
+                    connectionIds.Select(id => (RedisKey)ConnectionKey(roomId, id)).ToArray()
+                );
+
+        var liveConnections = new List<ConnectedUserConnectionData>(values.Length);
+        var prunedConnectionIds = new List<Guid>();
+        for (var index = 0; index < values.Length; index++)
         {
-            existing.LastActiveAt = DateTimeOffset.UtcNow;
-            await WriteAsync(roomId, users);
+            if (
+                values[index].IsNullOrEmpty
+                || JsonSerializer.Deserialize<ConnectedUserConnectionData>(values[index].ToString())
+                    is not { } connection
+            )
+            {
+                prunedConnectionIds.Add(connectionIds[index]);
+                continue;
+            }
+
+            liveConnections.Add(connection);
         }
+
+        return (liveConnections, prunedConnectionIds, malformedValues);
     }
 
-    /// <summary>
-    /// Deletes every room's presence key outright - called once at startup (see Program.cs)
-    /// since nobody can possibly still be connected to a chat WebSocket the instant this process
-    /// (re)starts, yet a stale entry would otherwise survive indefinitely (these keys have no TTL,
-    /// see the class doc above - only per-entry staleness is pruned, and only when someone
-    /// happens to fetch the list) if the previous process died without its WebSocket teardown
-    /// (ChatWebSocketApi's `finally` block, which calls RemoveConnectedUserAsync) getting to run
-    /// for every still-open connection, e.g. on a container kill/redeploy rather than a graceful
-    /// shutdown.
-    /// </summary>
+    internal static Dictionary<Guid, ConnectedUserData> CollapseConnections(
+        IEnumerable<ConnectedUserConnectionData> connections
+    ) =>
+        connections
+            .GroupBy(connection => connection.UserId)
+            .ToDictionary(group => group.Key, group => group.First().User);
+
+    private async Task<long> GetVersionAsync(Guid roomId)
+    {
+        var value = await Db.StringGetAsync(VersionKey(roomId));
+        return value.IsNullOrEmpty ? 0 : (long)value;
+    }
+
+    /// <summary>Clears legacy and current presence keys before this single website process starts.</summary>
     public async Task ClearAllConnectedUsersAsync()
     {
         foreach (var endpoint in redis.GetEndPoints())
         {
             var server = redis.GetServer(endpoint);
-            await foreach (var key in server.KeysAsync(pattern: AllRoomsKeyPattern))
+            await foreach (var key in server.KeysAsync(pattern: AllPresenceKeysPattern))
             {
                 await Db.KeyDeleteAsync(key);
             }
         }
     }
-
-    private async Task<Dictionary<Guid, ConnectedUserData>> ReadAsync(Guid roomId)
-    {
-        var json = await Db.StringGetAsync(CacheKey(roomId));
-        if (json.IsNullOrEmpty)
-        {
-            return [];
-        }
-
-        return JsonSerializer.Deserialize<Dictionary<Guid, ConnectedUserData>>(json.ToString())
-            ?? [];
-    }
-
-    private Task WriteAsync(Guid roomId, Dictionary<Guid, ConnectedUserData> users) =>
-        Db.StringSetAsync(CacheKey(roomId), JsonSerializer.Serialize(users));
 }

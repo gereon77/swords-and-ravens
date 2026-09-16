@@ -68,9 +68,12 @@ public sealed record ConnectedUsersEvent
 
     [JsonPropertyName("users")]
     public required Dictionary<string, ConnectedUserWireData> Users { get; init; }
+
+    [JsonPropertyName("version")]
+    public required long Version { get; init; }
 }
 
-/// <summary>Public shape sent to clients — strips the internal Count/LastActiveAt bookkeeping fields.</summary>
+/// <summary>Public shape sent to clients, shared by all live connections for the same user.</summary>
 public sealed record ConnectedUserWireData
 {
     [JsonPropertyName("username")]
@@ -94,15 +97,15 @@ public sealed record ForceDisconnectEvent
 
 /// <summary>
 /// Internal-only pub/sub payload (never forwarded verbatim to browsers) used to tell every
-/// instance which locally-connected users, if any, were pruned as stale from the public room's
-/// presence list — each instance then sends a personalized <see cref="ForceDisconnectEvent"/> only
-/// to the matching local socket(s), mirroring Django's per-consumer <c>close_stale_connections</c>.
+/// instance which locally-connected sockets, if any, lost their expiring public-room presence
+/// record. Each instance sends a personalized <see cref="ForceDisconnectEvent"/> only to the
+/// matching connection.
 /// </summary>
 public sealed record PruneCheckEvent
 {
     [JsonPropertyName("type")]
     public string Type => "__prune_check__";
 
-    [JsonPropertyName("user_ids")]
-    public required List<Guid> UserIds { get; init; }
+    [JsonPropertyName("connection_ids")]
+    public required List<Guid> ConnectionIds { get; init; }
 }
