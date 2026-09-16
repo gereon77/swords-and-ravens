@@ -143,7 +143,7 @@ export default class ResolveSinglePayDebtComponent extends Component<
     this.reset();
   }
 
-  reset(): void {
+  private reset(): void {
     this.unitsToRemove = new BetterMap();
   }
 

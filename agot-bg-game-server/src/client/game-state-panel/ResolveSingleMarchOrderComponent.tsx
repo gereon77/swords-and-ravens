@@ -523,7 +523,7 @@ export default class ResolveSingleMarchOrderComponent extends Component<
     );
   }
 
-  reset(): void {
+  private reset(): void {
     if (this.selectedMarchOrderRegion) {
       this.selectedMarchOrderRegion.removedUnits = [];
     }
@@ -678,6 +678,9 @@ export default class ResolveSingleMarchOrderComponent extends Component<
   }
 
   componentWillUnmount(): void {
+    // Discard any pending, unsent moves so they don't corrupt the shared game model
+    this.reset();
+
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
       this.modifyOrdersOnMapCallback

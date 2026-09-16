@@ -199,7 +199,7 @@ export default class SelectUnitsComponent extends Component<
     );
   }
 
-  reset(): void {
+  private reset(): void {
     this.selectedUnits = new BetterMap<Region, Unit[]>();
   }
 }

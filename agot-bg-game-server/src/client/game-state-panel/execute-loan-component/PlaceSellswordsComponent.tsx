@@ -280,6 +280,9 @@ export default class PlaceSellswordsComponent extends Component<
   }
 
   componentWillUnmount(): void {
+    // Discard any pending, unsent sellsword placements so they don't corrupt the shared game model
+    this.reset();
+
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
       this.modifyRegionsOnMapCallback
@@ -304,7 +307,7 @@ export default class PlaceSellswordsComponent extends Component<
     }
   }
 
-  reset(): void {
+  private reset(): void {
     _.flatMap(this.placedSellswords.values).forEach((r) => {
       r.region.newUnits = [];
       r.region.units.values.forEach((u) => (u.upgradedType = undefined));

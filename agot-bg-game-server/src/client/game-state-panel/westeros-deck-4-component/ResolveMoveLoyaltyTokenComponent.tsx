@@ -85,7 +85,7 @@ export default class ResolveMoveLoyaltyTokenComponent extends Component<
     this.gameState.sendMovePowerTokens(this.from, this.to);
   }
 
-  reset(): void {
+  private reset(): void {
     if (this.from != null && this.to != null) {
       this.from.loyaltyTokens += 1;
       this.to.loyaltyTokens -= 1;
@@ -139,6 +139,9 @@ export default class ResolveMoveLoyaltyTokenComponent extends Component<
   }
 
   componentWillUnmount(): void {
+    // Discard any pending, unsent loyalty token moves so they don't corrupt the shared game model
+    this.reset();
+
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
       this.modifyRegionsOnMapCallback

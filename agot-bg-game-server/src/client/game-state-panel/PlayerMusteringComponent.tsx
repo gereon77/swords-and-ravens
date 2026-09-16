@@ -559,6 +559,10 @@ export default class PlayerMusteringComponent extends Component<
   }
 
   componentWillUnmount(): void {
+    // Discard any pending, unsent musterings so they don't corrupt the shared game model
+    // (e.g. when the component is torn down by switching to replay mode instead of submitting)
+    this.reset();
+
     if (this.autoOpenPopoverTimeout != null) {
       window.clearTimeout(this.autoOpenPopoverTimeout);
       this.autoOpenPopoverTimeout = null;
@@ -592,7 +596,7 @@ export default class PlayerMusteringComponent extends Component<
     }
   }
 
-  reset(): void {
+  private reset(): void {
     _.flatMap(this.musterings.values).forEach((r) => {
       r.region.newUnits = [];
       r.region.units.values.forEach((u) => (u.upgradedType = undefined));

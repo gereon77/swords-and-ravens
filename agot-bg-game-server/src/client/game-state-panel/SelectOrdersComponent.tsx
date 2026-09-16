@@ -93,7 +93,7 @@ export default class SelectOrdersComponent extends Component<
     );
   }
 
-  reset(): void {
+  private reset(): void {
     this.selectedRegions = [];
   }
 

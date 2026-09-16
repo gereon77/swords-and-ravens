@@ -168,7 +168,7 @@ export default class PlayerReconcileArmiesComponent extends Component<
     this.reset();
   }
 
-  reset(): void {
+  private reset(): void {
     this.unitsToRemove = new BetterMap();
   }
 

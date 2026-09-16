@@ -125,7 +125,7 @@ export default class ResolveSingleRaidOrderComponent extends Component<
     }
   }
 
-  reset(): void {
+  private reset(): void {
     this.selectedOrderRegion = null;
     this.selectedTargetRegion = null;
   }
