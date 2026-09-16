@@ -133,6 +133,8 @@ export default class EntireGame extends GameState<
 
   @observable
   now = new Date();
+  // serverTime - Date.now() at last pong, used to correct "now" for client/server clock skew
+  @observable clockOffsetMs = 0;
   @observable stateVersion = 0; // Incremented when entire game is re-sent to force re-renders
 
   get lobbyGameState(): LobbyGameState | null {

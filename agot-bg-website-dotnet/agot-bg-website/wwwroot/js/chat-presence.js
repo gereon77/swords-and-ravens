@@ -6,12 +6,12 @@
 // Previously each page that rendered the widget owned its own WebSockets and eagerly disconnected
 // on document.visibilitychange -> "hidden" (e.g. backgrounding the tab on mobile, or switching
 // tabs) to work around Django/Daphne not reliably detecting closed sockets. ASP.NET Core's
-// WebSocket middleware sends its own protocol-level keep-alive pings and promptly detects
-// genuinely dead connections (see Program.cs `app.UseWebSockets()`), so that workaround is no
-// longer needed: connections here only close on an actual `pagehide` (tab/window closing or
-// navigating to another page), so a user backgrounding the tab - or just not looking at it - keeps
-// showing up as online, and the chat history/scroll position they had isn't lost either.
+// The global connection sends an application heartbeat while the page remains open and retries
+// unexpected socket closures. Intentional pagehide shutdown still closes cleanly, while merely
+// backgrounding the tab keeps the user online without relying on chat-message activity.
 const TABS = ["chat", "issues"];
+const PRESENCE_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_RECONNECT_DELAY_MS = 30 * 1000;
 
 function emptyRoomState() {
     return { wsState: 0, messages: [], noMoreMessages: false, lastViewedMessageId: null };
@@ -24,12 +24,21 @@ class ChatPresence extends EventTarget {
         this.connectedUsers = {};
         this.rooms = { chat: emptyRoomState(), issues: emptyRoomState() };
         this.websockets = {};
+        this.retryAttempts = { chat: 0, issues: 0 };
+        this.retryTimers = { chat: null, issues: null };
+        this.heartbeatTimer = null;
+        this.presenceVersion = -1;
         this._connected = false;
 
         this.connectAll();
         window.addEventListener("pagehide", () => this.disconnectAll());
         // Restored from the back-forward cache (bfcache) with sockets already torn down by the browser.
         window.addEventListener("pageshow", e => { if (e.persisted) this.connectAll(); });
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                this.sendPresenceHeartbeat();
+            }
+        });
     }
 
     connectAll() {
@@ -47,8 +56,10 @@ class ChatPresence extends EventTarget {
         if (!this._connected) return;
         this._connected = false;
         this.connectedUsers = {};
+        this.presenceVersion = -1;
         this.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: {} }));
         TABS.forEach(tab => {
+            this.clearRetryTimer(tab);
             const ws = this.websockets[tab];
             if (ws) {
                 ws.onclose = null;
@@ -59,37 +70,115 @@ class ChatPresence extends EventTarget {
             this.rooms[tab].wsState = 0;
             this.dispatchEvent(new CustomEvent("roomStateChanged", { detail: { tab } }));
         });
+        this.clearHeartbeatTimer();
     }
 
     connectRoom(tab, roomId) {
+        this.clearRetryTimer(tab);
         const existing = this.websockets[tab];
         if (existing) {
             existing.onclose = null;
+            existing.onmessage = null;
             existing.close();
         }
+        this.rooms[tab] = emptyRoomState();
+        if (tab === "chat") {
+            this.presenceVersion = -1;
+        }
+        this.dispatchEvent(new CustomEvent("roomStateChanged", { detail: { tab } }));
+
         const url = window.location;
         const wsProto = url.protocol === "http:" ? "ws:" : "wss:";
         const ws = new WebSocket(`${wsProto}//${url.host}/ws/chat/room/${roomId}`);
         this.websockets[tab] = ws;
         ws.onopen = () => {
+            if (this.websockets[tab] !== ws || !this._connected) return;
+            this.retryAttempts[tab] = 0;
             this.rooms[tab].wsState = 1;
             this.dispatchEvent(new CustomEvent("roomStateChanged", { detail: { tab } }));
+            if (tab === "chat") {
+                this.sendPresenceHeartbeat();
+                this.schedulePresenceHeartbeat(ws);
+            }
             window.setTimeout(() => {
-                if (ws.readyState === WebSocket.OPEN) {
+                if (this.websockets[tab] === ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "chat_retrieve", count: 20, first_message_id: null, faceless: false }));
                 }
             }, 100);
         };
         ws.onclose = () => {
+            if (this.websockets[tab] !== ws) return;
+            this.websockets[tab] = null;
+            if (tab === "chat") {
+                this.clearHeartbeatTimer();
+            }
             this.rooms[tab].wsState = 2;
             this.dispatchEvent(new CustomEvent("roomStateChanged", { detail: { tab } }));
+            if (this._connected) {
+                this.scheduleReconnect(tab);
+            }
         };
-        ws.onmessage = e => this.handleMessage(tab, JSON.parse(e.data));
+        ws.onmessage = e => {
+            if (this.websockets[tab] === ws && this._connected) {
+                this.handleMessage(tab, JSON.parse(e.data));
+            }
+        };
+    }
+
+    scheduleReconnect(tab) {
+        if (this.retryTimers[tab] || !this._connected) return;
+        const attempt = this.retryAttempts[tab]++;
+        const baseDelay = Math.min(1000 * (2 ** attempt), MAX_RECONNECT_DELAY_MS);
+        const jitteredDelay = baseDelay * (0.75 + Math.random() * 0.5);
+        this.retryTimers[tab] = window.setTimeout(() => {
+            this.retryTimers[tab] = null;
+            if (this._connected && !this.websockets[tab]) {
+                this.connectRoom(tab, this.roomIds[tab]);
+            }
+        }, jitteredDelay);
+    }
+
+    clearRetryTimer(tab) {
+        if (this.retryTimers[tab]) {
+            window.clearTimeout(this.retryTimers[tab]);
+            this.retryTimers[tab] = null;
+        }
+    }
+
+    sendPresenceHeartbeat() {
+        const ws = this.websockets.chat;
+        if (this._connected && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "presence_heartbeat" }));
+        }
+    }
+
+    schedulePresenceHeartbeat(ws) {
+        this.clearHeartbeatTimer();
+        const jitteredDelay = PRESENCE_HEARTBEAT_INTERVAL_MS * (0.9 + Math.random() * 0.2);
+        this.heartbeatTimer = window.setTimeout(() => {
+            if (
+                this._connected &&
+                this.websockets.chat === ws &&
+                ws.readyState === WebSocket.OPEN
+            ) {
+                this.sendPresenceHeartbeat();
+                this.schedulePresenceHeartbeat(ws);
+            }
+        }, jitteredDelay);
+    }
+
+    clearHeartbeatTimer() {
+        if (this.heartbeatTimer) {
+            window.clearTimeout(this.heartbeatTimer);
+            this.heartbeatTimer = null;
+        }
     }
 
     handleMessage(tab, data) {
         if (tab === "chat" && data.type === "connected_users") {
             if (!this._connected) return;
+            if (data.version < this.presenceVersion) return;
+            this.presenceVersion = data.version;
             this.connectedUsers = data.users;
             this.dispatchEvent(new CustomEvent("connectedUsersUpdated", { detail: data.users }));
             return;

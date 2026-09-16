@@ -129,7 +129,12 @@ public static class ChatWebSocketApi
                     if (isPresenceTrackedRoom)
                     {
                         var userData = await GetUserDataAsync(memoryCache, userManager, user);
-                        await presence.AddConnectedUserAsync(roomId, user.Id, userData);
+                        await presence.AddConnectedUserAsync(
+                            roomId,
+                            connectionId,
+                            user.Id,
+                            userData
+                        );
                         await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
                     }
 
@@ -138,6 +143,8 @@ public static class ChatWebSocketApi
                         roomId,
                         room.Name,
                         room.Public,
+                        isPresenceTrackedRoom,
+                        connectionId,
                         room.MaxRetrieveCount,
                         user,
                         userInRoom,
@@ -184,7 +191,7 @@ public static class ChatWebSocketApi
 
                     if (isPresenceTrackedRoom)
                     {
-                        await presence.RemoveConnectedUserAsync(roomId, user.Id);
+                        await presence.RemoveConnectedUserAsync(roomId, connectionId);
                         await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
                     }
 
@@ -217,6 +224,8 @@ public static class ChatWebSocketApi
         Guid roomId,
         string roomName,
         bool roomPublic,
+        bool isPresenceTrackedRoom,
+        Guid connectionId,
         int? maxRetrieveCount,
         ApplicationUser user,
         UserInRoom userInRoom,
@@ -280,12 +289,35 @@ public static class ChatWebSocketApi
                             db,
                             userManager,
                             broadcaster,
-                            presence,
                             memoryCache,
                             emailSender,
                             configuration,
                             logger
                         );
+                        break;
+                    case "presence_heartbeat":
+                        if (isPresenceTrackedRoom)
+                        {
+                            var refreshed = await presence.RefreshConnectionAsync(
+                                roomId,
+                                connectionId
+                            );
+                            if (!refreshed)
+                            {
+                                var userData = await GetUserDataAsync(
+                                    memoryCache,
+                                    userManager,
+                                    user
+                                );
+                                await presence.AddConnectedUserAsync(
+                                    roomId,
+                                    connectionId,
+                                    user.Id,
+                                    userData
+                                );
+                                await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                            }
+                        }
                         break;
                     case "chat_view_message":
                         await HandleChatViewMessageAsync(doc.RootElement, userInRoom.Id, db);
@@ -315,7 +347,6 @@ public static class ChatWebSocketApi
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         ChatBroadcaster broadcaster,
-        ChatPresenceService presence,
         IMemoryCache memoryCache,
         IEmailSender emailSender,
         IConfiguration configuration,
@@ -369,16 +400,6 @@ public static class ChatWebSocketApi
             CreatedAt = message.CreatedAt,
         };
         await broadcaster.PublishAsync(roomId, evt);
-
-        if (
-            roomPublic
-            && (roomName == RoomSeeder.PublicRoomName || roomName == RoomSeeder.IssuesRoomName)
-        )
-        {
-            // Both public rooms' activity refreshes the *public* room's presence timestamp,
-            // matching Django's ChatConsumer.receive_json (always refreshes public_room_id).
-            await presence.RefreshLastActiveAtAsync(RoomSeeder.PublicRoomId, user.Id);
-        }
 
         if (roomPublic)
         {
@@ -622,15 +643,19 @@ public static class ChatWebSocketApi
         Guid roomId
     )
     {
-        var (users, prunedUserIds) = await presence.GetConnectedUsersAsync(roomId);
+        var (users, prunedConnectionIds, version) = await presence.GetConnectedUsersAsync(roomId);
 
-        if (prunedUserIds.Count > 0)
+        if (prunedConnectionIds.Count > 0)
         {
-            await broadcaster.PublishAsync(roomId, new PruneCheckEvent { UserIds = prunedUserIds });
+            await broadcaster.PublishAsync(
+                roomId,
+                new PruneCheckEvent { ConnectionIds = prunedConnectionIds }
+            );
         }
 
         var evt = new ConnectedUsersEvent
         {
+            Version = version,
             Users = users.ToDictionary(
                 kv => kv.Key.ToString(),
                 kv => new ConnectedUserWireData

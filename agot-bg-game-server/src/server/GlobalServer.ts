@@ -120,8 +120,10 @@ export default class GlobalServer {
     }
 
     if (message.type == "ping") {
-      // The client may send ping to keep the connection alive.
-      // Do nothing.
+      // Reply with our own time so the client can correct for clock skew
+      if (client.readyState == WebSocket.OPEN) {
+        this.send(client, { type: "pong", serverTime: Date.now() });
+      }
     } else if (message.type == "authenticate") {
       const { userId, requestUserId, gameId, authToken } = message.authData;
 
@@ -360,7 +362,9 @@ export default class GlobalServer {
     this.loadedGames.values.forEach((entireGame) => entireGame.flushSaveGame());
 
     const pending = Promise.allSettled(Array.from(this.pendingSaves));
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(resolve, timeoutMs)
+    );
     await Promise.race([pending, timeout]);
   }
 

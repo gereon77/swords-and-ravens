@@ -416,6 +416,13 @@ export default class GameClient {
 
       this.connectionState = ConnectionState.SYNCED;
       this.loadVolumeSettingsFromLocalStorage();
+
+      // Ping immediately to establish the clock offset instead of waiting for the next scheduled ping
+      this.send({ type: "ping" });
+    } else if (message.type == "pong") {
+      if (this.entireGame) {
+        this.entireGame.clockOffsetMs = message.serverTime - Date.now();
+      }
     } else if (message.type == "banned-response") {
       this.connectionState = ConnectionState.BANNED;
     } else if (message.type == "new-private-chat-room") {

@@ -532,7 +532,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
 
   launchReadyCheck(): void {
     this.readyUsers = [];
-    this.readyCheckWillTimeoutAt = new Date(new Date().getTime() + 30 * 1000);
+    this.readyCheckWillTimeoutAt = new Date(Date.now() + 30 * 1000);
     this.readyCheckTimeout = setTimeout(() => {
       this.readyUsers = null;
       this.readyCheckTimeout = null;

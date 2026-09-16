@@ -597,7 +597,8 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
   }
 
   setNow(): void {
-    this.entireGame.now = new Date();
+    // Correct for client/server clock skew so countdowns against server-issued deadlines stay accurate
+    this.entireGame.now = new Date(Date.now() + this.entireGame.clockOffsetMs);
   }
 
   componentDidMount(): void {

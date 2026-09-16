@@ -1140,8 +1140,17 @@ Follow-up work after first getting the app running locally end-to-end:
   translate against Npgsql, even though it silently "works" against the EF Core InMemory provider
   used by this repo's unit tests. Always spot-check new EF Core projection code against the real
   `snr_dotnet` Postgres dev database, not just the InMemory-provider test suite.
+- **Online-presence expiry/reconnect hardening, implemented.** The global website chat client no
+  longer inherits Django's assumption that visibility changes regularly disconnect/reconnect each
+  tab. Public-room sockets now send a jittered heartbeat, retry unexpected closures with bounded
+  exponential backoff, and recreate their presence record after a long suspension. Redis presence
+  is stored per connection with an independent TTL rather than as one room-wide read/modify/write
+  JSON blob, so simultaneous tabs and reconnect waves cannot overwrite one another; stale pruning
+  targets only the expired connection, not every tab belonging to that user. This fixes the
+  periodic empty "Online users" snapshot that occurred when quiet-but-live users crossed the old
+  one-hour last-chat-activity threshold and were force-reconnected together.
 
-## 15. Roadmap / follow-ups (as of 2026-09-01)
+## 15. Roadmap / follow-ups (as of 2026-09-16)
 
 Kept up to date here so a fresh session can answer "what's next" immediately without having to
 re-derive it. Update this section whenever priorities shift or an item is completed.
@@ -1189,7 +1198,8 @@ stale/paused snapshot after an out-of-order or dropped save — `Game.SaveSequen
 (`GamesApi.cs`), the TS game server flushing/awaiting pending throttled saves on `SIGTERM`/`SIGINT`
 (`GlobalServer.shutdown()`, `server.ts`), bypassing the save throttle for `FINISHED`/`CANCELLED`
 transitions (`EntireGame.saveGame`), and skipping the `PlayerInGame`/`PreviousPlayerInGame`
-delete+recreate on saves where the player list didn't change (`GamesApi.PlayersUnchanged`).
+delete+recreate on saves where the player list didn't change (`GamesApi.PlayersUnchanged`);
+heartbeat-backed, per-connection online presence with automatic WebSocket reconnect.
 
 ## 16. Production deployment: plain Docker + Compose, no Dokku/Kubernetes (implemented)
 
@@ -1519,5 +1529,4 @@ affecting, run manually in this order when ready):**
 8. ~~Switch `deploy.yml`'s trigger from `workflow_dispatch` to `push: branches: [master]`~~ — done;
    `deploy.yml` now triggers on every push to `master` (`workflow_dispatch` kept as a manual
    fallback), so merging PR #31 into `master` will trigger the production deploy automatically.
-
 

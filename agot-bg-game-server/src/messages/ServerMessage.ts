@@ -108,12 +108,18 @@ export type ServerMessage =
   | UpdateWaitedForData
   | UserBanned
   | UserUnbanned
-  | BannedResponse;
+  | BannedResponse
+  | Pong;
 
 interface AuthenticationResponse {
   type: "authenticate-response";
   userId: string;
   game: any;
+}
+
+interface Pong {
+  type: "pong";
+  serverTime: number;
 }
 
 interface NewUser {

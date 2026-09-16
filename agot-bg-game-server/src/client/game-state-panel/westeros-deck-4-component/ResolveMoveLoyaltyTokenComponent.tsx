@@ -1,5 +1,5 @@
-import {observer} from "mobx-react";
-import {Component, ReactNode} from "react";
+import { observer } from "mobx-react";
+import { Component, ReactNode } from "react";
 import GameStateComponentProps from "../GameStateComponentProps";
 import React from "react";
 import { Button, Col, Row } from "react-bootstrap";
@@ -11,99 +11,140 @@ import { RegionOnMapProperties } from "../../MapControls";
 import ResolveMoveLoyaltyTokenGameState from "../../../common/ingame-game-state/westeros-game-state/westeros-deck-4-game-state/move-loyalty-tokens-game-state/resolve-move-loyalty-token-game-state/ResolveMoveLoyaltyTokenGameState";
 
 @observer
-export default class ResolveMoveLoyaltyTokenComponent extends Component<GameStateComponentProps<ResolveMoveLoyaltyTokenGameState>> {
-    @observable from: Region | null;
-    @observable to: Region | null;
+export default class ResolveMoveLoyaltyTokenComponent extends Component<
+  GameStateComponentProps<ResolveMoveLoyaltyTokenGameState>
+> {
+  @observable from: Region | null;
+  @observable to: Region | null;
 
-    modifyRegionsOnMapCallback: any;
+  modifyRegionsOnMapCallback: any;
 
-    get gameState(): ResolveMoveLoyaltyTokenGameState {
-        return this.props.gameState;
-    }
+  get gameState(): ResolveMoveLoyaltyTokenGameState {
+    return this.props.gameState;
+  }
 
-    render(): ReactNode {
-        return (
+  render(): ReactNode {
+    return (
+      <>
+        <Col xs={12} className="text-center">
+          House <b>{this.gameState.house.name}</b> must move a
+          loyalty&nbsp;token to an adjacent land area.
+        </Col>
+        <Col xs={12} className="mt-2">
+          {this.props.gameClient.doesControlHouse(this.gameState.house) ? (
             <>
-                <Col xs={12} className="text-center">
-                    House <b>{this.gameState.house.name}</b> must move a loyalty&nbsp;token to an adjacent land area.
+              <p className="text-center">
+                Move a loyalty&nbsp;token from{" "}
+                {this.from ? (
+                  <>
+                    <b>{this.from.name}</b> to{" "}
+                  </>
+                ) : (
+                  ""
+                )}
+                {this.to ? <b>{this.to.name}</b> : ""}
+              </p>
+              <Row className="justify-content-center">
+                <Col xs="auto">
+                  <Button
+                    type="button"
+                    variant="success"
+                    onClick={() => this.confirm()}
+                    disabled={this.from == null || this.to == null}
+                  >
+                    Confirm
+                  </Button>
                 </Col>
-                <Col xs={12} className="mt-2">
-                    {this.props.gameClient.doesControlHouse(this.gameState.house) ? (
-                        <>
-                            <p className="text-center">
-                                Move a loyalty&nbsp;token from {this.from ? <><b>{this.from.name}</b> to </> : ""}{this.to ? <b>{this.to.name}</b> : ""}
-                            </p>
-                            <Row className="justify-content-center">
-                                <Col xs="auto">
-                                    <Button type="button" variant="success" onClick={() => this.confirm()} disabled={this.from == null || this.to == null}>
-                                        Confirm
-                                    </Button>
-                                </Col>
-                                <Col xs="auto">
-                                    <Button type="button" variant="danger" onClick={() => this.reset()} disabled={this.from == null && this.to == null}>
-                                        Reset
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </>
-                    ) : (
-                        <div className="text-center">Waiting for {this.gameState.house.name}...</div>
-                    )}
+                <Col xs="auto">
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => this.reset()}
+                    disabled={this.from == null && this.to == null}
+                  >
+                    Reset
+                  </Button>
                 </Col>
+              </Row>
             </>
-        );
+          ) : (
+            <div className="text-center">
+              Waiting for {this.gameState.house.name}...
+            </div>
+          )}
+        </Col>
+      </>
+    );
+  }
+
+  confirm(): void {
+    if (this.from == null || this.to == null) {
+      return;
     }
 
-    confirm(): void {
-        if (this.from == null || this.to == null) {
-            return;
-        }
+    this.gameState.sendMovePowerTokens(this.from, this.to);
+  }
 
-        this.gameState.sendMovePowerTokens(this.from, this.to);
+  private reset(): void {
+    if (this.from != null && this.to != null) {
+      this.from.loyaltyTokens += 1;
+      this.to.loyaltyTokens -= 1;
     }
+    this.from = null;
+    this.to = null;
+  }
 
-    reset(): void {
-        if (this.from != null && this.to != null) {
-            this.from.loyaltyTokens += 1;
-            this.to.loyaltyTokens -= 1;
-        }
-        this.from = null;
-        this.to = null;
-    }
-
-    modifyRegionsOnMap(): [Region, PartialRecursive<RegionOnMapProperties>][] {
-        if (this.props.gameClient.doesControlHouse(this.props.gameState.house)) {
-            if (this.from == null) {
-                return this.props.gameState.parentGameState.validFromRegions.map(r => ([
-                    r,
-                    {highlight: {active: true}, onClick: () => this.onRegionClick(r)}
-                ]));
-            } else if (this.from != null && this.to == null) {
-                return this.props.gameState.parentGameState.getValidTargetRegions(this.from).map(r => ([
-                    r,
-                    {highlight: {active: true}, onClick: () => this.onRegionClick(r)}
-                ]));
+  modifyRegionsOnMap(): [Region, PartialRecursive<RegionOnMapProperties>][] {
+    if (this.props.gameClient.doesControlHouse(this.props.gameState.house)) {
+      if (this.from == null) {
+        return this.props.gameState.parentGameState.validFromRegions.map(
+          (r) => [
+            r,
+            {
+              highlight: { active: true },
+              onClick: () => this.onRegionClick(r)
             }
-        }
-
-        return [];
+          ]
+        );
+      } else if (this.from != null && this.to == null) {
+        return this.props.gameState.parentGameState
+          .getValidTargetRegions(this.from)
+          .map((r) => [
+            r,
+            {
+              highlight: { active: true },
+              onClick: () => this.onRegionClick(r)
+            }
+          ]);
+      }
     }
 
-    onRegionClick(region: Region): void {
-        if (this.from == null) {
-            this.from = region;
-        } else if (this.from != null && this.to == null) {
-            this.to = region;
-            this.from.loyaltyTokens -= 1;
-            this.to.loyaltyTokens += 1;
-        }
-    }
+    return [];
+  }
 
-    componentDidMount(): void {
-        this.props.mapControls.modifyRegionsOnMap.push(this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap());
+  onRegionClick(region: Region): void {
+    if (this.from == null) {
+      this.from = region;
+    } else if (this.from != null && this.to == null) {
+      this.to = region;
+      this.from.loyaltyTokens -= 1;
+      this.to.loyaltyTokens += 1;
     }
+  }
 
-    componentWillUnmount(): void {
-        _.pull(this.props.mapControls.modifyRegionsOnMap, this.modifyRegionsOnMapCallback);
-    }
+  componentDidMount(): void {
+    this.props.mapControls.modifyRegionsOnMap.push(
+      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap())
+    );
+  }
+
+  componentWillUnmount(): void {
+    // Discard any pending, unsent loyalty token moves so they don't corrupt the shared game model
+    this.reset();
+
+    _.pull(
+      this.props.mapControls.modifyRegionsOnMap,
+      this.modifyRegionsOnMapCallback
+    );
+  }
 }

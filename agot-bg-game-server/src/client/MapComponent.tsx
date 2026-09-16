@@ -23,6 +23,7 @@ import barrelImage from "../../public/images/region-modifications/Barrel.png";
 import crownImage from "../../public/images/region-modifications/Crown.png";
 import houseOrderImages from "./houseOrderImages";
 import orderImages from "./orderImages";
+import OrderIcon from "./OrderIcon";
 import unitImages from "./unitImages";
 import classNames from "classnames";
 import housePowerTokensImages from "./housePowerTokensImages";
@@ -830,25 +831,47 @@ export default class MapComponent extends Component<MapComponentProps> {
         order = orderPresent ? this.ingame.ordersOnBoard.get(region) : null;
       }
 
-      // Check if we need to animate flip:
+      // Check if we need to animate flip. `properties` is already the merge of all
+      // modifyOrdersOnMap contributors for this region, so this picks up any pending
+      // order-reveal animation for it without querying orderAnimations directly.
       if (!orderPresent) {
-        orderPresent =
-          this.ingame.ordersToBeAnimated.tryGet(region, null)?.animateFlip ??
-          false;
+        orderPresent = properties.animateFlip ?? false;
       }
 
       if (orderPresent) {
-        let backgroundUrl: string | null = null;
+        const revealedUrl =
+          order != null ? orderImages.get(order.type.id) : null;
+        const controller = this.allRegionsWithControllers.get(region);
+        const hiddenUrl = controller
+          ? houseOrderImages.get(controller.id)
+          : null;
 
-        if (order != null) {
-          backgroundUrl = orderImages.get(order.type.id);
-        } else {
-          const controller = this.allRegionsWithControllers.get(region);
-          if (controller) {
-            backgroundUrl = houseOrderImages.get(controller.id);
-          }
+        if (properties.animateFlip && hiddenUrl && revealedUrl) {
+          // A real 3D flip needs both faces up front: the hidden, house-colored order back
+          // (front face) and the already-revealed order (back face). ordersOnBoard is updated
+          // immediately on "reveal-orders" (see IngameGameState), so both are available as
+          // soon as the flip animation starts.
+          //
+          // Other still-mounting-out contributors (e.g. PlaceOrdersComponent) may still be
+          // highlighting this exact region as "clickable to remove" for a brief moment while
+          // the flip plays, since their unmount can lag behind the "reveal-orders" message.
+          // Explicitly drop those interactive/highlight properties for the duration of the
+          // flip so the order never looks clickable while it's being revealed.
+          return this.renderOrder(
+            region,
+            order,
+            hiddenUrl,
+            {
+              ...properties,
+              highlight: undefined,
+              onClick: undefined,
+              wrap: undefined
+            },
+            revealedUrl
+          );
         }
 
+        const backgroundUrl = revealedUrl ?? hiddenUrl;
         if (backgroundUrl) {
           return this.renderOrder(region, order, backgroundUrl, properties);
         }
@@ -898,7 +921,8 @@ export default class MapComponent extends Component<MapComponentProps> {
     region: Region,
     order: Order | null,
     backgroundUrl: string,
-    properties: OrderOnMapProperties
+    properties: OrderOnMapProperties,
+    flipToBackgroundUrl?: string
   ): ReactNode {
     let planningOrAction =
       this.ingame.childGameState instanceof PlanningGameState ||
@@ -1004,17 +1028,21 @@ export default class MapComponent extends Component<MapComponentProps> {
           key={`map-order-container-key_${region.id}`}
           id={`map-order-container_${region.id}`}
         >
-          <div
-            style={{
-              backgroundImage: `url(${backgroundUrl})`,
-              borderColor: color
-            }}
-            className={classNames(`order-icon ${placeAnimation}`, {
-              "order-border": drawBorder,
+          <OrderIcon
+            // Force a fresh mount whenever this region enters or leaves flip mode, otherwise
+            // React reuses the same OrderIcon instance and its componentDidMount (which
+            // schedules the un-flipped -> flipped transition) never fires again, so the reveal
+            // would just jump straight to the back face instead of animating.
+            key={`order-icon_${region.id}_${flipToBackgroundUrl ? "flip" : "static"}`}
+            frontImage={backgroundUrl}
+            backImage={flipToBackgroundUrl}
+            drawBorder={drawBorder}
+            borderColor={color}
+            className={classNames(placeAnimation, {
               "pulsate-bck": properties.animateAttention,
-              "pulsate-bck_fade-out": properties.animateFadeOut,
-              "flip-vertical-right": properties.animateFlip
+              "pulsate-bck_fade-out": properties.animateFadeOut
             })}
+            onAnimationEnd={properties.onAnimationEnd}
           />
         </div>
       </ConditionalWrap>

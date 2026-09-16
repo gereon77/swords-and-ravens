@@ -3,6 +3,7 @@ import User from "../../server/User";
 import IngameGameState from "./IngameGameState";
 import { VoteState } from "./vote-system/Vote";
 import { observable } from "mobx";
+import _ from "lodash";
 import getElapsedSeconds, {
   getTimeDeltaInSeconds
 } from "../../utils/getElapsedSeconds";
@@ -47,7 +48,8 @@ export default class Player {
     let total = this.liveClockData.remainingSeconds;
     if (this.liveClockData.timerStartedAt) {
       total -= getTimeDeltaInSeconds(now, this.liveClockData.timerStartedAt);
-      total = Math.max(0, total);
+      // Clamp against a stale clockOffsetMs producing a negative elapsed time and overshooting the known budget
+      total = _.clamp(total, 0, this.liveClockData.remainingSeconds);
     }
 
     return total;
