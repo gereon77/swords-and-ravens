@@ -1853,7 +1853,7 @@ export default class IngameGameState extends GameState<
       this.forceRerender();
     } else if (message.type == "reveal-orders") {
       // The real order data is applied to ordersOnBoard immediately, in both branches below.
-      // OrderIcon performs a real 3D flip (front face = hidden, house-colored order back; back
+      // FlipIcon performs a real 3D flip (front face = hidden, house-colored order back; back
       // face = the now-known revealed order) via backface-visibility, so the reveal itself only
       // becomes visible once the flip passes its halfway point - there is no need to delay
       // swapping the underlying order data anymore like the old rotateY-and-swap hack required.
@@ -1868,8 +1868,8 @@ export default class IngameGameState extends GameState<
         message.orders.forEach(([rid, _oid]) => {
           const r = this.world.regions.get(rid);
           // The entry's own onAnimationEnd/fallback-timer cleanup removes this once the flip
-          // transition (driven by OrderIcon) has finished.
-          this.addOrderAnimation(r, { animateFlip: true }, 4000);
+          // animation (driven by FlipIcon, see ".flip-flipper" in custom.scss) has finished.
+          this.addOrderAnimation(r, { animateFlip: true }, 3000);
         });
       }
     } else if (message.type == "remove-orders") {

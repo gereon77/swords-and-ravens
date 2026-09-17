@@ -89,7 +89,12 @@ export default class CombatComponent extends Component<
               armyUnits: stat.armyUnits.map((ut) => unitTypes.get(ut)),
               woundedUnits: stat.woundedUnits.map((ut) => unitTypes.get(ut)),
               tidesOfBattleCard: tidesOfBattleCard,
-              houseCardBackId: this.getHouseCardBackId(house)
+              houseCardBackId: this.getHouseCardBackId(house),
+              // For fast-tracked/auto-resolved combats, "update-combat-stats" (which switches
+              // this render to the present, stats-based branch) may arrive just moments after
+              // "change-combat-house-card", well before the flip animation would otherwise
+              // finish. Keep animating here too so the reveal doesn't get cut short.
+              animateHouseCardFlip: this.combat.animatingHouseCardReveal
             };
           })
         : [
@@ -111,7 +116,8 @@ export default class CombatComponent extends Component<
               ),
               total: this.combat.getTotalCombatStrength(this.attacker),
               houseCardBackId: this.getHouseCardBackId(this.attacker),
-              tidesOfBattleCard: this.combat.attackerTidesOfBattleCard
+              tidesOfBattleCard: this.combat.attackerTidesOfBattleCard,
+              animateHouseCardFlip: this.combat.animatingHouseCardReveal
             },
             {
               house: this.defender,
@@ -135,7 +141,8 @@ export default class CombatComponent extends Component<
               ),
               total: this.combat.getTotalCombatStrength(this.defender),
               houseCardBackId: this.getHouseCardBackId(this.defender),
-              tidesOfBattleCard: this.combat.defenderTidesOfBattleCard
+              tidesOfBattleCard: this.combat.defenderTidesOfBattleCard,
+              animateHouseCardFlip: this.combat.animatingHouseCardReveal
             }
           ];
     return (
