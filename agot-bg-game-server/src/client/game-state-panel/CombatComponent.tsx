@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
 import { Component, ReactNode } from "react";
 import CombatGameState, {
-  CombatStats,
+  CombatStats
 } from "../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/CombatGameState";
 import DeclareSupportGameState from "../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/declare-support-game-state/DeclareSupportGameState";
 import DeclareSupportComponent from "./DeclareSupportComponent";
@@ -25,7 +25,7 @@ import Region from "../../common/ingame-game-state/game-data-structure/Region";
 import {
   OrderOnMapProperties,
   RegionOnMapProperties,
-  UnitOnMapProperties,
+  UnitOnMapProperties
 } from "../MapControls";
 import PartialRecursive from "../../utils/PartialRecursive";
 import _ from "lodash";
@@ -89,7 +89,7 @@ export default class CombatComponent extends Component<
               armyUnits: stat.armyUnits.map((ut) => unitTypes.get(ut)),
               woundedUnits: stat.woundedUnits.map((ut) => unitTypes.get(ut)),
               tidesOfBattleCard: tidesOfBattleCard,
-              houseCardBackId: this.getHouseCardBackId(house),
+              houseCardBackId: this.getHouseCardBackId(house)
             };
           })
         : [
@@ -104,14 +104,14 @@ export default class CombatComponent extends Component<
               garrison: this.combat.getGarrisonCombatStrength(this.attacker),
               support: this.combat.getSupportStrengthForSide(this.attacker),
               houseCardStrength: this.combat.getHouseCardCombatStrength(
-                this.attacker,
+                this.attacker
               ),
               valyrianSteelBlade: this.combat.getValyrianBladeBonus(
-                this.attacker,
+                this.attacker
               ),
               total: this.combat.getTotalCombatStrength(this.attacker),
               houseCardBackId: this.getHouseCardBackId(this.attacker),
-              tidesOfBattleCard: this.combat.attackerTidesOfBattleCard,
+              tidesOfBattleCard: this.combat.attackerTidesOfBattleCard
             },
             {
               house: this.defender,
@@ -128,15 +128,15 @@ export default class CombatComponent extends Component<
               garrison: this.combat.getGarrisonCombatStrength(this.defender),
               support: this.combat.getSupportStrengthForSide(this.defender),
               houseCardStrength: this.combat.getHouseCardCombatStrength(
-                this.defender,
+                this.defender
               ),
               valyrianSteelBlade: this.combat.getValyrianBladeBonus(
-                this.defender,
+                this.defender
               ),
               total: this.combat.getTotalCombatStrength(this.defender),
               houseCardBackId: this.getHouseCardBackId(this.defender),
-              tidesOfBattleCard: this.combat.defenderTidesOfBattleCard,
-            },
+              tidesOfBattleCard: this.combat.defenderTidesOfBattleCard
+            }
           ];
     return (
       <div key={`combat-component-${this.props.gameState.stateVersion}`}>
@@ -163,16 +163,16 @@ export default class CombatComponent extends Component<
           [PostCombatGameState, PostCombatComponent],
           [
             ImmediatelyHouseCardAbilitiesResolutionGameState,
-            ImmediatelyHouseCardAbilitiesResolutionComponent,
+            ImmediatelyHouseCardAbilitiesResolutionComponent
           ],
           [
             CancelHouseCardAbilitiesGameState,
-            CancelHouseCardAbilitiesComponent,
+            CancelHouseCardAbilitiesComponent
           ],
           [
             BeforeCombatHouseCardAbilitiesGameState,
-            BeforeCombatHouseCardAbilitiesComponent,
-          ],
+            BeforeCombatHouseCardAbilitiesComponent
+          ]
         ])}
       </div>
     );
@@ -180,7 +180,7 @@ export default class CombatComponent extends Component<
 
   getHouseCard(id: string): HouseCard | null {
     const filtered = this.combat.houseCombatDatas.values.filter(
-      (hcd) => hcd.houseCard && hcd.houseCard.id == id,
+      (hcd) => hcd.houseCard && hcd.houseCard.id == id
     );
     if (filtered.length == 1) {
       return filtered[0].houseCard;
@@ -205,8 +205,8 @@ export default class CombatComponent extends Component<
     return [
       [
         this.combat.defendingRegion,
-        { highlight: { active: true, color: "yellow" } },
-      ],
+        { highlight: { active: true, color: "yellow" } }
+      ]
     ];
   }
 
@@ -224,7 +224,7 @@ export default class CombatComponent extends Component<
         postCombat.winner == this.combat.attacker);
     const selectUnits = this.combat.hasChildGameState(SelectUnitsGameState)
       ? (this.combat.getChildGameState(
-          SelectUnitsGameState,
+          SelectUnitsGameState
         ) as SelectUnitsGameState<any>)
       : null;
 
@@ -238,8 +238,8 @@ export default class CombatComponent extends Component<
           highlight: { active: true, color: "red" },
           targetRegion: drawMarchMarkers
             ? this.combat.defendingRegion
-            : undefined,
-        },
+            : undefined
+        }
       ]);
     } else if (this.props.gameClient.doesControlHouse(selectUnits.house)) {
       return [];
@@ -249,8 +249,8 @@ export default class CombatComponent extends Component<
         {
           targetRegion: drawMarchMarkers
             ? this.combat.defendingRegion
-            : undefined,
-        },
+            : undefined
+        }
       ]);
     }
   }
@@ -258,26 +258,26 @@ export default class CombatComponent extends Component<
   modifyOrdersOnMap(): [Region, PartialRecursive<OrderOnMapProperties>][] {
     return [this.props.gameState.attackingRegion].map((r) => [
       r,
-      { highlight: { active: true, color: "red" } },
+      { highlight: { active: true, color: "red" } }
     ]);
   }
 
   componentDidMount(): void {
     this.props.mapControls.modifyRegionsOnMap.push(
-      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap()),
+      (this.modifyRegionsOnMapCallback = () => this.modifyRegionsOnMap())
     );
     this.props.mapControls.modifyUnitsOnMap.push(
-      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap()),
+      (this.modifyUnitsOnMapCallback = () => this.modifyUnitsOnMap())
     );
     this.props.mapControls.modifyOrdersOnMap.push(
-      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap()),
+      (this.modifyOrdersOnMapCallback = () => this.modifyOrdersOnMap())
     );
 
     window.setTimeout(() => {
       document.body.click();
       window.setTimeout(() => {
         this.props.gameClient.sfxManager.playCombatSound(
-          this.props.gameState.attacker.id,
+          this.props.gameState.attacker.id
         );
       }, 100);
     }, 100);
@@ -286,15 +286,15 @@ export default class CombatComponent extends Component<
   componentWillUnmount(): void {
     _.pull(
       this.props.mapControls.modifyRegionsOnMap,
-      this.modifyRegionsOnMapCallback,
+      this.modifyRegionsOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyUnitsOnMap,
-      this.modifyUnitsOnMapCallback,
+      this.modifyUnitsOnMapCallback
     );
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
-      this.modifyOrdersOnMapCallback,
+      this.modifyOrdersOnMapCallback
     );
 
     this.props.gameClient.sfxManager.fadeOutCurrentMusic();

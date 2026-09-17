@@ -63,7 +63,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
           style={{
             display: "grid",
             gridGap: "5px",
-            gridTemplateColumns: "50% 50%",
+            gridTemplateColumns: "50% 50%"
           }}
         >
           <div style={{ gridRow: "1", gridColumn: "1" }}>
@@ -74,7 +74,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginRight: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.attacker.house.id),
+                  filter: houseColorFilters.get(this.attacker.house.id)
                 }}
               />
             )}
@@ -90,7 +90,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginLeft: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.attacker.house.id),
+                  filter: houseColorFilters.get(this.attacker.house.id)
                 }}
               />
             )}
@@ -104,7 +104,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginRight: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.defender.house.id),
+                  filter: houseColorFilters.get(this.defender.house.id)
                 }}
               />
             )}
@@ -120,7 +120,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginLeft: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.defender.house.id),
+                  filter: houseColorFilters.get(this.defender.house.id)
                 }}
               />
             )}
@@ -132,7 +132,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
             gridGap: "5px",
             gridTemplateColumns: "auto 1fr auto 1fr auto",
             justifyItems: "center",
-            alignItems: "center",
+            alignItems: "center"
           }}
           className="text-center"
         >
@@ -192,11 +192,11 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
               <div
                 className={classNames("vertical-game-card small", {
                   "flip-vertical-right": this.props.housesCombatData.every(
-                    (hcd) => hcd.houseCardBackId,
-                  ),
+                    (hcd) => hcd.houseCardBackId
+                  )
                 })}
                 style={{
-                  backgroundImage: `url(${houseCardsBackImages.get(this.attacker.houseCardBackId)})`,
+                  backgroundImage: `url(${houseCardsBackImages.get(this.attacker.houseCardBackId)})`
                 }}
               />
             ) : (
@@ -214,11 +214,11 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
               <div
                 className={classNames("vertical-game-card small", {
                   "flip-vertical-right": this.props.housesCombatData.every(
-                    (hcd) => hcd.houseCardBackId,
-                  ),
+                    (hcd) => hcd.houseCardBackId
+                  )
                 })}
                 style={{
-                  backgroundImage: `url(${houseCardsBackImages.get(this.defender.houseCardBackId)})`,
+                  backgroundImage: `url(${houseCardsBackImages.get(this.defender.houseCardBackId)})`
                 }}
               />
             ) : (
