@@ -23,7 +23,7 @@ import barrelImage from "../../public/images/region-modifications/Barrel.png";
 import crownImage from "../../public/images/region-modifications/Crown.png";
 import houseOrderImages from "./houseOrderImages";
 import orderImages from "./orderImages";
-import OrderIcon from "./OrderIcon";
+import FlipIcon from "./FlipIcon";
 import unitImages from "./unitImages";
 import classNames from "classnames";
 import housePowerTokensImages from "./housePowerTokensImages";
@@ -97,6 +97,8 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   render(): ReactNode {
+    void this.props.mapControls.revision;
+
     const ironBankView = this.ingame.world.ironBankView;
     const fogOfWarActive = this.ingame.fogOfWar;
     const garrisons = new BetterMap<Region, string | null>();
@@ -1028,17 +1030,18 @@ export default class MapComponent extends Component<MapComponentProps> {
           key={`map-order-container-key_${region.id}`}
           id={`map-order-container_${region.id}`}
         >
-          <OrderIcon
+          <FlipIcon
             // Force a fresh mount whenever this region enters or leaves flip mode, otherwise
-            // React reuses the same OrderIcon instance and its componentDidMount (which
-            // schedules the un-flipped -> flipped transition) never fires again, so the reveal
-            // would just jump straight to the back face instead of animating.
+            // React would reuse the same FlipIcon instance across the flip-scene <-> flat
+            // fallback markup, which are structurally different (backface-visibility scene vs
+            // a single flat div).
             key={`order-icon_${region.id}_${flipToBackgroundUrl ? "flip" : "static"}`}
             frontImage={backgroundUrl}
             backImage={flipToBackgroundUrl}
-            drawBorder={drawBorder}
-            borderColor={color}
+            boxClassName="order-icon"
+            style={{ borderColor: color }}
             className={classNames(placeAnimation, {
+              "order-border": drawBorder,
               "pulsate-bck": properties.animateAttention,
               "pulsate-bck_fade-out": properties.animateFadeOut
             })}

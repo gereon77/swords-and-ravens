@@ -146,32 +146,40 @@ strong {
   filter: none;
 }
 
-// Real 3D flip scene for order-reveal: a perspective wrapper around a flipper that rotates
-// around the Y axis, with front (hidden, house-colored order back) and back (revealed order)
-// faces stacked via backface-visibility. The image swap happens purely through the 3D rotation,
-// never by abruptly replacing a background image mid-animation.
-.order-icon-scene {
-  width: 42px;
-  height: 42px;
-  // A perspective distance only a few multiples of the icon's own size exaggerates the
-  // foreshortening as it rotates, giving a much stronger sense of real 3D depth than a distance
-  // scaled for a much bigger card would.
-  perspective: 150px;
+// Generic real 3D flip scene, reused for both order-reveal (map order icons) and house-card
+// reveal (combat info panel): a perspective wrapper around a flipper that rotates around the Y
+// axis, with front (hidden back side) and back (revealed side) faces stacked via
+// backface-visibility. The image swap happens purely through the 3D rotation, never by
+// abruptly replacing a background image mid-animation. Box sizing (width/height/background)
+// comes from whatever box class (e.g. "order-icon", "vertical-game-card small") is combined
+// with these; perspective is set per-instance via inline style since it should scale with the
+// element's own size.
+.flip-scene {
+  position: relative;
 }
 
-.order-icon-flipper {
+// A self-contained CSS keyframe animation (rather than a JS-driven "un-flipped -> flipped"
+// class toggle after mount) so the flip always auto-plays as soon as this element exists,
+// robust to the surrounding UI remounting this element partway (e.g. CombatComponent remounts
+// its whole subtree on every combat-related server message).
+.flip-flipper {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 3s cubic-bezier(0.455, 0.03, 0.515, 0.955);
   transform-style: preserve-3d;
+  animation: flip-reveal 2.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) both;
 }
 
-.order-icon-flipper.flipped {
-  transform: rotateY(180deg);
+@keyframes flip-reveal {
+  from {
+    transform: rotateY(0);
+  }
+  to {
+    transform: rotateY(180deg);
+  }
 }
 
-.order-icon-face {
+.flip-face {
   position: absolute;
   top: 0;
   left: 0;
@@ -179,7 +187,7 @@ strong {
   -webkit-backface-visibility: hidden;
 }
 
-.order-icon-face-back {
+.flip-face-back {
   transform: rotateY(180deg);
 }
 

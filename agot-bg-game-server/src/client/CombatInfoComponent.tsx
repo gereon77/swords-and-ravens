@@ -8,11 +8,12 @@ import HouseCardComponent from "./game-state-panel/utils/HouseCardComponent";
 import HouseCard from "../common/ingame-game-state/game-data-structure/house-card/HouseCard";
 import UnitType from "../common/ingame-game-state/game-data-structure/UnitType";
 import houseCardsBackImages from "./houseCardsBackImages";
+import houseCardImages from "./houseCardImages";
 import { TidesOfBattleCard } from "../common/ingame-game-state/game-data-structure/static-data-structure/tidesOfBattleCards";
 import TidesOfBattleCardComponent from "./game-state-panel/utils/TidesOfBattleCardComponent";
 import UnitIconComponent from "./UnitIconComponent";
-import classNames from "classnames";
 import { houseColorFilters } from "./houseColorFilters";
+import FlipIcon from "./FlipIcon";
 
 interface HouseCombatData {
   house: House;
@@ -29,6 +30,10 @@ interface HouseCombatData {
   tidesOfBattleCard?: TidesOfBattleCard | null;
   total: number;
   houseCardBackId?: string;
+  // True for a short window right after both house cards have been revealed simultaneously
+  // (see CombatGameState.animatingHouseCardReveal), so this house's card performs a real 3D
+  // flip instead of appearing already revealed.
+  animateHouseCardFlip?: boolean;
   isWinner?: boolean;
 }
 
@@ -63,7 +68,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
           style={{
             display: "grid",
             gridGap: "5px",
-            gridTemplateColumns: "50% 50%",
+            gridTemplateColumns: "50% 50%"
           }}
         >
           <div style={{ gridRow: "1", gridColumn: "1" }}>
@@ -74,7 +79,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginRight: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.attacker.house.id),
+                  filter: houseColorFilters.get(this.attacker.house.id)
                 }}
               />
             )}
@@ -90,7 +95,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginLeft: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.attacker.house.id),
+                  filter: houseColorFilters.get(this.attacker.house.id)
                 }}
               />
             )}
@@ -104,7 +109,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginRight: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.defender.house.id),
+                  filter: houseColorFilters.get(this.defender.house.id)
                 }}
               />
             )}
@@ -120,7 +125,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
                 style={{
                   marginLeft: 2,
                   marginBottom: 5,
-                  filter: houseColorFilters.get(this.defender.house.id),
+                  filter: houseColorFilters.get(this.defender.house.id)
                 }}
               />
             )}
@@ -132,7 +137,7 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
             gridGap: "5px",
             gridTemplateColumns: "auto 1fr auto 1fr auto",
             justifyItems: "center",
-            alignItems: "center",
+            alignItems: "center"
           }}
           className="text-center"
         >
@@ -183,20 +188,27 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
           </div>
 
           <div style={{ gridRow: "3 / span 4", gridColumn: "1" }}>
-            {this.attacker.houseCard ? (
+            {this.attacker.animateHouseCardFlip &&
+            this.attacker.houseCard &&
+            this.attacker.houseCardBackId ? (
+              <FlipIcon
+                key={`house-card-flip_${this.attacker.house.id}`}
+                frontImage={houseCardsBackImages.get(
+                  this.attacker.houseCardBackId
+                )}
+                backImage={houseCardImages.get(this.attacker.houseCard.id)}
+                boxClassName="vertical-game-card small"
+              />
+            ) : this.attacker.houseCard ? (
               <HouseCardComponent
                 houseCard={this.attacker.houseCard}
                 size="small"
               />
             ) : this.attacker.houseCardBackId ? (
               <div
-                className={classNames("vertical-game-card small", {
-                  "flip-vertical-right": this.props.housesCombatData.every(
-                    (hcd) => hcd.houseCardBackId,
-                  ),
-                })}
+                className="vertical-game-card small"
                 style={{
-                  backgroundImage: `url(${houseCardsBackImages.get(this.attacker.houseCardBackId)})`,
+                  backgroundImage: `url(${houseCardsBackImages.get(this.attacker.houseCardBackId)})`
                 }}
               />
             ) : (
@@ -205,20 +217,27 @@ export default class CombatInfoComponent extends Component<CombatInfoComponentPr
           </div>
 
           <div style={{ gridRow: "3 / span 4", gridColumn: "5" }}>
-            {this.defender.houseCard ? (
+            {this.defender.animateHouseCardFlip &&
+            this.defender.houseCard &&
+            this.defender.houseCardBackId ? (
+              <FlipIcon
+                key={`house-card-flip_${this.defender.house.id}`}
+                frontImage={houseCardsBackImages.get(
+                  this.defender.houseCardBackId
+                )}
+                backImage={houseCardImages.get(this.defender.houseCard.id)}
+                boxClassName="vertical-game-card small"
+              />
+            ) : this.defender.houseCard ? (
               <HouseCardComponent
                 houseCard={this.defender.houseCard}
                 size="small"
               />
             ) : this.defender.houseCardBackId ? (
               <div
-                className={classNames("vertical-game-card small", {
-                  "flip-vertical-right": this.props.housesCombatData.every(
-                    (hcd) => hcd.houseCardBackId,
-                  ),
-                })}
+                className="vertical-game-card small"
                 style={{
-                  backgroundImage: `url(${houseCardsBackImages.get(this.defender.houseCardBackId)})`,
+                  backgroundImage: `url(${houseCardsBackImages.get(this.defender.houseCardBackId)})`
                 }}
               />
             ) : (
