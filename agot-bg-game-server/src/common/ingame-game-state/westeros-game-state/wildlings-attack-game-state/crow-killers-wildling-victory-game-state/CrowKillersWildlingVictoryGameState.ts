@@ -67,6 +67,10 @@ export default class CrowKillersWildlingVictoryGameState extends WildlingCardEff
       this.transformSelection(house, knightsToTransform, true);
     } else {
       this.step = CrowKillersStep.DESTROYING_KNIGHTS;
+      this.entireGame.broadcastToClients({
+        type: "crow-killers-step-changed",
+        newStep: CrowKillersStep.DESTROYING_KNIGHTS
+      });
       this.setChildGameState(new SelectUnitsGameState(this)).firstStart(
         house,
         flattenedKnights,
@@ -97,6 +101,10 @@ export default class CrowKillersWildlingVictoryGameState extends WildlingCardEff
         );
       } else {
         this.step = CrowKillersStep.DESTROYING_KNIGHTS;
+        this.entireGame.broadcastToClients({
+          type: "crow-killers-step-changed",
+          newStep: CrowKillersStep.DESTROYING_KNIGHTS
+        });
         this.setChildGameState(new SelectUnitsGameState(this)).firstStart(
           house,
           selectableKnights,
@@ -136,6 +144,10 @@ export default class CrowKillersWildlingVictoryGameState extends WildlingCardEff
       const killedUnitCount = this.destroySelection(house, selectedUnits);
 
       this.step = CrowKillersStep.DEGRADING_KNIGHTS;
+      this.entireGame.broadcastToClients({
+        type: "crow-killers-step-changed",
+        newStep: CrowKillersStep.DEGRADING_KNIGHTS
+      });
 
       if (house == this.parentGameState.lowestBidder) {
         // We can now safely call executeForLowestBidder and transform all remaining knights
@@ -154,10 +166,6 @@ export default class CrowKillersWildlingVictoryGameState extends WildlingCardEff
             CrowKillersWildlingVictoryGameState.EVERYONE_ELSE_REPLACE_COUNT -
               killedUnitCount
           );
-          this.ingame.entireGame.broadcastToClients({
-            type: "crow-killers-step-changed",
-            newStep: this.step
-          });
           this.setChildGameState(new SelectUnitsGameState(this)).firstStart(
             house,
             selectableKnights,

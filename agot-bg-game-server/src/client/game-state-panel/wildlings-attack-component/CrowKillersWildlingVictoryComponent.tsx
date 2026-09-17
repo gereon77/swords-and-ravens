@@ -11,6 +11,7 @@ import Col from "react-bootstrap/Col";
 import React from "react";
 import TakeControlOfEnemyPortGameState from "../../../common/ingame-game-state/take-control-of-enemy-port-game-state/TakeControlOfEnemyPortGameState";
 import TakeControlOfEnemyPortComponent from "../TakeControlOfEnemyPortComponent";
+import { Row } from "react-bootstrap";
 
 @observer
 export default class CrowKillersWildlingVictoryComponent extends Component<
@@ -18,7 +19,10 @@ export default class CrowKillersWildlingVictoryComponent extends Component<
 > {
   render(): ReactNode {
     return (
-      <>
+      <Row
+        className="justify-content-center text-center"
+        key={`crow-killers-wildling-victory-${this.props.gameState.entireGame.leafStateId}`}
+      >
         {this.props.gameState.childGameState instanceof SelectUnitsGameState &&
           (this.props.gameState.step == CrowKillersStep.DEGRADING_KNIGHTS ? (
             <Col xs={12}>
@@ -40,7 +44,7 @@ export default class CrowKillersWildlingVictoryComponent extends Component<
           [SelectUnitsGameState, SelectUnitsComponent],
           [TakeControlOfEnemyPortGameState, TakeControlOfEnemyPortComponent]
         ])}
-      </>
+      </Row>
     );
   }
 }
