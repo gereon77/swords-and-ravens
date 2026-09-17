@@ -185,7 +185,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
         false,
         this.house,
         false,
-        !resolvedAutomatically ? "red" : undefined
+        targetRegion != null ? "red" : "yellow"
       );
     } else if (
       orderType instanceof RaidSupportOrderType &&
