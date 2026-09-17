@@ -135,7 +135,10 @@ public static class ChatWebSocketApi
                             user.Id,
                             userData
                         );
-                        await BroadcastConnectedUsersAsync(broadcaster, presence, roomId);
+                        // Also hand the just-computed snapshot straight to this brand-new socket
+                        // (see BroadcastConnectedUsersAsync) instead of relying solely on the
+                        // pub/sub round trip to relay it back to itself.
+                        await BroadcastConnectedUsersAsync(broadcaster, presence, roomId, socket);
                     }
 
                     await ReceiveLoopAsync(
@@ -637,10 +640,22 @@ public static class ChatWebSocketApi
         }
     }
 
+    /// <param name="alsoSendDirectlyTo">
+    /// When set (only on a fresh connect), the freshly-computed snapshot is written straight to
+    /// this socket in addition to the normal pub/sub broadcast below. Redis pub/sub has no
+    /// delivery guarantee or redelivery: if this instance's own subscription callback for the
+    /// message we're about to publish is delayed or dropped, a just-connected client would
+    /// otherwise be stuck showing "0 online users" (its own connect is the only thing that would
+    /// have refreshed it) until some other user's connect/disconnect happens to broadcast again -
+    /// which can be a long time on a quiet room. The direct send makes the very first paint
+    /// reliable, independent of that round trip; chat-presence.js's presenceVersion gating makes
+    /// receiving the same snapshot twice (direct + relayed) harmless.
+    /// </param>
     private static async Task BroadcastConnectedUsersAsync(
         ChatBroadcaster broadcaster,
         ChatPresenceService presence,
-        Guid roomId
+        Guid roomId,
+        WebSocket? alsoSendDirectlyTo = null
     )
     {
         var (users, prunedConnectionIds, version) = await presence.GetConnectedUsersAsync(roomId);
@@ -668,6 +683,12 @@ public static class ChatWebSocketApi
             ),
         };
         await broadcaster.PublishAsync(roomId, evt);
+
+        if (alsoSendDirectlyTo is { State: WebSocketState.Open } socket)
+        {
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(evt);
+            await socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
     }
 
     // Mirrors Django's get_user_data — cached for 5 minutes to avoid a role/DB lookup on every

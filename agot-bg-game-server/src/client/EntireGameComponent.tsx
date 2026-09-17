@@ -17,7 +17,6 @@ import rollingDicesImage from "../../public/images/icons/rolling-dices.svg";
 import cardExchangeImage from "../../public/images/icons/card-exchange.svg";
 import trophyCupImage from "../../public/images/icons/trophy-cup.svg";
 import perpetuumRandomImage from "../../public/images/icons/perpetuum-random.svg";
-import { Helmet } from "react-helmet";
 import { Card, FormCheck, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import { preventOverflow } from "@popperjs/core";
 import DraftHouseCardsGameState from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
@@ -91,15 +90,6 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
   render(): ReactNode {
     return (
       <>
-        <Helmet>
-          <link
-            rel="icon"
-            href={
-              this.props.gameClient.isOwnTurn() ? faviconAlert : faviconNormal
-            }
-            sizes="16x16"
-          />
-        </Helmet>
         <Col
           xs={12}
           className={
@@ -561,6 +551,23 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
     this.props.gameClient.sfxManager.playGotTheme();
   }
 
+  updateFavicon(): void {
+    const favicon = document.createElement("link");
+    favicon.rel = "icon";
+    favicon.href = this.props.gameClient.isOwnTurn()
+      ? faviconAlert
+      : faviconNormal;
+    favicon.sizes.add("16x16");
+
+    const currentFavicon =
+      document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+    if (currentFavicon) {
+      currentFavicon.replaceWith(favicon);
+    } else {
+      document.head.appendChild(favicon);
+    }
+  }
+
   onClientGameStateChange(): void {
     if (this.props.gameClient.isOwnTurn()) {
       this.props.gameClient.sfxManager.playNotificationSound();
@@ -603,6 +610,8 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
 
   componentDidMount(): void {
     document.title = this.entireGame.name;
+    this.updateFavicon();
+    this.props.gameClient.onOwnTurnChange = () => this.updateFavicon();
 
     if (this.isGameEnded) {
       return;
@@ -616,6 +625,7 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
   }
 
   componentWillUnmount(): void {
+    this.props.gameClient.onOwnTurnChange = null;
     this.entireGame.onClientGameStateChange = null;
     this.entireGame.onGameStarted = null;
 

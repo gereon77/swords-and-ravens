@@ -1,8 +1,22 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Play Game of Thrones: The Board Game Online";
+    ViewData["TitleOverride"] = "Swords and Ravens - Play Game of Thrones: The Board Game Online";
+    ViewData["Description"] = "Play A Game of Thrones: The Board Game (2nd Edition) online for free, in real time or play-by-email, against friends or strangers. All 3 expansions supported.";
 }
+
+@* JSON-LD so search engines can identify this as the canonical entry point for the game/site. *@
+<script type="application/ld+json" nonce="@HttpContext.GetCspNonce()">
+    @Html.Raw(Json.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebSite",
+        ["name"] = "Swords and Ravens",
+        ["url"] = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/",
+        ["description"] = ViewData["Description"]
+    }))
+</script>
 
 <div class="hero bg-base-200 rounded-box mt-6">
     <div class="hero-content text-center py-16">

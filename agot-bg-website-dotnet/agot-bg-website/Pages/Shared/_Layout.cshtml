@@ -1,4 +1,12 @@
 ﻿@inject IWebHostEnvironment HostEnvironment
+@{
+    // Per-page SEO hooks: pages set ViewData["Title"]/["Description"], falling back to site-wide defaults here.
+    var pageDescription = ViewData["Description"] as string
+        ?? "Play A Game of Thrones: The Board Game (2nd Edition) online for free, in real time or play-by-email, against friends or strangers.";
+    // Most pages get "Page - Swords and Ravens"; a page can set ViewData["TitleOverride"] for full control (e.g. the homepage leading with the brand name).
+    var pageTitle = ViewData["TitleOverride"] as string ?? $"{ViewData["Title"]} - Swords and Ravens";
+    var canonicalUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+}
 <!DOCTYPE html>
 <html lang="en" data-theme="swordsandravens">
 <head>
@@ -7,7 +15,18 @@
        mobile browsers fall back to their default desktop-oriented layout viewport (~980px), so the
        whole page renders at full desktop size and simply shrinks visually - users pinch-zoom into the
        area they want instead of the site reflowing into a separate mobile layout. *@
-    <title>@ViewData["Title"] - Swords and Ravens</title>
+    <title>@pageTitle</title>
+    <meta name="description" content="@pageDescription" />
+    <link rel="canonical" href="@canonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Swords and Ravens" />
+    <meta property="og:title" content="@pageTitle" />
+    <meta property="og:description" content="@pageDescription" />
+    <meta property="og:url" content="@canonicalUrl" />
+    <meta property="og:image" content="@($"{Context.Request.Scheme}://{Context.Request.Host}/raven.svg")" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="@pageTitle" />
+    <meta name="twitter:description" content="@pageDescription" />
     <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
     <script type="importmap" nonce="@Context.GetCspNonce()"></script>
     <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" asp-append-version="true" />
