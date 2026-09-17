@@ -33,6 +33,7 @@ export default class GameClient {
   socket: WebSocket | null = null;
   authData: AuthData;
   pingInterval = -1;
+  onOwnTurnChange: (() => void) | null = null;
 
   @observable connectionState: ConnectionState = ConnectionState.INITIALIZING;
   @observable entireGame: EntireGame | null = null;
@@ -463,7 +464,11 @@ export default class GameClient {
         return;
       }
 
+      const wasOwnTurn = this.isOwnTurn();
       this.entireGame.onServerMessage(message, this);
+      if (wasOwnTurn != this.isOwnTurn()) {
+        this.onOwnTurnChange?.();
+      }
     }
   }
 
@@ -472,6 +477,8 @@ export default class GameClient {
       throw new Error("isOwnTurn() requires entireGame and authenticatedUser");
     }
 
+    // Turn ownership is derived from the state tree, whose transition token is observable.
+    this.entireGame.leafStateId;
     return this.entireGame.getWaitedUsers().includes(this.authenticatedUser);
   }
 
