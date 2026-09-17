@@ -49,6 +49,7 @@ export interface OrderAnimationEntry {
 }
 
 export default class MapControls {
+  @observable revision = 0;
   @observable modifyRegionsOnMap: (() => [
     Region,
     PartialRecursive<RegionOnMapProperties>
@@ -61,4 +62,8 @@ export default class MapControls {
     Region,
     PartialRecursive<OrderOnMapProperties>
   ][])[] = [];
+
+  refresh(): void {
+    this.revision++;
+  }
 }

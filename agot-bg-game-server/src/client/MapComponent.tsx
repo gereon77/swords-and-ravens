@@ -97,6 +97,8 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   render(): ReactNode {
+    void this.props.mapControls.revision;
+
     const ironBankView = this.ingame.world.ironBankView;
     const fogOfWarActive = this.ingame.fogOfWar;
     const garrisons = new BetterMap<Region, string | null>();
