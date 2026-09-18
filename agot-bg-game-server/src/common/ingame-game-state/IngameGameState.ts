@@ -75,6 +75,7 @@ import orders from "./game-data-structure/orders";
 import {
   OrderAnimationEntry,
   OrderOnMapProperties,
+  UnitMoveAnimationEntry,
   UnitOnMapProperties
 } from "../../client/MapControls";
 import {
@@ -161,10 +162,11 @@ export default class IngameGameState extends GameState<
 
   // Client-side only
   @observable stateVersion = 0;
-  @observable marchMarkers: BetterMap<Unit, Region> = new BetterMap();
   @observable unitsToBeAnimated: BetterMap<Unit, UnitOnMapProperties> =
     new BetterMap();
+  @observable unitMoveAnimations: UnitMoveAnimationEntry[] = [];
   @observable orderAnimations: OrderAnimationEntry[] = [];
+  private nextUnitMoveAnimationId = 1;
   private nextOrderAnimationId = 1;
 
   onVoteStarted: (() => void) | null = null;
@@ -1502,7 +1504,6 @@ export default class IngameGameState extends GameState<
 
       const moveAction = (): void => {
         units.forEach((u) => {
-          this.marchMarkers.tryDelete(u);
           from.units.delete(u.id);
           to.units.set(u.id, u);
           u.region = to;
@@ -1514,11 +1515,25 @@ export default class IngameGameState extends GameState<
           visibleRegions == null ||
           (visibleRegions.has(from) && visibleRegions.has(to))
         ) {
-          units.forEach((u) => {
-            this.marchMarkers.set(u, to);
+          const durationMs = message.isRetreat ? 4000 : 5000;
+          const animationIds = units.map((unit) => {
+            const id = this.nextUnitMoveAnimationId++;
+            this.unitMoveAnimations.push({
+              id,
+              unit,
+              from,
+              to,
+              durationMs
+            });
+            return id;
           });
 
-          window.setTimeout(moveAction, message.isRetreat ? 4000 : 5000);
+          window.setTimeout(() => {
+            this.unitMoveAnimations = this.unitMoveAnimations.filter(
+              (animation) => !animationIds.includes(animation.id)
+            );
+            moveAction();
+          }, durationMs);
         } else {
           moveAction();
         }
