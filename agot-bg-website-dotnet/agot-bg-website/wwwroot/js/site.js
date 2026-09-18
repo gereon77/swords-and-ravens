@@ -35,6 +35,17 @@ document.addEventListener("click", function (event) {
     modal.querySelector("#game-settings-modal-owner").textContent = gearButton.dataset.ownerName || "-";
     modal.querySelector("#game-settings-modal-setup").textContent = gearButton.dataset.setupName || "";
     modal.querySelector("#game-settings-modal-players").textContent = gearButton.dataset.playerCount || "";
+    var roundLabel = modal.querySelector("#game-settings-modal-round-label");
+    var roundValue = modal.querySelector("#game-settings-modal-round");
+    var hasRound = Boolean(gearButton.dataset.round);
+    roundValue.textContent = gearButton.dataset.round || "";
+    roundLabel.classList.toggle("hidden", !hasRound);
+    roundValue.classList.toggle("hidden", !hasRound);
+    var waitingFooter = modal.querySelector("#game-settings-modal-waiting-footer");
+    var waitingValue = modal.querySelector("#game-settings-modal-waiting-for");
+    var waitingFor = gearButton.dataset.waitingFor || "";
+    waitingValue.textContent = waitingFor;
+    waitingFooter.classList.toggle("hidden", !waitingFor);
 
     var settingsList = modal.querySelector("#game-settings-modal-settings");
     var noSettingsMessage = modal.querySelector("#game-settings-modal-no-settings");
