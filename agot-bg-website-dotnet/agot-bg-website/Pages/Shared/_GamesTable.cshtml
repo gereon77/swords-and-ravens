@@ -114,8 +114,10 @@ else
                         <td class="sticky right-0 z-10 bg-inherit text-right whitespace-nowrap">
                             <div class="flex flex-nowrap items-center justify-end gap-1">
                                 <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
-                                        data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                        data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                         data-owner-name="@game.OwnerDisplayName"
+                                        data-round="@(!isOpen ? (game.Turn?.ToString() ?? "?") : null)"
+                                        data-waiting-for="@game.WaitingFor"
                                         data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                     <i class="fas fa-gear"></i>
                                 </button>

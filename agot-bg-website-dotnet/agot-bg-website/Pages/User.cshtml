@@ -151,8 +151,10 @@
                                         </td>
                                         <td class="whitespace-nowrap">
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
-                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-round="@(game.State != GameState.InLobby ? (game.Turn?.ToString() ?? "?") : null)"
+                                                    data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>
@@ -211,6 +213,10 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
+                                            @if (game.IsReplacer)
+                                            {
+                                                <span class="badge badge-accent align-middle" title="You joined this game as a replacer, seating into an existing house.">Replacer</span>
+                                            }
                                             <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
@@ -218,6 +224,8 @@
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-round="@(game.Turn?.ToString() ?? "?")"
+                                                    data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>
@@ -298,8 +306,10 @@
                                         </td>
                                         <td class="whitespace-nowrap">
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
-                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null ? $"/{game.MaxPlayerCount}" : "")"
+                                                    data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-round="@(game.Turn?.ToString() ?? "?")"
+                                                    data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
                                                 <i class="fas fa-gear"></i>
                                             </button>

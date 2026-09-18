@@ -27,6 +27,14 @@ export interface UnitOnMapProperties {
   animateAttention?: boolean;
 }
 
+export interface UnitMoveAnimationEntry {
+  id: number;
+  unit: Unit;
+  from: Region;
+  to: Region;
+  durationMs: number;
+}
+
 export interface OrderOnMapProperties {
   highlight?: HighlightProperties;
   onClick?: () => void;
