@@ -293,6 +293,156 @@ public class UserStatsServiceTests : IDisposable
         Assert.Null(result.WinRate);
     }
 
+    [Fact]
+    public async Task ReplacerLoss_DoesNotCountAgainstWinRate_ButReplacerWinStillCounts()
+    {
+        var user = new ApplicationUser { UserName = "replacer_guy", Email = "rep@example.com" };
+        await _userManager.CreateAsync(user);
+
+        var replacerId = user.Id.ToString();
+
+        // Joined as a replacer and lost - must not count against the win rate at all (neither
+        // numerator nor denominator).
+        var replacerLossGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Replacer loss",
+            OwnerUserId = user.Id,
+            State = GameState.Finished,
+            ViewOfGame = Json(
+                $$"""{"settings": {"setupId": "base-game"}, "replacerIds": ["{{replacerId}}"]}"""
+            ),
+        };
+        // Joined as a replacer and won - still counts as a win normally.
+        var replacerWinGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Replacer win",
+            OwnerUserId = user.Id,
+            State = GameState.Finished,
+            ViewOfGame = Json(
+                $$"""{"settings": {"setupId": "base-game"}, "replacerIds": ["{{replacerId}}"]}"""
+            ),
+        };
+        // A normal (non-replacer) loss, to confirm it's still counted as a loss.
+        var normalLossGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Normal loss",
+            OwnerUserId = user.Id,
+            State = GameState.Finished,
+            ViewOfGame = Json("""{"settings": {"setupId": "base-game"}}"""),
+        };
+        _db.Games.AddRange(replacerLossGame, replacerWinGame, normalLossGame);
+
+        _db.PlayersInGame.AddRange(
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = replacerLossGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": false}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = replacerWinGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": true}"""),
+            },
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = normalLossGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": false}"""),
+            }
+        );
+
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RecalculateAsync(user.Id);
+
+        Assert.NotNull(result);
+        // 1 win (replacerWinGame) + 1 loss (normalLossGame) - replacerLossGame's loss is excluded
+        // entirely, so it's neither a win nor a loss.
+        Assert.Equal(1, result.WonGamesCount);
+        Assert.Equal(0.5, result.WinRate);
+        // 2 non-faceless games (won and lost) had this user's id in replacerIds.
+        Assert.Equal(2, result.ReplacerGamesCount);
+        // Of those 2, exactly 1 was a win and 1 was an (excluded) loss.
+        Assert.Equal(1, result.ReplacerWinsCount);
+        Assert.Equal(1, result.ReplacerLossesExcludedCount);
+    }
+
+    [Fact]
+    public async Task RemovalFromGameJoinedAsReplacer_DoesNotCountAsRemovedOrLoss()
+    {
+        // A player who jumped into a stalling game as a replacer, and was later voted/timed out
+        // of it in turn (removerIds keeps naming them, so this is a PreviousPlayerInGame row for
+        // a game that also lists them in replacerIds). This removal must not count towards
+        // RemovedFromGameCount or the win-rate loss either - same "no downside risk" rule as a
+        // still-seated replacer's loss.
+        var user = new ApplicationUser { UserName = "replacer_removed", Email = "rre@example.com" };
+        await _userManager.CreateAsync(user);
+
+        var replacerId = user.Id.ToString();
+
+        // A normal win, to have a non-zero, non-trivial win rate to check against.
+        var wonGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Won",
+            OwnerUserId = user.Id,
+            State = GameState.Finished,
+            ViewOfGame = Json("""{"settings": {"setupId": "base-game"}}"""),
+        };
+        // The game the user joined as a replacer for and was later removed from again, before it
+        // finished.
+        var replacerRemovalGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Replacer then removed",
+            OwnerUserId = user.Id,
+            State = GameState.Ongoing,
+            ViewOfGame = Json(
+                $$"""{"settings": {"setupId": "base-game"}, "replacerIds": ["{{replacerId}}"]}"""
+            ),
+        };
+        _db.Games.AddRange(wonGame, replacerRemovalGame);
+
+        _db.PlayersInGame.Add(
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = wonGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": true}"""),
+            }
+        );
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = replacerRemovalGame.Id,
+                UserId = user.Id,
+                Reason = PlayerReplacementReason.ClockTimeout,
+            }
+        );
+
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RecalculateAsync(user.Id);
+
+        Assert.NotNull(result);
+        // The replacer-game removal is excluded entirely: RemovedFromGameCount stays 0 and the
+        // win rate is a clean 100% (1 win, 0 losses), instead of 50% if the removal had counted
+        // as an unconditional loss.
+        Assert.Equal(0, result.RemovedFromGameCount);
+        Assert.Equal(1, result.WonGamesCount);
+        Assert.Equal(1.0, result.WinRate);
+    }
+
     public void Dispose()
     {
         _db.Dispose();

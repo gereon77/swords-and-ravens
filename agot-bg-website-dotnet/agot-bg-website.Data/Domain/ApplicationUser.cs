@@ -90,6 +90,38 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public int? CachedRemovedFromGameCount { get; set; }
 
+    /// <summary>
+    /// Number of games where this user joined as a replacer - i.e. their user id appears in that
+    /// game's <c>ViewOfGame.replacerIds</c> (populated by the game server whenever a
+    /// player-replacement vote seats a new player into an existing house - see
+    /// <c>VoteType.ts</c>'s <c>PlayerReplacement</c> handling and <c>EntireGame.getViewOfGame()</c>).
+    /// Excludes only a game that is currently Ongoing and still faceless - a Finished/Cancelled
+    /// game is never actually faceless by the time it's counted, since the game server
+    /// permanently reveals real usernames once a game ends (see
+    /// <c>Services.UserStatsService.RecalculateAsync</c>'s doc comment). Per product decision,
+    /// jumping in to help finish someone else's game should never be
+    /// penalized: a loss in such a game is excluded from <see cref="CachedWinRate"/>'s numerator
+    /// and denominator entirely, while a win still counts normally - see <see
+    /// cref="Services.WinRateCalculator"/>.
+    /// </summary>
+    public int? CachedReplacerGamesCount { get; set; }
+
+    /// <summary>
+    /// Subset of <see cref="CachedReplacerGamesCount"/> that counted as a win towards <see
+    /// cref="CachedWinRate"/> - i.e. already included in <see cref="CachedWonGamesCount"/>.
+    /// Scoped identically to <see cref="CachedWinRate"/> itself (Finished, non-tutorial, recorded
+    /// outcome), shown on the profile page purely so the displayed win rate is auditable from the
+    /// other numbers - see <see cref="Services.UserStatsResult"/>.
+    /// </summary>
+    public int? CachedReplacerWinsCount { get; set; }
+
+    /// <summary>
+    /// Replacer games that were lost and, per product decision, dropped entirely from <see
+    /// cref="CachedWinRate"/>'s numerator and denominator - the flip side of <see
+    /// cref="CachedReplacerWinsCount"/>. Also scoped identically to <see cref="CachedWinRate"/>.
+    /// </summary>
+    public int? CachedReplacerLossesExcludedCount { get; set; }
+
     public double? CachedWinRate { get; set; }
 
     public DateTimeOffset? StatsCachedAt { get; set; }

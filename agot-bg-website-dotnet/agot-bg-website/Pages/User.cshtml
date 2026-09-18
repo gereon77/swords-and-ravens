@@ -49,6 +49,18 @@
                     <span class="badge badge-success badge-lg">@Model.WonCount</span>
                 </li>
                 <li class="flex items-center justify-between gap-3 py-2.5">
+                    <span class="font-semibold">Replacer games</span>
+                    <span class="badge badge-accent badge-lg" title="Games joined by seating into an existing house, helping a game that would otherwise have stalled continue.">@Model.ReplacerGamesCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5 pl-4 text-sm opacity-80">
+                    <span>&#8627; Replacer wins</span>
+                    <span class="badge badge-success badge-sm" title="Already included in Won games above.">@Model.ReplacerWinsCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5 pl-4 text-sm opacity-80">
+                    <span>&#8627; Replacer losses (excluded)</span>
+                    <span class="badge badge-ghost badge-sm" title="Excluded entirely from Win rate below - jumping in to help never hurts your win rate.">@Model.ReplacerLossesExcludedCount</span>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2.5">
                     <span class="font-semibold">Replaced / left&nbsp;early</span>
                     <span class="badge badge-error badge-lg">@Model.RemovedFromGameCount</span>
                 </li>
@@ -122,6 +134,10 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
+                                            @if (game.IsReplacer)
+                                            {
+                                                <span class="badge badge-accent align-middle" title="You joined this game as a replacer, seating into an existing house.">Replacer</span>
+                                            }
                                             @if (!string.IsNullOrEmpty(game.House))
                                             {
                                                 <span class="house-icon tooltip inline-flex h-6 items-center align-middle" data-tip="@game.House">
@@ -263,6 +279,10 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
+                                            @if (game.IsReplacer)
+                                            {
+                                                <span class="badge badge-accent align-middle" title="You had joined this game as a replacer - this removal is excluded from your Removed count and win rate.">Replacer</span>
+                                            }
                                             <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">

@@ -211,7 +211,9 @@ public static class GamesApi
                         // user appears in neither, which given gameWasInLobby above should no longer
                         // happen for a real mid-game removal (see PreviousPlayerCleanup's doc comment).
                         // Not used for win-rate calculation either way (every PreviousPlayerInGame row
-                        // counts as a loss regardless of Reason — see MIGRATION_PLAN.md §10.2).
+                        // counts as a loss regardless of Reason — see MIGRATION_PLAN.md §10.2 -
+                        // except a row for a game the user had joined as a replacer, which
+                        // UserStatsService.RecalculateAsync excludes entirely).
                         db.PreviousPlayersInGame.AddRange(
                             toAdd.Select(userId => new PreviousPlayerInGame
                             {

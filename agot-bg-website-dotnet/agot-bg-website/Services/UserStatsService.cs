@@ -12,14 +12,29 @@ namespace agot_bg_website.Services;
 /// always reconciles with "Ongoing + Finished" on the profile's games list. <paramref
 /// name="RemovedFromGameCount"/> counts a removal as soon as it happens, whether the game has
 /// since finished or is still Ongoing - a player who was voted out/timed out doesn't get a pass
-/// just because nobody's won yet. <paramref name="WinRate"/>'s denominator is the only place
+/// just because nobody's won yet - except a removal from a game the user had joined as a replacer,
+/// which is excluded here too (same "no downside risk" rule as a still-seated replacer's loss),
+/// since <c>replacerIds</c> keeps naming a user even after they themselves get removed again - see
+/// <see cref="RecalculateAsync"/>. <paramref name="WinRate"/>'s denominator is the only place
 /// left-early games get folded in (always as a loss), and it further excludes the tutorial
-/// variant and any row without a recorded outcome - see <see cref="WinRateCalculator"/>.</summary>
+/// variant and any row without a recorded outcome - see <see cref="WinRateCalculator"/>.
+/// <paramref name="ReplacerGamesCount"/> counts every non-faceless game (any state) the user
+/// joined as a replacer - see <see cref="ApplicationUser.CachedReplacerGamesCount"/>. <paramref
+/// name="ReplacerWinsCount"/> and <paramref name="ReplacerLossesExcludedCount"/> are scoped
+/// identically to <paramref name="WinRate"/> itself (Finished, non-tutorial, recorded outcome)
+/// specifically so the two reconcile: <paramref name="ReplacerWinsCount"/> is a subset already
+/// folded into <paramref name="WonGamesCount"/>/the numerator, while <paramref
+/// name="ReplacerLossesExcludedCount"/> is dropped from both the numerator and denominator
+/// entirely - together they make the win-rate percentage auditable from the other numbers shown
+/// on the profile page.</summary>
 public record UserStatsResult(
     int WonGamesCount,
     int FinishedGamesCount,
     int RemovedFromGameCount,
-    double? WinRate
+    double? WinRate,
+    int ReplacerGamesCount,
+    int ReplacerWinsCount,
+    int ReplacerLossesExcludedCount
 );
 
 /// <summary>
@@ -74,7 +89,7 @@ public sealed class UserStatsService(ApplicationDbContext db)
         var winRateFacts = nonFacelessRows
             .Select(row =>
             {
-                var isLearnTheGame = ViewOfGameInfo.Parse(row.ViewOfGame).IsLearnTheGame;
+                var view = ViewOfGameInfo.Parse(row.ViewOfGame);
                 var isWinner = PlayerInGameInfo.Parse(row.Data).IsWinner;
 
                 // A row only counts towards the win-rate percentage once it's actually finished
@@ -84,20 +99,54 @@ public sealed class UserStatsService(ApplicationDbContext db)
                 // don't set countsTowardsWinRate), matching the product rule that cancelled games
                 // must never affect stats at all.
                 var countsTowardsWinRate =
-                    row.State == GameState.Finished && !isLearnTheGame && isWinner.HasValue;
+                    row.State == GameState.Finished && !view.IsLearnTheGame && isWinner.HasValue;
                 return new WinRateGameFact(
                     IsFinished: countsTowardsWinRate,
-                    IsWinner: isWinner == true
+                    IsWinner: isWinner == true,
+                    // See WinRateCalculator's doc comment: a loss in a game joined as a replacer
+                    // is excluded from the win-rate percentage entirely, but a win still counts.
+                    IsReplacer: view.ReplacerIds.Contains(userId)
                 );
             })
             .ToList();
+
+        // Shown on the profile page as "Replacer games" - counts every game the user joined as a
+        // replacer (Finished/Ongoing/Cancelled), not restricted to Finished like
+        // FinishedGamesCount, since jumping in to help is worth showing even before the game
+        // ends. Uses nonFacelessRows (i.e. IsFaceless as of THIS row's currently-stored
+        // ViewOfGame) rather than a separate "was ever faceless" check: the game server
+        // permanently resets `faceless` to false and reveals real usernames the moment a game
+        // reaches Finished or Cancelled (`GameEndedGameState`/`CancelledGameState.firstStart()` ->
+        // `EntireGame.hideOrRevealUserNames(true)`), so in practice this only ever excludes a
+        // still-Ongoing faceless game - a Finished/Cancelled one is never actually faceless by the
+        // time its ViewOfGame is read here.
+        var replacerGamesCount = nonFacelessRows.Count(row =>
+            ViewOfGameInfo.Parse(row.ViewOfGame).ReplacerIds.Contains(userId)
+        );
+
+        // Scoped identically to winRateFacts's own IsFinished (countsTowardsWinRate) so these two
+        // numbers reconcile exactly with WinRate itself - see UserStatsResult's doc comment.
+        // ReplacerWinsCount is a subset already counted in winRate.Wins; ReplacerLossesExcludedCount
+        // is the flip side WinRateCalculator drops entirely (neither a win nor a loss).
+        var replacerWinsCount = winRateFacts.Count(f => f.IsFinished && f.IsReplacer && f.IsWinner);
+        var replacerLossesExcludedCount = winRateFacts.Count(f =>
+            f.IsFinished && f.IsReplacer && !f.IsWinner
+        );
 
         // A removal always counts as a loss regardless of whether the game has finished yet - a
         // player voted out/timed out of a still-Ongoing game doesn't get a pass just because
         // nobody's declared a winner yet. Only Cancelled (and InLobby, though a removal can't
         // happen there) games are excluded, per "cancelled games never affect any stat at all".
         // The tutorial variant is excluded here too, for the same reason it's excluded from the
-        // win side above - a "learn the game" removal must not count as a loss either.
+        // win side above - a "learn the game" removal must not count as a loss either. A removal
+        // from a game the user joined as a replacer (`replacerIds`, same check as the win-rate
+        // side's IsReplacer fact) is excluded for the same reason too: replacerIds only ever grows
+        // (see IngameGameState.ts's replace-player vote), so it still names the user even after
+        // they themselves get removed again - without this check a player who generously jumped
+        // into a stalling game as a replacer, and then got timed out/voted out of it in turn,
+        // would eat a full loss despite the "no downside risk" promise the replacer-loss exclusion
+        // above already makes for a still-seated replacer. The row itself is still shown (badged)
+        // on the profile's "Previously participated games" list - see UserModel.
         var removedFromGameViewsOfGame = await db
             .PreviousPlayersInGame.Where(p =>
                 p.UserId == userId
@@ -106,8 +155,10 @@ public sealed class UserStatsService(ApplicationDbContext db)
             .Select(p => p.Game!.ViewOfGame)
             .ToListAsync(cancellationToken);
         var removedFromGameCount = removedFromGameViewsOfGame.Count(viewOfGame =>
-            !ViewOfGameInfo.Parse(viewOfGame).IsLearnTheGame
-        );
+        {
+            var view = ViewOfGameInfo.Parse(viewOfGame);
+            return !view.IsLearnTheGame && !view.ReplacerIds.Contains(userId);
+        });
 
         var winRate = WinRateCalculator.Calculate(winRateFacts, removedFromGameCount);
 
@@ -122,6 +173,9 @@ public sealed class UserStatsService(ApplicationDbContext db)
         user.CachedFinishedGamesCount = finishedGamesCount;
         user.CachedRemovedFromGameCount = removedFromGameCount;
         user.CachedWinRate = winRate.WinRate;
+        user.CachedReplacerGamesCount = replacerGamesCount;
+        user.CachedReplacerWinsCount = replacerWinsCount;
+        user.CachedReplacerLossesExcludedCount = replacerLossesExcludedCount;
         user.StatsCachedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
@@ -129,7 +183,10 @@ public sealed class UserStatsService(ApplicationDbContext db)
             winRate.Wins,
             finishedGamesCount,
             removedFromGameCount,
-            winRate.WinRate
+            winRate.WinRate,
+            replacerGamesCount,
+            replacerWinsCount,
+            replacerLossesExcludedCount
         );
     }
 }

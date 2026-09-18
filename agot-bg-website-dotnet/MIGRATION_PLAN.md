@@ -1176,6 +1176,42 @@ Follow-up work after first getting the app running locally end-to-end:
   `Contact__RecipientAddress`/`Contact__MaxMessagesPerDay` in `docker-compose.prod.yml` (with
   `CONTACT_RECIPIENT_ADDRESS`/`CONTACT_MAX_MESSAGES_PER_DAY` documented in `.env.prod.example`,
   both blank/unset by default).
+- **"Replacer games" stat, implemented.** Rewards players who jump into an existing house via a
+  player-replacement vote to help finish a stalled game: a resulting loss no longer counts against
+  their win rate at all (excluded from both numerator and denominator), while a win still counts
+  normally — see `Services/WinRateCalculator.cs`'s `IsReplacer` fact. Deliberately **not** a new
+  `PlayerInGame` column: whether a user was a replacer for a given game is derived at read time
+  from that game's already-stored `ViewOfGame.replacerIds` (`ViewOfGameInfo.ReplacerIds`,
+  `Services/GameListing/ViewOfGameInfo.cs`), the same pattern already used for `IsWinner`/
+  `IsFaceless`/`IsLearnTheGame`. `replacerIds` has been present in `ViewOfGame` since the same
+  game-server commit that added `oldPlayerIds`/`timeoutPlayerIds` (which `PreviousPlayersBackfill`/
+  `PreviousPlayerReasonResolver` already rely on being reliably populated for any historical game -
+  see §10.1), so **no separate historical backfill was needed**: the existing "Recalculate stats"
+  actions (single-user and bulk, `Areas/Admin/Pages/Users/Index.cshtml.cs`) already re-derive
+  everything from `PlayerInGame.Data`/`Game.ViewOfGame` on every call, so re-running them after
+  deploy is enough to populate `ApplicationUser.CachedReplacerGamesCount` for already-played games.
+  Surfaced as a "Replacer games" stat + "Replacer" badge on the game rows on the profile page
+  (`Pages/User.cshtml(.cs)`) and as a sortable column on the Users directory (`Pages/Users.cshtml
+  (.cs)`), positioned after Win rate/Removed like the other cached stat columns. To keep the win
+  rate auditable from the profile page alone (the "Won games"/"Replacer games" numbers alone leave
+  a reconciliation gap), the profile sidebar also breaks "Replacer games" down into "Replacer wins"
+  (`ApplicationUser.CachedReplacerWinsCount`) and "Replacer losses (excluded)"
+  (`CachedReplacerLossesExcludedCount`), computed in `UserStatsService.RecalculateAsync` directly
+  from the same win-rate-qualifying `winRateFacts` used for the win rate itself (so these two
+  numbers reconcile exactly with the displayed win rate — note this scope is narrower than the
+  plain "Replacer games" count, which includes non-finished/tutorial replacer games too, so the two
+  don't simply subtract). All three cached counters were added in a single EF migration
+  (`AddCachedReplacerGameStats`) since neither of these fields had shipped to any environment yet.
+  A replacer can themselves later be removed again (voted out/timed out a second time) before the
+  game ends — `replacerIds` only ever grows (`IngameGameState.ts`'s replace-player vote pushes to
+  it once and never removes), so it still names the user even after their own
+  `PreviousPlayerInGame` row is created. Without an explicit check this would otherwise defeat the
+  "no downside risk" promise entirely (a `PreviousPlayerInGame` row counts as an unconditional loss
+  per §10.2). `UserStatsService.RecalculateAsync` now excludes such a removal from
+  `CachedRemovedFromGameCount`/the win-rate loss the same way a still-seated replacer's loss is
+  excluded, while still surfacing it (badged "Replacer") on the profile's "Previously participated
+  games" list for transparency — removal from stats and visibility in that history list are
+  deliberately decoupled, same as the existing Cancelled-game handling there.
 
 ## 15. Roadmap / follow-ups (as of 2026-09-16)
 

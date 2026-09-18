@@ -59,6 +59,7 @@ public class UsersModel(
         ["won"] = "desc",
         ["removed"] = "desc",
         ["winrate"] = "desc",
+        ["replacer"] = "desc",
         ["created"] = "desc",
         ["activity"] = "desc",
     };
@@ -215,6 +216,14 @@ public class UsersModel(
             ("winrate", _) => query
                 .OrderBy(u => u.CachedWinRate == null)
                 .ThenBy(u => u.CachedWinRate)
+                .ThenBy(u => u.UserName),
+            ("replacer", "desc") => query
+                .OrderBy(u => u.CachedReplacerGamesCount == null)
+                .ThenByDescending(u => u.CachedReplacerGamesCount)
+                .ThenBy(u => u.UserName),
+            ("replacer", _) => query
+                .OrderBy(u => u.CachedReplacerGamesCount == null)
+                .ThenBy(u => u.CachedReplacerGamesCount)
                 .ThenBy(u => u.UserName),
             ("created", "desc") => query.OrderByDescending(u => u.CreatedAt),
             ("created", _) => query.OrderBy(u => u.CreatedAt),

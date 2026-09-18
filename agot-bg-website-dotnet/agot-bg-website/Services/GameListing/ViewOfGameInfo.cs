@@ -21,7 +21,8 @@ public sealed record ViewOfGameInfo(
     bool ReplacePlayerVoteOngoing,
     Guid? PublicChatRoomId,
     bool IsLearnTheGame,
-    string? SetupId
+    string? SetupId,
+    IReadOnlySet<Guid> ReplacerIds
 )
 {
     public static readonly ViewOfGameInfo Empty = new(
@@ -37,7 +38,8 @@ public sealed record ViewOfGameInfo(
         false,
         null,
         false,
-        null
+        null,
+        new HashSet<Guid>()
     );
 
     public static ViewOfGameInfo Parse(JsonDocument? viewOfGame)
@@ -60,23 +62,17 @@ public sealed record ViewOfGameInfo(
                 ? wfEl.GetString()
                 : null;
 
-        var waitingForIds = new HashSet<Guid>();
-        if (
-            root.TryGetProperty("waitingForIds", out var wfIdsEl)
-            && wfIdsEl.ValueKind == JsonValueKind.Array
-        )
-        {
-            foreach (var idEl in wfIdsEl.EnumerateArray())
-            {
-                if (
-                    idEl.ValueKind == JsonValueKind.String
-                    && Guid.TryParse(idEl.GetString(), out var id)
-                )
-                {
-                    waitingForIds.Add(id);
-                }
-            }
-        }
+        var waitingForIds = ReadGuidSet(root, "waitingForIds");
+
+        // Populated by the game server (`IngameGameState.replacerIds`, via `VoteType.ts`'s
+        // player-replacement handling) with the user id of whoever seated into an existing house
+        // through a replacement vote - see MIGRATION_PLAN.md §10.2's win-rate addendum. Present in
+        // `ViewOfGame` since the same commit that added `oldPlayerIds`/`timeoutPlayerIds` (which
+        // `PreviousPlayersBackfill`/`PreviousPlayerReasonResolver` already rely on being reliably
+        // populated for any historical game that ever reached the ingame state), so no separate
+        // historical backfill is needed here either - re-running `UserStatsService.RecalculateAsync`
+        // is enough to pick this up for already-played games.
+        var replacerIds = ReadGuidSet(root, "replacerIds");
 
         var maxPlayerCount =
             root.TryGetProperty("maxPlayerCount", out var maxEl)
@@ -132,8 +128,31 @@ public sealed record ViewOfGameInfo(
             replacePlayerVoteOngoing,
             publicChatRoomId,
             isLearnTheGame,
-            setupId
+            setupId,
+            replacerIds
         );
+    }
+
+    private static HashSet<Guid> ReadGuidSet(JsonElement root, string propertyName)
+    {
+        var result = new HashSet<Guid>();
+        if (
+            root.TryGetProperty(propertyName, out var arrEl)
+            && arrEl.ValueKind == JsonValueKind.Array
+        )
+        {
+            foreach (var idEl in arrEl.EnumerateArray())
+            {
+                if (
+                    idEl.ValueKind == JsonValueKind.String
+                    && Guid.TryParse(idEl.GetString(), out var id)
+                )
+                {
+                    result.Add(id);
+                }
+            }
+        }
+        return result;
     }
 }
 
