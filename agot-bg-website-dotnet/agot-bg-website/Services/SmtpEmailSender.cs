@@ -13,7 +13,8 @@ namespace agot_bg_website.Services;
 /// instead, so local dev doesn't need a working mail server.
 /// </summary>
 public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
-    : IEmailSender
+    : IEmailSender,
+        IBccEmailSender
 {
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
@@ -81,6 +82,88 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
                 "Failed to send email '{Subject}' to {Email} via {Host}:{Port} (SSL={EnableSsl}): {ErrorMessage}",
                 subject,
                 email,
+                host,
+                port,
+                enableSsl,
+                ex.Message
+            );
+        }
+    }
+
+    /// <summary>
+    /// Same transport/config as <see cref="SendEmailAsync"/>, but every recipient is added to
+    /// <see cref="MailMessage.Bcc"/> instead of <see cref="MailMessage.To"/> - System.Net.Mail
+    /// only requires a value in one of To/CC/Bcc, so unlike the API-based senders below, no
+    /// placeholder "To" address is needed here.
+    /// </summary>
+    public async Task SendBccEmailAsync(
+        IReadOnlyList<string> bccAddresses,
+        string subject,
+        string htmlMessage
+    )
+    {
+        var host = configuration["Email:Host"];
+        if (string.IsNullOrEmpty(host))
+        {
+            logger.LogWarning(
+                "Email:Host is not configured; not sending '{Subject}' to {Recipients}",
+                subject,
+                string.Join(", ", bccAddresses)
+            );
+            return;
+        }
+
+        var port = int.TryParse(configuration["Email:Port"], out var parsedPort) ? parsedPort : 587;
+        var username = configuration["Email:Username"];
+        var password = configuration["Email:Password"];
+        var fromAddress =
+            configuration["Email:FromAddress"] ?? username ?? "no-reply@swordsandravens.net";
+        var enableSsl =
+            !bool.TryParse(configuration["Email:EnableSsl"], out var parsedEnableSsl)
+            || parsedEnableSsl;
+
+        using var client = new SmtpClient(host, port)
+        {
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            EnableSsl = enableSsl,
+            UseDefaultCredentials = false,
+            Credentials = string.IsNullOrEmpty(username)
+                ? null
+                : new NetworkCredential(username, password),
+        };
+
+        using var message = new MailMessage
+        {
+            From = new MailAddress(fromAddress),
+            Subject = subject,
+            Body = htmlMessage,
+            IsBodyHtml = true,
+        };
+        foreach (var address in bccAddresses)
+        {
+            message.Bcc.Add(address);
+        }
+
+        try
+        {
+            await client.SendMailAsync(message);
+            logger.LogDebug(
+                "Sent Bcc email '{Subject}' to {Recipients} via {Host}:{Port} (SSL={EnableSsl})",
+                subject,
+                string.Join(", ", bccAddresses),
+                host,
+                port,
+                enableSsl
+            );
+        }
+        catch (Exception ex)
+        {
+            // Deliberately swallowed - same "never abort the caller" contract as SendEmailAsync.
+            logger.LogError(
+                ex,
+                "Failed to send Bcc email '{Subject}' to {Recipients} via {Host}:{Port} (SSL={EnableSsl}): {ErrorMessage}",
+                subject,
+                string.Join(", ", bccAddresses),
                 host,
                 port,
                 enableSsl,

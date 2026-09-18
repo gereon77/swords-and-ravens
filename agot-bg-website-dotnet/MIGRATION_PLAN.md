@@ -1149,6 +1149,33 @@ Follow-up work after first getting the app running locally end-to-end:
   targets only the expired connection, not every tab belonging to that user. This fixes the
   periodic empty "Online users" snapshot that occurred when quiet-but-live users crossed the old
   one-hour last-chat-activity threshold and were force-reconnected together.
+- **Public contact form, implemented** (`Pages/Contact.cshtml(.cs)`, linked from the footer next
+  to Privacy). Deliberately anonymous — someone who can't log in (lost password, locked account)
+  is exactly who needs to reach the staff — so it reuses registration's bot protection:
+  Cloudflare Turnstile (`data-action="contact"`, verified server-side by the existing
+  `TurnstileVerifier`) plus the same hidden honeypot field. On top of that, each visitor may send
+  at most `Contact:MaxMessagesPerDay` (default 2) messages per UTC day, keyed by user ID when
+  logged in and by remote IP otherwise. That quota lives in Redis (`ContactRateLimiter`, one
+  `contact:sent:{yyyy-MM-dd}:{key}` counter expiring at the next UTC midnight) rather than in the
+  in-process `RegistrationRateLimiter`, because a *daily* quota must survive deploys/container
+  restarts and be shared by every instance. `Contact:RecipientAddress` has **no default** — it
+  ships blank, which disables the form (with a visible notice) instead of silently dropping mail
+  or leaking to a real inbox that doesn't exist (`admin@swordsandravens.net`); an operator must
+  opt in by setting it. It also accepts a `;`-separated list (e.g. to loop in interested mods),
+  all delivered via a new `IBccEmailSender.SendBccEmailAsync` (implemented alongside the existing
+  `IEmailSender` in every sender: `SmtpEmailSender`, `ApiEmailSender`, `SesApiEmailSender`,
+  `LoggingEmailSender`) so every recipient lands in Bcc and never sees each other's address. Raw
+  SMTP sends true Bcc-only with an empty To; the two HTTP-API senders (Resend, SES) require a
+  non-empty To, so they reuse the site's own no-reply address (`EmailAddressHelper.
+  ExtractBareAddress` on `Email:FromAddress`) as a placeholder To with the real recipients in Bcc.
+  A logged-in visitor's name/email are shown read-only in the form and are **never trusted from
+  the posted values** — `ContactModel` always overwrites `Input.Name`/`Input.Email` from the real
+  account (via `UserManager.GetUserAsync`) before validating or sending, so a tampered
+  devtools-edited field can't be used to impersonate another user in the "From" line; only
+  anonymous visitors' typed name/email are used as-is. Wired end to end for production via
+  `Contact__RecipientAddress`/`Contact__MaxMessagesPerDay` in `docker-compose.prod.yml` (with
+  `CONTACT_RECIPIENT_ADDRESS`/`CONTACT_MAX_MESSAGES_PER_DAY` documented in `.env.prod.example`,
+  both blank/unset by default).
 
 ## 15. Roadmap / follow-ups (as of 2026-09-16)
 

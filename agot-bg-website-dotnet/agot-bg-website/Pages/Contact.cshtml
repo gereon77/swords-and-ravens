@@ -1,0 +1,83 @@
+@page
+@model ContactModel
+@{
+    ViewData["Title"] = "Contact";
+    ViewData["Description"] = "Get in touch with the Swords and Ravens staff.";
+}
+
+<h1 class="text-2xl font-bold mb-4">Contact Swords and Ravens</h1>
+
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+@if (!Model.ContactEnabled)
+{
+    <div class="alert alert-warning mt-4" role="alert">
+        The contact form isn't available right now. Please try again later.
+    </div>
+}
+else
+{
+    <p class="mt-2 opacity-80">
+        Questions, bug reports or feedback? Send us a message and we'll get back to you by email.
+        You can send up to @Model.MaxMessagesPerDay messages per day.
+    </p>
+
+    <div class="row mt-6">
+        <div class="col-md-6">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-error mb-3" role="alert"></div>
+                @if (User.Identity?.IsAuthenticated ?? false)
+                {
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Name" class="form-control" readonly tabindex="-1" />
+                        <label asp-for="Input.Name"></label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Email" class="form-control" readonly tabindex="-1" />
+                        <label asp-for="Input.Email"></label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Name" class="form-control" autocomplete="name" aria-required="true" placeholder="Your name" />
+                        <label asp-for="Input.Name"></label>
+                        <span asp-validation-for="Input.Name" class="text-error text-sm"></span>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com" />
+                        <label asp-for="Input.Email"></label>
+                        <span asp-validation-for="Input.Email" class="text-error text-sm"></span>
+                    </div>
+                }
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Subject" class="form-control" aria-required="true" placeholder="Subject" />
+                    <label asp-for="Input.Subject"></label>
+                    <span asp-validation-for="Input.Subject" class="text-error text-sm"></span>
+                </div>
+                <div class="form-floating mb-3">
+                    <textarea asp-for="Input.Message" class="textarea w-full bg-base-200 text-base-content placeholder:text-base-content/40" rows="8" aria-required="true" placeholder="How can we help?"></textarea>
+                    <label asp-for="Input.Message"></label>
+                    <span asp-validation-for="Input.Message" class="text-error text-sm"></span>
+                </div>
+                <div class="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+                    <label asp-for="Input.Website">Website</label>
+                    <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+                </div>
+                @if (Model.TurnstileEnabled)
+                {
+                    <div class="cf-turnstile mb-3" data-sitekey="@Model.TurnstileSiteKey" data-action="contact"></div>
+                }
+                <button type="submit" class="btn btn-primary">Send message</button>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (Model.TurnstileEnabled)
+    {
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    }
+}

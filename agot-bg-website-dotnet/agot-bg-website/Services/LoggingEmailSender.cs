@@ -11,7 +11,7 @@ namespace agot_bg_website.Services;
 /// default sender does the latter), this logs the subject/recipient/body so a developer can
 /// still see what would have been sent.
 /// </summary>
-public class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSender
+public class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSender, IBccEmailSender
 {
     public Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
@@ -20,6 +20,22 @@ public class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSend
                 + "would have sent '{Subject}' to {Email}:\n{HtmlMessage}",
             subject,
             email,
+            htmlMessage
+        );
+        return Task.CompletedTask;
+    }
+
+    public Task SendBccEmailAsync(
+        IReadOnlyList<string> bccAddresses,
+        string subject,
+        string htmlMessage
+    )
+    {
+        logger.LogInformation(
+            "Email sending is not configured (neither Email:Api:Key nor Email:Host is set); "
+                + "would have sent '{Subject}' to Bcc:{Recipients}:\n{HtmlMessage}",
+            subject,
+            string.Join(", ", bccAddresses),
             htmlMessage
         );
         return Task.CompletedTask;

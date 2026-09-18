@@ -191,6 +191,11 @@ builder.Services.AddHttpClient<TurnstileVerifier>();
 // Scoped only to RegisterModel - not app-wide rate-limiting middleware, so no other route is affected.
 builder.Services.AddSingleton<RegistrationRateLimiter>();
 
+// Public contact form (Pages/Contact.cshtml) - recipient address and the per-visitor daily quota.
+// The limiter itself is Redis-backed (registered below, once the multiplexer exists) so the quota
+// survives deploys/restarts and is shared across instances.
+builder.Services.Configure<ContactOptions>(builder.Configuration.GetSection("Contact"));
+
 // Chat (MIGRATION_PLAN.md §7) — raw ASP.NET Core WebSockets + Redis pub/sub, replacing Django
 // Channels, so ChatClient.ts/games_chat.html don't need any changes.
 var redisConnectionString =
@@ -198,6 +203,7 @@ var redisConnectionString =
     ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
 var redisConnectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnectionMultiplexer);
+builder.Services.AddSingleton<IContactRateLimiter, ContactRateLimiter>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ChatConnectionManager>();
 builder.Services.AddSingleton<ChatPresenceService>();
@@ -249,6 +255,7 @@ if (!string.IsNullOrEmpty(builder.Configuration["Email:Ses:AccessKeyId"]))
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         SesApiEmailSender
     >();
+    builder.Services.AddTransient<IBccEmailSender, SesApiEmailSender>();
 }
 else if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
 {
@@ -270,6 +277,9 @@ else if (!string.IsNullOrEmpty(builder.Configuration["Email:Api:Key"]))
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         ApiEmailSender
     >(sp => sp.GetRequiredService<ApiEmailSender>());
+    builder.Services.AddTransient<IBccEmailSender, ApiEmailSender>(sp =>
+        sp.GetRequiredService<ApiEmailSender>()
+    );
 }
 else if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
 {
@@ -277,6 +287,7 @@ else if (!string.IsNullOrEmpty(builder.Configuration["Email:Host"]))
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         SmtpEmailSender
     >();
+    builder.Services.AddTransient<IBccEmailSender, SmtpEmailSender>();
 }
 else
 {
@@ -284,6 +295,7 @@ else
         Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         LoggingEmailSender
     >();
+    builder.Services.AddTransient<IBccEmailSender, LoggingEmailSender>();
 }
 
 // Canonical, all-lowercase URLs everywhere (e.g. "/user/{id}" instead of "/User/{id}") - applies
