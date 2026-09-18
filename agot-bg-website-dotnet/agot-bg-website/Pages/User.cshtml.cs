@@ -46,13 +46,19 @@ public class UserModel(
         IReadOnlyList<string> EnabledSettingLabels,
         bool IsPbem,
         string? OwnerDisplayName,
+        /// <summary><see cref="ViewOfGameInfo.IsPureReplacer"/> for this row's game, not the raw
+        /// <see cref="ViewOfGameInfo.ReplacerIds"/> membership - a user who was an initial player
+        /// of this game and also replaced into a different house later must not show the
+        /// "Replacer" badge here, since <see cref="UserStatsService"/> doesn't grant that game's
+        /// loss/removal exemption either; otherwise the badge and the profile's counts drift
+        /// apart for that one game.</summary>
         bool IsReplacer
     );
 
     /// <summary>A game the viewed user was removed from (voted out/timed out) before it ended,
     /// per <c>PreviousPlayerInGame</c> - never shown anywhere else in the UI, see
     /// MIGRATION_PLAN.md §10.2's "games where you were removed" follow-up. <paramref
-    /// name="IsReplacer"/> is true when the user had joined this game as a replacer (see <see
+    /// name="IsReplacer"/> is <see cref="ViewOfGameInfo.IsPureReplacer"/> (same caveat as <see
     /// cref="GameRow.IsReplacer"/>) - such a removal is still shown here for transparency, but is
     /// excluded from <see cref="RemovedFromGameCount"/>/the win rate, same as a still-seated
     /// replacer's loss - see <see cref="UserStatsService.RecalculateAsync"/>.</summary>
@@ -215,7 +221,7 @@ public class UserModel(
                 GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
                 view.IsPbem,
                 row.OwnerDisplayName,
-                view.ReplacerIds.Contains(userId)
+                view.IsPureReplacer(userId)
             );
 
             if (row.State == GameState.Cancelled)
@@ -295,7 +301,7 @@ public class UserModel(
                     GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
                     view.IsPbem,
                     row.OwnerDisplayName,
-                    view.ReplacerIds.Contains(userId)
+                    view.IsPureReplacer(userId)
                 );
             })
             .ToList();

@@ -3154,6 +3154,26 @@ const serializedGameMigrations: {
 
       return serializedGame;
     }
+  },
+  {
+    version: "137",
+    migrate: (serializedGame: any) => {
+      if (serializedGame.childGameState.type == "ingame") {
+        const ingame = serializedGame.childGameState;
+
+        const assignmentsLog = ingame.gameLogManager.logs.find(
+          (l: any) => l.data.type == "user-house-assignments"
+        );
+
+        ingame.initialPlayerIds = assignmentsLog
+          ? assignmentsLog.data.assignments.map(
+              ([, userId]: [string, string]) => userId
+            )
+          : [];
+      }
+
+      return serializedGame;
+    }
   }
 ];
 

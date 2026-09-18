@@ -443,6 +443,92 @@ public class UserStatsServiceTests : IDisposable
         Assert.Equal(1.0, result.WinRate);
     }
 
+    [Fact]
+    public async Task OriginalPlayerWhoAlsoReplacedIntoAnotherHouse_IsNotTreatedAsPureReplacer()
+    {
+        // The real scenario reported: a user started the game (initialPlayerIds), was replaced,
+        // later jumped back in as a replacer for a *different* house (replacerIds), and was then
+        // removed again. Because they were an original player of this specific game, none of the
+        // "pure replacer" exemptions should apply to them here - the removal is a real loss.
+        var user = new ApplicationUser
+        {
+            UserName = "started_then_replaced",
+            Email = "s@example.com",
+        };
+        await _userManager.CreateAsync(user);
+
+        var userId = user.Id.ToString();
+
+        var finishedLossGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Started and lost, also replaced in elsewhere",
+            OwnerUserId = user.Id,
+            State = GameState.Finished,
+            ViewOfGame = Json(
+                $$"""
+                {
+                    "settings": {"setupId": "base-game"},
+                    "replacerIds": ["{{userId}}"],
+                    "initialPlayerIds": ["{{userId}}"]
+                }
+                """
+            ),
+        };
+        var removalGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Started, replaced elsewhere, removed again",
+            OwnerUserId = user.Id,
+            State = GameState.Ongoing,
+            ViewOfGame = Json(
+                $$"""
+                {
+                    "settings": {"setupId": "base-game"},
+                    "replacerIds": ["{{userId}}"],
+                    "initialPlayerIds": ["{{userId}}"]
+                }
+                """
+            ),
+        };
+        _db.Games.AddRange(finishedLossGame, removalGame);
+
+        _db.PlayersInGame.Add(
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = finishedLossGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark", "is_winner": false}"""),
+            }
+        );
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = removalGame.Id,
+                UserId = user.Id,
+                Reason = PlayerReplacementReason.ClockTimeout,
+            }
+        );
+
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RecalculateAsync(user.Id);
+
+        Assert.NotNull(result);
+        // Both games still count as "replacer games" (the user did replace at some point in
+        // each), but since initialPlayerIds also names them, neither gets the pure-replacer
+        // exemption: the Finished game's loss counts normally, and the removal counts too.
+        // ReplacerGamesCount only scans PlayersInGame rows (current participations), so it's 1
+        // here - the removal game has no PlayerInGame row, just the PreviousPlayerInGame one.
+        Assert.Equal(1, result.ReplacerGamesCount);
+        Assert.Equal(0, result.ReplacerWinsCount);
+        Assert.Equal(0, result.ReplacerLossesExcludedCount);
+        Assert.Equal(1, result.RemovedFromGameCount);
+        Assert.Equal(0.0, result.WinRate);
+    }
+
     public void Dispose()
     {
         _db.Dispose();

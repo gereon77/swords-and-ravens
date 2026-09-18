@@ -766,6 +766,8 @@ export default class EntireGame extends GameState<
             v.type instanceof ReplacePlayerByVassal)
       ).length ?? -1) > 0 || undefined;
 
+    const initialPlayerIds =
+      this.ingameGameState?.initialPlayerIds ?? undefined;
     const oldPlayerIds = this.ingameGameState?.oldPlayerIds ?? undefined;
     const timeoutPlayerIds =
       this.ingameGameState?.timeoutPlayerIds ?? undefined;
@@ -804,6 +806,7 @@ export default class EntireGame extends GameState<
       waitingForIds,
       winner,
       replacePlayerVoteOngoing,
+      initialPlayerIds,
       oldPlayerIds,
       timeoutPlayerIds,
       replacerIds,

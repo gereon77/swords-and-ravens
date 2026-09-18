@@ -105,7 +105,7 @@ public sealed class UserStatsService(ApplicationDbContext db)
                     IsWinner: isWinner == true,
                     // See WinRateCalculator's doc comment: a loss in a game joined as a replacer
                     // is excluded from the win-rate percentage entirely, but a win still counts.
-                    IsReplacer: view.ReplacerIds.Contains(userId)
+                    IsReplacer: view.IsPureReplacer(userId)
                 );
             })
             .ToList();
@@ -139,14 +139,18 @@ public sealed class UserStatsService(ApplicationDbContext db)
         // happen there) games are excluded, per "cancelled games never affect any stat at all".
         // The tutorial variant is excluded here too, for the same reason it's excluded from the
         // win side above - a "learn the game" removal must not count as a loss either. A removal
-        // from a game the user joined as a replacer (`replacerIds`, same check as the win-rate
-        // side's IsReplacer fact) is excluded for the same reason too: replacerIds only ever grows
-        // (see IngameGameState.ts's replace-player vote), so it still names the user even after
-        // they themselves get removed again - without this check a player who generously jumped
-        // into a stalling game as a replacer, and then got timed out/voted out of it in turn,
-        // would eat a full loss despite the "no downside risk" promise the replacer-loss exclusion
-        // above already makes for a still-seated replacer. The row itself is still shown (badged)
-        // on the profile's "Previously participated games" list - see UserModel.
+        // from a game the user joined as a *pure* replacer (IsPureReplacer, same check as the
+        // win-rate side's IsReplacer fact) is excluded for the same reason too: replacerIds only
+        // ever grows (see IngameGameState.ts's replace-player vote), so it still names the user
+        // even after they themselves get removed again - without this check a player who
+        // generously jumped into a stalling game as a replacer, and then got timed out/voted out
+        // of it in turn, would eat a full loss despite the "no downside risk" promise the
+        // replacer-loss exclusion above already makes for a still-seated replacer. But a user who
+        // was ALSO one of the original players of this game (initialPlayerIds) doesn't get this
+        // exemption for their own removal - having started the game themselves, a later removal
+        // (even from a different house they'd replaced into) is a real loss, not one they can
+        // point to "I was only ever there to help". The row itself is still shown (badged) on the
+        // profile's "Previously participated games" list - see UserModel.
         var removedFromGameViewsOfGame = await db
             .PreviousPlayersInGame.Where(p =>
                 p.UserId == userId
@@ -157,7 +161,7 @@ public sealed class UserStatsService(ApplicationDbContext db)
         var removedFromGameCount = removedFromGameViewsOfGame.Count(viewOfGame =>
         {
             var view = ViewOfGameInfo.Parse(viewOfGame);
-            return !view.IsLearnTheGame && !view.ReplacerIds.Contains(userId);
+            return !view.IsLearnTheGame && !view.IsPureReplacer(userId);
         });
 
         var winRate = WinRateCalculator.Calculate(winRateFacts, removedFromGameCount);

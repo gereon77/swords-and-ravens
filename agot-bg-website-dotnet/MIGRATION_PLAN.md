@@ -769,9 +769,20 @@ cd agot-bg-game-server && yarn run run-server   # .env still has MASTER_API_* po
 
 ## 10. Data migration tool (`Snr.Migration`)
 
+> **`import` is now permanently disabled (deprecated).** The one-time production cutover import
+> described in this section already ran to completion (§18) and the legacy Django/Dokku server has
+> since been decommissioned and destroyed — there is no legacy database left anywhere to import
+> from. `dotnet run --project Snr.Migration -- import` now always refuses to run immediately (see
+> `Program.cs`'s `RunImportAsync`), regardless of what `--legacy`/`--target` are passed. This
+> section is kept as historical documentation of how the migration worked, not as a runnable
+> procedure. `verify`/`backfill-initial-players` (and any future one-time migration verb — see
+> §14/§15) are unaffected.
+
 A small, **repeatable/idempotent** console app, not a one-shot script — safe to re-run against a
 freshly-restored copy of the production Django DB as many times as needed while building/testing
-the new site, and again at final cutover.
+the new site, and again at final cutover. Verbs are parsed with the `CommandLineParser` NuGet
+package (`[Verb]`/`[Option]` records in `Program.cs`), so adding a future one-time migration/
+backfill tool only means adding one more options record and `MapResult` arm.
 
 ```
 dotnet run --project src/Snr.Migration -- import --legacy "Host=...;Database=snr_django;..." --target "Host=...;Database=snr_dotnet;..." [--messages-days-back N]
@@ -1212,6 +1223,45 @@ Follow-up work after first getting the app running locally end-to-end:
   excluded, while still surfacing it (badged "Replacer") on the profile's "Previously participated
   games" list for transparency — removal from stats and visibility in that history list are
   deliberately decoupled, same as the existing Cancelled-game handling there.
+- **`initialPlayerIds` refinement, implemented.** Closes a further gap in the "Replacer games"
+  exemption: a user who was one of a game's *original* players, got replaced, and later separately
+  jumped back in as a replacer for a *different* house of the same game must not get the "pure
+  replacer" exemption for their own removal(s) or losses in that game — having started the game
+  themselves, a later removal is a real loss, not just "helping finish someone else's game".
+  - **Game server**: `IngameGameState.initialPlayerIds: string[]` (new field, mirrors
+    `oldPlayerIds`/`replacerIds`/`timeoutPlayerIds`'s serialize/deserialize pattern exactly) is
+    populated once in `beginGame()` from `futurePlayers` (the same seated-user map that also drives
+    the existing, once-only `"user-house-assignments"` game-log entry) and never modified
+    afterwards. `EntireGame.getViewOfGame()` exposes it the same way as `replacerIds`; `PublicApi.
+    cs`'s `FieldsToStrip` redacts it from the anonymous public game endpoint alongside the other
+    internal id lists. Historical *Ongoing* games self-heal for free: `serializedGameMigrations.ts`
+    version "137" derives `initialPlayerIds` for any older game from its
+    `gameLogManager.logs`' one-time `"user-house-assignments"` entry the next time that game is
+    loaded, so it gets persisted the next time the game server saves it through normal play — no
+    special-casing needed beyond the standard migration mechanism already used for `oldPlayerIds`/
+    `replacerIds` (see §10.1's version-86 precedent).
+  - **Website**: `ViewOfGameInfo.InitialPlayerIds` (parsed the same way as `ReplacerIds`) plus a new
+    `ViewOfGameInfo.IsPureReplacer(userId)` helper (`replacerIds.Contains(userId) &&
+    !initialPlayerIds.Contains(userId)`) replaces every previous raw `ReplacerIds.Contains(userId)`
+    check that gated a win-rate/removal exemption in `UserStatsService.cs` (the "Replacer" *badges*
+    on the Games/Previously-participated-games tables deliberately keep using the raw
+    `ReplacerIds.Contains` check instead — those are purely informational "did this user ever
+    replace in this game" markers, not tied to the stricter exemption rule).
+  - **Historical Finished/Cancelled games**: unlike Ongoing games, a dormant Finished/Cancelled
+    game nobody ever reloads never gets the game-server migration's self-heal to actually persist
+    (nothing triggers a fresh save). `Snr.Migration`'s new `backfill-initial-players` verb
+    (`InitialPlayersBackfill.cs`) is a *separate*, explicitly-invoked one-time tool for exactly this
+    gap: unlike every other backfill here, it does have to parse each candidate game's
+    (potentially multi-MB) `SerializedGame` — `ViewOfGame` itself carries no game-log data at all —
+    scanning for the same one-time `"user-house-assignments"` log entry the game-server migration
+    uses. Safe to re-run (skips games whose `ViewOfGame` already has `initialPlayerIds`). Run
+    "Recalculate stats" (single/bulk, `Areas/Admin/Pages/Users/Index.cshtml.cs`) afterwards so
+    cached `ApplicationUser` fields pick up the corrected `IsPureReplacer` computation for affected
+    users.
+  - `Snr.Migration`'s CLI was also switched from a hand-rolled `args[0]`/`GetOption` argument
+    parser to the `CommandLineParser` NuGet package (`[Verb]`/`[Option]` records in `Program.cs`),
+    so that adding this (and any future) one-time migration/backfill verb only means adding one
+    more options record and one more `MapResult` arm.
 
 ## 15. Roadmap / follow-ups (as of 2026-09-16)
 

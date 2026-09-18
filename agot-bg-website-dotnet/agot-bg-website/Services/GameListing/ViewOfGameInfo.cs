@@ -22,7 +22,8 @@ public sealed record ViewOfGameInfo(
     Guid? PublicChatRoomId,
     bool IsLearnTheGame,
     string? SetupId,
-    IReadOnlySet<Guid> ReplacerIds
+    IReadOnlySet<Guid> ReplacerIds,
+    IReadOnlySet<Guid> InitialPlayerIds
 )
 {
     public static readonly ViewOfGameInfo Empty = new(
@@ -39,6 +40,7 @@ public sealed record ViewOfGameInfo(
         null,
         false,
         null,
+        new HashSet<Guid>(),
         new HashSet<Guid>()
     );
 
@@ -73,6 +75,17 @@ public sealed record ViewOfGameInfo(
         // historical backfill is needed here either - re-running `UserStatsService.RecalculateAsync`
         // is enough to pick this up for already-played games.
         var replacerIds = ReadGuidSet(root, "replacerIds");
+
+        // The user ids seated when the game began (game server's IngameGameState.initialPlayerIds,
+        // derived once from the one-time "user-house-assignments" log entry - see
+        // MIGRATION_PLAN.md §14). Used to refine the ReplacerIds win-rate exemption: a user who was
+        // ALSO an original player of this game (even if they additionally replaced into another
+        // house later) should not get the "pure replacer" exemption for their own removal(s).
+        // Unlike ReplacerIds, this field didn't exist for older games, so - unless the game has
+        // been loaded by the game server since (which self-heals it via serializedGameMigrations.ts
+        // version "137") - historical games need the one-time `InitialPlayersBackfill` tool in
+        // Snr.Migration to populate it before `UserStatsService.RecalculateAsync` reflects it.
+        var initialPlayerIds = ReadGuidSet(root, "initialPlayerIds");
 
         var maxPlayerCount =
             root.TryGetProperty("maxPlayerCount", out var maxEl)
@@ -129,9 +142,20 @@ public sealed record ViewOfGameInfo(
             publicChatRoomId,
             isLearnTheGame,
             setupId,
-            replacerIds
+            replacerIds,
+            initialPlayerIds
         );
     }
+
+    /// <summary>
+    /// True only for a "pure" replacer: someone who joined this specific game solely by
+    /// replacing an existing player, and was never one of the original players themselves (even
+    /// if they later also replaced into a different house). Used everywhere the "no downside
+    /// risk for helping finish a stalling game" exemption is applied - a user's own removal(s)
+    /// from a game they originally started in should still count normally.
+    /// </summary>
+    public bool IsPureReplacer(Guid userId) =>
+        ReplacerIds.Contains(userId) && !InitialPlayerIds.Contains(userId);
 
     private static HashSet<Guid> ReadGuidSet(JsonElement root, string propertyName)
     {
