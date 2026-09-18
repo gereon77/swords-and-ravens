@@ -211,6 +211,10 @@
                                             <span class="badge @(game.IsPbem ? "badge-info" : "badge-success") align-middle" title="@(game.IsPbem ? "Play By E-Mail - players receive an e-mail when it is their turn" : "Live game")">
                                                 @(game.IsPbem ? "PBEM" : "Live")
                                             </span>
+                                            @if (game.IsReplacer)
+                                            {
+                                                <span class="badge badge-accent align-middle" title="You joined this game as a replacer, seating into an existing house.">Replacer</span>
+                                            }
                                             <a class="link font-semibold text-base text-base-content" href="/play/@game.GameId" target="_blank" rel="noopener noreferrer">@game.Name</a>
                                         </td>
                                         <td class="text-center whitespace-nowrap">@game.PlayersCount</td>
