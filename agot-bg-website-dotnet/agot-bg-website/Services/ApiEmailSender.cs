@@ -18,7 +18,7 @@ public class ApiEmailSender(
     HttpClient httpClient,
     IConfiguration configuration,
     ILogger<ApiEmailSender> logger
-) : IEmailSender
+) : IEmailSender, IBccEmailSender
 {
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
@@ -71,6 +71,73 @@ public class ApiEmailSender(
                 "Failed to send email '{Subject}' to {Email} via Resend API: {ErrorMessage}",
                 subject,
                 email,
+                ex.Message
+            );
+        }
+    }
+
+    /// <summary>
+    /// Resend (like every mainstream transactional-email API) requires a non-empty "to", even for
+    /// a Bcc-only send - see <see cref="EmailAddressHelper.ExtractBareAddress"/> for why the
+    /// domain's own no-reply address is used as that placeholder.
+    /// </summary>
+    public async Task SendBccEmailAsync(
+        IReadOnlyList<string> bccAddresses,
+        string subject,
+        string htmlMessage
+    )
+    {
+        var apiKey = configuration["Email:Api:Key"];
+        var fromAddress =
+            configuration["Email:FromAddress"]
+            ?? "Swords and Ravens <no-reply@swordsandravens.net>";
+        var toAddress = EmailAddressHelper.ExtractBareAddress(fromAddress);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "emails")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", apiKey) },
+            Content = JsonContent.Create(
+                new
+                {
+                    from = fromAddress,
+                    to = new[] { toAddress },
+                    bcc = bccAddresses,
+                    subject,
+                    html = htmlMessage,
+                }
+            ),
+        };
+
+        try
+        {
+            using var response = await httpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogDebug(
+                    "Sent Bcc email '{Subject}' to {Recipients} via Resend API",
+                    subject,
+                    string.Join(", ", bccAddresses)
+                );
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                logger.LogError(
+                    "Failed to send Bcc email '{Subject}' to {Recipients} via Resend API: {StatusCode} {Body}",
+                    subject,
+                    string.Join(", ", bccAddresses),
+                    response.StatusCode,
+                    body
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to send Bcc email '{Subject}' to {Recipients} via Resend API: {ErrorMessage}",
+                subject,
+                string.Join(", ", bccAddresses),
                 ex.Message
             );
         }

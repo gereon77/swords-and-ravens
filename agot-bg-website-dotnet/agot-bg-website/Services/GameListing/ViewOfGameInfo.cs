@@ -21,7 +21,9 @@ public sealed record ViewOfGameInfo(
     bool ReplacePlayerVoteOngoing,
     Guid? PublicChatRoomId,
     bool IsLearnTheGame,
-    string? SetupId
+    string? SetupId,
+    IReadOnlySet<Guid> ReplacerIds,
+    IReadOnlySet<Guid> InitialPlayerIds
 )
 {
     public static readonly ViewOfGameInfo Empty = new(
@@ -37,7 +39,9 @@ public sealed record ViewOfGameInfo(
         false,
         null,
         false,
-        null
+        null,
+        new HashSet<Guid>(),
+        new HashSet<Guid>()
     );
 
     public static ViewOfGameInfo Parse(JsonDocument? viewOfGame)
@@ -60,23 +64,28 @@ public sealed record ViewOfGameInfo(
                 ? wfEl.GetString()
                 : null;
 
-        var waitingForIds = new HashSet<Guid>();
-        if (
-            root.TryGetProperty("waitingForIds", out var wfIdsEl)
-            && wfIdsEl.ValueKind == JsonValueKind.Array
-        )
-        {
-            foreach (var idEl in wfIdsEl.EnumerateArray())
-            {
-                if (
-                    idEl.ValueKind == JsonValueKind.String
-                    && Guid.TryParse(idEl.GetString(), out var id)
-                )
-                {
-                    waitingForIds.Add(id);
-                }
-            }
-        }
+        var waitingForIds = ReadGuidSet(root, "waitingForIds");
+
+        // Populated by the game server (`IngameGameState.replacerIds`, via `VoteType.ts`'s
+        // player-replacement handling) with the user id of whoever seated into an existing house
+        // through a replacement vote - see MIGRATION_PLAN.md §10.2's win-rate addendum. Present in
+        // `ViewOfGame` since the same commit that added `oldPlayerIds`/`timeoutPlayerIds` (which
+        // `PreviousPlayersBackfill`/`PreviousPlayerReasonResolver` already rely on being reliably
+        // populated for any historical game that ever reached the ingame state), so no separate
+        // historical backfill is needed here either - re-running `UserStatsService.RecalculateAsync`
+        // is enough to pick this up for already-played games.
+        var replacerIds = ReadGuidSet(root, "replacerIds");
+
+        // The user ids seated when the game began (game server's IngameGameState.initialPlayerIds,
+        // derived once from the one-time "user-house-assignments" log entry - see
+        // MIGRATION_PLAN.md §14). Used to refine the ReplacerIds win-rate exemption: a user who was
+        // ALSO an original player of this game (even if they additionally replaced into another
+        // house later) should not get the "pure replacer" exemption for their own removal(s).
+        // Unlike ReplacerIds, this field didn't exist for older games, so - unless the game has
+        // been loaded by the game server since (which self-heals it via serializedGameMigrations.ts
+        // version "137") - historical games need the one-time `InitialPlayersBackfill` tool in
+        // Snr.Migration to populate it before `UserStatsService.RecalculateAsync` reflects it.
+        var initialPlayerIds = ReadGuidSet(root, "initialPlayerIds");
 
         var maxPlayerCount =
             root.TryGetProperty("maxPlayerCount", out var maxEl)
@@ -132,8 +141,42 @@ public sealed record ViewOfGameInfo(
             replacePlayerVoteOngoing,
             publicChatRoomId,
             isLearnTheGame,
-            setupId
+            setupId,
+            replacerIds,
+            initialPlayerIds
         );
+    }
+
+    /// <summary>
+    /// True only for a "pure" replacer: someone who joined this specific game solely by
+    /// replacing an existing player, and was never one of the original players themselves (even
+    /// if they later also replaced into a different house). Used everywhere the "no downside
+    /// risk for helping finish a stalling game" exemption is applied - a user's own removal(s)
+    /// from a game they originally started in should still count normally.
+    /// </summary>
+    public bool IsPureReplacer(Guid userId) =>
+        ReplacerIds.Contains(userId) && !InitialPlayerIds.Contains(userId);
+
+    private static HashSet<Guid> ReadGuidSet(JsonElement root, string propertyName)
+    {
+        var result = new HashSet<Guid>();
+        if (
+            root.TryGetProperty(propertyName, out var arrEl)
+            && arrEl.ValueKind == JsonValueKind.Array
+        )
+        {
+            foreach (var idEl in arrEl.EnumerateArray())
+            {
+                if (
+                    idEl.ValueKind == JsonValueKind.String
+                    && Guid.TryParse(idEl.GetString(), out var id)
+                )
+                {
+                    result.Add(id);
+                }
+            }
+        }
+        return result;
     }
 }
 

@@ -130,6 +130,12 @@ export default class IngameGameState extends GameState<
   IngameChildGameState
 > {
   players: BetterMap<User, Player> = new BetterMap();
+  // The user ids seated at game start (see beginGame's "user-house-assignments" log entry) -
+  // never modified afterwards, unlike oldPlayerIds/replacerIds/timeoutPlayerIds. Lets the website
+  // tell apart a user who only ever jumped in as a replacer from one who started the game and
+  // later also replaced into another house. Games that started before this field existed get it
+  // backfilled once via serializedGameMigrations.ts version "137".
+  initialPlayerIds: string[] = [];
   oldPlayerIds: string[] = [];
   replacerIds: string[] = [];
   timeoutPlayerIds: string[] = [];
@@ -288,6 +294,8 @@ export default class IngameGameState extends GameState<
         this.game.getControlledSupplyIcons(h)
       );
     });
+
+    this.initialPlayerIds = futurePlayers.values.map((u) => u.id);
 
     this.log({
       type: "user-house-assignments",
@@ -2670,6 +2678,8 @@ export default class IngameGameState extends GameState<
         this.unitVisibilityRangeModifier != 0
           ? this.unitVisibilityRangeModifier
           : undefined,
+      initialPlayerIds:
+        this.initialPlayerIds.length > 0 ? this.initialPlayerIds : undefined,
       oldPlayerIds:
         this.oldPlayerIds.length > 0 ? this.oldPlayerIds : undefined,
       replacerIds: this.replacerIds.length > 0 ? this.replacerIds : undefined,
@@ -2731,6 +2741,7 @@ export default class IngameGameState extends GameState<
     );
     ingameGameState.unitVisibilityRangeModifier =
       data.unitVisibilityRangeModifier ?? 0;
+    ingameGameState.initialPlayerIds = data.initialPlayerIds ?? [];
     ingameGameState.oldPlayerIds = data.oldPlayerIds ?? [];
     ingameGameState.replacerIds = data.replacerIds ?? [];
     ingameGameState.timeoutPlayerIds = data.timeoutPlayerIds ?? [];
@@ -2816,6 +2827,7 @@ export interface SerializedIngameGameState {
   players: SerializedPlayer[];
   game: SerializedGame;
   unitVisibilityRangeModifier?: number;
+  initialPlayerIds?: string[];
   oldPlayerIds?: string[];
   replacerIds?: string[];
   timeoutPlayerIds?: string[];

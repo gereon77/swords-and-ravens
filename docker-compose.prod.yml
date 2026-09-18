@@ -54,6 +54,10 @@ services:
       Email__FromAddress: ${EMAIL_FROM_ADDRESS}
       Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
       Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
+      # Public contact form (/contact). No default address - see .env.prod.example; a blank value
+      # disables the form instead of falling back to some inbox that may not exist.
+      Contact__RecipientAddress: ${CONTACT_RECIPIENT_ADDRESS:-}
+      Contact__MaxMessagesPerDay: ${CONTACT_MAX_MESSAGES_PER_DAY:-2}
       SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       db:

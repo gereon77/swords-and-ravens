@@ -260,6 +260,47 @@ public class UserModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ReplacerGame_IsFlaggedOnGameRowAndCountedOnProfile()
+    {
+        var user = new ApplicationUser { UserName = "replacer_jon", Email = "jon@example.com" };
+        await _userManager.CreateAsync(user);
+
+        var replacerGame = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Joined as replacer",
+            OwnerUserId = user.Id,
+            State = GameState.Ongoing,
+            ViewOfGame = Json(
+                $$"""
+                {"turn": 5, "maxPlayerCount": 6, "waitingFor": "Stark", "settings": {"setupId": "base-game"}, "replacerIds": ["{{user.Id}}"]}
+                """
+            ),
+        };
+        _db.Games.Add(replacerGame);
+        _db.PlayersInGame.Add(
+            new PlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = replacerGame.Id,
+                UserId = user.Id,
+                Data = Json("""{"house": "stark"}"""),
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        await _userStatsService.RecalculateAsync(user.Id);
+
+        var model = CreatePageModel();
+        var result = await model.OnGetAsync(user.Id);
+
+        Assert.IsType<PageResult>(result);
+        var row = Assert.Single(model.GamesOfUser);
+        Assert.True(row.IsReplacer);
+        Assert.Equal(1, model.ReplacerGamesCount);
+    }
+
+    [Fact]
     public async Task RemovalFromLaterCancelledGame_ShowsInPreviouslyParticipatedButNotInStats()
     {
         // A player voted/timed out of a still-Ongoing game (creating a PreviousPlayerInGame row),
@@ -312,6 +353,61 @@ public class UserModelTests : IDisposable
         var row = Assert.Single(model.PreviouslyParticipatedGames);
         Assert.Equal(cancelledGame.Id, row.GameId);
         Assert.Equal(GameState.Cancelled, row.State);
+    }
+
+    [Fact]
+    public async Task RemovalFromGameJoinedAsReplacer_ShowsInPreviouslyParticipatedButNotInStats()
+    {
+        // A player who jumped into a stalling game as a replacer (their id ends up in
+        // ViewOfGame.replacerIds), and was later voted/timed out of it in turn. The removal must
+        // still be visible on their profile (badge-able as "Replacer" via IsReplacer), but must
+        // not count towards RemovedFromGameCount/WinRate - same "no downside risk" rule as a
+        // still-seated replacer's loss (see UserStatsService.RecalculateAsync's doc comment).
+        var user = new ApplicationUser
+        {
+            UserName = "replacer_removed_again",
+            Email = "rr@example.com",
+        };
+        await _userManager.CreateAsync(user);
+        var owner = new ApplicationUser { UserName = "game_owner2", Email = "owner2@example.com" };
+        await _userManager.CreateAsync(owner);
+
+        var replacerId = user.Id.ToString();
+        var game = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Replacer removed again",
+            OwnerUserId = owner.Id,
+            State = GameState.Ongoing,
+            ViewOfGame = Json(
+                $$"""{"turn": 4, "maxPlayerCount": 6, "settings": {"setupId": "base-game"}, "replacerIds": ["{{replacerId}}"]}"""
+            ),
+        };
+        _db.Games.Add(game);
+        _db.PreviousPlayersInGame.Add(
+            new PreviousPlayerInGame
+            {
+                Id = Guid.NewGuid(),
+                GameId = game.Id,
+                UserId = user.Id,
+                Reason = PlayerReplacementReason.Vote,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        await _userStatsService.RecalculateAsync(user.Id);
+
+        var model = CreatePageModel();
+        var result = await model.OnGetAsync(user.Id);
+
+        Assert.IsType<PageResult>(result);
+        // Never counted towards any cached stat.
+        Assert.Equal(0, model.RemovedFromGameCount);
+        Assert.Equal("n/a", model.WinRateDisplay);
+        // But still visible, flagged as a replacer removal.
+        var row = Assert.Single(model.PreviouslyParticipatedGames);
+        Assert.Equal(game.Id, row.GameId);
+        Assert.True(row.IsReplacer);
     }
 
     [Fact]

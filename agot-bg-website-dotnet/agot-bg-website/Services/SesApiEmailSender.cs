@@ -25,7 +25,7 @@ public class SesApiEmailSender(
     IAmazonSimpleEmailServiceV2 sesClient,
     IConfiguration configuration,
     ILogger<SesApiEmailSender> logger
-) : IEmailSender
+) : IEmailSender, IBccEmailSender
 {
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
@@ -68,6 +68,63 @@ public class SesApiEmailSender(
                 "Failed to send email '{Subject}' to {Email} via Amazon SES API ({Region}): {ErrorMessage}",
                 subject,
                 email,
+                region,
+                ex.Message
+            );
+        }
+    }
+
+    /// <summary>
+    /// SES's Destination requires at least one address across To/Cc/Bcc, so a placeholder "To" is
+    /// used - see <see cref="EmailAddressHelper.ExtractBareAddress"/>.
+    /// </summary>
+    public async Task SendBccEmailAsync(
+        IReadOnlyList<string> bccAddresses,
+        string subject,
+        string htmlMessage
+    )
+    {
+        var region = configuration["Email:Ses:Region"] ?? "eu-north-1";
+        var fromAddress =
+            configuration["Email:FromAddress"]
+            ?? "Swords and Ravens <no-reply@swordsandravens.net>";
+        var toAddress = EmailAddressHelper.ExtractBareAddress(fromAddress);
+
+        var request = new SendEmailRequest
+        {
+            FromEmailAddress = fromAddress,
+            Destination = new Destination
+            {
+                ToAddresses = [toAddress],
+                BccAddresses = bccAddresses.ToList(),
+            },
+            Content = new EmailContent
+            {
+                Simple = new Message
+                {
+                    Subject = new Content { Data = subject },
+                    Body = new Body { Html = new Content { Data = htmlMessage } },
+                },
+            },
+        };
+
+        try
+        {
+            await sesClient.SendEmailAsync(request);
+            logger.LogDebug(
+                "Sent Bcc email '{Subject}' to {Recipients} via Amazon SES API ({Region})",
+                subject,
+                string.Join(", ", bccAddresses),
+                region
+            );
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to send Bcc email '{Subject}' to {Recipients} via Amazon SES API ({Region}): {ErrorMessage}",
+                subject,
+                string.Join(", ", bccAddresses),
                 region,
                 ex.Message
             );

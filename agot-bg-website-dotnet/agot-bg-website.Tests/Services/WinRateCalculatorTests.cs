@@ -54,4 +54,39 @@ public class WinRateCalculatorTests
             WinRateCalculator.Calculate([], finishedGamesPlayerWasRemovedFromCount: -1)
         );
     }
+
+    [Fact]
+    public void ReplacerLoss_ExcludedFromNumeratorAndDenominator()
+    {
+        // Jumping in as a replacer should never be penalized: a loss in such a game must not
+        // count against the win rate at all (neither wins nor losses, nor total games).
+        var facts = new[]
+        {
+            new WinRateGameFact(IsFinished: true, IsWinner: false, IsReplacer: true),
+            new WinRateGameFact(IsFinished: true, IsWinner: false),
+        };
+
+        var result = WinRateCalculator.Calculate(facts, finishedGamesPlayerWasRemovedFromCount: 0);
+
+        Assert.Equal(0, result.Wins);
+        Assert.Equal(1, result.Losses);
+        Assert.Equal(1, result.TotalGames);
+        Assert.Equal(0.0, result.WinRate);
+    }
+
+    [Fact]
+    public void ReplacerWin_StillCountsAsAWin()
+    {
+        var facts = new[]
+        {
+            new WinRateGameFact(IsFinished: true, IsWinner: true, IsReplacer: true),
+            new WinRateGameFact(IsFinished: true, IsWinner: false),
+        };
+
+        var result = WinRateCalculator.Calculate(facts, finishedGamesPlayerWasRemovedFromCount: 0);
+
+        Assert.Equal(1, result.Wins);
+        Assert.Equal(1, result.Losses);
+        Assert.Equal(0.5, result.WinRate);
+    }
 }

@@ -1,3 +1,4 @@
+using CommandLine;
 using Microsoft.Extensions.Configuration;
 using Snr.Migration;
 
@@ -8,86 +9,151 @@ using Snr.Migration;
 //   dotnet user-secrets set "Target" "Host=...;Database=snr_dotnet;..." --project Snr.Migration
 //
 // dotnet run --project Snr.Migration -- import [--legacy "..."] [--target "..."]
+//     ^ DEPRECATED/DISABLED - see ImportOptions's HelpText and MIGRATION_PLAN.md §18. The legacy
+//       Django server has been decommissioned and destroyed post-cutover, so there is no longer
+//       any legacy database left to import from; this verb now always refuses to run.
 // dotnet run --project Snr.Migration -- verify [--legacy "..."] [--target "..."]
-// See MIGRATION_PLAN.md §10 for the design this implements.
+// dotnet run --project Snr.Migration -- backfill-initial-players [--target "..."]
+// dotnet run --project Snr.Migration -- <verb> --help   (per-verb usage/options)
+//
+// Parsed with CommandLineParser (verb-per-task) rather than the previous hand-rolled args[0]/
+// GetOption switch, so that adding a future one-time migration/backfill tool (there will be more,
+// see MIGRATION_PLAN.md §14/§15) only means adding one more [Verb] options record plus one more
+// MapResult arm below - not touching the shared parsing/validation code at all.
+// See MIGRATION_PLAN.md §10 for the design import/verify implement.
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets(System.Reflection.Assembly.GetExecutingAssembly())
     .Build();
 
-string? command = args.Length > 0 ? args[0] : null;
-string? legacy = GetOption(args, "--legacy") ?? config["Legacy"];
-string? target = GetOption(args, "--target") ?? config["Target"];
-string? messagesDaysBackOption = GetOption(args, "--messages-days-back");
-var messagesDaysBack = -1;
-if (messagesDaysBackOption != null && !int.TryParse(messagesDaysBackOption, out messagesDaysBack))
+return await Parser
+    .Default.ParseArguments<ImportOptions, VerifyOptions, BackfillInitialPlayersOptions>(args)
+    .MapResult(
+        (ImportOptions o) => RunImportAsync(o),
+        (VerifyOptions o) => RunVerifyAsync(o, config),
+        (BackfillInitialPlayersOptions o) => RunBackfillInitialPlayersAsync(o, config),
+        _ => Task.FromResult(1)
+    );
+
+/// <summary>
+/// `import` is permanently disabled: it exists only so its code/history/HelpText remain as
+/// documentation of the one-time Django-&gt;.NET migration (MIGRATION_PLAN.md §10/§18), which has
+/// already run to completion for the real production cutover. The legacy Django/Dokku site was
+/// then stopped and the droplet it ran on has since been destroyed, so there is no legacy database
+/// left anywhere to import from - deliberately refuses to even look at --legacy/--target or touch
+/// any connection, rather than merely failing once it tries (and can't) reach a legacy database.
+/// </summary>
+static Task<int> RunImportAsync(ImportOptions _)
 {
     Console.WriteLine(
-        $"Invalid --messages-days-back value '{messagesDaysBackOption}', expected an integer."
+        "`import` is deprecated and permanently disabled: the legacy Django server has been "
+            + "decommissioned and destroyed, so there is no legacy database left to import from. "
+            + "See MIGRATION_PLAN.md §18 - the one-time production import already ran; this verb "
+            + "is kept only for historical reference."
     );
-    return 1;
+    return Task.FromResult(1);
 }
 
-if (command is not ("import" or "verify") || legacy == null || target == null)
+static async Task<int> RunVerifyAsync(VerifyOptions options, IConfigurationRoot config)
 {
-    Console.WriteLine(
-        """
-        Usage:
-          dotnet run -- import [--legacy "<connection string>"] [--target "<connection string>"] [--messages-days-back <n>]
-          dotnet run -- verify [--legacy "<connection string>"] [--target "<connection string>"]
-
-        --legacy/--target fall back to user secrets ("Legacy"/"Target") when omitted - see this
-        file's top comment for the exact `dotnet user-secrets set` commands. Preferred over typing
-        a production connection string directly on the command line.
-
-        Imports Users, Groups/Roles, Rooms, Games, PlayerInGame, historical PreviousPlayerInGame,
-        Messages and PbemResponseTime from a legacy Django database into a fresh
-        agot-bg-website-dotnet Postgres database. Safe to re-run repeatedly (idempotent) — see
-        MIGRATION_PLAN.md §10.
-
-        Games cancelled while still in the lobby (view_of_game.turn == -1) are never imported (and
-        are deleted from the target if an older run already imported one) — see §10, matching the
-        live save-game endpoint's own cleanup-on-cancel behavior.
-
-        The historical PreviousPlayerInGame backfill (§10.1) runs automatically as part of `import`,
-        computed directly from each Finished/Cancelled game's ViewOfGame JSON (oldPlayerIds/
-        timeoutPlayerIds) while it's already in memory for the games import - no re-query or
-        SerializedGame parsing needed. It never touches games that already have PreviousPlayerInGame
-        rows (e.g. from a genuine live game-server save).
-
-        --messages-days-back controls how much chat history is imported: -1 (default) imports all
-        messages, 0 imports none, and any positive N only imports messages younger than N days.
-        """
-    );
-    return command is null ? 1 : 0;
-}
-
-var importer = new Importer(legacy, target, messagesDaysBack);
-
-// Creates the target database/schema from scratch if it doesn't exist yet (idempotent otherwise),
-// so `import` can run against a brand-new environment without first starting the `website` app
-// just to trigger its own startup-time Database.MigrateAsync() (see Program.cs) - see
-// MIGRATION_PLAN.md §17.4/§17.5.
-await importer.MigrateTargetAsync();
-
-if (command == "import")
-{
-    await importer.RunAsync();
-    Console.WriteLine();
-    await importer.VerifyAsync();
-}
-else
-{
-    await importer.VerifyAsync();
-}
-return 0;
-
-static string? GetOption(string[] args, string name)
-{
-    for (var i = 0; i < args.Length - 1; i++)
+    var legacy = options.Legacy ?? config["Legacy"];
+    var target = options.Target ?? config["Target"];
+    if (legacy is null || target is null)
     {
-        if (args[i] == name)
-            return args[i + 1];
+        Console.WriteLine(
+            "Missing --legacy/--target (and no \"Legacy\"/\"Target\" user secret configured)."
+        );
+        return 1;
     }
-    return null;
+
+    var importer = new Importer(legacy, target);
+
+    // Creates the target database/schema from scratch if it doesn't exist yet (idempotent
+    // otherwise), so `verify` can run against a brand-new environment without first starting the
+    // `website` app just to trigger its own startup-time Database.MigrateAsync() (see Program.cs)
+    // - see MIGRATION_PLAN.md §17.4/§17.5.
+    await importer.MigrateTargetAsync();
+    await importer.VerifyAsync();
+    return 0;
+}
+
+static async Task<int> RunBackfillInitialPlayersAsync(
+    BackfillInitialPlayersOptions options,
+    IConfigurationRoot config
+)
+{
+    var target = options.Target ?? config["Target"];
+    if (target is null)
+    {
+        Console.WriteLine(
+            "Missing --target (and no \"Target\" user secret configured) for backfill-initial-players."
+        );
+        return 1;
+    }
+
+    await InitialPlayersBackfill.RunAsync(target);
+    return 0;
+}
+
+/// <summary>Shared --legacy/--target options common to every verb that talks to both databases.</summary>
+abstract class LegacyTargetOptions
+{
+    [Option(
+        "legacy",
+        HelpText = "Legacy Django database connection string. Falls back to the \"Legacy\" user secret."
+    )]
+    public string? Legacy { get; set; }
+
+    [Option(
+        "target",
+        HelpText = "Target agot-bg-website-dotnet database connection string. Falls back to the \"Target\" user secret."
+    )]
+    public string? Target { get; set; }
+}
+
+[Verb(
+    "import",
+    HelpText = "[DEPRECATED - PERMANENTLY DISABLED] Used to import Users, Groups/Roles, Rooms, "
+        + "Games, PlayerInGame, historical PreviousPlayerInGame, Messages and PbemResponseTime "
+        + "from a legacy Django database into a fresh agot-bg-website-dotnet Postgres database - "
+        + "see MIGRATION_PLAN.md §10/§18. The one-time production cutover import already ran and "
+        + "the legacy Django server has since been decommissioned/destroyed, so this verb now "
+        + "always refuses to run (no legacy database exists to import from anymore). Kept only so "
+        + "its options/behavior remain documented for historical reference."
+)]
+class ImportOptions : LegacyTargetOptions
+{
+    [Option(
+        "messages-days-back",
+        Default = -1,
+        HelpText = "How much chat history to import: -1 (default) imports all messages, 0 imports "
+            + "none, and any positive N only imports messages younger than N days. Unused now that "
+            + "this verb is permanently disabled - kept for historical documentation only."
+    )]
+    public int MessagesDaysBack { get; set; }
+}
+
+[Verb(
+    "verify",
+    HelpText = "Compares row counts between the legacy and target databases without importing anything."
+)]
+class VerifyOptions : LegacyTargetOptions;
+
+[Verb(
+    "backfill-initial-players",
+    HelpText = "One-time tool (only needs --target, not --legacy) that fills in "
+        + "`ViewOfGame.initialPlayerIds` for already-migrated Finished/Cancelled games that "
+        + "predate the game server persisting that field itself - see "
+        + "Snr.Migration/InitialPlayersBackfill.cs's doc comment and MIGRATION_PLAN.md §14. Unlike "
+        + "the other backfills, this one does parse each candidate game's (potentially multi-MB) "
+        + "SerializedGame, so it's noticeably slower per game and is never run automatically as "
+        + "part of import/verify. Safe to re-run - already-backfilled games are skipped."
+)]
+class BackfillInitialPlayersOptions
+{
+    [Option(
+        "target",
+        HelpText = "Target agot-bg-website-dotnet database connection string. Falls back to the \"Target\" user secret."
+    )]
+    public string? Target { get; set; }
 }

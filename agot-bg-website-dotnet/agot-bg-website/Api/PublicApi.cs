@@ -24,6 +24,7 @@ public static class PublicApi
         "waitingForIds",
         "publicChatRoomId",
         "timeoutPlayerIds",
+        "initialPlayerIds",
     ];
 
     public static RouteGroupBuilder MapPublicApi(this IEndpointRouteBuilder app)

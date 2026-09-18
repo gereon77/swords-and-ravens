@@ -769,9 +769,20 @@ cd agot-bg-game-server && yarn run run-server   # .env still has MASTER_API_* po
 
 ## 10. Data migration tool (`Snr.Migration`)
 
+> **`import` is now permanently disabled (deprecated).** The one-time production cutover import
+> described in this section already ran to completion (§18) and the legacy Django/Dokku server has
+> since been decommissioned and destroyed — there is no legacy database left anywhere to import
+> from. `dotnet run --project Snr.Migration -- import` now always refuses to run immediately (see
+> `Program.cs`'s `RunImportAsync`), regardless of what `--legacy`/`--target` are passed. This
+> section is kept as historical documentation of how the migration worked, not as a runnable
+> procedure. `verify`/`backfill-initial-players` (and any future one-time migration verb — see
+> §14/§15) are unaffected.
+
 A small, **repeatable/idempotent** console app, not a one-shot script — safe to re-run against a
 freshly-restored copy of the production Django DB as many times as needed while building/testing
-the new site, and again at final cutover.
+the new site, and again at final cutover. Verbs are parsed with the `CommandLineParser` NuGet
+package (`[Verb]`/`[Option]` records in `Program.cs`), so adding a future one-time migration/
+backfill tool only means adding one more options record and `MapResult` arm.
 
 ```
 dotnet run --project src/Snr.Migration -- import --legacy "Host=...;Database=snr_django;..." --target "Host=...;Database=snr_dotnet;..." [--messages-days-back N]
@@ -1149,6 +1160,108 @@ Follow-up work after first getting the app running locally end-to-end:
   targets only the expired connection, not every tab belonging to that user. This fixes the
   periodic empty "Online users" snapshot that occurred when quiet-but-live users crossed the old
   one-hour last-chat-activity threshold and were force-reconnected together.
+- **Public contact form, implemented** (`Pages/Contact.cshtml(.cs)`, linked from the footer next
+  to Privacy). Deliberately anonymous — someone who can't log in (lost password, locked account)
+  is exactly who needs to reach the staff — so it reuses registration's bot protection:
+  Cloudflare Turnstile (`data-action="contact"`, verified server-side by the existing
+  `TurnstileVerifier`) plus the same hidden honeypot field. On top of that, each visitor may send
+  at most `Contact:MaxMessagesPerDay` (default 2) messages per UTC day, keyed by user ID when
+  logged in and by remote IP otherwise. That quota lives in Redis (`ContactRateLimiter`, one
+  `contact:sent:{yyyy-MM-dd}:{key}` counter expiring at the next UTC midnight) rather than in the
+  in-process `RegistrationRateLimiter`, because a *daily* quota must survive deploys/container
+  restarts and be shared by every instance. `Contact:RecipientAddress` has **no default** — it
+  ships blank, which disables the form (with a visible notice) instead of silently dropping mail
+  or leaking to a real inbox that doesn't exist (`admin@swordsandravens.net`); an operator must
+  opt in by setting it. It also accepts a `;`-separated list (e.g. to loop in interested mods),
+  all delivered via a new `IBccEmailSender.SendBccEmailAsync` (implemented alongside the existing
+  `IEmailSender` in every sender: `SmtpEmailSender`, `ApiEmailSender`, `SesApiEmailSender`,
+  `LoggingEmailSender`) so every recipient lands in Bcc and never sees each other's address. Raw
+  SMTP sends true Bcc-only with an empty To; the two HTTP-API senders (Resend, SES) require a
+  non-empty To, so they reuse the site's own no-reply address (`EmailAddressHelper.
+  ExtractBareAddress` on `Email:FromAddress`) as a placeholder To with the real recipients in Bcc.
+  A logged-in visitor's name/email are shown read-only in the form and are **never trusted from
+  the posted values** — `ContactModel` always overwrites `Input.Name`/`Input.Email` from the real
+  account (via `UserManager.GetUserAsync`) before validating or sending, so a tampered
+  devtools-edited field can't be used to impersonate another user in the "From" line; only
+  anonymous visitors' typed name/email are used as-is. Wired end to end for production via
+  `Contact__RecipientAddress`/`Contact__MaxMessagesPerDay` in `docker-compose.prod.yml` (with
+  `CONTACT_RECIPIENT_ADDRESS`/`CONTACT_MAX_MESSAGES_PER_DAY` documented in `.env.prod.example`,
+  both blank/unset by default).
+- **"Replacer games" stat, implemented.** Rewards players who jump into an existing house via a
+  player-replacement vote to help finish a stalled game: a resulting loss no longer counts against
+  their win rate at all (excluded from both numerator and denominator), while a win still counts
+  normally — see `Services/WinRateCalculator.cs`'s `IsReplacer` fact. Deliberately **not** a new
+  `PlayerInGame` column: whether a user was a replacer for a given game is derived at read time
+  from that game's already-stored `ViewOfGame.replacerIds` (`ViewOfGameInfo.ReplacerIds`,
+  `Services/GameListing/ViewOfGameInfo.cs`), the same pattern already used for `IsWinner`/
+  `IsFaceless`/`IsLearnTheGame`. `replacerIds` has been present in `ViewOfGame` since the same
+  game-server commit that added `oldPlayerIds`/`timeoutPlayerIds` (which `PreviousPlayersBackfill`/
+  `PreviousPlayerReasonResolver` already rely on being reliably populated for any historical game -
+  see §10.1), so **no separate historical backfill was needed**: the existing "Recalculate stats"
+  actions (single-user and bulk, `Areas/Admin/Pages/Users/Index.cshtml.cs`) already re-derive
+  everything from `PlayerInGame.Data`/`Game.ViewOfGame` on every call, so re-running them after
+  deploy is enough to populate `ApplicationUser.CachedReplacerGamesCount` for already-played games.
+  Surfaced as a "Replacer games" stat + "Replacer" badge on the game rows on the profile page
+  (`Pages/User.cshtml(.cs)`) and as a sortable column on the Users directory (`Pages/Users.cshtml
+  (.cs)`), positioned after Win rate/Removed like the other cached stat columns. To keep the win
+  rate auditable from the profile page alone (the "Won games"/"Replacer games" numbers alone leave
+  a reconciliation gap), the profile sidebar also breaks "Replacer games" down into "Replacer wins"
+  (`ApplicationUser.CachedReplacerWinsCount`) and "Replacer losses (excluded)"
+  (`CachedReplacerLossesExcludedCount`), computed in `UserStatsService.RecalculateAsync` directly
+  from the same win-rate-qualifying `winRateFacts` used for the win rate itself (so these two
+  numbers reconcile exactly with the displayed win rate — note this scope is narrower than the
+  plain "Replacer games" count, which includes non-finished/tutorial replacer games too, so the two
+  don't simply subtract). All three cached counters were added in a single EF migration
+  (`AddCachedReplacerGameStats`) since neither of these fields had shipped to any environment yet.
+  A replacer can themselves later be removed again (voted out/timed out a second time) before the
+  game ends — `replacerIds` only ever grows (`IngameGameState.ts`'s replace-player vote pushes to
+  it once and never removes), so it still names the user even after their own
+  `PreviousPlayerInGame` row is created. Without an explicit check this would otherwise defeat the
+  "no downside risk" promise entirely (a `PreviousPlayerInGame` row counts as an unconditional loss
+  per §10.2). `UserStatsService.RecalculateAsync` now excludes such a removal from
+  `CachedRemovedFromGameCount`/the win-rate loss the same way a still-seated replacer's loss is
+  excluded, while still surfacing it (badged "Replacer") on the profile's "Previously participated
+  games" list for transparency — removal from stats and visibility in that history list are
+  deliberately decoupled, same as the existing Cancelled-game handling there.
+- **`initialPlayerIds` refinement, implemented.** Closes a further gap in the "Replacer games"
+  exemption: a user who was one of a game's *original* players, got replaced, and later separately
+  jumped back in as a replacer for a *different* house of the same game must not get the "pure
+  replacer" exemption for their own removal(s) or losses in that game — having started the game
+  themselves, a later removal is a real loss, not just "helping finish someone else's game".
+  - **Game server**: `IngameGameState.initialPlayerIds: string[]` (new field, mirrors
+    `oldPlayerIds`/`replacerIds`/`timeoutPlayerIds`'s serialize/deserialize pattern exactly) is
+    populated once in `beginGame()` from `futurePlayers` (the same seated-user map that also drives
+    the existing, once-only `"user-house-assignments"` game-log entry) and never modified
+    afterwards. `EntireGame.getViewOfGame()` exposes it the same way as `replacerIds`; `PublicApi.
+    cs`'s `FieldsToStrip` redacts it from the anonymous public game endpoint alongside the other
+    internal id lists. Historical *Ongoing* games self-heal for free: `serializedGameMigrations.ts`
+    version "137" derives `initialPlayerIds` for any older game from its
+    `gameLogManager.logs`' one-time `"user-house-assignments"` entry the next time that game is
+    loaded, so it gets persisted the next time the game server saves it through normal play — no
+    special-casing needed beyond the standard migration mechanism already used for `oldPlayerIds`/
+    `replacerIds` (see §10.1's version-86 precedent).
+  - **Website**: `ViewOfGameInfo.InitialPlayerIds` (parsed the same way as `ReplacerIds`) plus a new
+    `ViewOfGameInfo.IsPureReplacer(userId)` helper (`replacerIds.Contains(userId) &&
+    !initialPlayerIds.Contains(userId)`) replaces every previous raw `ReplacerIds.Contains(userId)`
+    check that gated a win-rate/removal exemption in `UserStatsService.cs` (the "Replacer" *badges*
+    on the Games/Previously-participated-games tables deliberately keep using the raw
+    `ReplacerIds.Contains` check instead — those are purely informational "did this user ever
+    replace in this game" markers, not tied to the stricter exemption rule).
+  - **Historical Finished/Cancelled games**: unlike Ongoing games, a dormant Finished/Cancelled
+    game nobody ever reloads never gets the game-server migration's self-heal to actually persist
+    (nothing triggers a fresh save). `Snr.Migration`'s new `backfill-initial-players` verb
+    (`InitialPlayersBackfill.cs`) is a *separate*, explicitly-invoked one-time tool for exactly this
+    gap: unlike every other backfill here, it does have to parse each candidate game's
+    (potentially multi-MB) `SerializedGame` — `ViewOfGame` itself carries no game-log data at all —
+    scanning for the same one-time `"user-house-assignments"` log entry the game-server migration
+    uses. Safe to re-run (skips games whose `ViewOfGame` already has `initialPlayerIds`). Run
+    "Recalculate stats" (single/bulk, `Areas/Admin/Pages/Users/Index.cshtml.cs`) afterwards so
+    cached `ApplicationUser` fields pick up the corrected `IsPureReplacer` computation for affected
+    users.
+  - `Snr.Migration`'s CLI was also switched from a hand-rolled `args[0]`/`GetOption` argument
+    parser to the `CommandLineParser` NuGet package (`[Verb]`/`[Option]` records in `Program.cs`),
+    so that adding this (and any future) one-time migration/backfill verb only means adding one
+    more options record and one more `MapResult` arm.
 
 ## 15. Roadmap / follow-ups (as of 2026-09-16)
 

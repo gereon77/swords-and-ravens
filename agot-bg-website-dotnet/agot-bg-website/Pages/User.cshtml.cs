@@ -45,12 +45,23 @@ public class UserModel(
         string SetupName,
         IReadOnlyList<string> EnabledSettingLabels,
         bool IsPbem,
-        string? OwnerDisplayName
+        string? OwnerDisplayName,
+        /// <summary><see cref="ViewOfGameInfo.IsPureReplacer"/> for this row's game, not the raw
+        /// <see cref="ViewOfGameInfo.ReplacerIds"/> membership - a user who was an initial player
+        /// of this game and also replaced into a different house later must not show the
+        /// "Replacer" badge here, since <see cref="UserStatsService"/> doesn't grant that game's
+        /// loss/removal exemption either; otherwise the badge and the profile's counts drift
+        /// apart for that one game.</summary>
+        bool IsReplacer
     );
 
     /// <summary>A game the viewed user was removed from (voted out/timed out) before it ended,
     /// per <c>PreviousPlayerInGame</c> - never shown anywhere else in the UI, see
-    /// MIGRATION_PLAN.md §10.2's "games where you were removed" follow-up.</summary>
+    /// MIGRATION_PLAN.md §10.2's "games where you were removed" follow-up. <paramref
+    /// name="IsReplacer"/> is <see cref="ViewOfGameInfo.IsPureReplacer"/> (same caveat as <see
+    /// cref="GameRow.IsReplacer"/>) - such a removal is still shown here for transparency, but is
+    /// excluded from <see cref="RemovedFromGameCount"/>/the win rate, same as a still-seated
+    /// replacer's loss - see <see cref="UserStatsService.RecalculateAsync"/>.</summary>
     public record PreviouslyParticipatedGameRow(
         Guid GameId,
         string Name,
@@ -62,7 +73,8 @@ public class UserModel(
         string SetupName,
         IReadOnlyList<string> EnabledSettingLabels,
         bool IsPbem,
-        string? OwnerDisplayName
+        string? OwnerDisplayName,
+        bool IsReplacer
     );
 
     public ApplicationUser ViewedUser { get; set; } = null!;
@@ -88,6 +100,18 @@ public class UserModel(
     public int WonCount { get; set; }
 
     public int RemovedFromGameCount { get; set; }
+
+    /// <summary>Number of non-faceless games (any state) this user has joined as a replacer - see
+    /// <see cref="ApplicationUser.CachedReplacerGamesCount"/>.</summary>
+    public int ReplacerGamesCount { get; set; }
+
+    /// <summary>Subset of <see cref="WonCount"/> that came from a replacer game - see <see
+    /// cref="ApplicationUser.CachedReplacerWinsCount"/>.</summary>
+    public int ReplacerWinsCount { get; set; }
+
+    /// <summary>Replacer games lost, excluded entirely from <see cref="WinRateDisplay"/> - see
+    /// <see cref="ApplicationUser.CachedReplacerLossesExcludedCount"/>.</summary>
+    public int ReplacerLossesExcludedCount { get; set; }
 
     public string WinRateDisplay { get; set; } = "n/a";
 
@@ -196,7 +220,8 @@ public class UserModel(
                 GameSettingsDisplay.GetSetupName(view.SetupId),
                 GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
                 view.IsPbem,
-                row.OwnerDisplayName
+                row.OwnerDisplayName,
+                view.IsPureReplacer(userId)
             );
 
             if (row.State == GameState.Cancelled)
@@ -275,7 +300,8 @@ public class UserModel(
                     GameSettingsDisplay.GetSetupName(view.SetupId),
                     GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
                     view.IsPbem,
-                    row.OwnerDisplayName
+                    row.OwnerDisplayName,
+                    view.IsPureReplacer(userId)
                 );
             })
             .ToList();
@@ -297,6 +323,9 @@ public class UserModel(
             WonCount = ViewedUser.CachedWonGamesCount ?? 0;
             FinishedCount = ViewedUser.CachedFinishedGamesCount ?? 0;
             RemovedFromGameCount = ViewedUser.CachedRemovedFromGameCount ?? 0;
+            ReplacerGamesCount = ViewedUser.CachedReplacerGamesCount ?? 0;
+            ReplacerWinsCount = ViewedUser.CachedReplacerWinsCount ?? 0;
+            ReplacerLossesExcludedCount = ViewedUser.CachedReplacerLossesExcludedCount ?? 0;
             WinRateDisplay = ViewedUser.CachedWinRate.HasValue
                 ? $"{(ViewedUser.CachedWinRate.Value * 100).ToString("F1", CultureInfo.InvariantCulture)} %"
                 : "n/a";
