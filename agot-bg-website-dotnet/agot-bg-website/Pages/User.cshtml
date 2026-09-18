@@ -42,7 +42,7 @@
                 </li>
                 <li class="flex items-center justify-between gap-3 py-2.5">
                     <span class="font-semibold">Finished games</span>
-                    <span class="badge badge-neutral badge-lg">@Model.FinishedCount</span>
+                    <span class="badge badge-accent badge-lg">@Model.FinishedCount</span>
                 </li>
                 <li class="flex items-center justify-between gap-3 py-2.5">
                     <span class="font-semibold">Won games</span>
@@ -79,7 +79,7 @@
     <div class="lg:col-span-9 flex flex-col gap-4">
         <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="user-games"@(Model.Request.IsCollapseSectionOpen("user-games", true) ? " open" : "")>
             <summary class="collapse-title text-lg font-semibold">
-                Games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.GamesOfUser.Count</span>
+                Games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.GamesOfUser.Count</span>
             </summary>
             <div class="collapse-content">
                 @if (Model.GamesOfUser.Count == 0)
@@ -178,7 +178,7 @@
         {
             <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="user-cancelled-games"@(Model.Request.IsCollapseSectionOpen("user-cancelled-games", false) ? " open" : "")>
                 <summary class="collapse-title text-lg font-semibold">
-                    Cancelled games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CancelledGames.Count</span>
+                    Cancelled games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.CancelledGames.Count</span>
                 </summary>
                 <div class="collapse-content">
                     <div class="overflow-x-auto overflow-y-auto rounded-box border border-base-300 bg-base-100" style="max-height: 1000px;">
@@ -243,7 +243,7 @@
         {
             <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="user-previous-games"@(Model.Request.IsCollapseSectionOpen("user-previous-games", false) ? " open" : "")>
                 <summary class="collapse-title text-lg font-semibold">
-                    Previously participated games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.PreviouslyParticipatedGames.Count</span>
+                    Previously participated games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.PreviouslyParticipatedGames.Count</span>
                 </summary>
                 <div class="collapse-content">
                     <p class="opacity-70 text-sm mb-3">Games you were replaced or removed from before they ended.</p>

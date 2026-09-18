@@ -69,7 +69,7 @@
     {
         <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-current-live"@(Model.Request.IsCollapseSectionOpen("games-current-live", true) ? " open" : "")>
             <summary class="collapse-title text-xl font-semibold">
-                Current live games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.CurrentLiveGames.Count</span>
+                Current live games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.CurrentLiveGames.Count</span>
             </summary>
             <div class="collapse-content">
                 @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
@@ -88,7 +88,7 @@
 
     <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-your-games"@(Model.Request.IsCollapseSectionOpen("games-your-games", true) ? " open" : "")>
         <summary class="collapse-title text-xl font-semibold">
-            <a asp-page="/MyGames" class="link link-hover" title="Go to My Games">Your games</a> <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.MyGames.Count</span>
+            <a asp-page="/MyGames" class="link link-hover" title="Go to My Games">Your games</a> <span class="badge badge-accent badge-lg align-middle ml-1">@Model.MyGames.Count</span>
         </summary>
         <div class="collapse-content">
             @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
@@ -104,7 +104,7 @@
 
     <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-open"@(Model.Request.IsCollapseSectionOpen("games-open", true) ? " open" : "")>
         <summary class="collapse-title text-xl font-semibold">
-            Open games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.OpenGames.Count</span>
+            Open games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.OpenGames.Count</span>
         </summary>
         <div class="collapse-content">
             @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
@@ -160,7 +160,7 @@
     {
         <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-inactive"@(Model.Request.IsCollapseSectionOpen("games-inactive", true) ? " open" : "")>
             <summary class="collapse-title text-xl font-semibold">
-                Games without a move for 5 days <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactiveGames.Count</span>
+                Games without a move for 5 days <span class="badge badge-accent badge-lg align-middle ml-1">@Model.InactiveGames.Count</span>
             </summary>
             <div class="collapse-content">
                 @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
@@ -180,7 +180,7 @@
     {
         <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-inactive-tournament"@(Model.Request.IsCollapseSectionOpen("games-inactive-tournament", true) ? " open" : "")>
             <summary class="collapse-title text-xl font-semibold">
-                Tournament games without a move for 2 days <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactiveTournamentGames.Count</span>
+                Tournament games without a move for 2 days <span class="badge badge-accent badge-lg align-middle ml-1">@Model.InactiveTournamentGames.Count</span>
             </summary>
             <div class="collapse-content">
                 @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
@@ -198,7 +198,7 @@
     {
         <details class="collapse collapse-arrow bg-base-200 shadow-md border border-base-300" data-collapse-key="games-inactive-private"@(Model.Request.IsCollapseSectionOpen("games-inactive-private", true) ? " open" : "")>
             <summary class="collapse-title text-xl font-semibold">
-                Inactive private games <span class="badge badge-neutral badge-lg align-middle ml-1">@Model.InactivePrivateGames.Count</span>
+                Inactive private games <span class="badge badge-accent badge-lg align-middle ml-1">@Model.InactivePrivateGames.Count</span>
             </summary>
             <div class="collapse-content">
                 @await Html.PartialAsync("_GamesTable", new GamesTableViewModel
