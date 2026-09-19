@@ -11,10 +11,12 @@ namespace agot_bg_website.Tests.Services;
 
 /// <summary>
 /// Pins <see cref="GameListQueryService.GetLastFinishedGameAsync"/>'s ordering rule: it must pick
-/// the Finished game with the most recent UpdatedAt (bumped by every save, including the one that
-/// transitions State to Finished), not the one with the most recent CreatedAt. A game created long
-/// ago can still finish more recently than a game created (and finished) later, and the widget
-/// must reflect the latter as "last finished" the moment it happens.
+/// the Finished game with the most recent LastActiveAt - mirroring the original Django model's
+/// <c>Meta.get_latest_by = "last_active_at"</c> - never CreatedAt (only reflects when the game
+/// was created/started) nor UpdatedAt (bumped unconditionally on every save, including ones that
+/// happen long after a game finished, e.g. a player toggling a personal chat/notification setting
+/// - see EntireGame.onClientMessage's "change-settings"/"change-game-settings" handling in the
+/// game server, which leaves updateLastActive false and therefore never touches LastActiveAt).
 /// </summary>
 public class GameListQueryServiceTests : IDisposable
 {
@@ -45,12 +47,12 @@ public class GameListQueryServiceTests : IDisposable
         JsonDocument.Parse($$"""{"maxPlayerCount": {{maxPlayerCount}}}""");
 
     [Fact]
-    public async Task GetLastFinishedGameAsync_PicksMostRecentlyUpdated_NotMostRecentlyCreated()
+    public async Task GetLastFinishedGameAsync_PicksMostRecentlyActive_NotMostRecentlyCreated()
     {
         var owner = new ApplicationUser { UserName = "owner", Email = "owner@example.com" };
         await _userManager.CreateAsync(owner);
 
-        // Created first but finished (and thus last saved) most recently.
+        // Created first but finished (and thus last active) most recently.
         var recentlyFinished = new Game
         {
             Id = Guid.NewGuid(),
@@ -58,11 +60,11 @@ public class GameListQueryServiceTests : IDisposable
             OwnerUserId = owner.Id,
             State = GameState.Finished,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-30),
-            UpdatedAt = DateTimeOffset.UtcNow,
+            LastActiveAt = DateTimeOffset.UtcNow,
             ViewOfGame = ViewOfGame(6),
         };
 
-        // Created after the game above, but finished (and last saved) long before it.
+        // Created after the game above, but finished long before it.
         var createdLaterButFinishedEarlier = new Game
         {
             Id = Guid.NewGuid(),
@@ -70,7 +72,7 @@ public class GameListQueryServiceTests : IDisposable
             OwnerUserId = owner.Id,
             State = GameState.Finished,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-10),
-            UpdatedAt = DateTimeOffset.UtcNow.AddDays(-9),
+            LastActiveAt = DateTimeOffset.UtcNow.AddDays(-9),
             ViewOfGame = ViewOfGame(6),
         };
 
@@ -81,6 +83,47 @@ public class GameListQueryServiceTests : IDisposable
 
         Assert.NotNull(result);
         Assert.Equal(recentlyFinished.Id, result!.Id);
+    }
+
+    [Fact]
+    public async Task GetLastFinishedGameAsync_IgnoresPostFinishSaves_ThatDontBumpLastActiveAt()
+    {
+        var owner = new ApplicationUser { UserName = "owner3", Email = "owner3@example.com" };
+        await _userManager.CreateAsync(owner);
+
+        // Finished long ago, but received a later, non-activity save since then (e.g. a player
+        // toggling a personal chat setting) that bumped UpdatedAt without updateLastActive being
+        // set, so LastActiveAt is untouched. This must NOT outrank a game that actually finished
+        // (i.e. was last active) more recently.
+        var finishedLongAgoButSavedRecently = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Finished long ago, resaved recently",
+            OwnerUserId = owner.Id,
+            State = GameState.Finished,
+            LastActiveAt = DateTimeOffset.UtcNow.AddDays(-30),
+            UpdatedAt = DateTimeOffset.UtcNow,
+            ViewOfGame = ViewOfGame(6),
+        };
+
+        var actuallyFinishedRecently = new Game
+        {
+            Id = Guid.NewGuid(),
+            Name = "Actually finished recently",
+            OwnerUserId = owner.Id,
+            State = GameState.Finished,
+            LastActiveAt = DateTimeOffset.UtcNow.AddDays(-1),
+            UpdatedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            ViewOfGame = ViewOfGame(6),
+        };
+
+        _db.Games.AddRange(finishedLongAgoButSavedRecently, actuallyFinishedRecently);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetLastFinishedGameAsync();
+
+        Assert.NotNull(result);
+        Assert.Equal(actuallyFinishedRecently.Id, result!.Id);
     }
 
     [Fact]
