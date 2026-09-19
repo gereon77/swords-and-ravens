@@ -221,17 +221,25 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     }
 
     /// <summary>
-    /// The most recently finished game (by UpdatedAt, which is bumped on every save - including
-    /// the one that transitions State to Finished - so it approximates "when the game finished"
-    /// far better than CreatedAt, which only reflects when the game was created/started), shown
-    /// as a "Last finished game" link above the online-users list on Games/MyGames. Returns null
-    /// if no game has finished yet.
+    /// The most recently finished game (by LastActiveAt - mirroring the original Django model's
+    /// <c>Meta.get_latest_by = "last_active_at"</c>/<c>Game.objects.filter(state=FINISHED).latest()</c>).
+    /// LastActiveAt is only bumped when the game server's save explicitly flags
+    /// <c>updateLastActive</c> (see GamesApi.cs's PATCH handler) - i.e. for a real player action,
+    /// never for a save triggered by e.g. a personal chat/notification setting change (see
+    /// EntireGame.onClientMessage's "change-settings"/"change-game-settings" handling in the game
+    /// server, which leaves updateLastActive false). Once a game reaches Finished, no further
+    /// player action can occur, so LastActiveAt naturally freezes at the moment it truly finished
+    /// - unlike CreatedAt (reflects only when the game was created/started, not finished) or
+    /// UpdatedAt (bumped unconditionally on every single save, including harmless post-finish
+    /// ones, so it would make an old finished game reappear as "last finished" for no real
+    /// reason). Shown as a "Last finished game" link above the online-users list on
+    /// Games/MyGames. Returns null if no game has finished yet.
     /// </summary>
     public async Task<LastFinishedGame?> GetLastFinishedGameAsync()
     {
         var row = await Project(
                 db.Games.Where(g => g.State == GameState.Finished)
-                    .OrderByDescending(g => g.UpdatedAt)
+                    .OrderByDescending(g => g.LastActiveAt)
                     .Take(1)
             )
             .FirstOrDefaultAsync();
