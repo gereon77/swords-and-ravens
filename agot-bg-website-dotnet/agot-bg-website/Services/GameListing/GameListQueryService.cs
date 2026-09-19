@@ -221,16 +221,17 @@ public sealed class GameListQueryService(ApplicationDbContext db)
     }
 
     /// <summary>
-    /// The most recently finished game (by CreatedAt, mirroring Django's
-    /// <c>Game.objects.filter(state=FINISHED).latest()</c>, which orders by the model's default
-    /// <c>get_latest_by</c> - CreatedAt here), shown as a "Last finished game" link above the
-    /// online-users list on Games/MyGames. Returns null if no game has finished yet.
+    /// The most recently finished game (by UpdatedAt, which is bumped on every save - including
+    /// the one that transitions State to Finished - so it approximates "when the game finished"
+    /// far better than CreatedAt, which only reflects when the game was created/started), shown
+    /// as a "Last finished game" link above the online-users list on Games/MyGames. Returns null
+    /// if no game has finished yet.
     /// </summary>
     public async Task<LastFinishedGame?> GetLastFinishedGameAsync()
     {
         var row = await Project(
                 db.Games.Where(g => g.State == GameState.Finished)
-                    .OrderByDescending(g => g.CreatedAt)
+                    .OrderByDescending(g => g.UpdatedAt)
                     .Take(1)
             )
             .FirstOrDefaultAsync();
