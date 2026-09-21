@@ -35,16 +35,27 @@ namespace agot_bg_website.Infrastructure;
 /// non-trivial restructure of the client entry point that isn't worth it for what's fundamentally
 /// a CSS-injection vector, not the script-injection vector this policy is primarily hardening.
 ///
+/// form-action allows Google/Discord/Facebook's own authorization-endpoint origins (in addition
+/// to 'self') because the Identity scaffolding's ExternalLogin page (Areas/Identity/Pages/Account/
+/// ExternalLogin.cshtml.cs) submits a form that itself does nothing but immediately 302-redirect
+/// off-site to whichever provider the user picked. CSP's form-action directive is enforced
+/// against the entire resulting redirect chain, not just the form's own (same-origin, 'self')
+/// action URL - confirmed live via real "form-action"/blocked-uri":".../externallogin?..."
+/// reports from /Identity/Account/Login once real users started signing in with those providers.
+///
 /// Rollout plan to flip from report-only to enforcing: after deploying, watch /csp-report across
 /// a real traffic window (a few days to a week) covering every page family, not just the busiest
 /// ones - /play across different game phases, Games/MyGames, Login/Register (including the
 /// Turnstile challenge) and the Google/Discord/Facebook OAuth redirects, password reset, and the
 /// chat widget. /CoreAdmin and /api/docs are excluded above, so nothing to watch for there.
-/// /csp-report only ever receives violations against THIS header - a browser extension injecting
-/// its own separate CSP (seen during the initial investigation) reports to its own target, not
-/// here, so an empty /csp-report log is a clean, non-noisy signal. Once it's been quiet for that
-/// whole window, flip by renaming the response header below from
-/// Content-Security-Policy-Report-Only to Content-Security-Policy WITHOUT also changing the
+/// Unlike an extension that sets its own separate CSP (which reports to its own target, not
+/// here), an extension that merely injects/rewrites DOM content still gets checked against THIS
+/// real header, and genuinely-blocked injected content is reported here too - confirmed live via
+/// a run of "font-src"/fonts.gstatic.com reports that all carried "source-file":"chrome-extension".
+/// Filter those out (by that field) when judging whether /csp-report is "clean" enough to flip to
+/// enforcing; they're not something this app can or should allow for. Once it's been quiet for
+/// that whole window aside from such extension noise, flip by renaming the response header below
+/// from Content-Security-Policy-Report-Only to Content-Security-Policy WITHOUT also changing the
 /// policy string in the same change, so a regression is unambiguously caused by enforcement
 /// itself rather than by a simultaneous policy tweak, and is a one-line revert if it breaks
 /// something report-only didn't catch.
@@ -138,7 +149,7 @@ public static class ContentSecurityPolicyMiddlewareExtensions
             $"media-src {GameClientCdnOrigin}",
             $"connect-src 'self' {gameWebSocketOrigin}",
             "frame-src https://challenges.cloudflare.com",
-            "form-action 'self'",
+            "form-action 'self' https://accounts.google.com https://discord.com https://www.facebook.com",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "object-src 'none'",
