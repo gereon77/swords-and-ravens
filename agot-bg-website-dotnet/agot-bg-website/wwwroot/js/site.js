@@ -20,6 +20,33 @@ document.addEventListener("click", function (event) {
 // MyGames/User games-list tables to summarize a game's setup/settings - event-delegated so it
 // works for any number of rows (the User profile page alone can have 900+) without per-row
 // listeners or per-row <dialog> elements bloating the DOM.
+function formatLocalDateTime(value) {
+    return new Date(value).toLocaleString();
+}
+
+function formatLocalDateTimeToMinute(value) {
+    var date = new Date(value);
+    if (date.getSeconds() >= 30) {
+        date.setMinutes(date.getMinutes() + 1);
+    }
+    date.setSeconds(0, 0);
+
+    return date.toLocaleString(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+document.querySelectorAll("[data-local-datetime-minute]").forEach(function (element) {
+    var timestamp = element.getAttribute("datetime") || element.dataset.localDatetimeMinute;
+    if (timestamp) {
+        element.textContent = formatLocalDateTimeToMinute(timestamp);
+    }
+});
+
 document.addEventListener("click", function (event) {
     var gearButton = event.target.closest(".js-game-settings-btn");
     if (!gearButton) {
@@ -33,6 +60,12 @@ document.addEventListener("click", function (event) {
 
     modal.querySelector("#game-settings-modal-title").textContent = gearButton.dataset.gameName || "";
     modal.querySelector("#game-settings-modal-owner").textContent = gearButton.dataset.ownerName || "-";
+    var createdAt = gearButton.dataset.createdAt || "";
+    modal.querySelector("#game-settings-modal-created-at").textContent = createdAt ? formatLocalDateTimeToMinute(createdAt) : "-";
+    var lastActiveAtSection = modal.querySelector("#game-settings-modal-last-active-at-section");
+    var lastActiveAt = gearButton.dataset.lastActiveAt || "";
+    modal.querySelector("#game-settings-modal-last-active-at").textContent = lastActiveAt ? formatLocalDateTime(lastActiveAt) : "";
+    lastActiveAtSection.classList.toggle("hidden", !lastActiveAt);
     modal.querySelector("#game-settings-modal-setup").textContent = gearButton.dataset.setupName || "";
     modal.querySelector("#game-settings-modal-players").textContent = gearButton.dataset.playerCount || "";
     var roundLabel = modal.querySelector("#game-settings-modal-round-label");

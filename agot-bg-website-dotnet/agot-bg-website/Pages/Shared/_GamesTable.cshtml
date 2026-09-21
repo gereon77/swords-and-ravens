@@ -30,7 +30,7 @@ else
                         <th>Waiting for</th>
                     }
                     <th class="text-center">Players</th>
-                    <th>@(allOpen ? "Created at" : "Last active")</th>
+                    <th>@(allOpen ? "Created at" : "Last action")</th>
                     <th class="sticky right-0 z-10 bg-inherit"></th>
                 </tr>
             </thead>
@@ -116,6 +116,8 @@ else
                                 <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                         data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                         data-owner-name="@game.OwnerDisplayName"
+                                        data-created-at="@game.CreatedAt.ToString("O")"
+                                        data-last-active-at="@(isOpen ? null : game.LastActiveAt.ToString("O"))"
                                         data-round="@(!isOpen ? (game.Turn?.ToString() ?? "?") : null)"
                                         data-waiting-for="@game.WaitingFor"
                                         data-settings="@string.Join("|", game.EnabledSettingLabels)">
@@ -150,4 +152,3 @@ else
         </table>
     </div>
 }
-

@@ -70,6 +70,8 @@ public class UserModel(
         int? MaxPlayerCount,
         int? Turn,
         string? WaitingFor,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset LastActiveAt,
         DateTimeOffset? ReplacedAt,
         PlayerReplacementReason? Reason,
         string SetupName,
@@ -276,6 +278,8 @@ public class UserModel(
                 p.Game.Name,
                 p.Game.State,
                 p.Game.ViewOfGame,
+                p.Game.CreatedAt,
+                p.Game.LastActiveAt,
                 PlayersCount = p.Game.Players.Count,
                 OwnerDisplayName = p.Game.OwnerUser == null
                     ? null
@@ -299,6 +303,8 @@ public class UserModel(
                     view.MaxPlayerCount,
                     view.Turn,
                     view.WaitingFor,
+                    row.CreatedAt,
+                    row.LastActiveAt,
                     row.ReplacedAt,
                     row.Reason,
                     GameSettingsDisplay.GetSetupName(view.SetupId),
