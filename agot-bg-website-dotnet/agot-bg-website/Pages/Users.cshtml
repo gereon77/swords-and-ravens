@@ -101,7 +101,7 @@
                     <td class="text-right whitespace-nowrap">@winRateDisplay</td>
                     <td class="text-right whitespace-nowrap">@(user.CachedRemovedFromGameCount ?? 0)</td>
                     <td class="text-right whitespace-nowrap">@(user.CachedReplacerGamesCount ?? 0)</td>
-                    <td class="whitespace-nowrap">@user.CreatedAt.ToLocalTime().ToString("g")</td>
+                    <td class="whitespace-nowrap"><time datetime="@user.CreatedAt.ToString("O")" data-local-datetime-minute>@user.CreatedAt.ToLocalTime().ToString("g")</time></td>
                     <td class="whitespace-nowrap" title="@user.LastActivity.ToLocalTime().ToString("g")">@RelativeTimeFormatter.Format(user.LastActivity)</td>
                     @if (Model.CanManageUserStatus)
                     {

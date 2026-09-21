@@ -153,6 +153,8 @@
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-created-at="@game.CreatedAt.ToString("O")"
+                                                    data-last-active-at="@(game.State == GameState.InLobby ? null : game.LastActiveAt.ToString("O"))"
                                                     data-round="@(game.State != GameState.InLobby ? (game.Turn?.ToString() ?? "?") : null)"
                                                     data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
@@ -224,6 +226,8 @@
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-created-at="@game.CreatedAt.ToString("O")"
+                                                    data-last-active-at="@game.LastActiveAt.ToString("O")"
                                                     data-round="@(game.Turn?.ToString() ?? "?")"
                                                     data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
@@ -308,6 +312,8 @@
                                             <button type="button" class="btn btn-ghost btn-sm btn-square js-game-settings-btn" title="View game settings" aria-label="View game settings"
                                                     data-game-name="@game.Name" data-setup-name="@game.SetupName" data-player-count="@game.PlayersCount@(game.MaxPlayerCount is not null && game.PlayersCount != game.MaxPlayerCount ? $"/{game.MaxPlayerCount}" : "")"
                                                     data-owner-name="@game.OwnerDisplayName"
+                                                    data-created-at="@game.CreatedAt.ToString("O")"
+                                                    data-last-active-at="@game.LastActiveAt.ToString("O")"
                                                     data-round="@(game.Turn?.ToString() ?? "?")"
                                                     data-waiting-for="@game.WaitingFor"
                                                     data-settings="@string.Join("|", game.EnabledSettingLabels)">
@@ -324,4 +330,3 @@
         }
     </div>
 </div>
-
