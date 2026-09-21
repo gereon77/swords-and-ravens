@@ -21,7 +21,14 @@ document.addEventListener("click", function (event) {
 // works for any number of rows (the User profile page alone can have 900+) without per-row
 // listeners or per-row <dialog> elements bloating the DOM.
 function formatLocalDateTime(value) {
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleString(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 }
 
 function formatLocalDateTimeToMinute(value) {
