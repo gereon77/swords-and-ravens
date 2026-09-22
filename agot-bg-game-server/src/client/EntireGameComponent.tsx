@@ -20,6 +20,7 @@ import perpetuumRandomImage from "../../public/images/icons/perpetuum-random.svg
 import { Card, FormCheck, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import { preventOverflow } from "@popperjs/core";
 import DraftHouseCardsGameState from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
+import SelectedRandomDraftGameState from "../common/ingame-game-state/draft-game-state/selected-random-draft-game-state/SelectedRandomDraftGameState";
 import HouseIconComponent from "./game-state-panel/utils/HouseIconComponent";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -500,7 +501,8 @@ export default class EntireGameComponent extends Component<EntireGameComponentPr
 
   renderMapSwitch(): ReactNode {
     return (
-      this.entireGame.hasChildGameState(DraftHouseCardsGameState) && (
+      (this.entireGame.hasChildGameState(DraftHouseCardsGameState) ||
+        this.entireGame.hasChildGameState(SelectedRandomDraftGameState)) && (
         <Col xs="auto">
           <FormCheck
             id="show-hide-map-setting"

@@ -615,8 +615,8 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="adwd-house-cards-tooltip">
                       If this option is enabled, the House cards from the{" "}
-                      <i>A&nbsp;Dance&nbsp;with&nbsp;Dragons</i> and{" "}
-                      <i>A&nbsp;Feast&nbsp;for&nbsp;Crows</i> expansions are
+                      <b>A&nbsp;Dance&nbsp;with&nbsp;Dragons</b> and{" "}
+                      <b>A&nbsp;Feast&nbsp;for&nbsp;Crows</b> expansions are
                       used.
                     </Tooltip>
                   }
@@ -645,7 +645,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="asos-house-cards-setting-tooltip">
                       If this option is enabled, the House cards from the 1st
-                      edition expansion <i>A&nbsp;Storm&nbsp;of&nbsp;Swords</i>{" "}
+                      edition expansion <b>A&nbsp;Storm&nbsp;of&nbsp;Swords</b>{" "}
                       are used.
                     </Tooltip>
                   }
@@ -674,7 +674,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="first-edition-house-cards-setting-tooltip">
                       If this option is enabled, the House cards from the{" "}
-                      <i>1st&nbsp;edition</i> base game are used. Only available
+                      <b>1st&nbsp;edition</b> base game are used. Only available
                       for up to 6 players, as the combat strengths of these
                       cards differ from the 2nd edition and expansion cards.
                     </Tooltip>
@@ -831,7 +831,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="vassals-tooltip">
                       Unassigned houses will be vassals introduced by the{" "}
-                      <i>Mother&nbsp;of&nbsp;Dragons</i> expansion.
+                      <b>Mother&nbsp;of&nbsp;Dragons</b> expansion.
                     </Tooltip>
                   }
                 >
@@ -855,7 +855,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="iron-bank-setting-tooltip">
                       Enable the Iron&nbsp;Bank from the{" "}
-                      <i>Mother&nbsp;of&nbsp;Dragons</i> expansion. All player
+                      <b>Mother&nbsp;of&nbsp;Dragons</b> expansion. All player
                       houses start with 7 Power tokens instead of 5.
                       <br />
                       <br />
@@ -888,7 +888,7 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                   overlay={
                     <Tooltip id="sea-orders-tooltip">
                       Enable Sea&nbsp;Order tokens from the{" "}
-                      <i>Mother&nbsp;of&nbsp;Dragons</i> expansion.
+                      <b>Mother&nbsp;of&nbsp;Dragons</b> expansion.
                     </Tooltip>
                   }
                 >
@@ -1184,12 +1184,12 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                 <OverlayTrigger
                   overlay={
                     <Tooltip id="mixed-wd1-setting-tooltip">
-                      If this option is enabled, one <i>Mustering</i> card will
-                      be replaced by <i>Rally&nbsp;The&nbsp;Men</i>, one{" "}
-                      <i>A&nbsp;Throne&nbsp;of&nbsp;Blades</i> card by{" "}
-                      <i>The&nbsp;Burden&nbsp;of&nbsp;Power</i> and the{" "}
-                      <i>Last&nbsp;Days&nbsp;of&nbsp;Summer</i> card by{" "}
-                      <i>Famine</i>.
+                      If this option is enabled, one <b>Mustering</b> card will
+                      be replaced by <b>Rally&nbsp;The&nbsp;Men</b>, one{" "}
+                      <b>A&nbsp;Throne&nbsp;of&nbsp;Blades</b> card by{" "}
+                      <b>The&nbsp;Burden&nbsp;of&nbsp;Power</b> and the{" "}
+                      <b>Last&nbsp;Days&nbsp;of&nbsp;Summer</b> card by{" "}
+                      <b>Famine</b>.
                     </Tooltip>
                   }
                 >
@@ -1559,14 +1559,46 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
           </Col>
           <Col xs="12">
             <FormCheck
+              id="selected-random-draft-setting"
+              type="switch"
+              label={
+                <OverlayTrigger
+                  overlay={
+                    <Tooltip id="selected-random-draft-tooltip">
+                      Players simultaneously draft the House cards to be used.
+                      After the draft, the cards and Influence positions, if{" "}
+                      <b>Draft Influence tracks</b> is enabled, are randomly
+                      assigned to houses. Can be combined with{" "}
+                      <b>Limited&nbsp;Draft</b>.
+                    </Tooltip>
+                  }
+                >
+                  <label htmlFor="selected-random-draft-setting">
+                    Selected Random Draft
+                  </label>
+                </OverlayTrigger>
+              }
+              checked={this.gameSettings.selectedRandomDraft}
+              onChange={() =>
+                this.changeGameSettings(
+                  () =>
+                    (this.gameSettings.selectedRandomDraft =
+                      !this.gameSettings.selectedRandomDraft)
+                )
+              }
+            />
+          </Col>
+          <Col xs="12">
+            <FormCheck
               id="random-draft-setting"
               type="switch"
               label={
                 <OverlayTrigger
                   overlay={
                     <Tooltip id="random-draft-tooltip">
-                      Players receive random House cards and Influence
-                      positions. Can be combined with <b>Limited&nbsp;Draft</b>.
+                      Players receive random House cards and Influence positions
+                      if <b>Draft Influence tracks</b> is enabled. Can be
+                      combined with <b>Limited&nbsp;Draft</b>.
                     </Tooltip>
                   }
                 >
@@ -1649,9 +1681,9 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                         position on one of the three Influence tracks instead of
                         drafting a House card during their draft turn.
                         <br />
-                        If enabled in Random or Blind Draft modes, Influence
-                        tracks will also be randomly assigned together with
-                        House cards.
+                        If enabled in <b>Random</b> or <b>Blind Draft</b> modes,{" "}
+                        Influence tracks will also be randomly assigned together
+                        with House cards.
                       </Tooltip>
                     }
                   >
@@ -1707,8 +1739,10 @@ export default class GameSettingsComponent extends Component<GameSettingsCompone
                         overlay={
                           <Tooltip id="blind-draft-tooltip">
                             Players receive random House cards and Influence
-                            positions. House cards remain hidden throughout the
-                            game. Can be combined with <i>Limited Draft</i>.
+                            positions if <b>Draft Influence tracks</b> is
+                            enabled. House cards remain hidden throughout the
+                            game. Can be combined with <b>Limited&nbsp;Draft</b>
+                            .
                           </Tooltip>
                         }
                       >

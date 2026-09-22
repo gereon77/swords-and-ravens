@@ -5,7 +5,7 @@ import renderChildGameState from "../utils/renderChildGameState";
 import GameStateComponentProps from "./GameStateComponentProps";
 import Row from "react-bootstrap/Row";
 import DraftHouseCardsGameState, {
-  DraftStep,
+  DraftStep
 } from "../../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
 import SelectHouseCardGameState from "../../common/ingame-game-state/select-house-card-game-state/SelectHouseCardGameState";
 import SelectHouseCardComponent from "./SelectHouseCardComponent";
@@ -52,7 +52,7 @@ export default class DraftHouseCardsComponent extends Component<
       ? _.sortBy(
           this.props.gameState.ingame.game.draftPool.values,
           (hc) => -hc.combatStrength,
-          (hc) => hc.houseId,
+          (hc) => hc.houseId
         )
       : [];
     return (
@@ -104,7 +104,7 @@ export default class DraftHouseCardsComponent extends Component<
                     {h.name}
                   </b>
                 )),
-                ", ",
+                ", "
               )}
             </p>
           </Row>
@@ -112,12 +112,12 @@ export default class DraftHouseCardsComponent extends Component<
             <Row>
               {renderChildGameState(this.props, [
                 [SelectHouseCardGameState, SelectHouseCardComponent],
-                [SimpleChoiceGameState, SimpleChoiceComponent],
+                [SimpleChoiceGameState, SimpleChoiceComponent]
               ])}
             </Row>
           )}
           {showCardsPreview && (
-            <Row>
+            <Row className="mt-3 justify-content-center">
               <Col xs="12" className="text-center">
                 These are the House cards from which you may choose one on your
                 next turn:
@@ -150,14 +150,14 @@ export default class DraftHouseCardsComponent extends Component<
                             unavailable={!availableCards.includes(hc)}
                           />
                         </Col>
-                      ),
+                      )
                   )}
                 </Row>
               </Col>
             </Row>
           )}
           {!this.player && (
-            <Row>
+            <Row className="mt-3 justify-content-center">
               <Col xs="12" className="text-center">
                 These are all remaining House cards:
               </Col>
@@ -185,7 +185,7 @@ export default class DraftHouseCardsComponent extends Component<
                         <Col xs="auto" key={`draft-spectator_${hc.id}`}>
                           <HouseCardComponent houseCard={hc} size="small" />
                         </Col>
-                      ),
+                      )
                   )}
                 </Row>
               </Col>

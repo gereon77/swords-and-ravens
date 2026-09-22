@@ -25,6 +25,9 @@ import HouseCard from "../game-data-structure/house-card/HouseCard";
 import shuffleInPlace from "../../../utils/shuffleInPlace";
 import _ from "lodash";
 import { findOrphanedShipsAndDestroyThem } from "../port-helper/PortHelper";
+import SelectedRandomDraftGameState, {
+  SerializedSelectedRandomDraftGameState
+} from "./selected-random-draft-game-state/SelectedRandomDraftGameState";
 
 export const draftOrders: number[][][] = [
   [[0]],
@@ -128,6 +131,7 @@ export default class DraftGameState extends GameState<
   IngameGameState,
   | DraftHouseCardsGameState
   | ThematicDraftHouseCardsGameState
+  | SelectedRandomDraftGameState
   | DraftMapGameState
   | AgreeOnGameStartGameState
 > {
@@ -159,10 +163,20 @@ export default class DraftGameState extends GameState<
     // In case of blind or random draft we want to assign the random house cards before drafting the map
     // to transmit the house cards with the game state change to IngameGameState
     if (this.isBlindOrRandom()) {
+      this.removeCardFromDraftPool("khal-drogo");
+      this.removeCardFromDraftPool("doran-martell-dwd");
+
+      if (this.entireGame.gameSettings.perpetuumRandom) {
+        this.removeCardFromDraftPool("roose-bolton");
+      }
+
+      if (!this.entireGame.gameSettings.dragonWar) {
+        this.removeCardFromDraftPool("daenerys-targaryen-a");
+      }
       this.assignRandomHouseCardsAndTracks();
-    } else {
-      this.proceedDraft();
     }
+
+    this.proceedDraft();
   }
 
   private isBlindOrRandom(): boolean {
@@ -194,6 +208,10 @@ export default class DraftGameState extends GameState<
       this.setChildGameState(
         new ThematicDraftHouseCardsGameState(this)
       ).firstStart();
+    } else if (this.entireGame.gameSettings.selectedRandomDraft) {
+      this.setChildGameState(
+        new SelectedRandomDraftGameState(this)
+      ).firstStart();
     } else if (this.entireGame.gameSettings.draftHouseCards) {
       this.setChildGameState(new DraftHouseCardsGameState(this)).firstStart();
     }
@@ -213,18 +231,7 @@ export default class DraftGameState extends GameState<
     }
   }
 
-  private assignRandomHouseCardsAndTracks(): void {
-    this.removeCardFromDraftPool("khal-drogo");
-    this.removeCardFromDraftPool("doran-martell-dwd");
-
-    if (this.entireGame.gameSettings.perpetuumRandom) {
-      this.removeCardFromDraftPool("roose-bolton");
-    }
-
-    if (!this.entireGame.gameSettings.dragonWar) {
-      this.removeCardFromDraftPool("daenerys-targaryen-a");
-    }
-
+  assignRandomHouseCardsAndTracks(): void {
     houseCardCombatStrengthAllocations.entries.forEach(
       ([hcStrength, count]) => {
         for (let i = 0; i < count; i++) {
@@ -291,8 +298,6 @@ export default class DraftGameState extends GameState<
         this.ingame.setInfluenceTrack(index, track);
       });
     }
-
-    this.proceedDraft();
   }
 
   private moveVassalsToBottom(tracks: House[][]): void {
@@ -354,6 +359,8 @@ export default class DraftGameState extends GameState<
           this,
           data
         );
+      case "selected-random-draft":
+        return SelectedRandomDraftGameState.deserializeFromServer(this, data);
       case "draft-map":
         return DraftMapGameState.deserializeFromServer(this, data);
       case "agree-on-game-start":
@@ -378,6 +385,7 @@ export interface SerializedDraftGameState {
   childGameState:
     | SerializedDraftHouseCardsGameState
     | SerializedThematicDraftHouseCardsGameState
+    | SerializedSelectedRandomDraftGameState
     | SerializedDraftMapGameState
     | SerializedAgreeOnGameStartGameState;
 }

@@ -14,7 +14,7 @@ import DraftGameState, {
   houseCardCombatStrengthAllocations
 } from "../DraftGameState";
 
-export default class ThematicDraftHouseCardsGameState extends GameState<DraftGameState> {
+export default class SelectedRandomDraftGameState extends GameState<DraftGameState> {
   @observable readyHouses: House[];
 
   get ingame(): IngameGameState {
@@ -53,7 +53,7 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
     }
 
     let availableCards = _.sortBy(
-      this.game.draftPool.values.filter((hc) => hc.houseId == house.id),
+      this.game.draftPool.values,
       (hc) => -hc.combatStrength
     );
     house.houseCards.forEach((card) => {
@@ -105,6 +105,11 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
       );
 
       if (!this.getFilteredHouseCardsForHouse(house).includes(houseCard)) {
+        // Resend draft pool to the player to ensure they have the correct state
+        player.user.send({
+          type: "update-draft-pool",
+          houseCards: this.game.draftPool.keys
+        });
         return;
       }
 
@@ -135,6 +140,21 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
       }
 
       if (this.participatingHouses.every((h) => h.houseCards.size == 7)) {
+        // Now randomize all house cards between players:
+        const selectedHouseCards = this.participatingHouses.flatMap(
+          (h) => h.houseCards.values
+        );
+
+        this.game.draftPool.clear();
+        this.game.draftPool.setRange(
+          selectedHouseCards.map((hc) => [hc.id, hc])
+        );
+        this.entireGame.broadcastToClients({
+          type: "update-draft-pool",
+          houseCards: this.game.draftPool.keys
+        });
+        this.participatingHouses.forEach((h) => h.houseCards.clear());
+        this.parentGameState.assignRandomHouseCardsAndTracks();
         this.parentGameState.onDraftHouseCardsGameStateEnd();
       }
     }
@@ -152,27 +172,28 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
   serializeToClient(
     _admin: boolean,
     _player: Player | null
-  ): SerializedThematicDraftHouseCardsGameState {
+  ): SerializedSelectedRandomDraftGameState {
     return {
-      type: "thematic-draft-house-cards",
+      type: "selected-random-draft",
       readyHouses: this.readyHouses.map((h) => h.id)
     };
   }
 
   static deserializeFromServer(
     draft: DraftGameState,
-    data: SerializedThematicDraftHouseCardsGameState
-  ): ThematicDraftHouseCardsGameState {
-    const thematicDraftHouseCardsGameState =
-      new ThematicDraftHouseCardsGameState(draft);
-    thematicDraftHouseCardsGameState.readyHouses = data.readyHouses.map((hid) =>
+    data: SerializedSelectedRandomDraftGameState
+  ): SelectedRandomDraftGameState {
+    const selectedRandomDraftGameState = new SelectedRandomDraftGameState(
+      draft
+    );
+    selectedRandomDraftGameState.readyHouses = data.readyHouses.map((hid) =>
       draft.ingame.game.houses.get(hid)
     );
-    return thematicDraftHouseCardsGameState;
+    return selectedRandomDraftGameState;
   }
 }
 
-export interface SerializedThematicDraftHouseCardsGameState {
-  type: "thematic-draft-house-cards";
+export interface SerializedSelectedRandomDraftGameState {
+  type: "selected-random-draft";
   readyHouses: string[];
 }
