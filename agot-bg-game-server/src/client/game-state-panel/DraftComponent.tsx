@@ -12,15 +12,16 @@ import ThematicDraftHouseCardsGameState from "../../common/ingame-game-state/dra
 import DraftHouseCardsComponent from "./DraftHouseCardsComponent";
 import ThematicDraftHouseCardsComponent from "./ThematicDraftHouseCardsComponent";
 
-
 @observer
-export default class DraftComponent extends Component<GameStateComponentProps<DraftGameState>> {
-    render(): ReactNode {
-        return renderChildGameState(this.props, [
-            [DraftHouseCardsGameState, DraftHouseCardsComponent],
-            [ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent],
-            [DraftMapGameState, DraftMapComponent],
-            [AgreeOnGameStartGameState, AgreeOnGameStartComponent]
-        ]);
-    }
+export default class DraftComponent extends Component<
+  GameStateComponentProps<DraftGameState>
+> {
+  render(): ReactNode {
+    return renderChildGameState(this.props, [
+      [DraftHouseCardsGameState, DraftHouseCardsComponent],
+      [ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent],
+      [DraftMapGameState, DraftMapComponent],
+      [AgreeOnGameStartGameState, AgreeOnGameStartComponent]
+    ]);
+  }
 }

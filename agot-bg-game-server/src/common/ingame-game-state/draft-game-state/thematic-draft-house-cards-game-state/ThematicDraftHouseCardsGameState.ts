@@ -11,7 +11,7 @@ import _ from "lodash";
 import User from "../../../../server/User";
 import { observable } from "mobx";
 import DraftGameState, {
-  houseCardCombatStrengthAllocations,
+  houseCardCombatStrengthAllocations
 } from "../DraftGameState";
 
 export default class ThematicDraftHouseCardsGameState extends GameState<DraftGameState> {
@@ -39,7 +39,7 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
 
   firstStart(): void {
     this.ingame.log({
-      type: "draft-house-cards-began",
+      type: "draft-house-cards-began"
     });
 
     this.readyHouses = [];
@@ -86,7 +86,7 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
   select(houseCard: HouseCard): void {
     this.entireGame.sendMessageToServer({
       type: "select-house-card",
-      houseCard: houseCard.id,
+      houseCard: houseCard.id
     });
   }
 
@@ -112,25 +112,25 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: house.id,
-        houseCards: house.houseCards.keys,
+        houseCards: house.houseCards.keys
       });
 
       this.game.draftPool.delete(houseCard.id);
       this.entireGame.broadcastToClients({
         type: "update-draft-pool",
-        houseCards: this.game.draftPool.keys,
+        houseCards: this.game.draftPool.keys
       });
 
       if (house.houseCards.size == 7) {
         this.readyHouses.push(house);
         this.entireGame.broadcastToClients({
           type: "player-ready",
-          userId: player.user.id,
+          userId: player.user.id
         });
 
         this.ingame.log({
           type: "house-cards-chosen",
-          house: house.id,
+          house: house.id
         });
       }
 
@@ -155,7 +155,7 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
   ): SerializedThematicDraftHouseCardsGameState {
     return {
       type: "thematic-draft-house-cards",
-      readyHouses: this.readyHouses.map((h) => h.id),
+      readyHouses: this.readyHouses.map((h) => h.id)
     };
   }
 
