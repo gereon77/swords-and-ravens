@@ -222,4 +222,4 @@ jobs:
              docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps game-server && \
              docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate --no-deps caddy"
       - name: Clean up old images on the droplet
-        run: ssh -o StrictHostKeyChecking=no $DEPLOY_HOST "docker image prune -a -f --filter \"until=45m\""
+        run: ssh -o StrictHostKeyChecking=no $DEPLOY_HOST "docker image prune -a -f --filter \"until=20m\""
