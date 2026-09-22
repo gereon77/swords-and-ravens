@@ -43,6 +43,15 @@ namespace agot_bg_website.Infrastructure;
 /// action URL - confirmed live via real "form-action"/blocked-uri":".../externallogin?..."
 /// reports from /Identity/Account/Login once real users started signing in with those providers.
 ///
+/// img-src additionally allows jsdelivr.net because the chat widget's emoji picker
+/// (agot-bg-game-server's ChatComponent.tsx, via the emoji-picker-react package) renders actual
+/// emoji as &lt;img&gt; elements, not just its own picker popup, and that package's default
+/// getEmojiUrl() points at https://cdn.jsdelivr.net/npm/emoji-datasource-apple/... for every
+/// desktop user (mobile uses emojiStyle=NATIVE, which needs no image at all). Confirmed live via
+/// well over a thousand "img-src"/blocked-uri":"https://cdn.jsdelivr.net/npm/emoji-datasource-
+/// apple/..." reports from /play in a single day - this affected every desktop user who received
+/// or sent a chat emoji, by far the highest-volume genuine gap found in the report-only window.
+///
 /// Rollout plan to flip from report-only to enforcing: after deploying, watch /csp-report across
 /// a real traffic window (a few days to a week) covering every page family, not just the busiest
 /// ones - /play across different game phases, Games/MyGames, Login/Register (including the
@@ -53,7 +62,13 @@ namespace agot_bg_website.Infrastructure;
 /// real header, and genuinely-blocked injected content is reported here too - confirmed live via
 /// a run of "font-src"/fonts.gstatic.com reports that all carried "source-file":"chrome-extension".
 /// Filter those out (by that field) when judging whether /csp-report is "clean" enough to flip to
-/// enforcing; they're not something this app can or should allow for. Once it's been quiet for
+/// enforcing; they're not something this app can or should allow for. The same applies to
+/// Facebook's own in-app-browser: links opened from Facebook/Messenger (recognizable by an
+/// "fbclid" query string) get its "pcm.js" measurement script auto-injected client-side and
+/// reported as a "script-src-elem"/blocked-uri":"https://connect.facebook.net/en_US/pcm.js"
+/// violation with source-file set to our own page URL - this app has no Facebook Pixel/SDK code
+/// anywhere, so it isn't something we inject or can fix, just Facebook's webview instrumenting
+/// pages it opens. Once it's been quiet for
 /// that whole window aside from such extension noise, flip by renaming the response header below
 /// from Content-Security-Policy-Report-Only to Content-Security-Policy WITHOUT also changing the
 /// policy string in the same change, so a regression is unambiguously caused by enforcement
@@ -145,7 +160,7 @@ public static class ContentSecurityPolicyMiddlewareExtensions
             "style-src-elem 'self' 'unsafe-inline'",
             "style-src-attr 'unsafe-inline'",
             "font-src 'self'",
-            $"img-src 'self' data: {GameClientCdnOrigin}",
+            $"img-src 'self' data: {GameClientCdnOrigin} https://cdn.jsdelivr.net",
             $"media-src {GameClientCdnOrigin}",
             $"connect-src 'self' {gameWebSocketOrigin}",
             "frame-src https://challenges.cloudflare.com",
