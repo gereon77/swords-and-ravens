@@ -2687,8 +2687,6 @@ export default class IngameGameState extends GameState<
 
     return {
       type: "ingame",
-      players: this.players.values.map((p) => p.serializeToClient()),
-      game: this.game.serializeToClient(admin, player),
       unitVisibilityRangeModifier:
         this.unitVisibilityRangeModifier != 0
           ? this.unitVisibilityRangeModifier
@@ -2704,10 +2702,10 @@ export default class IngameGameState extends GameState<
         this.housesTimedOut.length > 0
           ? this.housesTimedOut.map((h) => h.id)
           : undefined,
-      ordersOnBoard: this.ordersOnBoard.mapOver(
-        (r) => r.id,
-        (o) => o.id
-      ),
+      vassalizedHouses:
+        this.vassalizedHouses.length > 0
+          ? this.vassalizedHouses.map((h) => h.id)
+          : undefined,
       votes:
         this.votes.size > 0
           ? this.votes.values.map((v) => v.serializeToClient(admin, player))
@@ -2718,6 +2716,13 @@ export default class IngameGameState extends GameState<
         : undefined,
       bannedUsers:
         this.bannedUsers.size > 0 ? Array.from(this.bannedUsers) : undefined,
+      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
+      players: this.players.values.map((p) => p.serializeToClient()),
+      game: this.game.serializeToClient(admin, player),
+      ordersOnBoard: this.ordersOnBoard.mapOver(
+        (r) => r.id,
+        (o) => o.id
+      ),
       childGameStateBeforeCancellation: this.childGameStateBeforeCancellation
         ? this.childGameStateBeforeCancellation.serializeToClient(admin, player)
         : undefined,
@@ -2728,11 +2733,6 @@ export default class IngameGameState extends GameState<
             player
           )
         : undefined,
-      vassalizedHouses:
-        this.vassalizedHouses.length > 0
-          ? this.vassalizedHouses.map((h) => h.id)
-          : undefined,
-      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
       childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
@@ -2839,22 +2839,22 @@ export default class IngameGameState extends GameState<
 
 export interface SerializedIngameGameState {
   type: "ingame";
-  players: SerializedPlayer[];
-  game: SerializedGame;
   unitVisibilityRangeModifier?: number;
   initialPlayerIds?: string[];
   oldPlayerIds?: string[];
   replacerIds?: string[];
   timeoutPlayerIds?: string[];
   housesTimedOut?: string[];
+  vassalizedHouses?: string[];
   votes?: SerializedVote[];
-  ordersOnBoard: [string, number][];
   paused?: number;
   willBeAutoResumedAt?: number;
   bannedUsers?: string[];
-  childGameState: SerializedIngameChildGameState;
+  gameLogManager: SerializedGameLogManager;
+  players: SerializedPlayer[];
+  game: SerializedGame;
+  ordersOnBoard: [string, number][];
   childGameStateBeforeCancellation?: SerializedIngameChildGameState;
   childGameStateBeforeVassalsModification?: SerializedIngameChildGameState;
-  vassalizedHouses?: string[];
-  gameLogManager: SerializedGameLogManager;
+  childGameState: SerializedIngameChildGameState;
 }
