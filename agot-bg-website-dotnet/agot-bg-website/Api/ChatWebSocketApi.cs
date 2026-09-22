@@ -699,7 +699,7 @@ public static class ChatWebSocketApi
         ApplicationUser user
     )
     {
-        var cacheKey = $"chat:user-data:{user.Id}";
+        var cacheKey = ChatUserDataCache.GetKey(user.Id);
         if (memoryCache.TryGetValue(cacheKey, out ConnectedUserData? cached) && cached is not null)
         {
             return cached;

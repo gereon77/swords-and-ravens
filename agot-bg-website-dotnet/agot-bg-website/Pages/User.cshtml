@@ -15,7 +15,11 @@
         <span>@Model.ViewedUser.DisplayName</span>
         @if (!string.IsNullOrEmpty(Model.ViewedUser.LastWonTournament))
         {
-            <span class="tooltip text-warning" data-tip="Winner of @Model.ViewedUser.LastWonTournament">🏆</span>
+            <span class="tooltip tooltip-bottom text-warning" data-tip="Winner of @Model.ViewedUser.LastWonTournament">🏆</span>
+        }
+        @if (!string.IsNullOrEmpty(Model.ViewedUser.CustomUserBadge))
+        {
+            <span class="badge badge-neutral badge-lg">@Model.ViewedUser.CustomUserBadge</span>
         }
     </h1>
     @if (!string.IsNullOrEmpty(Model.ViewedUser.ProfileText))

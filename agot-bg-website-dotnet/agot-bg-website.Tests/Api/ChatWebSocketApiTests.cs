@@ -2,6 +2,7 @@ using System.Text.Json;
 using agot_bg_website.Api;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure.Chat;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,19 @@ public class ChatWebSocketApiTests
         var user = new ApplicationUser { UserName = "robb_stark" };
 
         Assert.Equal("", ChatWebSocketApi.GetChatDisplayName(user, faceless: true));
+    }
+
+    [Fact]
+    public void ChatUserDataCache_Invalidate_RemovesCachedUserDetails()
+    {
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var userId = Guid.NewGuid();
+        var key = ChatUserDataCache.GetKey(userId);
+        cache.Set(key, "cached");
+
+        ChatUserDataCache.Invalidate(cache, userId);
+
+        Assert.False(cache.TryGetValue(key, out _));
     }
 }
 

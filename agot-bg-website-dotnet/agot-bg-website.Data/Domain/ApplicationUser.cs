@@ -31,6 +31,9 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public string? LastWonTournament { get; set; }
 
+    [PersonalData]
+    public string? CustomUserBadge { get; set; }
+
     public bool EmailNotificationActive { get; set; } = true;
 
     public bool MuteGames { get; set; }
@@ -54,9 +57,6 @@ public class ApplicationUser : IdentityUser<Guid>
 
     [PersonalData]
     public DateTimeOffset LastActivity { get; set; } = DateTimeOffset.UtcNow;
-
-    /// <summary>Kept only in case the (currently dead) Vanilla Forum integration is ever revived.</summary>
-    public int VanillaForumUserId { get; set; }
 
     /// <summary>True for rows created by the Snr.Migration importer from the legacy Django database.</summary>
     public bool ImportedFromLegacy { get; set; }

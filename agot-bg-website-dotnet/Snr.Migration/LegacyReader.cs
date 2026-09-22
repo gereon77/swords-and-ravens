@@ -43,7 +43,7 @@ public class LegacyReader(string connectionString)
             SELECT id, username, email, game_token, profile_text, last_won_tournament,
                    email_notification_active, mute_games, use_house_names_for_chat, use_map_scrollbar,
                    use_responsive_layout_on_mobile, last_username_update_time, last_activity,
-                   vanilla_forum_user_id, date_joined
+                   date_joined
             FROM agotboardgame_main_user
             ORDER BY date_joined
             """,
@@ -66,8 +66,7 @@ public class LegacyReader(string connectionString)
                 reader.GetBoolean(10),
                 reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
                 reader.GetFieldValue<DateTimeOffset>(12),
-                reader.GetInt32(13),
-                reader.GetFieldValue<DateTimeOffset>(14)
+                reader.GetFieldValue<DateTimeOffset>(13)
             );
         }
     }

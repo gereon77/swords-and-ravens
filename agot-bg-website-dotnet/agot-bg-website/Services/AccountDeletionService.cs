@@ -69,6 +69,7 @@ public class AccountDeletionService(
         user.PasswordHash = null;
         user.ProfileText = null;
         user.LastWonTournament = null;
+        user.CustomUserBadge = null;
 
         // GameToken is NOT NULL + UNIQUE, so it can't be nulled out - replace it with a fresh,
         // never-handed-out value instead of leaving the old (now orphaned) one usable.

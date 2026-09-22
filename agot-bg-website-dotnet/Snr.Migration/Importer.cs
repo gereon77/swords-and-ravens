@@ -212,7 +212,6 @@ public class Importer(
                         GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile,
                         LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime,
                         LastActivity = legacyUser.LastActivity,
-                        VanillaForumUserId = legacyUser.VanillaForumUserId,
                         ImportedFromLegacy = true,
                         Claimed = false,
                         CreatedAt = legacyUser.DateJoined,
@@ -234,7 +233,6 @@ public class Importer(
                 existing.GameStateColumnRight = legacyUser.UseResponsiveLayoutOnMobile;
                 existing.LastUsernameUpdateTime = legacyUser.LastUsernameUpdateTime;
                 existing.LastActivity = legacyUser.LastActivity;
-                existing.VanillaForumUserId = legacyUser.VanillaForumUserId;
                 if (existing.Email == null && legacyUser.Email != null)
                 {
                     existing.Email = legacyUser.Email;

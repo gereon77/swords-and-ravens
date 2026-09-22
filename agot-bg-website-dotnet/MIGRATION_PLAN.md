@@ -121,6 +121,7 @@ User (Identity user, extended)
   GameToken          string            // ~ Django game_token, used by game server as auth bearer
   ProfileText        string?
   LastWonTournament  string?
+  CustomUserBadge    string?           // admin-managed badge shown on the public profile
   EmailNotificationActive        bool  default true
   MuteGames                      bool  default false
   UseHouseNamesForChat           bool  default false
@@ -131,7 +132,6 @@ User (Identity user, extended)
                                                        // - see MIGRATION_PLAN.md §6 for the API translation)
   LastUsernameUpdateTime         DateTimeOffset?
   LastActivity                   DateTimeOffset
-  VanillaForumUserId             int   default 0   // kept only if the forum integration is still wanted
   ImportedFromLegacy             bool  default false // true for rows created by Snr.Migration
   Claimed                        bool  default true  // false only for ImportedFromLegacy rows with no login yet
   CreatedAt                      DateTimeOffset
@@ -1262,6 +1262,13 @@ Follow-up work after first getting the app running locally end-to-end:
     parser to the `CommandLineParser` NuGet package (`[Verb]`/`[Option]` records in `Program.cs`),
     so that adding this (and any future) one-time migration/backfill verb only means adding one
     more options record and one more `MapResult` arm.
+- **Profile and presence badges completed**: the tournament-winner trophy is shown on public
+  profiles and in the online-users list; its profile tooltip opens below the icon so the sticky
+  navigation cannot cover it. Logout/login now evict the five-minute cached online-user details,
+  so an admin-updated tournament badge is refreshed on the next presence connection. Users also
+  have an optional CoreAdmin-managed `CustomUserBadge`, rendered as a neutral badge immediately
+  after the trophy on their profile only. The obsolete `VanillaForumUserId` field and database
+  column were removed because the retired forum will not be revived in place.
 
 ## 15. Roadmap / follow-ups (as of 2026-09-16)
 
@@ -1642,4 +1649,3 @@ affecting, run manually in this order when ready):**
 8. ~~Switch `deploy.yml`'s trigger from `workflow_dispatch` to `push: branches: [master]`~~ — done;
    `deploy.yml` now triggers on every push to `master` (`workflow_dispatch` kept as a manual
    fallback), so merging PR #31 into `master` will trigger the production deploy automatically.
-
