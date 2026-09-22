@@ -117,7 +117,7 @@ export default class DraftHouseCardsComponent extends Component<
             </Row>
           )}
           {showCardsPreview && (
-            <Row>
+            <Row className="mt-3 justify-content-center">
               <Col xs="12" className="text-center">
                 These are the House cards from which you may choose one on your
                 next turn:
@@ -157,7 +157,7 @@ export default class DraftHouseCardsComponent extends Component<
             </Row>
           )}
           {!this.player && (
-            <Row>
+            <Row className="mt-3 justify-content-center">
               <Col xs="12" className="text-center">
                 These are all remaining House cards:
               </Col>
