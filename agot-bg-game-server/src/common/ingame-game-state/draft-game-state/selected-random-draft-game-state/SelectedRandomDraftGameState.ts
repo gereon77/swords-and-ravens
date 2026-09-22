@@ -9,14 +9,12 @@ import Game from "../../game-data-structure/Game";
 import HouseCard from "../../game-data-structure/house-card/HouseCard";
 import _ from "lodash";
 import User from "../../../../server/User";
-import { observable } from "mobx";
+import { computed } from "mobx";
 import DraftGameState, {
   houseCardCombatStrengthAllocations
 } from "../DraftGameState";
 
 export default class SelectedRandomDraftGameState extends GameState<DraftGameState> {
-  @observable readyHouses: House[];
-
   get ingame(): IngameGameState {
     return this.parentGameState.parentGameState;
   }
@@ -33,6 +31,13 @@ export default class SelectedRandomDraftGameState extends GameState<DraftGameSta
     return this.game.nonVassalHouses;
   }
 
+  @computed
+  get unreadyPlayers(): Player[] {
+    return this.participatingHouses
+      .filter((h) => h.houseCards.size < 7)
+      .map((h) => this.ingame.getControllerOfHouse(h));
+  }
+
   constructor(draftGameState: DraftGameState) {
     super(draftGameState);
   }
@@ -41,8 +46,6 @@ export default class SelectedRandomDraftGameState extends GameState<DraftGameSta
     this.ingame.log({
       type: "draft-house-cards-began"
     });
-
-    this.readyHouses = [];
   }
 
   getFilteredHouseCardsForHouse(house: House): HouseCard[] {
@@ -73,14 +76,8 @@ export default class SelectedRandomDraftGameState extends GameState<DraftGameSta
     return availableCards;
   }
 
-  getNotReadyPlayers(): Player[] {
-    return _.without(this.participatingHouses, ...this.readyHouses).map((h) =>
-      this.ingame.getControllerOfHouse(h)
-    );
-  }
-
   getWaitedUsers(): User[] {
-    return this.getNotReadyPlayers().map((p) => p.user);
+    return this.unreadyPlayers.map((p) => p.user);
   }
 
   select(houseCard: HouseCard): void {
@@ -126,18 +123,11 @@ export default class SelectedRandomDraftGameState extends GameState<DraftGameSta
         houseCards: this.game.draftPool.keys
       });
 
-      if (house.houseCards.size == 7) {
-        this.readyHouses.push(house);
-        this.entireGame.broadcastToClients({
-          type: "player-ready",
-          userId: player.user.id
-        });
-
-        this.ingame.log({
-          type: "house-cards-chosen",
-          house: house.id
-        });
-      }
+      this.ingame.log({
+        type: "house-card-picked",
+        house: house.id,
+        houseCard: houseCard.id
+      });
 
       if (this.participatingHouses.every((h) => h.houseCards.size == 7)) {
         // Now randomize all house cards between players:
@@ -160,40 +150,29 @@ export default class SelectedRandomDraftGameState extends GameState<DraftGameSta
     }
   }
 
-  onServerMessage(message: ServerMessage): void {
-    if (message.type == "player-ready") {
-      const player = this.ingame.players.get(
-        this.entireGame.users.get(message.userId)
-      );
-      this.readyHouses.push(player.house);
-    }
-  }
+  onServerMessage(_: ServerMessage): void {}
 
   serializeToClient(
     _admin: boolean,
     _player: Player | null
   ): SerializedSelectedRandomDraftGameState {
     return {
-      type: "selected-random-draft",
-      readyHouses: this.readyHouses.map((h) => h.id)
+      type: "selected-random-draft"
     };
   }
 
   static deserializeFromServer(
     draft: DraftGameState,
-    data: SerializedSelectedRandomDraftGameState
+    _: SerializedSelectedRandomDraftGameState
   ): SelectedRandomDraftGameState {
     const selectedRandomDraftGameState = new SelectedRandomDraftGameState(
       draft
     );
-    selectedRandomDraftGameState.readyHouses = data.readyHouses.map((hid) =>
-      draft.ingame.game.houses.get(hid)
-    );
+
     return selectedRandomDraftGameState;
   }
 }
 
 export interface SerializedSelectedRandomDraftGameState {
   type: "selected-random-draft";
-  readyHouses: string[];
 }

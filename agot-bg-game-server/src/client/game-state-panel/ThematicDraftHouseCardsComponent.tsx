@@ -29,7 +29,7 @@ export default class ThematicDraftHouseCardsComponent extends Component<
           </Col>
         </Row>
         {this.player &&
-          this.props.gameState.getNotReadyPlayers().includes(this.player) && (
+          this.props.gameState.unreadyPlayers.includes(this.player) && (
             <>
               <Row className="mt-3 justify-content-center">
                 <Col xs="12" className="text-center">
@@ -72,8 +72,7 @@ export default class ThematicDraftHouseCardsComponent extends Component<
         <Row className="mt-3 justify-content-center">
           <Col xs={12} className="text-center">
             Waiting for{" "}
-            {this.props.gameState
-              .getNotReadyPlayers()
+            {this.props.gameState.unreadyPlayers
               .map((p) => p.house.name)
               .join(", ")}
             ...
