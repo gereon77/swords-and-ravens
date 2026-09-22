@@ -1,4 +1,5 @@
 using System.Text.Json;
+using agot_bg_website.Domain;
 
 namespace agot_bg_website.Services.GameListing;
 
@@ -97,7 +98,10 @@ public static class GameSettingsDisplay
     /// A couple of settings get an inline numeric suffix, matching what the in-game settings UI
     /// shows right next to that same checkbox (the live-clock length, the evolution round).
     /// </summary>
-    public static List<string> GetEnabledSettingLabels(JsonDocument? viewOfGame)
+    public static List<string> GetEnabledSettingLabels(
+        JsonDocument? viewOfGame,
+        GameState gameState
+    )
     {
         var labels = new List<string>();
         if (viewOfGame is null)
@@ -122,6 +126,11 @@ public static class GameSettingsDisplay
 
         foreach (var (key, label) in SettingLabels)
         {
+            if (key == "startWhenFull" && gameState != GameState.InLobby)
+            {
+                continue;
+            }
+
             if (
                 !settingsEl.TryGetProperty(key, out var valueEl)
                 || valueEl.ValueKind != JsonValueKind.True

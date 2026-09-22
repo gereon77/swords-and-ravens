@@ -352,7 +352,7 @@ public sealed class GameListQueryService(ApplicationDbContext db)
             replacementNeededFor,
             joinAsUserId,
             GameSettingsDisplay.GetSetupName(view.SetupId),
-            GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame)
+            GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame, row.State)
         );
     }
 
