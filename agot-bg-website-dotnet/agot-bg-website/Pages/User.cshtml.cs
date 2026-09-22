@@ -222,7 +222,7 @@ public class UserModel(
                 view.WaitingFor,
                 winner,
                 GameSettingsDisplay.GetSetupName(view.SetupId),
-                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame, row.State),
                 view.IsPbem,
                 row.OwnerDisplayName,
                 view.IsPureReplacer(userId)
@@ -308,7 +308,7 @@ public class UserModel(
                     row.ReplacedAt,
                     row.Reason,
                     GameSettingsDisplay.GetSetupName(view.SetupId),
-                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame),
+                    GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame, row.State),
                     view.IsPbem,
                     row.OwnerDisplayName,
                     view.IsPureReplacer(userId)
