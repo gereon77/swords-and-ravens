@@ -50,7 +50,7 @@
         </script>
     }
 </head>
-<body class="h-screen bg-base-100 text-base-content flex flex-col overflow-hidden">
+<body class="min-h-screen bg-base-100 text-base-content flex flex-col lg:h-screen lg:overflow-hidden">
     <header class="shrink-0 sticky top-0 z-30">
         <nav class="navbar bg-base-200 border-b border-base-300 shadow-md">
             <div class="page-container flex items-center justify-between">
@@ -117,7 +117,7 @@
         }
     </header>
 
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 lg:overflow-y-auto">
         <div class="page-container @(ViewData["WideContainer"] as string == "md" ? "page-container-wide-md" : ViewData["WideContainer"] as bool? == true ? "page-container-wide" : "")">
             <main role="main" class="pt-6 pb-6">
                 @RenderBody()
