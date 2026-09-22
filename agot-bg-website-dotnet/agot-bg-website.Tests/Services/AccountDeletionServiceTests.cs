@@ -70,6 +70,7 @@ public class AccountDeletionServiceTests : IDisposable
             EmailConfirmed = true,
             ProfileText = "King in the North",
             LastWonTournament = "Riverrun Cup",
+            CustomUserBadge = "🐺 Direwolf",
         };
         var createResult = await _userManager.CreateAsync(user, "P@ssw0rd123!");
         Assert.True(createResult.Succeeded);
@@ -94,6 +95,7 @@ public class AccountDeletionServiceTests : IDisposable
         Assert.Null(user.PasswordHash);
         Assert.Null(user.ProfileText);
         Assert.Null(user.LastWonTournament);
+        Assert.Null(user.CustomUserBadge);
         Assert.False(user.EmailConfirmed);
         Assert.False(user.EmailNotificationActive);
         Assert.NotEqual(originalGameToken, user.GameToken);

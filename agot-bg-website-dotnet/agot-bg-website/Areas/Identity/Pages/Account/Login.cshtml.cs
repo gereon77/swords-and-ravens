@@ -5,21 +5,25 @@
 using System.ComponentModel.DataAnnotations;
 using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure.Auth;
+using agot_bg_website.Infrastructure.Chat;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
     public class LoginModel(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
+        IMemoryCache memoryCache,
         ILogger<LoginModel> logger
     ) : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
         private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly IMemoryCache _memoryCache = memoryCache;
         private readonly ILogger<LoginModel> _logger = logger;
 
         /// <summary>
@@ -131,6 +135,7 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
                     );
                 if (result.Succeeded)
                 {
+                    ChatUserDataCache.Invalidate(_memoryCache, user.Id);
                     _logger.LogInformation("User logged in.");
                     return LocalRedirect(returnUrl);
                 }

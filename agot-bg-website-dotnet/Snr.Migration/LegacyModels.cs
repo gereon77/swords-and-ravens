@@ -19,7 +19,6 @@ public record LegacyUser(
     bool UseResponsiveLayoutOnMobile,
     DateTimeOffset? LastUsernameUpdateTime,
     DateTimeOffset LastActivity,
-    int VanillaForumUserId,
     DateTimeOffset DateJoined
 );
 

@@ -7,17 +7,20 @@ using agot_bg_website.Infrastructure.Chat;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace agot_bg_website.Areas.Identity.Pages.Account
 {
     public class LogoutModel(
         SignInManager<ApplicationUser> signInManager,
         ChatConnectionManager chatConnections,
+        IMemoryCache memoryCache,
         ILogger<LogoutModel> logger
     ) : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
         private readonly ChatConnectionManager _chatConnections = chatConnections;
+        private readonly IMemoryCache _memoryCache = memoryCache;
         private readonly ILogger<LogoutModel> _logger = logger;
 
         public async Task<IActionResult> OnPost(string returnUrl = null)
@@ -34,6 +37,8 @@ namespace agot_bg_website.Areas.Identity.Pages.Account
 
             if (userId is not null && Guid.TryParse(userId, out var userGuid))
             {
+                ChatUserDataCache.Invalidate(_memoryCache, userGuid);
+
                 foreach (var connection in _chatConnections.GetConnectionsByUser(userGuid))
                 {
                     connection.Socket.Abort();
