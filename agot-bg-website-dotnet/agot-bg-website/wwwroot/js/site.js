@@ -66,7 +66,10 @@ document.addEventListener("click", function (event) {
     }
 
     modal.querySelector("#game-settings-modal-title").textContent = gearButton.dataset.gameName || "";
+    var ownerSection = modal.querySelector("#game-settings-modal-owner-section");
+    var isFaceless = gearButton.dataset.isFaceless === "True";
     modal.querySelector("#game-settings-modal-owner").textContent = gearButton.dataset.ownerName || "-";
+    ownerSection.classList.toggle("hidden", isFaceless);
     var createdAt = gearButton.dataset.createdAt || "";
     modal.querySelector("#game-settings-modal-created-at").textContent = createdAt ? formatLocalDateTimeToMinute(createdAt) : "-";
     var lastActiveAtSection = modal.querySelector("#game-settings-modal-last-active-at-section");

@@ -78,6 +78,7 @@ public class UserModel(
         IReadOnlyList<string> EnabledSettingLabels,
         bool IsPbem,
         string? OwnerDisplayName,
+        bool IsFaceless,
         bool IsReplacer
     );
 
@@ -311,6 +312,7 @@ public class UserModel(
                     GameSettingsDisplay.GetEnabledSettingLabels(row.ViewOfGame, row.State),
                     view.IsPbem,
                     row.OwnerDisplayName,
+                    view.IsFaceless,
                     view.IsPureReplacer(userId)
                 );
             })
