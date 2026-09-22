@@ -71,7 +71,7 @@ export default class ResolveRetreatGameState extends GameState<
       ? overridenChooser
       : this.postCombat.loser;
 
-    const possibleRetreatRegions = this.getValidRetreatRegions(
+    this.possibleRetreatRegions = this.getValidRetreatRegions(
       this.combat.attackingRegion,
       this.combat.defendingRegion,
       this.combat.attacker,
@@ -81,7 +81,7 @@ export default class ResolveRetreatGameState extends GameState<
       finalChooser
     );
 
-    if (possibleRetreatRegions.length == 0) {
+    if (this.possibleRetreatRegions.length == 0) {
       // No retreat regions available
       if (this.combat.attacker == this.postCombat.loser) {
         // If attacker lost all units from attacking region will be destroyed
@@ -102,7 +102,7 @@ export default class ResolveRetreatGameState extends GameState<
     } else {
       this.setChildGameState(new SelectRegionGameState(this)).firstStart(
         finalChooser,
-        possibleRetreatRegions
+        this.possibleRetreatRegions
       );
     }
   }
@@ -282,7 +282,7 @@ export default class ResolveRetreatGameState extends GameState<
     loserArmy: Unit[],
     finalChooser: House
   ): Region[] {
-    const possibleRetreatRegions = this.world.getValidRetreatRegions(
+    const retreatRegions = this.world.getValidRetreatRegions(
       defendingRegion,
       loser,
       loserArmy
@@ -314,21 +314,21 @@ export default class ResolveRetreatGameState extends GameState<
         // He can decide to retreat the units to a valid region adjacent to the combat
         if (attackingRegionIsBlockedForRetreat) {
           // But if attacking region is blocked it must be filtered out
-          _.pull(possibleRetreatRegions, attackingRegion);
-        } else if (!possibleRetreatRegions.includes(attackingRegion)) {
+          _.pull(retreatRegions, attackingRegion);
+        } else if (!retreatRegions.includes(attackingRegion)) {
           // Dragons may have flown into the embattled area,
           // so the starting region may not be one of the possible retreat regions.
-          possibleRetreatRegions.push(attackingRegion);
+          retreatRegions.push(attackingRegion);
         }
       }
     } else {
       // Filter out the attacking region as due to Berric Dondarrion (and maybe some other effects)
       // the attacking region may not be occupied by the enemy anymore and therefore isn't filtered by
       // getValidRetreatRegions anymore
-      _.pull(possibleRetreatRegions, attackingRegion);
+      _.pull(retreatRegions, attackingRegion);
     }
 
-    if (possibleRetreatRegions.length == 0) {
+    if (retreatRegions.length == 0) {
       return [];
     }
 
@@ -337,7 +337,7 @@ export default class ResolveRetreatGameState extends GameState<
     // has to choose a retreat region from possible retreat regions
 
     // Now take supply into account and calculate the casualty values per possible retreat region
-    const casualtiesPerRegion = possibleRetreatRegions.map(
+    const casualtiesPerRegion = retreatRegions.map(
       (r) => [r, this.getCasualtiesOfRetreatRegion(r)] as [Region, number]
     );
 

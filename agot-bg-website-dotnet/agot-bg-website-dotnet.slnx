@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="agot-bg-website/agot-bg-website.csproj" />
+  <Project Path="agot-bg-website.Data/agot-bg-website.Data.csproj" />
+  <Project Path="agot-bg-website.Tests/agot-bg-website.Tests.csproj" />
+  <Project Path="Snr.Migration/Snr.Migration.csproj" />
+</Solution>

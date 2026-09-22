@@ -89,10 +89,33 @@ export default class EntireGame extends GameState<
   onGetUser?: (userId: string) => Promise<StoredUserData | null>;
 
   // Throttled saveGame so we don't spam the website client
-  saveGame: (updateLastActive: boolean) => void = _.throttle(
-    this.privateSaveGame,
-    2000
-  );
+  private readonly throttledSaveGame: _.DebouncedFunc<
+    (updateLastActive: boolean) => void
+  > = _.throttle(this.privateSaveGame, 2000);
+
+  // Bypasses the throttle above so GlobalServer.shutdown() can force out whatever save is still
+  // sitting inside the 2s window before the process exits (see EntireGame.saveGame/GlobalServer.
+  // shutdown's doc comments).
+  flushSaveGame(): void {
+    this.throttledSaveGame.flush();
+  }
+
+  // FINISHED/CANCELLED are rare, final state transitions where losing the save to an unluckily
+  // timed process restart landing inside the throttle's 2s window would leave the website with a
+  // stale, non-final snapshot of the game forever (see GlobalServer.shutdown()'s doc comment for
+  // why a *graceful* restart is covered separately by flushing the throttle - this bypass also
+  // covers the ungraceful case, e.g. a crash, where there's no chance to flush anything). All
+  // other transitions still go through the throttle: they're frequent and recoverable, since the
+  // very next save carries the latest state anyway.
+  saveGame = (updateLastActive: boolean): void => {
+    const state = this.getStateOfGame();
+    if (state == "FINISHED" || state == "CANCELLED") {
+      this.privateSaveGame(updateLastActive);
+      return;
+    }
+
+    this.throttledSaveGame(updateLastActive);
+  };
 
   // Client-side callbacks
   onNewPrivateChatRoomCreated: ((roomId: string) => void) | null = null;
@@ -110,6 +133,8 @@ export default class EntireGame extends GameState<
 
   @observable
   now = new Date();
+  // serverTime - Date.now() at last pong, used to correct "now" for client/server clock skew
+  @observable clockOffsetMs = 0;
   @observable stateVersion = 0; // Incremented when entire game is re-sent to force re-renders
 
   get lobbyGameState(): LobbyGameState | null {
@@ -741,6 +766,8 @@ export default class EntireGame extends GameState<
             v.type instanceof ReplacePlayerByVassal)
       ).length ?? -1) > 0 || undefined;
 
+    const initialPlayerIds =
+      this.ingameGameState?.initialPlayerIds ?? undefined;
     const oldPlayerIds = this.ingameGameState?.oldPlayerIds ?? undefined;
     const timeoutPlayerIds =
       this.ingameGameState?.timeoutPlayerIds ?? undefined;
@@ -779,6 +806,7 @@ export default class EntireGame extends GameState<
       waitingForIds,
       winner,
       replacePlayerVoteOngoing,
+      initialPlayerIds,
       oldPlayerIds,
       timeoutPlayerIds,
       replacerIds,

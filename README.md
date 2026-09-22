@@ -10,18 +10,25 @@ Suggestions, remarks and other feedbacks can done on [the discord server](https:
 
 The project is separated into 2 components:
 
-* A website in `Python` with the `Django` framework. This component handles user registrations, creating games as well as joining them. It exposes a REST API used by the game server. Finally, it also contains the logic for the chat used in the games. The code is located in `agot-bg-website/`.
+* A website in `C#` with `ASP.NET Core` (Razor Pages + Minimal API). This component handles user
+  registrations/authentication, creating games as well as joining them. It exposes a private REST
+  API used by the game server, and a WebSocket endpoint for the in-game chat (backed by Redis
+  pub/sub for fan-out across instances). The code is located in `agot-bg-website-dotnet/`. This is
+  the only website — the previous Django implementation has been fully retired.
 * A game server in `Typescript` with `React`, `mobx` and `bootstrap`. It runs the games of AGoT. It is itself composed of a front-end and a back-end. The code is located in `agot-bg-game-server/`.
 
-Additional documentation about how those components work can be found in the folder of each component.
+Additional documentation about how those components work can be found in the folder of each
+component. In particular, `agot-bg-website-dotnet/README.md` covers the website in much more
+detail than this file, and `agot-bg-website-dotnet/MIGRATION_PLAN.md` documents the full design
+rationale (including the mapping from the old Django concepts to their ASP.NET Core equivalents).
 
 ## How to Run
 
-There a multiple ways to run the code, depending on what components on what you want to run.
+There are multiple ways to run the code, depending on what you want to run.
 
 ### Launching the Game Only
 
-Requires `NodeJS v16` and `yarn`. Install the dependencies and initialize the environment variables by executing:
+Requires Node.js LTS (currently 24.x) and `yarn`. Install the dependencies and initialize the environment variables by executing:
 
 ```bash
 cd agot-bg-game-server/
@@ -43,64 +50,122 @@ Closing and re-reunning `run-server` will create a new game.
 
 ### Launching the Website Only
 
-Requires a Linux based OS, `docker` and `python3`.\
-_If you are on Windows you can install WSL2 to make it work. The project runs fine with the default Ubuntu distribution.
-Just enable Docker Desktop to be accessed from WSL if it's not activated per default._
+Requires `Docker` (for Postgres/Redis/smtp4dev) and the .NET SDK matching
+`agot-bg-website-dotnet/agot-bg-website/agot-bg-website.csproj`'s `<TargetFramework>` (currently
+`net10.0`). Runs natively on Windows/macOS/Linux — no WSL2/Linux-only requirement, unlike the old
+Django setup.
 
-Make sure following packages are installed on your OS:
+1. **Start Postgres, Redis, and smtp4dev** (a local SMTP catcher, so no real mail account is
+   needed for local dev) from the repository root:
 
-```bash
-sudo apt-get install gcc libpq-dev -y
-sudo apt-get install python-dev  python-pip -y
-sudo apt-get install python3-dev python3-pip python3-venv python3-wheel -y
-```
+   ```bash
+   docker compose up -d
+   ```
 
-To spin up the PostgreSQL database and a Redis database, open a terminal and execute `docker-compose up`.
+   This starts `db` (Postgres, `127.0.0.1:5432`, user `postgres` / password `example`), `redis`
+   (`127.0.0.1:6379`), and `smtp4dev` (web UI at http://localhost:5099, SMTP port `2525`).
 
-In `agot-bg-website/agotboardgame_main/migrations` remove all files except `__init__.py` `0001_initial.py`.\
-_These deleted migration files are bound to the swordsandravens.net database and therefore
-you have to create the necessary migrations for your newly created database on your own._
+   > **Windows note:** if you hit `SocketException: Cannot assign requested address` on startup,
+   > make sure any connection strings/user-secrets use `127.0.0.1` rather than `localhost` — see
+   > `agot-bg-website-dotnet/README.md` for why.
 
-Install the dependencies of the website component, initialize the database and create a super user by running:
+2. **Apply EF Core migrations** to create the `snr_dotnet` database and schema (requires the
+   `dotnet-ef` global tool: `dotnet tool install --global dotnet-ef`):
 
-```bash
-cd agot-bg-website/
-cp .env.dev .env
-python3 -m venv venv
-source venv/bin/activate
-pip install wheel
-pip install -r requirements.txt
-cp agotboardgame_main/migrations_for_new_database.py agotboardgame_main/migrations/0002_initial_migrations.py
-python3 manage.py migrate
-python3 manage.py createcachetable
+   ```bash
+   cd agot-bg-website-dotnet
+   dotnet ef database update --project agot-bg-website.Data --startup-project agot-bg-website
+   ```
 
-# This command will ask for a password. Use "rootroot"
-python3 manage.py createsuperuser --username Longwelwind
-```
+3. **Build the Tailwind CSS + DaisyUI theme** (`wwwroot/css/app.css` is a committed build
+   artifact; you only need to rebuild it if you change the theme, but if you're not sure whether
+   it's up to date, rebuilding is cheap and safe):
 
-Once done, you can run the server by executing:
+   ```bash
+   cd agot-bg-website-dotnet/agot-bg-website/ClientAssets
+   npm install
+   npm run build      # one-off, minified
+   # npm run watch    # or this instead, to rebuild on every change while iterating on styles
+   ```
 
-```bash
-python3 manage.py runserver
-```
+4. **(Optional) Configure local secrets** via `dotnet user-secrets` from
+   `agot-bg-website-dotnet/agot-bg-website/` — OIDC client secrets (Google/Discord/Facebook),
+   custom SMTP credentials, etc. Without any of this configured, the app still runs fully:
+   external OIDC login buttons simply won't do anything (register/log in with username+password
+   instead — see below), and outgoing email falls back to a logger that just logs what would have
+   been sent instead of crashing. See `agot-bg-website-dotnet/README.md`'s "Running locally"
+   section for the full list of secrets, including how to point email at smtp4dev instead of the
+   fallback logger.
 
-The website will be accessible at `http://localhost:8000/`. Some functionalities such as mail notifications and social authentications will require environment variables defined in `.env`.\
-As Google and Discord authentication is not available you can login via `http://localhost:8000/admin`.
+5. **Run the website**:
 
-**Note**: If you try to open a game via the website, you will land on a template page.
+   ```bash
+   cd agot-bg-website-dotnet/agot-bg-website
+   dotnet run
+   ```
+
+   The website will be accessible at `http://localhost:8000/` (matching the old Django dev URL).
+   Without the real game client built (see next section), `/play/<gameId>` serves a placeholder
+   page so the rest of the site (registration, login, rooms, game list) can still be exercised
+   end-to-end.
+
+6. **Create your first user, and make it an admin.** There is no `createsuperuser` command/script
+   — instead, register a normal account through the website's own sign-up form
+   (`http://localhost:8000/Identity/Account/Register`, username/password), the same way any real
+   user would. To grant that account the `Admin` role (which unlocks the `/Admin` area and the
+   `ImpersonateOtherPlayers`/`CancelGame`/`ManageUserStatus` permissions — see
+   `agot-bg-website-dotnet/agot-bg-website/Infrastructure/Auth/GamePermissions.cs`), connect to the
+   `snr_dotnet` Postgres database with pgAdmin (or any other Postgres client) and run:
+
+   ```sql
+   INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
+   SELECT u."Id", r."Id"
+   FROM "AspNetUsers" u, "AspNetRoles" r
+   WHERE u."UserName" = 'YourUsername' AND r."Name" = 'Admin';
+   ```
+
+   (Roles are seeded automatically on startup, so `AspNetRoles` will already contain `Member`,
+   `Admin`, `High Member`, `Banned`, `On probation`, `Tongueless` rows — no need to insert one
+   yourself.) If the user is already logged in, they'll need to log out and back in (or wait for
+   the auth cookie's normal revalidation interval) for the new role/permissions to take effect.
+
+**Note**: If you try to open a game via the website without having built the real game client
+(next section), you will land on a placeholder template page.
 
 ### Launching the Game and the Website
 
 To launch the 2 components and make them inter-connected, make sure the dependencies are installed and the database is up and running (follow the instructions given in the precedent sections).
 
 Replace the environment configuration of the game-server with a live one: `cp .env.dev.live .env`.
+This points the game server's private API client (`MASTER_API_BASE_URL`) at
+`http://localhost:8001/api` — the website's internal, Basic-Auth-only port for the game server (as
+opposed to port 8000, which serves the public site).
 
-The front-end of the game server must be built and placed in the website. This can be done by executing `./build_and_place_game_client_into_django.sh`.
+The front-end of the game server must be built and placed in the website. This can be done by
+executing, from the repository root:
 
-You can now run the game server and the website by launching, in 2 two different terminals:
+```powershell
+.\build_and_place_game_client_into_dotnet.ps1
+```
+
+(or `./build_and_place_game_client_into_dotnet.sh` on Linux/macOS). This builds
+`agot-bg-game-server`'s client and copies the resulting static assets/`index.html` into
+`agot-bg-website-dotnet/agot-bg-website/wwwroot/static_game/` and
+`agot-bg-website-dotnet/agot-bg-website/GameClientTemplates/play.html` respectively. Restart
+`dotnet run` afterwards to pick up the newly-placed template.
+
+You can now run the game server and the website by launching, in 2 different terminals:
 
 * In `agot-bg-game-server/`, execute `yarn run run-server`.
-* In `agot-bg-website/`, activate your venv and execute `python3 manage.py runserver`.
+* In `agot-bg-website-dotnet/agot-bg-website/`, execute `dotnet run`.
 
-**Note**: For play testing you at least need another user to run the game variant "Teach the game" locally.
-Create this user the same way you created the user Longwelwind.
+**Note**: For play testing you at least need another user to run the game variant "Teach the game" locally. Create this user the same way you created your first user (register through the sign-up form).
+
+## More details
+
+See `agot-bg-website-dotnet/README.md` for the full picture: solution structure, every local
+secret the app understands (email providers, OIDC apps), the Tailwind/DaisyUI build in more
+depth, the game-client integration script, and how to run the legacy-data importer
+(`Snr.Migration`, for migrating an existing production database into a fresh one). See
+`agot-bg-website-dotnet/MIGRATION_PLAN.md` for the underlying design decisions and Django→ASP.NET
+Core mapping.

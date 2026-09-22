@@ -158,7 +158,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
           raidedRegion: targetRegion.id,
           orderRaided: orderTarget.id,
           raiderGainedPowerToken: raiderGainedPowerToken,
-          raidedHouseLostPowerToken: raidedHouseLostPowerToken,
+          raidedHouseLostPowerToken: raidedHouseLostPowerToken
         },
         resolvedAutomatically
       );
@@ -172,7 +172,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
           raidee: null,
           orderRaided: null,
           raiderGainedPowerToken: null,
-          raidedHouseLostPowerToken: null,
+          raidedHouseLostPowerToken: null
         },
         resolvedAutomatically
       );
@@ -185,7 +185,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
         false,
         this.house,
         false,
-        !resolvedAutomatically ? "red" : undefined
+        targetRegion != null ? "red" : "yellow"
       );
     } else if (
       orderType instanceof RaidSupportOrderType &&
@@ -236,7 +236,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
     this.entireGame.sendMessageToServer({
       type: "resolve-raid",
       orderRegionId: orderRegion.id,
-      targetRegionId: targetRegion ? targetRegion.id : null,
+      targetRegionId: targetRegion ? targetRegion.id : null
     });
   }
 
@@ -245,7 +245,7 @@ export default class ResolveSingleRaidOrderGameState extends GameState<ResolveRa
     _player: Player | null
   ): SerializedResolveSingleRaidOrderGameState {
     return {
-      houseId: this.house.id,
+      houseId: this.house.id
     };
   }
 

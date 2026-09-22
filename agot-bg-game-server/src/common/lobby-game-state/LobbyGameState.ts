@@ -297,9 +297,23 @@ export default class LobbyGameState extends GameState<EntireGame> {
         settings.asosHouseCards = false;
       }
 
+      if (settings.selectedRandomDraft && !this.settings.selectedRandomDraft) {
+        settings.draftHouseCards = true;
+        settings.draftTracks = true;
+        settings.randomDraft = false;
+        settings.blindDraft = false;
+        settings.perpetuumRandom = false;
+        settings.thematicDraft = false;
+        settings.adwdHouseCards = false;
+        settings.asosHouseCards = false;
+        settings.firstEditionHouseCards = false;
+      }
+
       if (settings.randomDraft && !this.settings.randomDraft) {
         settings.draftHouseCards = true;
         settings.randomDraft = true;
+        settings.draftTracks = true;
+        settings.selectedRandomDraft = false;
         settings.thematicDraft = false;
         settings.adwdHouseCards = false;
         settings.asosHouseCards = false;
@@ -314,6 +328,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
       if (!settings.draftHouseCards && this.settings.draftHouseCards) {
         settings.draftTracks = false;
         settings.thematicDraft = false;
+        settings.selectedRandomDraft = false;
         settings.randomDraft = false;
         settings.blindDraft = false;
         settings.perpetuumRandom = false;
@@ -329,6 +344,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
       if (settings.thematicDraft) {
         settings.draftHouseCards = true;
         settings.draftTracks = false;
+        settings.selectedRandomDraft = false;
         settings.limitedDraft = false;
         settings.blindDraft = false;
         settings.randomDraft = false;
@@ -532,7 +548,7 @@ export default class LobbyGameState extends GameState<EntireGame> {
 
   launchReadyCheck(): void {
     this.readyUsers = [];
-    this.readyCheckWillTimeoutAt = new Date(new Date().getTime() + 30 * 1000);
+    this.readyCheckWillTimeoutAt = new Date(Date.now() + 30 * 1000);
     this.readyCheckTimeout = setTimeout(() => {
       this.readyUsers = null;
       this.readyCheckTimeout = null;

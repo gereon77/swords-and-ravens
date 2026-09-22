@@ -11,16 +11,20 @@ import DraftHouseCardsGameState from "../../common/ingame-game-state/draft-game-
 import ThematicDraftHouseCardsGameState from "../../common/ingame-game-state/draft-game-state/thematic-draft-house-cards-game-state/ThematicDraftHouseCardsGameState";
 import DraftHouseCardsComponent from "./DraftHouseCardsComponent";
 import ThematicDraftHouseCardsComponent from "./ThematicDraftHouseCardsComponent";
-
+import SelectedRandomDraftComponent from "./SelectedRandomDraftComponent";
+import SelectedRandomDraftGameState from "../../common/ingame-game-state/draft-game-state/selected-random-draft-game-state/SelectedRandomDraftGameState";
 
 @observer
-export default class DraftComponent extends Component<GameStateComponentProps<DraftGameState>> {
-    render(): ReactNode {
-        return renderChildGameState(this.props, [
-            [DraftHouseCardsGameState, DraftHouseCardsComponent],
-            [ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent],
-            [DraftMapGameState, DraftMapComponent],
-            [AgreeOnGameStartGameState, AgreeOnGameStartComponent]
-        ]);
-    }
+export default class DraftComponent extends Component<
+  GameStateComponentProps<DraftGameState>
+> {
+  render(): ReactNode {
+    return renderChildGameState(this.props, [
+      [DraftHouseCardsGameState, DraftHouseCardsComponent],
+      [ThematicDraftHouseCardsGameState, ThematicDraftHouseCardsComponent],
+      [SelectedRandomDraftGameState, SelectedRandomDraftComponent],
+      [DraftMapGameState, DraftMapComponent],
+      [AgreeOnGameStartGameState, AgreeOnGameStartComponent]
+    ]);
+  }
 }

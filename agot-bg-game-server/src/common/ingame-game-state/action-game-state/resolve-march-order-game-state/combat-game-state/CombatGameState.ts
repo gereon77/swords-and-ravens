@@ -106,6 +106,12 @@ export default class CombatGameState extends GameState<
   @observable
   stateVersion = 0;
 
+  // True for a short window right after both house cards have been revealed simultaneously, so
+  // CombatInfoComponent can render the real 3D flip (hidden back -> revealed house card) instead
+  // of jumping straight to the plain, revealed HouseCardComponent.
+  @observable
+  animatingHouseCardReveal = false;
+
   // The key is the supporting house and the value is the supported house.
   // The value is always either attacker or defender or null if the supporter
   // decided to support no-one.
@@ -637,26 +643,32 @@ export default class CombatGameState extends GameState<
             : null
         ]
       );
-      const action = (): void => {
-        houseCards.forEach(([house, houseCard]) => {
-          this.houseCombatDatas.get(house).houseCard = houseCard;
-          if (houseCard == null) {
-            this.houseCombatDatas.get(house).houseCardChosen = false;
-          }
-        });
-        this.stateVersion++;
-      };
+
+      // Apply the revealed house cards immediately. FlipIcon performs a real 3D flip (front
+      // face = hidden house-card back, back face = the now-known revealed card) via
+      // backface-visibility, so the reveal only becomes visible once the flip passes its
+      // halfway point - there is no need to delay setting the underlying data like the old
+      // rotateY-and-swap hack required.
+      houseCards.forEach(([house, houseCard]) => {
+        this.houseCombatDatas.get(house).houseCard = houseCard;
+        if (houseCard == null) {
+          this.houseCombatDatas.get(house).houseCardChosen = false;
+        }
+      });
 
       if (message.animate) {
-        houseCards.forEach(([house, _houseCard]) => {
-          const hcd = this.houseCombatDatas.get(house);
-          hcd.houseCard = null;
-          hcd.houseCardChosen = true;
-        });
-        this.stateVersion++;
-        window.setTimeout(action, 1500);
-      } else {
-        action();
+        this.animatingHouseCardReveal = true;
+        // The flip-flipper CSS keyframe animation itself takes 2.5s; this fallback timeout is
+        // independent of it and simply resets the "still animating" flag once the flip has
+        // certainly finished, so CombatInfoComponent falls back to the plain, revealed
+        // HouseCardComponent. Deliberately don't bump stateVersion here: CombatComponent is a
+        // mobx @observer and already re-renders in place when animatingHouseCardReveal changes.
+        // Bumping stateVersion would additionally remount the whole CombatComponent subtree via
+        // its key, wiping any local UI state a child may have accumulated in the meantime (e.g.
+        // a retreat region the player already selected while the flip was still playing).
+        window.setTimeout(() => {
+          this.animatingHouseCardReveal = false;
+        }, 3000);
       }
     } else if (message.type == "change-combat-tides-of-battle-card") {
       const drawnTidesOfBattleCards: [House, TidesOfBattleCard | null][] =

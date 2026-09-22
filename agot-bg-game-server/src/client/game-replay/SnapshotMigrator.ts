@@ -239,6 +239,7 @@ export default class SnapshotMigrator {
         const region = snap.getRegion(log.region);
         if (log.leftPowerToken) {
           region.controlPowerToken = log.house;
+          if (!snap.gameSnapshot) return snap;
           const house = snap.getHouse(log.house);
           house.removePowerTokens(1);
         }
@@ -295,6 +296,7 @@ export default class SnapshotMigrator {
       }
 
       case "massing-on-the-milkwater-house-cards-removed": {
+        if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         log.houseCardsUsed.forEach((hc) => {
           house.markHouseCardAsUsed(hc);
@@ -687,6 +689,7 @@ export default class SnapshotMigrator {
       }
 
       case "massing-on-the-milkwater-house-cards-back": {
+        if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         log.houseCardsReturned.forEach((hc) => {
           house.markHouseCardAsAvailable(hc);

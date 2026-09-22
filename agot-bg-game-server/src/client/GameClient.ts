@@ -2,8 +2,8 @@ import { ServerMessage } from "../messages/ServerMessage";
 import { ClientMessage } from "../messages/ClientMessage";
 import EntireGame from "../common/EntireGame";
 import { computed, observable } from "mobx";
+import FogOfWarHelper from "./utils/fogOfWarHelper";
 import User from "../server/User";
-import IngameGameState from "../common/ingame-game-state/IngameGameState";
 import Region from "../common/ingame-game-state/game-data-structure/Region";
 import Player from "../common/ingame-game-state/Player";
 import House from "../common/ingame-game-state/game-data-structure/House";
@@ -33,6 +33,7 @@ export default class GameClient {
   socket: WebSocket | null = null;
   authData: AuthData;
   pingInterval = -1;
+  onOwnTurnChange: (() => void) | null = null;
 
   @observable connectionState: ConnectionState = ConnectionState.INITIALIZING;
   @observable entireGame: EntireGame | null = null;
@@ -45,6 +46,7 @@ export default class GameClient {
 
   chatClient: ChatClient = new ChatClient(this);
   sfxManager: SfxManager = new SfxManager(this);
+  fogOfWarHelper: FogOfWarHelper = new FogOfWarHelper(this);
 
   get currentVolumeSettings(): {
     notifications: number;
@@ -179,15 +181,14 @@ export default class GameClient {
       throw new Error("Authenticated user required");
     }
 
-    if (
-      !this.entireGame ||
-      !(this.entireGame.childGameState instanceof IngameGameState)
-    ) {
+    if (!this.entireGame?.ingameGameState) {
       return null;
     }
 
-    if (this.entireGame.childGameState.players.has(this.authenticatedUser)) {
-      return this.entireGame.childGameState.players.get(this.authenticatedUser);
+    if (this.entireGame.ingameGameState.players.has(this.authenticatedUser)) {
+      return this.entireGame.ingameGameState.players.get(
+        this.authenticatedUser
+      );
     } else {
       return null;
     }
@@ -211,17 +212,12 @@ export default class GameClient {
   }
 
   @computed get visibleRegionsSet(): Set<Region> | null {
-    if (
-      !this.entireGame ||
-      !(this.entireGame.childGameState instanceof IngameGameState)
-    ) {
+    if (!this.entireGame?.ingameGameState) {
       return null;
     }
 
-    const ingame = this.entireGame.childGameState;
-
-    return ingame.fogOfWar
-      ? ingame.calculateVisibleRegionsForPlayer(
+    return this.entireGame.ingameGameState.fogOfWar
+      ? this.entireGame.ingameGameState.calculateVisibleRegionsForPlayer(
           this.authenticatedPlayer,
           this.allRegionsWithControllers
         )
@@ -235,6 +231,18 @@ export default class GameClient {
 
   get isMapScrollbarSet(): boolean {
     return !isMobile && (this.authenticatedUser?.settings.mapScrollbar ?? true);
+  }
+
+  getPotentialWinners(): House[] {
+    if (!this.entireGame?.ingameGameState) {
+      return [];
+    }
+
+    if (this.entireGame.ingameGameState.fogOfWar) {
+      return this.fogOfWarHelper.getPotentialWinners();
+    }
+
+    return this.entireGame.ingameGameState.game.getPotentialWinners();
   }
 
   private setCurrentMutedStateAndSaveVolumeSettingsToLocalStorage(): void {
@@ -308,14 +316,9 @@ export default class GameClient {
    * @param house
    */
   doesControlHouse(house: House | null): boolean {
-    if (
-      this.entireGame == null ||
-      !(this.entireGame.childGameState instanceof IngameGameState)
-    ) {
+    if (!this.entireGame?.ingameGameState) {
       throw new Error("EntireGame with IngameGameState is required");
     }
-
-    const ingame = this.entireGame.childGameState;
 
     if (house == null) {
       return false;
@@ -327,7 +330,9 @@ export default class GameClient {
       // Houses may be uncontrolled during Claim Vassals state and getControllerOfHouse will throw an error.
       // We have to catch it here
       try {
-        return ingame.getControllerOfHouse(house) == player;
+        return (
+          this.entireGame.ingameGameState.getControllerOfHouse(house) == player
+        );
       } catch {
         return false;
       }
@@ -412,6 +417,13 @@ export default class GameClient {
 
       this.connectionState = ConnectionState.SYNCED;
       this.loadVolumeSettingsFromLocalStorage();
+
+      // Ping immediately to establish the clock offset instead of waiting for the next scheduled ping
+      this.send({ type: "ping" });
+    } else if (message.type == "pong") {
+      if (this.entireGame) {
+        this.entireGame.clockOffsetMs = message.serverTime - Date.now();
+      }
     } else if (message.type == "banned-response") {
       this.connectionState = ConnectionState.BANNED;
     } else if (message.type == "new-private-chat-room") {
@@ -452,7 +464,11 @@ export default class GameClient {
         return;
       }
 
+      const wasOwnTurn = this.isOwnTurn();
       this.entireGame.onServerMessage(message, this);
+      if (wasOwnTurn != this.isOwnTurn()) {
+        this.onOwnTurnChange?.();
+      }
     }
   }
 
@@ -461,6 +477,8 @@ export default class GameClient {
       throw new Error("isOwnTurn() requires entireGame and authenticatedUser");
     }
 
+    // Turn ownership is derived from the state tree, whose transition token is observable.
+    this.entireGame.leafStateId;
     return this.entireGame.getWaitedUsers().includes(this.authenticatedUser);
   }
 

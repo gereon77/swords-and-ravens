@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /Identity/
+Disallow: /MyGames
+Disallow: /Games
+Disallow: /Users
+Disallow: /Admin/
+
+Sitemap: https://swordsandravens.net/sitemap.xml

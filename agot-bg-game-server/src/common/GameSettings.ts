@@ -29,6 +29,7 @@ export class GameSettings {
   draftTracks = false;
   thematicDraft = false;
   limitedDraft = false;
+  selectedRandomDraft = false;
   randomDraft = false;
   perpetuumRandom = false;
   blindDraft = false;
@@ -82,6 +83,7 @@ export class GameSettings {
     settings.draftTracks = data.draftTracks ?? false;
     settings.thematicDraft = data.thematicDraft ?? false;
     settings.limitedDraft = data.limitedDraft ?? false;
+    settings.selectedRandomDraft = data.selectedRandomDraft ?? false;
     settings.randomDraft = data.randomDraft ?? false;
     settings.perpetuumRandom = data.perpetuumRandom ?? false;
     settings.blindDraft = data.blindDraft ?? false;
@@ -145,6 +147,7 @@ export class GameSettings {
       draftTracks: this.draftTracks || undefined,
       thematicDraft: this.thematicDraft || undefined,
       limitedDraft: this.limitedDraft || undefined,
+      selectedRandomDraft: this.selectedRandomDraft || undefined,
       randomDraft: this.randomDraft || undefined,
       perpetuumRandom: this.perpetuumRandom || undefined,
       blindDraft: this.blindDraft || undefined,
@@ -211,6 +214,7 @@ export class SerializedGameSettings {
   draftTracks?: boolean;
   thematicDraft?: boolean;
   limitedDraft?: boolean;
+  selectedRandomDraft?: boolean;
   randomDraft?: boolean;
   blindDraft?: boolean;
   perpetuumRandom?: boolean;

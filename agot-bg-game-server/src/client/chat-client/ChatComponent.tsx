@@ -30,9 +30,7 @@ import { isMobile } from "react-device-detect";
 import classNames from "classnames";
 import moment from "moment";
 import ConditionalWrap from "../utils/ConditionalWrap";
-import getElapsedSeconds, {
-  getTimeDeltaInSeconds
-} from "../../utils/getElapsedSeconds";
+import { getTimeDeltaInSeconds } from "../../utils/getElapsedSeconds";
 import houseIconImages from "../houseIconImages";
 import stoneThroneImage from "../../../public/images/icons/stone-throne.svg";
 import diamondHiltImage from "../../../public/images/icons/diamond-hilt.svg";
@@ -623,7 +621,8 @@ export default class ChatComponent extends Component<ChatComponentProps> {
   }
 
   getMoment(message: Message): ReactNode {
-    const elapsed = getElapsedSeconds(message.createdAt);
+    const now = this.props.entireGame.now;
+    const elapsed = getTimeDeltaInSeconds(now, message.createdAt);
     const S_PER_DAY = 60 * 60 * 24;
     const S_PER_H = 60 * 60;
 
@@ -632,9 +631,9 @@ export default class ChatComponent extends Component<ChatComponentProps> {
 
     const result =
       diffH <= 12
-        ? moment(message.createdAt).fromNow()
+        ? moment(message.createdAt).from(now)
         : diffDays <= 5
-          ? moment(message.createdAt).calendar()
+          ? moment(message.createdAt).calendar(now)
           : message.createdAt.toLocaleString();
 
     return (

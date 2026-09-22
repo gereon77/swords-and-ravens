@@ -73,7 +73,9 @@ import WildlingCardEffectInTurnOrderGameState from "./westeros-game-state/wildli
 import getElapsedSeconds from "../../utils/getElapsedSeconds";
 import orders from "./game-data-structure/orders";
 import {
+  OrderAnimationEntry,
   OrderOnMapProperties,
+  UnitMoveAnimationEntry,
   UnitOnMapProperties
 } from "../../client/MapControls";
 import {
@@ -129,6 +131,12 @@ export default class IngameGameState extends GameState<
   IngameChildGameState
 > {
   players: BetterMap<User, Player> = new BetterMap();
+  // The user ids seated at game start (see beginGame's "user-house-assignments" log entry) -
+  // never modified afterwards, unlike oldPlayerIds/replacerIds/timeoutPlayerIds. Lets the website
+  // tell apart a user who only ever jumped in as a replacer from one who started the game and
+  // later also replaced into another house. Games that started before this field existed get it
+  // backfilled once via serializedGameMigrations.ts version "137".
+  initialPlayerIds: string[] = [];
   oldPlayerIds: string[] = [];
   replacerIds: string[] = [];
   timeoutPlayerIds: string[] = [];
@@ -154,11 +162,12 @@ export default class IngameGameState extends GameState<
 
   // Client-side only
   @observable stateVersion = 0;
-  @observable marchMarkers: BetterMap<Unit, Region> = new BetterMap();
   @observable unitsToBeAnimated: BetterMap<Unit, UnitOnMapProperties> =
     new BetterMap();
-  @observable ordersToBeAnimated: BetterMap<Region, OrderOnMapProperties> =
-    new BetterMap();
+  @observable unitMoveAnimations: UnitMoveAnimationEntry[] = [];
+  @observable orderAnimations: OrderAnimationEntry[] = [];
+  private nextUnitMoveAnimationId = 1;
+  private nextOrderAnimationId = 1;
 
   onVoteStarted: (() => void) | null = null;
   onPreemptiveRaidNewAttack:
@@ -170,6 +179,38 @@ export default class IngameGameState extends GameState<
 
   get entireGame(): EntireGame {
     return this.parentGameState;
+  }
+
+  /**
+   * Registers a new, independently tracked order animation for `region` and returns its id.
+   * Several entries can co-exist for the same region without clobbering each other (e.g. one
+   * order fading out while a different event highlights an order placed right after).
+   *
+   * `fallbackTimeoutMs` is a safety net that removes the entry even if the CSS animation never
+   * fires an "animationend" event (e.g. it's an infinite animation like the attention pulse, or
+   * the event is missed for some reason). The primary, precise cleanup happens via
+   * `removeOrderAnimation` being called from the rendered order icon's onAnimationEnd handler.
+   */
+  addOrderAnimation(
+    region: Region,
+    properties: OrderOnMapProperties,
+    fallbackTimeoutMs: number
+  ): number {
+    const id = this.nextOrderAnimationId++;
+    this.orderAnimations.push({ id, region, properties });
+
+    window.setTimeout(() => this.removeOrderAnimation(id), fallbackTimeoutMs);
+
+    return id;
+  }
+
+  // Safe to call multiple times or with an id that was already removed (e.g. once from
+  // onAnimationEnd and once from the fallback timeout) - it simply does nothing in that case.
+  removeOrderAnimation(id: number): void {
+    const index = this.orderAnimations.findIndex((a) => a.id == id);
+    if (index >= 0) {
+      this.orderAnimations.splice(index, 1);
+    }
   }
 
   get world(): World {
@@ -255,6 +296,8 @@ export default class IngameGameState extends GameState<
         this.game.getControlledSupplyIcons(h)
       );
     });
+
+    this.initialPlayerIds = futurePlayers.values.map((u) => u.id);
 
     this.log({
       type: "user-house-assignments",
@@ -1461,7 +1504,6 @@ export default class IngameGameState extends GameState<
 
       const moveAction = (): void => {
         units.forEach((u) => {
-          this.marchMarkers.tryDelete(u);
           from.units.delete(u.id);
           to.units.set(u.id, u);
           u.region = to;
@@ -1473,11 +1515,25 @@ export default class IngameGameState extends GameState<
           visibleRegions == null ||
           (visibleRegions.has(from) && visibleRegions.has(to))
         ) {
-          units.forEach((u) => {
-            this.marchMarkers.set(u, to);
+          const durationMs = message.isRetreat ? 4000 : 5000;
+          const animationIds = units.map((unit) => {
+            const id = this.nextUnitMoveAnimationId++;
+            this.unitMoveAnimations.push({
+              id,
+              unit,
+              from,
+              to,
+              durationMs
+            });
+            return id;
           });
 
-          window.setTimeout(moveAction, message.isRetreat ? 4000 : 5000);
+          window.setTimeout(() => {
+            this.unitMoveAnimations = this.unitMoveAnimations.filter(
+              (animation) => !animationIds.includes(animation.id)
+            );
+            moveAction();
+          }, durationMs);
         } else {
           moveAction();
         }
@@ -1819,27 +1875,25 @@ export default class IngameGameState extends GameState<
       initiator.house = swappingHouse;
       this.forceRerender();
     } else if (message.type == "reveal-orders") {
+      // The real order data is applied to ordersOnBoard immediately, in both branches below.
+      // FlipIcon performs a real 3D flip (front face = hidden, house-colored order back; back
+      // face = the now-known revealed order) via backface-visibility, so the reveal itself only
+      // becomes visible once the flip passes its halfway point - there is no need to delay
+      // swapping the underlying order data anymore like the old rotateY-and-swap hack required.
+      this.ordersOnBoard = new BetterMap(
+        message.orders.map(([rid, oid]) => {
+          const r = this.world.regions.get(rid);
+          return [r, orders.get(oid)];
+        })
+      );
+
       if (!this.fogOfWar) {
         message.orders.forEach(([rid, _oid]) => {
           const r = this.world.regions.get(rid);
-          this.ordersToBeAnimated.set(r, { animateFlip: true });
+          // The entry's own onAnimationEnd/fallback-timer cleanup removes this once the flip
+          // animation (driven by FlipIcon, see ".flip-flipper" in custom.scss) has finished.
+          this.addOrderAnimation(r, { animateFlip: true }, 3000);
         });
-        window.setTimeout(() => {
-          this.ordersOnBoard = new BetterMap(
-            message.orders.map(([rid, oid]) => {
-              const r = this.world.regions.get(rid);
-              this.ordersToBeAnimated.delete(r);
-              return [r, orders.get(oid)];
-            })
-          );
-        }, 1200);
-      } else {
-        this.ordersOnBoard = new BetterMap(
-          message.orders.map(([rid, oid]) => {
-            const r = this.world.regions.get(rid);
-            return [r, orders.get(oid)];
-          })
-        );
       }
     } else if (message.type == "remove-orders") {
       message.regions
@@ -2633,12 +2687,12 @@ export default class IngameGameState extends GameState<
 
     return {
       type: "ingame",
-      players: this.players.values.map((p) => p.serializeToClient()),
-      game: this.game.serializeToClient(admin, player),
       unitVisibilityRangeModifier:
         this.unitVisibilityRangeModifier != 0
           ? this.unitVisibilityRangeModifier
           : undefined,
+      initialPlayerIds:
+        this.initialPlayerIds.length > 0 ? this.initialPlayerIds : undefined,
       oldPlayerIds:
         this.oldPlayerIds.length > 0 ? this.oldPlayerIds : undefined,
       replacerIds: this.replacerIds.length > 0 ? this.replacerIds : undefined,
@@ -2648,10 +2702,10 @@ export default class IngameGameState extends GameState<
         this.housesTimedOut.length > 0
           ? this.housesTimedOut.map((h) => h.id)
           : undefined,
-      ordersOnBoard: this.ordersOnBoard.mapOver(
-        (r) => r.id,
-        (o) => o.id
-      ),
+      vassalizedHouses:
+        this.vassalizedHouses.length > 0
+          ? this.vassalizedHouses.map((h) => h.id)
+          : undefined,
       votes:
         this.votes.size > 0
           ? this.votes.values.map((v) => v.serializeToClient(admin, player))
@@ -2662,6 +2716,13 @@ export default class IngameGameState extends GameState<
         : undefined,
       bannedUsers:
         this.bannedUsers.size > 0 ? Array.from(this.bannedUsers) : undefined,
+      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
+      players: this.players.values.map((p) => p.serializeToClient()),
+      game: this.game.serializeToClient(admin, player),
+      ordersOnBoard: this.ordersOnBoard.mapOver(
+        (r) => r.id,
+        (o) => o.id
+      ),
       childGameStateBeforeCancellation: this.childGameStateBeforeCancellation
         ? this.childGameStateBeforeCancellation.serializeToClient(admin, player)
         : undefined,
@@ -2672,11 +2733,6 @@ export default class IngameGameState extends GameState<
             player
           )
         : undefined,
-      vassalizedHouses:
-        this.vassalizedHouses.length > 0
-          ? this.vassalizedHouses.map((h) => h.id)
-          : undefined,
-      gameLogManager: this.gameLogManager.serializeToClient(admin, user),
       childGameState: this.childGameState.serializeToClient(admin, player)
     };
   }
@@ -2700,6 +2756,7 @@ export default class IngameGameState extends GameState<
     );
     ingameGameState.unitVisibilityRangeModifier =
       data.unitVisibilityRangeModifier ?? 0;
+    ingameGameState.initialPlayerIds = data.initialPlayerIds ?? [];
     ingameGameState.oldPlayerIds = data.oldPlayerIds ?? [];
     ingameGameState.replacerIds = data.replacerIds ?? [];
     ingameGameState.timeoutPlayerIds = data.timeoutPlayerIds ?? [];
@@ -2782,21 +2839,22 @@ export default class IngameGameState extends GameState<
 
 export interface SerializedIngameGameState {
   type: "ingame";
-  players: SerializedPlayer[];
-  game: SerializedGame;
   unitVisibilityRangeModifier?: number;
+  initialPlayerIds?: string[];
   oldPlayerIds?: string[];
   replacerIds?: string[];
   timeoutPlayerIds?: string[];
   housesTimedOut?: string[];
+  vassalizedHouses?: string[];
   votes?: SerializedVote[];
-  ordersOnBoard: [string, number][];
   paused?: number;
   willBeAutoResumedAt?: number;
   bannedUsers?: string[];
-  childGameState: SerializedIngameChildGameState;
+  gameLogManager: SerializedGameLogManager;
+  players: SerializedPlayer[];
+  game: SerializedGame;
+  ordersOnBoard: [string, number][];
   childGameStateBeforeCancellation?: SerializedIngameChildGameState;
   childGameStateBeforeVassalsModification?: SerializedIngameChildGameState;
-  vassalizedHouses?: string[];
-  gameLogManager: SerializedGameLogManager;
+  childGameState: SerializedIngameChildGameState;
 }

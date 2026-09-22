@@ -29,6 +29,18 @@ export default class GlobalServer {
   clientMessageValidator: ValidateFunction;
   debug = false;
 
+  // Monotonically increasing save-attempt counter per game, seeded from the persisted value on
+  // load and incremented on every actual saveGame() call. Sent to the website's PATCH endpoint,
+  // which rejects a save whose sequence isn't strictly greater than what's already stored - this
+  // is what makes saves safe against arriving out of order (the game server's saves are
+  // fire-and-forget HTTP calls, so two in-flight saves can complete out of order). See
+  // Game.SaveSequence's doc comment on the website side.
+  gameSaveSequences = new BetterMap<string, number>();
+
+  // In-flight websiteClient.saveGame() HTTP calls, tracked so shutdown() can wait for them to
+  // actually complete instead of exiting the process while they're still in the air.
+  pendingSaves = new Set<Promise<void>>();
+
   get latestSerializedGameVersion(): string {
     const lastMigration = _.last(serializedGameMigrations);
 
@@ -108,8 +120,10 @@ export default class GlobalServer {
     }
 
     if (message.type == "ping") {
-      // The client may send ping to keep the connection alive.
-      // Do nothing.
+      // Reply with our own time so the client can correct for clock skew
+      if (client.readyState == WebSocket.OPEN) {
+        this.send(client, { type: "pong", serverTime: Date.now() });
+      }
     } else if (message.type == "authenticate") {
       const { userId, requestUserId, gameId, authToken } = message.authData;
 
@@ -313,15 +327,45 @@ export default class GlobalServer {
     // since they have been migrated when loaded.
     const version = this.latestSerializedGameVersion;
 
-    this.websiteClient.saveGame(
+    // Assigned synchronously in call order (JS is single-threaded), so it reflects the true
+    // chronological order these saves were generated in, regardless of what order the resulting
+    // fire-and-forget HTTP PATCH requests actually complete in. See gameSaveSequences' doc comment.
+    const saveSequence = this.gameSaveSequences.tryGet(entireGame.id, 0) + 1;
+    this.gameSaveSequences.set(entireGame.id, saveSequence);
+
+    const savePromise = this.websiteClient.saveGame(
       entireGame.id,
       serializedGame,
       viewOfGame,
       players,
       state,
       version,
-      updateLastActive
+      updateLastActive,
+      saveSequence
     );
+    // Tracked so shutdown() can wait for this to actually complete instead of exiting the process
+    // while it's still in flight (which would silently drop the save, same as a throttled call
+    // never getting to fire at all).
+    this.pendingSaves.add(savePromise);
+    savePromise.finally(() => this.pendingSaves.delete(savePromise));
+  }
+
+  /**
+   * Flushes every loaded game's throttled pending save and waits for the resulting HTTP calls to
+   * the website to complete (bounded by timeoutMs, so a hung request can't block shutdown
+   * forever). Intended to be called from a SIGTERM/SIGINT handler: without this, a save still
+   * sitting inside its 2s throttle window at the moment the process exits is lost forever - the
+   * website then keeps whatever was last actually saved, which can be an arbitrarily old snapshot
+   * of a live game (see EntireGame.saveGame's throttle and restartLiveClockTimers below).
+   */
+  async shutdown(timeoutMs = 5000): Promise<void> {
+    this.loadedGames.values.forEach((entireGame) => entireGame.flushSaveGame());
+
+    const pending = Promise.allSettled(Array.from(this.pendingSaves));
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(resolve, timeoutMs)
+    );
+    await Promise.race([pending, timeout]);
   }
 
   restartLiveClockTimers(entireGame: EntireGame): void {
@@ -453,6 +497,11 @@ export default class GlobalServer {
       return null;
     }
 
+    // Seed the save-sequence counter from the persisted value so it keeps increasing across a
+    // process restart instead of resetting to 0 (which would make the website reject every save
+    // as "stale" until the counter caught back up).
+    this.gameSaveSequences.set(gameId, gameData.saveSequence);
+
     const needsDeserialization = gameData.serializedGame != null;
 
     // Load it
@@ -472,11 +521,6 @@ export default class GlobalServer {
     entireGame.onSendClientMessage = (_) => {
       console.error("Server instance of ingame tried to send a client message");
     };
-
-    // Check if game was cancelled by a moderator
-    if (await this.websiteClient.isGameCancelled(gameId)) {
-      this.cancelGame(entireGame);
-    }
 
     entireGame.onSendServerMessage = (users, message) =>
       this.onSendServerMessage(users, message);
@@ -502,6 +546,11 @@ export default class GlobalServer {
     // Set the connection status of all users to false
     entireGame.users.values.forEach((u) => (u.connected = false));
 
+    // Check if game was cancelled by a moderator
+    if (await this.websiteClient.isGameCancelled(gameId)) {
+      this.cancelGame(entireGame);
+    }
+
     console.log("Game loaded: " + gameId);
     this.loadedGames.set(gameId, entireGame);
 
@@ -517,6 +566,7 @@ export default class GlobalServer {
         entireGame
           .setChildGameState(new CancelledGameState(entireGame))
           .firstStart();
+        this.saveGame(entireGame, false);
       }
     } else if (entireGame.ingameGameState) {
       const ingame = entireGame.ingameGameState;
@@ -743,8 +793,12 @@ export default class GlobalServer {
 
     console.log("Unloading game " + entireGame.id);
 
-    // Save the game before unloading:
-    if (entireGame.onSaveGame) {
+    if (!entireGame.onSaveGame) {
+      throw new Error("Cannot unload game without onSaveGame handler.");
+    }
+
+    // Save the game before unloading but not if it is a cancelled lobby game
+    if (!(entireGame.childGameState instanceof CancelledGameState)) {
       entireGame.onSaveGame(false);
     }
 

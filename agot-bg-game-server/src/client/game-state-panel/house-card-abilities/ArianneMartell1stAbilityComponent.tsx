@@ -7,6 +7,8 @@ import Col from "react-bootstrap/Col";
 import ArianneMartell1stAbilityGameState from "../../../common/ingame-game-state/action-game-state/resolve-march-order-game-state/combat-game-state/post-combat-game-state/after-winner-determination-game-state/arianne-martell-1st-ability-game-state/ArianneMartell1stAbilityGameState";
 import SelectUnitsGameState from "../../../common/ingame-game-state/select-units-game-state/SelectUnitsGameState";
 import SelectUnitsComponent from "../SelectUnitsComponent";
+import SimpleChoiceGameState from "../../../common/ingame-game-state/simple-choice-game-state/SimpleChoiceGameState";
+import SimpleChoiceComponent from "../SimpleChoiceComponent";
 
 @observer
 export default class ArianneMartell1stAbilityComponent extends Component<
@@ -15,18 +17,22 @@ export default class ArianneMartell1stAbilityComponent extends Component<
   render(): ReactNode {
     return (
       <>
-        <Col xs={12} className="text-center">
-          <b>Arianne Martell</b>: House <b>{this.props.gameState.house.name}</b>{" "}
-          may kill an army unit of House{" "}
-          <b>
-            {
-              this.props.gameState.combat.getEnemy(this.props.gameState.house)
-                .name
-            }
-          </b>
-          .
-        </Col>
+        {this.props.gameState.childGameState instanceof
+        SimpleChoiceGameState ? (
+          <Col xs={12} className="text-center">
+            <b>Arianne Martell</b>: House{" "}
+            <b>{this.props.gameState.house.name}</b> may kill an army unit of
+            House <b>{this.props.gameState.enemy.name}</b>.
+          </Col>
+        ) : (
+          <Col xs={12} className="text-center">
+            <b>Arianne Martell</b>: House{" "}
+            <b>{this.props.gameState.enemy.name}</b> must choose a unit to
+            destroy.
+          </Col>
+        )}
         {renderChildGameState(this.props, [
+          [SimpleChoiceGameState, SimpleChoiceComponent],
           [SelectUnitsGameState, SelectUnitsComponent]
         ])}
       </>

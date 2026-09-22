@@ -23,10 +23,16 @@ import PartialRecursive from "../../utils/PartialRecursive";
 import Unit from "../../common/ingame-game-state/game-data-structure/Unit";
 import { OverlayChildren } from "react-bootstrap/esm/Overlay";
 import { renderRegionTooltip } from "../regionTooltip";
-import { faArrowRight, faInfo } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRight,
+  faInfo,
+  faTimes
+} from "@fortawesome/free-solid-svg-icons";
 import { preventOverflow } from "@popperjs/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import UnitIconComponent from "../UnitIconComponent";
+
+type MusteringPopoverTrigger = "region" | "order";
 
 @observer
 export default class PlayerMusteringComponent extends Component<
@@ -37,7 +43,10 @@ export default class PlayerMusteringComponent extends Component<
   modifyRegionsOnMapCallback: any;
   modifyUnitsOnMapCallback: any;
   modifyOrdersOnMapCallback: any;
-  autoOpenPopoverTimeout: number | null = null;
+  @observable openMusteringPopover: {
+    region: Region;
+    trigger: MusteringPopoverTrigger;
+  } | null = null;
 
   get house(): House {
     return this.props.gameState.house;
@@ -335,6 +344,10 @@ export default class PlayerMusteringComponent extends Component<
               placement="auto"
               trigger="click"
               rootClose
+              show={this.isMusteringPopoverOpen(modifiedRegion, "region")}
+              onToggle={(show) =>
+                this.toggleMusteringPopover(modifiedRegion, "region", show)
+              }
               overlay={this.renderMusteringPopover(modifiedRegion)}
             >
               {child}
@@ -354,7 +367,7 @@ export default class PlayerMusteringComponent extends Component<
         className="p-3"
       >
         <Row className="justify-content-center align-items-center mb-2">
-          <Col xs={10}>
+          <Col>
             <h5 className="my-0 text-center">
               <b>{modifiedRegion.name}</b>{" "}
               <small>
@@ -380,6 +393,17 @@ export default class PlayerMusteringComponent extends Component<
                 <FontAwesomeIcon icon={faInfo} />
               </div>
             </OverlayTrigger>
+          </Col>
+          <Col xs="auto">
+            <Button
+              type="button"
+              variant="link"
+              className="text-light p-1"
+              aria-label="Close mustering popover"
+              onClick={() => this.setOpenMusteringPopover(null)}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </Button>
           </Col>
         </Row>
         <Row className="justify-content-center">
@@ -414,6 +438,38 @@ export default class PlayerMusteringComponent extends Component<
         </Row>
       </Popover>
     );
+  }
+
+  private setOpenMusteringPopover(
+    openMusteringPopover: {
+      region: Region;
+      trigger: MusteringPopoverTrigger;
+    } | null
+  ): void {
+    this.openMusteringPopover = openMusteringPopover;
+    this.props.mapControls.refresh();
+  }
+
+  private isMusteringPopoverOpen(
+    region: Region,
+    trigger: MusteringPopoverTrigger
+  ): boolean {
+    return (
+      this.openMusteringPopover?.region == region &&
+      this.openMusteringPopover.trigger == trigger
+    );
+  }
+
+  private toggleMusteringPopover(
+    region: Region,
+    trigger: MusteringPopoverTrigger,
+    show: boolean
+  ): void {
+    if (show) {
+      this.setOpenMusteringPopover({ region, trigger });
+    } else if (this.isMusteringPopoverOpen(region, trigger)) {
+      this.setOpenMusteringPopover(null);
+    }
   }
 
   renderMusteringButton(
@@ -461,6 +517,10 @@ export default class PlayerMusteringComponent extends Component<
                 placement="auto"
                 trigger="click"
                 rootClose
+                show={this.isMusteringPopoverOpen(r, "order")}
+                onToggle={(show) =>
+                  this.toggleMusteringPopover(r, "order", show)
+                }
                 overlay={this.renderMusteringPopover(r)}
               >
                 {child}
@@ -528,41 +588,17 @@ export default class PlayerMusteringComponent extends Component<
         PlayerMusteringType.STARRED_CONSOLIDATE_POWER ||
       this.props.gameState.type == PlayerMusteringType.DEFENSE_MUSTER_ORDER
     ) {
-      this.tryOpenMusteringPopover(this.props.gameState.regions[0]);
+      this.setOpenMusteringPopover({
+        region: this.props.gameState.regions[0],
+        trigger: "order"
+      });
     }
-  }
-
-  /**
-   * The order's popover is owned by MapComponent which only knows about our popover
-   * after our modifyOrdersOnMap callback has been registered and the map re-rendered.
-   * Therefore we retry until the popover is actually in the DOM.
-   */
-  private tryOpenMusteringPopover(region: Region, attempt = 0): void {
-    if (attempt > 10) {
-      return;
-    }
-
-    const popoverOpen =
-      document.getElementById(`region-mustering-popover-${region.id}`) != null;
-
-    if (popoverOpen) {
-      this.autoOpenPopoverTimeout = null;
-      return;
-    }
-
-    document.getElementById(`map-order-container_${region.id}`)?.click();
-
-    this.autoOpenPopoverTimeout = window.setTimeout(
-      () => this.tryOpenMusteringPopover(region, attempt + 1),
-      100
-    );
   }
 
   componentWillUnmount(): void {
-    if (this.autoOpenPopoverTimeout != null) {
-      window.clearTimeout(this.autoOpenPopoverTimeout);
-      this.autoOpenPopoverTimeout = null;
-    }
+    // Discard any pending, unsent musterings so they don't corrupt the shared game model
+    // (e.g. when the component is torn down by switching to replay mode instead of submitting)
+    this.reset();
 
     _.pull(
       this.props.mapControls.modifyOrdersOnMap,
@@ -592,7 +628,7 @@ export default class PlayerMusteringComponent extends Component<
     }
   }
 
-  reset(): void {
+  private reset(): void {
     _.flatMap(this.musterings.values).forEach((r) => {
       r.region.newUnits = [];
       r.region.units.values.forEach((u) => (u.upgradedType = undefined));

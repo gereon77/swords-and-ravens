@@ -9,14 +9,12 @@ import Game from "../../game-data-structure/Game";
 import HouseCard from "../../game-data-structure/house-card/HouseCard";
 import _ from "lodash";
 import User from "../../../../server/User";
-import { observable } from "mobx";
+import { computed } from "mobx";
 import DraftGameState, {
-  houseCardCombatStrengthAllocations,
+  houseCardCombatStrengthAllocations
 } from "../DraftGameState";
 
 export default class ThematicDraftHouseCardsGameState extends GameState<DraftGameState> {
-  @observable readyHouses: House[];
-
   get ingame(): IngameGameState {
     return this.parentGameState.parentGameState;
   }
@@ -33,16 +31,21 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
     return this.game.nonVassalHouses;
   }
 
+  @computed
+  get unreadyPlayers(): Player[] {
+    return this.participatingHouses
+      .filter((h) => h.houseCards.size < 7)
+      .map((h) => this.ingame.getControllerOfHouse(h));
+  }
+
   constructor(draftGameState: DraftGameState) {
     super(draftGameState);
   }
 
   firstStart(): void {
     this.ingame.log({
-      type: "draft-house-cards-began",
+      type: "draft-house-cards-began"
     });
-
-    this.readyHouses = [];
   }
 
   getFilteredHouseCardsForHouse(house: House): HouseCard[] {
@@ -73,20 +76,14 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
     return availableCards;
   }
 
-  getNotReadyPlayers(): Player[] {
-    return _.without(this.participatingHouses, ...this.readyHouses).map((h) =>
-      this.ingame.getControllerOfHouse(h)
-    );
-  }
-
   getWaitedUsers(): User[] {
-    return this.getNotReadyPlayers().map((p) => p.user);
+    return this.unreadyPlayers.map((p) => p.user);
   }
 
   select(houseCard: HouseCard): void {
     this.entireGame.sendMessageToServer({
       type: "select-house-card",
-      houseCard: houseCard.id,
+      houseCard: houseCard.id
     });
   }
 
@@ -112,25 +109,19 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
       this.entireGame.broadcastToClients({
         type: "update-house-cards",
         house: house.id,
-        houseCards: house.houseCards.keys,
+        houseCards: house.houseCards.keys
       });
 
       this.game.draftPool.delete(houseCard.id);
       this.entireGame.broadcastToClients({
         type: "update-draft-pool",
-        houseCards: this.game.draftPool.keys,
+        houseCards: this.game.draftPool.keys
       });
 
       if (house.houseCards.size == 7) {
-        this.readyHouses.push(house);
-        this.entireGame.broadcastToClients({
-          type: "player-ready",
-          userId: player.user.id,
-        });
-
         this.ingame.log({
           type: "house-cards-chosen",
-          house: house.id,
+          house: house.id
         });
       }
 
@@ -140,39 +131,27 @@ export default class ThematicDraftHouseCardsGameState extends GameState<DraftGam
     }
   }
 
-  onServerMessage(message: ServerMessage): void {
-    if (message.type == "player-ready") {
-      const player = this.ingame.players.get(
-        this.entireGame.users.get(message.userId)
-      );
-      this.readyHouses.push(player.house);
-    }
-  }
+  onServerMessage(_: ServerMessage): void {}
 
   serializeToClient(
     _admin: boolean,
     _player: Player | null
   ): SerializedThematicDraftHouseCardsGameState {
     return {
-      type: "thematic-draft-house-cards",
-      readyHouses: this.readyHouses.map((h) => h.id),
+      type: "thematic-draft-house-cards"
     };
   }
 
   static deserializeFromServer(
     draft: DraftGameState,
-    data: SerializedThematicDraftHouseCardsGameState
+    _: SerializedThematicDraftHouseCardsGameState
   ): ThematicDraftHouseCardsGameState {
     const thematicDraftHouseCardsGameState =
       new ThematicDraftHouseCardsGameState(draft);
-    thematicDraftHouseCardsGameState.readyHouses = data.readyHouses.map((hid) =>
-      draft.ingame.game.houses.get(hid)
-    );
     return thematicDraftHouseCardsGameState;
   }
 }
 
 export interface SerializedThematicDraftHouseCardsGameState {
   type: "thematic-draft-house-cards";
-  readyHouses: string[];
 }

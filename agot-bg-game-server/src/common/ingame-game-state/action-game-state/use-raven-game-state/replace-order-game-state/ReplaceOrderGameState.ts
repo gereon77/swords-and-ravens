@@ -1,8 +1,8 @@
 import GameState from "../../../../GameState";
 import UseRavenGameState from "../UseRavenGameState";
 import Player from "../../../Player";
-import {ClientMessage} from "../../../../../messages/ClientMessage";
-import {ServerMessage} from "../../../../../messages/ServerMessage";
+import { ClientMessage } from "../../../../../messages/ClientMessage";
+import { ServerMessage } from "../../../../../messages/ServerMessage";
 import IngameGameState from "../../../IngameGameState";
 import EntireGame from "../../../../EntireGame";
 import House from "../../../game-data-structure/House";
@@ -14,141 +14,166 @@ import BetterMap from "../../../../../utils/BetterMap";
 import User from "../../../../../server/User";
 
 export default class ReplaceOrderGameState extends GameState<UseRavenGameState> {
-    get useRavenGameState(): UseRavenGameState {
-        return this.parentGameState;
+  get useRavenGameState(): UseRavenGameState {
+    return this.parentGameState;
+  }
+
+  get actionGameState(): ActionGameState {
+    return this.useRavenGameState.actionGameState;
+  }
+
+  get ingameGameState(): IngameGameState {
+    return this.useRavenGameState.ingameGameState;
+  }
+
+  get entireGame(): EntireGame {
+    return this.useRavenGameState.entireGame;
+  }
+
+  get ravenHolder(): House {
+    return this.useRavenGameState.ravenHolder;
+  }
+
+  firstStart(): void {}
+
+  onPlayerMessage(player: Player, message: ClientMessage): void {
+    if (message.type == "replace-order") {
+      if (player.house != this.ravenHolder) {
+        return;
+      }
+
+      const order = orders.get(message.orderId);
+      const region = this.ingameGameState.game.world.regions.get(
+        message.regionId
+      );
+
+      if (region.getController() != player.house) {
+        return;
+      }
+
+      if (!this.actionGameState.ordersOnBoard.has(region)) {
+        return;
+      }
+
+      if (!this.getAvailableOrders(region).includes(order)) {
+        return;
+      }
+
+      this.ingameGameState.log({
+        type: "raven-holder-replace-order",
+        ravenHolder: this.ravenHolder.id,
+        region: region.id,
+        originalOrder: this.actionGameState.ordersOnBoard.get(region).id,
+        newOrder: order.id
+      });
+
+      this.actionGameState.ordersOnBoard.set(region, order);
+
+      this.entireGame.broadcastToClients({
+        type: "raven-order-replaced",
+        regionId: region.id,
+        orderId: order.id
+      });
+
+      this.useRavenGameState.onReplaceOrderGameStateEnd();
+    } else if (message.type == "skip-replace-order") {
+      if (player.house != this.ravenHolder) {
+        return;
+      }
+
+      this.ingameGameState.log({
+        type: "raven-not-used",
+        ravenHolder: this.ravenHolder.id
+      });
+
+      this.useRavenGameState.onReplaceOrderGameStateEnd();
     }
+  }
 
-    get actionGameState(): ActionGameState {
-        return this.useRavenGameState.actionGameState;
-    }
+  getWaitedUsers(): User[] {
+    return [
+      this.parentGameState.ingameGameState.getControllerOfHouse(
+        this.ravenHolder
+      ).user
+    ];
+  }
 
-    get ingameGameState(): IngameGameState {
-        return this.useRavenGameState.ingameGameState;
-    }
+  getAvailableOrders(region: Region): Order[] {
+    const replacedOrder = this.actionGameState.ordersOnBoard.has(region)
+      ? this.actionGameState.ordersOnBoard.get(region)
+      : null;
 
-    get entireGame(): EntireGame {
-        return this.useRavenGameState.entireGame;
-    }
+    const placedOrders = new BetterMap(
+      this.actionGameState
+        .getOrdersOfHouse(this.ravenHolder)
+        .filter(([_r, o]) => replacedOrder != o)
+    );
 
-    get ravenHolder(): House {
-        return this.useRavenGameState.ravenHolder;
-    }
+    return this.ingameGameState.game.getAvailableOrders(
+      placedOrders,
+      this.ravenHolder
+    );
+  }
 
-    firstStart(): void {
-    }
+  replaceOrder(region: Region, order: Order): void {
+    this.entireGame.sendMessageToServer({
+      type: "replace-order",
+      regionId: region.id,
+      orderId: order.id
+    });
+  }
 
-    onPlayerMessage(player: Player, message: ClientMessage): void {
-        if (message.type == "replace-order") {
-            if (player.house != this.ravenHolder) {
-                return;
-            }
+  skip(): void {
+    this.entireGame.sendMessageToServer({
+      type: "skip-replace-order"
+    });
+  }
 
-            const order = orders.get(message.orderId);
-            const region = this.ingameGameState.game.world.regions.get(message.regionId);
+  seeTopWildlingCardInstead(): void {
+    this.entireGame.sendMessageToServer({
+      type: "choose-see-top-wildling-card"
+    });
+  }
 
-            if (region.getController() != player.house) {
-                return;
-            }
+  onServerMessage(message: ServerMessage): void {
+    if (message.type == "raven-order-replaced") {
+      const region = this.ingameGameState.game.world.regions.get(
+        message.regionId
+      );
+      const order = orders.get(message.orderId);
 
+      this.actionGameState.ordersOnBoard.set(region, order);
 
-            if (!this.actionGameState.ordersOnBoard.has(region)) {
-                return
-            }
-
-            if (!this.getAvailableOrders(region).includes(order)) {
-                return;
-            }
-
-            this.ingameGameState.log({
-                type: "raven-holder-replace-order",
-                ravenHolder: this.ravenHolder.id,
-                region: region.id,
-                originalOrder: this.actionGameState.ordersOnBoard.get(region).id,
-                newOrder: order.id
-            });
-
-            this.actionGameState.ordersOnBoard.set(region, order);
-
-            this.entireGame.broadcastToClients({
-                type: "raven-order-replaced",
-                regionId: region.id,
-                orderId: order.id
-            });
-
-            this.useRavenGameState.onReplaceOrderGameStateEnd();
-        } else if (message.type == "skip-replace-order") {
-            if (player.house != this.ravenHolder) {
-                return;
-            }
-
-            this.ingameGameState.log({
-                type: "raven-not-used",
-                ravenHolder: this.ravenHolder.id
-            })
-
-            this.useRavenGameState.onReplaceOrderGameStateEnd();
-        }
-    }
-
-    getWaitedUsers(): User[] {
-        return [this.parentGameState.ingameGameState.getControllerOfHouse(this.ravenHolder).user];
-    }
-
-    getAvailableOrders(region: Region): Order[] {
-        const replacedOrder = this.actionGameState.ordersOnBoard.has(region) ? this.actionGameState.ordersOnBoard.get(region) : null;
-
-        const placedOrders = new BetterMap(
-            this.actionGameState.getOrdersOfHouse(this.ravenHolder).filter(([_r, o]) => replacedOrder != o)
+      if (!this.ingameGameState.fogOfWar) {
+        this.ingameGameState.addOrderAnimation(
+          region,
+          {
+            highlight: { active: true, color: "white" },
+            animateAttention: true
+          },
+          3000
         );
-
-        return this.ingameGameState.game.getAvailableOrders(placedOrders, this.ravenHolder);
+      }
     }
+  }
 
-    replaceOrder(region: Region, order: Order): void {
-        this.entireGame.sendMessageToServer({
-            type: "replace-order",
-            regionId: region.id,
-            orderId: order.id
-        });
-    }
+  serializeToClient(
+    _admin: boolean,
+    _player: Player | null
+  ): SerializedReplaceOrderGameState {
+    return {
+      type: "replace-order"
+    };
+  }
 
-    skip(): void {
-        this.entireGame.sendMessageToServer({
-            type: "skip-replace-order"
-        });
-    }
-
-    seeTopWildlingCardInstead(): void {
-        this.entireGame.sendMessageToServer({
-            type: "choose-see-top-wildling-card"
-        })
-    }
-
-    onServerMessage(message: ServerMessage): void {
-        if (message.type == "raven-order-replaced") {
-            const region = this.ingameGameState.game.world.regions.get(message.regionId);
-            const order = orders.get(message.orderId);
-
-            this.actionGameState.ordersOnBoard.set(region, order);
-
-            if (!this.ingameGameState.fogOfWar) {
-                this.ingameGameState.ordersToBeAnimated.set(region, {highlight: {active: true, color: "white"}, animateAttention: true});
-                window.setTimeout(() => this.ingameGameState.ordersToBeAnimated.delete(region), 3000);
-            }
-        }
-    }
-
-    serializeToClient(_admin: boolean, _player: Player | null): SerializedReplaceOrderGameState {
-        return {
-            type: "replace-order"
-        };
-    }
-
-    static deserializeFromServer(useRavenGameState: UseRavenGameState, _data: SerializedReplaceOrderGameState): ReplaceOrderGameState {
-        return new ReplaceOrderGameState(useRavenGameState);
-    }
+  static deserializeFromServer(
+    useRavenGameState: UseRavenGameState,
+    _data: SerializedReplaceOrderGameState
+  ): ReplaceOrderGameState {
+    return new ReplaceOrderGameState(useRavenGameState);
+  }
 }
 
 export interface SerializedReplaceOrderGameState {
-    type: "replace-order";
+  type: "replace-order";
 }

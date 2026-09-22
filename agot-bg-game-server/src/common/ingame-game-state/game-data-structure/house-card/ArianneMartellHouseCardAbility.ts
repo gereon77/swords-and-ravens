@@ -63,18 +63,33 @@ export default class ArianneMartellHouseCardAbility extends HouseCardAbility {
     const enemy = combat.getEnemy(valyrianSteelBladeHolder);
     const combatStrengthEnemy = combat.getTotalCombatStrength(enemy);
 
-    return combat.attackerHouseCard == houseCard &&
-      valyrianSteelBladeHolder == combat.defender
-      ? // return true if the difference in combat strength is exactly 2
+    if (valyrianSteelBladeHolder == combat.attacker) {
+      if (combat.attackerHouseCard == houseCard) {
+        // return true if the difference in combat strength is exactly 3
+        // so VSB holder could use the VSB to make the difference 2
+        // and force the victorious defender to retreat
+        return combatStrengthEnemy - combatStrengthVsbHolder == 3;
+      } else if (combat.defenderHouseCard == houseCard) {
+        // return true if the difference in combat strength is exactly 2
         // so VSB holder could use the VSB to make the difference 3
-        // and prevent the retreat of the victorious defender
-        combatStrengthVsbHolder - combatStrengthEnemy == 2
-      : combat.defenderHouseCard == houseCard &&
-          valyrianSteelBladeHolder == combat.defender
-        ? // return true if the difference in combat strength is exactly 3
-          // so VSB holder could use the VSB to make the difference 2
-          // and force the attacker to retreat (not entering the area)
-          combatStrengthEnemy - combatStrengthVsbHolder == 3
-        : false;
+        // and prevent being forced to retreat instead of marching into
+        // the embattled area
+        return combatStrengthVsbHolder - combatStrengthEnemy == 2;
+      }
+    } else if (valyrianSteelBladeHolder == combat.defender) {
+      if (combat.defenderHouseCard == houseCard) {
+        // return true if the difference in combat strength is exactly 3
+        // so VSB holder could use the VSB to make the difference 2
+        // and force the attacker to retreat and not enter the embattled area
+        return combatStrengthEnemy - combatStrengthVsbHolder == 3;
+      } else if (combat.attackerHouseCard == houseCard) {
+        // return true if the difference in combat strength is exactly 2
+        // so VSB holder could use the VSB to make the difference 3
+        // and prevent being forced to retreat as victorious defender
+        return combatStrengthVsbHolder - combatStrengthEnemy == 2;
+      }
+    }
+
+    throw new Error("Unexpected state in forcesValyrianSteelBladeDecision");
   }
 }

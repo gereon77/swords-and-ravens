@@ -1,0 +1,94 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+#nullable disable
+
+using agot_bg_website.Domain;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace agot_bg_website.Areas.Identity.Pages.Account.Manage
+{
+    public class TwoFactorAuthenticationModel(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        ILogger<TwoFactorAuthenticationModel> logger
+    ) : PageModel
+    {
+        private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+        private readonly ILogger<TwoFactorAuthenticationModel> _logger = logger;
+
+        /// <summary>
+        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        public bool HasAuthenticator { get; set; }
+
+        /// <summary>
+        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        public int RecoveryCodesLeft { get; set; }
+
+        /// <summary>
+        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        [BindProperty]
+        public bool Is2faEnabled { get; set; }
+
+        /// <summary>
+        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        public bool IsMachineRemembered { get; set; }
+
+        /// <summary>
+        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        [TempData]
+        public string StatusMessage { get; set; }
+
+        public async Task<IActionResult> OnGetAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+            }
+
+            // 2FA is only available for accounts with a local password - accounts that only ever
+            // sign in via an external provider (Google/Discord/Facebook) have no way to prove
+            // possession of a second factor independent of that provider, so don't let them reach
+            // this page at all (see _ManageNav.cshtml, which already hides the nav link for these
+            // accounts - this is the matching server-side guard against direct navigation).
+            if (!await _userManager.HasPasswordAsync(user))
+            {
+                return RedirectToPage("./Index");
+            }
+
+            HasAuthenticator = await _userManager.GetAuthenticatorKeyAsync(user) != null;
+            Is2faEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
+            IsMachineRemembered = await _signInManager.IsTwoFactorClientRememberedAsync(user);
+            RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user);
+
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+            }
+
+            await _signInManager.ForgetTwoFactorClientAsync();
+            StatusMessage =
+                "The current browser has been forgotten. When you login again from this browser you will be prompted for your 2fa code.";
+            return RedirectToPage();
+        }
+    }
+}

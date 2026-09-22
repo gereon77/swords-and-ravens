@@ -52,6 +52,7 @@ import contractImage from "../../public/images/icons/contract.svg";
 
 import CancelledGameState from "../common/cancelled-game-state/CancelledGameState";
 import DraftHouseCardsGameState from "../common/ingame-game-state/draft-game-state/draft-house-cards-game-state/DraftHouseCardsGameState";
+import SelectedRandomDraftGameState from "../common/ingame-game-state/draft-game-state/selected-random-draft-game-state/SelectedRandomDraftGameState";
 import ClashOfKingsGameState from "../common/ingame-game-state/westeros-game-state/clash-of-kings-game-state/ClashOfKingsGameState";
 import houseCardsBackImages from "./houseCardsBackImages";
 import houseInfluenceImages from "./houseInfluenceImages";
@@ -254,9 +255,11 @@ export default class IngameComponent extends Component<IngameComponentProps> {
             style={{
               maxHeight: this.gameClient.isMapScrollbarSet ? "100%" : "none",
               minWidth: this.gameSettings.playerCount >= 8 ? "485px" : "470px",
-              maxWidth: this.ingame.hasChildGameState(DraftHouseCardsGameState)
-                ? "1200px"
-                : "800px",
+              maxWidth:
+                this.ingame.hasChildGameState(DraftHouseCardsGameState) ||
+                this.ingame.hasChildGameState(SelectedRandomDraftGameState)
+                  ? "1200px"
+                  : "800px",
               width: this.gameStateColumnWidth ?? undefined
             }}
           >
@@ -267,7 +270,8 @@ export default class IngameComponent extends Component<IngameComponentProps> {
               onColumnSwapClick={(e) => this.onColumnSwap(e)}
             />
           </Col>
-          {!this.ingame.hasChildGameState(DraftHouseCardsGameState) ||
+          {(!this.ingame.hasChildGameState(DraftHouseCardsGameState) &&
+            !this.ingame.hasChildGameState(SelectedRandomDraftGameState)) ||
           this.gameClient.showMapWhileDrafting ? (
             <Col
               xs={{ span: "auto", order: columnOrder.mapColumn }}
@@ -1119,7 +1123,13 @@ export default class IngameComponent extends Component<IngameComponentProps> {
   };
 
   modifyOrdersOnMap(): [Region, PartialRecursive<OrderOnMapProperties>][] {
-    return this.ingame.ordersToBeAnimated.entries;
+    return this.ingame.orderAnimations.map((a) => [
+      a.region,
+      {
+        ...a.properties,
+        onAnimationEnd: () => this.ingame.removeOrderAnimation(a.id)
+      }
+    ]);
   }
 
   modifyUnitsOnMap(): [Unit, PartialRecursive<UnitOnMapProperties>][] {

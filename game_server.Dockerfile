@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:lts
 
 WORKDIR /app
 
@@ -10,4 +10,4 @@ COPY ./agot-bg-game-server/ .
 
 RUN yarn run generate-json-schemas
 
-CMD yarn run run-server
+CMD ["yarn", "run", "run-server"]

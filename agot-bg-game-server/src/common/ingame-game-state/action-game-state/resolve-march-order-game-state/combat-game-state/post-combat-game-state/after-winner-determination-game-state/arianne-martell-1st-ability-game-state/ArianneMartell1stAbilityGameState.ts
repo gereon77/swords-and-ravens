@@ -16,10 +16,14 @@ import SelectUnitsGameState, {
 } from "../../../../../../select-units-game-state/SelectUnitsGameState";
 import { arianneMartell1st } from "../../../../../../game-data-structure/house-card/houseCardAbilities";
 import HouseCard from "../../../../../../game-data-structure/house-card/HouseCard";
+import SimpleChoiceGameState, {
+  SerializedSimpleChoiceGameState
+} from "../../../../../../../../common/ingame-game-state/simple-choice-game-state/SimpleChoiceGameState";
 
 export default class ArianneMartell1stAbilityGameState extends GameState<
   AfterWinnerDeterminationGameState["childGameState"],
-  SelectUnitsGameState<ArianneMartell1stAbilityGameState>
+  | SimpleChoiceGameState
+  | SelectUnitsGameState<ArianneMartell1stAbilityGameState>
 > {
   house: House;
   get game(): Game {
@@ -73,15 +77,31 @@ export default class ArianneMartell1stAbilityGameState extends GameState<
       return;
     }
 
-    this.setChildGameState(new SelectUnitsGameState(this)).firstStart(
-      this.house,
-      enemyArmy,
-      1,
-      true
+    this.setChildGameState(new SimpleChoiceGameState(this)).firstStart(
+      house,
+      "",
+      ["Activate", "Ignore"]
     );
   }
 
-  onSelectUnitsEnd(house: House, selectedUnits: [Region, Unit[]][]): void {
+  onSimpleChoiceGameStateEnd(choice: number): void {
+    if (choice == 0) {
+      this.setChildGameState(new SelectUnitsGameState(this)).firstStart(
+        this.enemy,
+        this.combat.houseCombatDatas.get(this.enemy).army,
+        1
+      );
+    } else {
+      this.ingame.log({
+        type: "house-card-ability-not-used",
+        house: this.house.id,
+        houseCard: arianneMartell1st.id
+      });
+      this.parentGameState.onHouseCardResolutionFinish(this.house);
+    }
+  }
+
+  onSelectUnitsEnd(_house: House, selectedUnits: [Region, Unit[]][]): void {
     // There will only be one footman in "selectedUnit",
     // but the following code deals with the multiple units present.
     selectedUnits.forEach(([region, units]) => {
@@ -106,7 +126,7 @@ export default class ArianneMartell1stAbilityGameState extends GameState<
 
       this.ingame.log({
         type: "arianne-martell-1st-army-unit-killed",
-        house: house.id,
+        house: this.house.id,
         affectedHouse: this.enemy.id,
         unit: units[0].type.id
       });
@@ -123,7 +143,7 @@ export default class ArianneMartell1stAbilityGameState extends GameState<
       });
     }
 
-    this.parentGameState.onHouseCardResolutionFinish(house);
+    this.parentGameState.onHouseCardResolutionFinish(this.house);
   }
 
   onPlayerMessage(player: Player, message: ClientMessage): void {
@@ -165,6 +185,8 @@ export default class ArianneMartell1stAbilityGameState extends GameState<
     data: SerializedArianneMartell1stAbilityGameState["childGameState"]
   ): ArianneMartell1stAbilityGameState["childGameState"] {
     switch (data.type) {
+      case "simple-choice":
+        return SimpleChoiceGameState.deserializeFromServer(this, data);
       case "select-units":
         return SelectUnitsGameState.deserializeFromServer(this, data);
     }
@@ -174,5 +196,7 @@ export default class ArianneMartell1stAbilityGameState extends GameState<
 export interface SerializedArianneMartell1stAbilityGameState {
   type: "arianne-martell-1st-ability";
   house: string;
-  childGameState: SerializedSelectUnitsGameState;
+  childGameState:
+    | SerializedSimpleChoiceGameState
+    | SerializedSelectUnitsGameState;
 }

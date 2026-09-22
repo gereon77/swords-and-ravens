@@ -8,6 +8,7 @@ import PlanningGameState from "../common/ingame-game-state/planning-game-state/P
 import MapControls, {
   OrderOnMapProperties,
   RegionOnMapProperties,
+  UnitMoveAnimationEntry,
   UnitOnMapProperties
 } from "./MapControls";
 import { observer } from "mobx-react";
@@ -23,6 +24,7 @@ import barrelImage from "../../public/images/region-modifications/Barrel.png";
 import crownImage from "../../public/images/region-modifications/Crown.png";
 import houseOrderImages from "./houseOrderImages";
 import orderImages from "./orderImages";
+import FlipIcon from "./FlipIcon";
 import unitImages from "./unitImages";
 import classNames from "classnames";
 import housePowerTokensImages from "./housePowerTokensImages";
@@ -64,6 +66,115 @@ interface MapComponentProps {
   mapControls: MapControls;
 }
 
+interface MovingUnitProps {
+  animation: UnitMoveAnimationEntry;
+  dragonStrength: number;
+}
+
+class MovingUnit extends Component<MovingUnitProps> {
+  element = React.createRef<HTMLDivElement>();
+  sourceElement: HTMLElement | null = null;
+  animationFrame: number | null = null;
+
+  componentDidMount(): void {
+    const element = this.element.current;
+    const source = document.getElementById(
+      `map-unit-${this.props.animation.unit.id}`
+    );
+    const layer = element?.parentElement;
+
+    if (!element || !source || !layer || layer.offsetWidth == 0) {
+      return;
+    }
+
+    const layerRect = layer.getBoundingClientRect();
+    const sourceRect = source.getBoundingClientRect();
+    const scale = layerRect.width / layer.offsetWidth;
+    const sourceX =
+      (sourceRect.left + sourceRect.width / 2 - layerRect.left) / scale;
+    const sourceY =
+      (sourceRect.top + sourceRect.height / 2 - layerRect.top) / scale;
+
+    element.style.left = `${sourceX}px`;
+    element.style.top = `${sourceY}px`;
+    element.style.width = `${sourceRect.width / scale}px`;
+    element.style.height = `${sourceRect.height / scale}px`;
+    this.sourceElement = source;
+
+    // All moving pieces first record their source positions. On the next frame they leave
+    // the flex layout together, then destination placeholders settle into their final slots.
+    this.animationFrame = window.requestAnimationFrame(() => {
+      source.style.display = "none";
+      this.animationFrame = window.requestAnimationFrame(() => {
+        const target = document.getElementById(
+          `map-unit-move-target-${this.props.animation.id}`
+        );
+        if (!target) {
+          return;
+        }
+
+        const targetRect = target.getBoundingClientRect();
+        const targetX =
+          (targetRect.left + targetRect.width / 2 - layerRect.left) / scale;
+        const targetY =
+          (targetRect.top + targetRect.height / 2 - layerRect.top) / scale;
+
+        element.animate(
+          [
+            { transform: "translate(-50%, -50%) translate(0, 0)" },
+            {
+              transform: `translate(-50%, -50%) translate(${targetX - sourceX}px, ${targetY - sourceY}px)`
+            }
+          ],
+          {
+            duration: Math.max(0, this.props.animation.durationMs - 50),
+            easing: "ease-in-out",
+            fill: "forwards"
+          }
+        );
+      });
+    });
+  }
+
+  componentWillUnmount(): void {
+    if (this.animationFrame != null) {
+      window.cancelAnimationFrame(this.animationFrame);
+    }
+    if (this.sourceElement) {
+      this.sourceElement.style.display = "";
+    }
+  }
+
+  render(): ReactNode {
+    const unit = this.props.animation.unit;
+    const opacity = !unit.wounded ? 1 : unit.type == ship ? 0.5 : 0.7;
+    const transform = !unit.wounded
+      ? "none"
+      : unit.type == ship
+        ? "rotate(-38deg)"
+        : "rotate(90deg)";
+
+    return (
+      <div ref={this.element} className="moving-unit">
+        <div
+          className={classNames(
+            "unit-icon",
+            getClassNameForDragonStrength(
+              unit.type.id,
+              this.props.dragonStrength
+            )
+          )}
+          style={{
+            backgroundImage: `url(${unitImages.get(unit.allegiance.id).get(unit.upgradedType ? unit.upgradedType.id : unit.type.id)})`,
+            opacity,
+            transform
+          }}
+        />
+      </div>
+    );
+  }
+}
+
 @observer
 export default class MapComponent extends Component<MapComponentProps> {
   backgroundImage: string = westerosImage;
@@ -96,6 +207,8 @@ export default class MapComponent extends Component<MapComponentProps> {
   }
 
   render(): ReactNode {
+    void this.props.mapControls.revision;
+
     const ironBankView = this.ingame.world.ironBankView;
     const fogOfWarActive = this.ingame.fogOfWar;
     const garrisons = new BetterMap<Region, string | null>();
@@ -267,6 +380,13 @@ export default class MapComponent extends Component<MapComponentProps> {
             isVisible,
             disablePointerEventsForUnits
           )}
+          {this.ingame.unitMoveAnimations.map((animation) => (
+            <MovingUnit
+              key={`moving-unit-${animation.id}`}
+              animation={animation}
+              dragonStrength={this.ingame.game.currentDragonStrength}
+            />
+          ))}
           {this.renderOrders(allRegions, isVisible)}
           {this.renderRegionTexts(propertiesForRegions, isVisible)}
           {this.renderIronBankInfos(ironBankView)}
@@ -290,13 +410,10 @@ export default class MapComponent extends Component<MapComponentProps> {
     fogOfWarActive: boolean,
     isVisible: (region: Region) => boolean
   ): ReactNode[] {
-    let markers = _.unionBy(
-      propertiesForUnits.entries
-        .filter(([_u, uprop]) => uprop.targetRegion != undefined)
-        .map(([u, uprop]) => [u, uprop.targetRegion] as [Unit, Region]),
-      this.ingame.marchMarkers.entries,
-      ([u, _r]) => u.id
-    ).filter(([u, r]) => u.region != r);
+    let markers = propertiesForUnits.entries
+      .filter(([_u, uprop]) => uprop.targetRegion != undefined)
+      .map(([u, uprop]) => [u, uprop.targetRegion] as [Unit, Region])
+      .filter(([u, r]) => u.region != r);
 
     markers = fogOfWarActive
       ? markers.filter(([u, r]) => isVisible(u.region) && isVisible(r))
@@ -590,6 +707,9 @@ export default class MapComponent extends Component<MapComponentProps> {
               const clickable = property.onClick != undefined;
               const dragonStrength =
                 u.type.id == "dragon" ? currentDragonStrength : -1;
+              const isMoving = this.ingame.unitMoveAnimations.some(
+                (animation) => animation.unit == u
+              );
 
               return (
                 <OverlayTrigger
@@ -618,6 +738,7 @@ export default class MapComponent extends Component<MapComponentProps> {
                   popperConfig={{ modifiers: [preventOverflow] }}
                 >
                   <div
+                    id={`map-unit-${u.id}`}
                     onClick={property.onClick ? property.onClick : undefined}
                     className={classNames(
                       "unit-icon",
@@ -650,7 +771,8 @@ export default class MapComponent extends Component<MapComponentProps> {
                           disablePointerEventsForCurrentRegion,
                         "pulsate-bck": property.animateAttention,
                         "pulsate-bck_fade-in": property.animateFadeIn,
-                        "pulsate-bck_fade-out": property.animateFadeOut
+                        "pulsate-bck_fade-out": property.animateFadeOut,
+                        "v-hidden": isMoving
                       },
                       getClassNameForDragonStrength(u.type.id, dragonStrength)
                     )}
@@ -668,6 +790,22 @@ export default class MapComponent extends Component<MapComponentProps> {
                 </OverlayTrigger>
               );
             })}
+          {this.ingame.unitMoveAnimations
+            .filter((animation) => animation.to == r)
+            .map((animation) => (
+              <div
+                id={`map-unit-move-target-${animation.id}`}
+                key={`map-unit-move-target-${animation.id}`}
+                className={classNames(
+                  "unit-icon",
+                  "v-hidden",
+                  getClassNameForDragonStrength(
+                    animation.unit.type.id,
+                    currentDragonStrength
+                  )
+                )}
+              />
+            ))}
           {garrisons.has(r) && (
             <OverlayTrigger
               overlay={
@@ -830,25 +968,47 @@ export default class MapComponent extends Component<MapComponentProps> {
         order = orderPresent ? this.ingame.ordersOnBoard.get(region) : null;
       }
 
-      // Check if we need to animate flip:
+      // Check if we need to animate flip. `properties` is already the merge of all
+      // modifyOrdersOnMap contributors for this region, so this picks up any pending
+      // order-reveal animation for it without querying orderAnimations directly.
       if (!orderPresent) {
-        orderPresent =
-          this.ingame.ordersToBeAnimated.tryGet(region, null)?.animateFlip ??
-          false;
+        orderPresent = properties.animateFlip ?? false;
       }
 
       if (orderPresent) {
-        let backgroundUrl: string | null = null;
+        const revealedUrl =
+          order != null ? orderImages.get(order.type.id) : null;
+        const controller = this.allRegionsWithControllers.get(region);
+        const hiddenUrl = controller
+          ? houseOrderImages.get(controller.id)
+          : null;
 
-        if (order != null) {
-          backgroundUrl = orderImages.get(order.type.id);
-        } else {
-          const controller = this.allRegionsWithControllers.get(region);
-          if (controller) {
-            backgroundUrl = houseOrderImages.get(controller.id);
-          }
+        if (properties.animateFlip && hiddenUrl && revealedUrl) {
+          // A real 3D flip needs both faces up front: the hidden, house-colored order back
+          // (front face) and the already-revealed order (back face). ordersOnBoard is updated
+          // immediately on "reveal-orders" (see IngameGameState), so both are available as
+          // soon as the flip animation starts.
+          //
+          // Other still-mounting-out contributors (e.g. PlaceOrdersComponent) may still be
+          // highlighting this exact region as "clickable to remove" for a brief moment while
+          // the flip plays, since their unmount can lag behind the "reveal-orders" message.
+          // Explicitly drop those interactive/highlight properties for the duration of the
+          // flip so the order never looks clickable while it's being revealed.
+          return this.renderOrder(
+            region,
+            order,
+            hiddenUrl,
+            {
+              ...properties,
+              highlight: undefined,
+              onClick: undefined,
+              wrap: undefined
+            },
+            revealedUrl
+          );
         }
 
+        const backgroundUrl = revealedUrl ?? hiddenUrl;
         if (backgroundUrl) {
           return this.renderOrder(region, order, backgroundUrl, properties);
         }
@@ -898,7 +1058,8 @@ export default class MapComponent extends Component<MapComponentProps> {
     region: Region,
     order: Order | null,
     backgroundUrl: string,
-    properties: OrderOnMapProperties
+    properties: OrderOnMapProperties,
+    flipToBackgroundUrl?: string
   ): ReactNode {
     let planningOrAction =
       this.ingame.childGameState instanceof PlanningGameState ||
@@ -1004,17 +1165,22 @@ export default class MapComponent extends Component<MapComponentProps> {
           key={`map-order-container-key_${region.id}`}
           id={`map-order-container_${region.id}`}
         >
-          <div
-            style={{
-              backgroundImage: `url(${backgroundUrl})`,
-              borderColor: color
-            }}
-            className={classNames(`order-icon ${placeAnimation}`, {
+          <FlipIcon
+            // Force a fresh mount whenever this region enters or leaves flip mode, otherwise
+            // React would reuse the same FlipIcon instance across the flip-scene <-> flat
+            // fallback markup, which are structurally different (backface-visibility scene vs
+            // a single flat div).
+            key={`order-icon_${region.id}_${flipToBackgroundUrl ? "flip" : "static"}`}
+            frontImage={backgroundUrl}
+            backImage={flipToBackgroundUrl}
+            boxClassName="order-icon"
+            style={{ borderColor: color }}
+            className={classNames(placeAnimation, {
               "order-border": drawBorder,
               "pulsate-bck": properties.animateAttention,
-              "pulsate-bck_fade-out": properties.animateFadeOut,
-              "flip-vertical-right": properties.animateFlip
+              "pulsate-bck_fade-out": properties.animateFadeOut
             })}
+            onAnimationEnd={properties.onAnimationEnd}
           />
         </div>
       </ConditionalWrap>

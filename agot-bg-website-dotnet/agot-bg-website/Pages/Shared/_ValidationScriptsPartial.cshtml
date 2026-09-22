@@ -1,0 +1,17 @@
+﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script nonce="@Context.GetCspNonce()">
+    // jquery.validate.unobtrusive's built-in "regex" method builds `new RegExp(params)` without the
+    // "u" flag, so Unicode property escapes like \p{L}/\p{Nd} (used by UsernamePolicy.Pattern for
+    // [RegularExpression] attributes) aren't recognized by the browser and are matched literally as
+    // the characters p/{/L/}/N/d - causing the pattern to reject virtually every input client-side.
+    // Re-register the method with the "u" flag so the client-side check matches the server's .NET
+    // regex behavior for Unicode letters/digits.
+    $.validator.methods.regex = function (value, element, params) {
+        if (this.optional(element)) {
+            return true;
+        }
+        var match = new RegExp(params, "u").exec(value);
+        return match != null && match.index === 0 && match[0].length === value.length;
+    };
+</script>

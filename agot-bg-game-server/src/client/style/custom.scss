@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $grid-gutter-width: 1rem;
 $grid-breakpoints: (
   xs: 0,
@@ -5,7 +7,7 @@ $grid-breakpoints: (
   md: 768px,
   lg: 992px,
   xl: 1800px,
-  xxl: 2290px,
+  xxl: 2290px
 );
 
 $container-max-widths: (
@@ -13,7 +15,7 @@ $container-max-widths: (
   md: 720px,
   lg: 960px,
   xl: 1800px,
-  xxl: 2290px,
+  xxl: 2290px
 );
 
 @import "./theme/_variables";
@@ -62,7 +64,7 @@ strong {
 }
 
 .stackable {
-  margin-bottom: $grid-gutter-width / 2;
+  margin-bottom: math.div($grid-gutter-width, 2);
 }
 
 .map .order-container {
@@ -144,6 +146,51 @@ strong {
   filter: none;
 }
 
+// Generic real 3D flip scene, reused for both order-reveal (map order icons) and house-card
+// reveal (combat info panel): a perspective wrapper around a flipper that rotates around the Y
+// axis, with front (hidden back side) and back (revealed side) faces stacked via
+// backface-visibility. The image swap happens purely through the 3D rotation, never by
+// abruptly replacing a background image mid-animation. Box sizing (width/height/background)
+// comes from whatever box class (e.g. "order-icon", "vertical-game-card small") is combined
+// with these; perspective is set per-instance via inline style since it should scale with the
+// element's own size.
+.flip-scene {
+  position: relative;
+}
+
+// A self-contained CSS keyframe animation (rather than a JS-driven "un-flipped -> flipped"
+// class toggle after mount) so the flip always auto-plays as soon as this element exists,
+// robust to the surrounding UI remounting this element partway (e.g. CombatComponent remounts
+// its whole subtree on every combat-related server message).
+.flip-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: flip-reveal 2.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) both;
+}
+
+@keyframes flip-reveal {
+  from {
+    transform: rotateY(0);
+  }
+  to {
+    transform: rotateY(180deg);
+  }
+}
+
+.flip-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-face-back {
+  transform: rotateY(180deg);
+}
+
 .iron-bank-content {
   background-size: contain;
   background-position: center;
@@ -183,6 +230,13 @@ strong {
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+.moving-unit {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .unit-icon.baby-dragon {

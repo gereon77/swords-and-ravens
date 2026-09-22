@@ -248,27 +248,36 @@ export default class ActionGameState extends GameState<
       if (order) {
         this.ordersOnBoard.set(region, order);
         if (message.animate && !this.ingame.fogOfWar) {
-          this.ingame.ordersToBeAnimated.set(region, {
-            highlight: { active: true, color: message.animate },
-            animateAttention: true
-          });
-          window.setTimeout(() => {
-            this.ingame.ordersToBeAnimated.delete(region);
-          }, 3000);
+          // pulsate-bck is an infinite CSS animation with no natural "animationend", so its
+          // fallback timeout is the only thing that ever clears it.
+          this.ingame.addOrderAnimation(
+            region,
+            {
+              highlight: { active: true, color: message.animate },
+              animateAttention: true
+            },
+            3000
+          );
         }
       } else {
         if (this.ordersOnBoard.has(region)) {
           if (message.animate && !this.ingame.fogOfWar) {
-            this.ingame.ordersToBeAnimated.set(region, {
-              highlight: { active: true, color: message.animate },
-              animateFadeOut: true
-            });
+            // The order stays on the board for the duration of the fade-out animation. This is
+            // independent of the animation entry's own cleanup (see addOrderAnimation), so a
+            // slow/missed animationend event can no longer delay removing the order from data.
             window.setTimeout(() => {
-              this.ingame.ordersToBeAnimated.delete(region);
-              this.ordersOnBoard.delete(region);
+              this.ordersOnBoard.tryDelete(region);
             }, 4000);
+            this.ingame.addOrderAnimation(
+              region,
+              {
+                highlight: { active: true, color: message.animate },
+                animateFadeOut: true
+              },
+              5000
+            );
           } else {
-            this.ordersOnBoard.delete(region);
+            this.ordersOnBoard.tryDelete(region);
           }
         }
       }

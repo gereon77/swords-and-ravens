@@ -1,0 +1,97 @@
+﻿@page
+@model ExternalLoginsModel
+@{
+    ViewData["Title"] = "Manage your external logins";
+    ViewData["ActivePage"] = ManageNavPages.ExternalLogins;
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+@if (Model.CurrentLogins?.Count > 0)
+{
+    <h3>Registered Logins</h3>
+    <table class="table">
+        <tbody>
+            @foreach (var login in Model.CurrentLogins)
+            {
+                <tr>
+                    <td id="@($"login-provider-{login.LoginProvider}")">@login.ProviderDisplayName</td>
+                    <td>
+                        @if (Model.ShowRemoveButton)
+                        {
+                            <form id="@($"remove-login-{login.LoginProvider}")" asp-page-handler="RemoveLogin" method="post">
+                                <div>
+                                    <input asp-for="@login.LoginProvider" name="LoginProvider" type="hidden" />
+                                    <input asp-for="@login.ProviderKey" name="ProviderKey" type="hidden" />
+                                    <button type="submit" class="btn btn-primary" title="Remove this @login.ProviderDisplayName login from your account">Remove</button>
+                                </div>
+                            </form>
+                        }
+                        else
+                        {
+                            @: &nbsp;
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@if (Model.OtherLogins?.Count > 0)
+{
+    <h4>Add another service to log in.</h4>
+    <hr class="mb-4" />
+    <form id="link-login-form" asp-page-handler="LinkLogin" method="post" class="form-horizontal">
+        <div id="socialLoginList" class="flex flex-col gap-3" style="max-width: 22rem;">
+            @foreach (var provider in Model.OtherLogins)
+            {
+                var providerKey = provider.Name.ToLowerInvariant();
+                var providerLabel = provider.DisplayName ?? provider.Name;
+                var brandColor = providerKey switch
+                {
+                    "google" => "#DB4437",
+                    "discord" => "#7289DA",
+                    "facebook" => "#1877F2",
+                    _ => "#8a1f2b"
+                };
+                var borderColor = providerKey switch
+                {
+                    "discord" => "rgba(0,0,0,.2)",
+                    _ => "rgba(0,0,0,.18)"
+                };
+                var iconClass = providerKey switch
+                {
+                    "google" => "fa-brands fa-google",
+                    "discord" => "fa-brands fa-discord",
+                    "facebook" => "fa-brands fa-facebook",
+                    _ => "fa-solid fa-right-to-bracket"
+                };
+                var iconContainerClass = providerKey == "google"
+                    ? "absolute left-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-xl shadow-sm"
+                    : "absolute left-5 inline-flex h-8 w-8 items-center justify-center text-2xl";
+                var iconStyle = providerKey == "google"
+                    ? "color: #DB4437; top: 50%; transform: translateY(-50%);"
+                    : "color: #ffffff; top: 50%; transform: translateY(-50%);";
+
+                <button id="@($"link-login-button-{provider.Name}")"
+                        type="submit"
+                        class="btn btn-lg relative w-full justify-center px-5 text-white shadow-md transition hover:brightness-90"
+                        style="background-color: @brandColor; border-color: @borderColor;"
+                        name="provider"
+                        value="@provider.Name"
+                        title="Link your @providerLabel account">
+                    <span class="@iconContainerClass" style="@iconStyle" aria-hidden="true">
+                        <i class="@iconClass"></i>
+                    </span>
+                    <span class="font-semibold normal-case tracking-wide">Link @providerLabel</span>
+                </button>
+            }
+        </div>
+    </form>
+}
+else if (Model.CurrentLogins?.Count > 0)
+{
+    <p class="text-muted mt-4">
+        Your account is already linked to an external login. Remove it above if you want to link a different provider instead —
+        only one external login can be linked per account.
+    </p>
+}
