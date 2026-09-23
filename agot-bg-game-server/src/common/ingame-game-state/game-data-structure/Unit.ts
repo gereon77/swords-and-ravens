@@ -57,7 +57,7 @@ export default class Unit {
     return {
       id: this.id,
       type: this.type.id,
-      wounded: this.wounded,
+      wounded: this.wounded ? true : undefined,
       allegiance: this.allegiance.id
     };
   }
@@ -68,7 +68,7 @@ export default class Unit {
 
     const unit = new Unit(data.id, type, allegiance);
 
-    unit.wounded = data.wounded;
+    unit.wounded = data.wounded ? true : false;
 
     return unit;
   }
@@ -77,7 +77,7 @@ export default class Unit {
 export interface SerializedUnit {
   id: number;
   type: string;
-  wounded: boolean;
+  wounded?: boolean;
   allegiance: string;
 }
 
