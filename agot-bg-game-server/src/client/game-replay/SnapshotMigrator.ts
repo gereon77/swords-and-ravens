@@ -11,6 +11,8 @@ import CombatSnapshotMigrator, {
   CombatResultData
 } from "./CombatSnapshotMigrator";
 import { GameSettings } from "../../common/GameSettings";
+import BetterMap from "../../utils/BetterMap";
+import IGameSnapshot from "./IGameSnapshot";
 
 export default class SnapshotMigrator {
   private ingame: IngameGameState;
@@ -26,6 +28,7 @@ export default class SnapshotMigrator {
     attackerArmy: string[];
   } | null = null;
   combatResultData: CombatResultData | null = null;
+  loanCostsPerHouse: BetterMap<string, number>;
 
   private get supplyRestrictions(): number[][] {
     return this.ingame.game.supplyRestrictions;
@@ -35,8 +38,26 @@ export default class SnapshotMigrator {
     return this.ingame.entireGame.gameSettings;
   }
 
-  constructor(ingame: IngameGameState) {
+  constructor(
+    ingame: IngameGameState,
+    nearestOrdersRevealedSnapshot?: IGameSnapshot
+  ) {
     this.ingame = ingame;
+    this.loanCostsPerHouse = new BetterMap();
+
+    if (nearestOrdersRevealedSnapshot) {
+      if (nearestOrdersRevealedSnapshot.ironBank?.interestCosts) {
+        this.loanCostsPerHouse.setRange(
+          nearestOrdersRevealedSnapshot.ironBank.interestCosts
+        );
+      }
+
+      nearestOrdersRevealedSnapshot.housesOnVictoryTrack.forEach((house) => {
+        if (!this.loanCostsPerHouse.has(house.id)) {
+          this.loanCostsPerHouse.set(house.id, 0);
+        }
+      });
+    }
   }
 
   applyLogEvent(
@@ -545,6 +566,18 @@ export default class SnapshotMigrator {
         if (!snap.gameSnapshot) return snap;
         const house = snap.getHouse(log.house);
         house.removePowerTokens(log.paid);
+        if (!snap.gameSnapshot.ironBank) return snap;
+        if (!snap.gameSnapshot.ironBank.interestCosts) {
+          snap.gameSnapshot.ironBank.interestCosts = [];
+        }
+        const costsOfHouse = snap.gameSnapshot.ironBank.interestCosts.find(
+          (cost) => cost[0] === log.house
+        );
+        if (costsOfHouse) {
+          costsOfHouse[1] = this.loanCostsPerHouse.get(log.house) + 1;
+        } else {
+          snap.gameSnapshot.ironBank.interestCosts.push([log.house, 1]);
+        }
         return snap;
       }
 
