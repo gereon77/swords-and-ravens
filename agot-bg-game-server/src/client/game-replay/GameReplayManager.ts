@@ -14,6 +14,7 @@ import SnapshotMigrator from "./SnapshotMigrator";
 import StaticRegion from "../../common/ingame-game-state/game-data-structure/static-data-structure/StaticRegion";
 import Game from "../../common/ingame-game-state/game-data-structure/Game";
 import SnapshotHighlighter from "./SnapshotHighlighter";
+import IGameSnapshot from "./IGameSnapshot";
 
 function filterArrayByThreshold(arr: number[], threshold: number): void {
   if (arr.length < 2) return;
@@ -88,13 +89,24 @@ export default class GameReplayManager {
       return;
     }
 
+    // Only needed to correctly restore IronBank interest costs (see SnapshotMigrator).
+    // Skip it entirely for games without the IronBank, as no "loan-purchased" log can occur there.
+    // We read the raw gameSnapshot directly instead of building a full EntireGameSnapshot,
+    // since only the ironBank/housesOnVictoryTrack fields are needed here.
+    const nearestOrdersRevealedSnapshot = this.entireGame.gameSettings.ironBank
+      ? this.findNearestOrdersRevealedGameSnapshot(logs, reversedIndex)
+      : undefined;
+
     let snap = nearestLogSnapshot.snap.getCopy();
     const originalIndex = nearestLogSnapshot.originalIndex;
 
     const thresholdForSavingSeenSnaps = 10;
     let snapCount = 0;
 
-    this.migrator = new SnapshotMigrator(this.ingame);
+    this.migrator = new SnapshotMigrator(
+      this.ingame,
+      nearestOrdersRevealedSnapshot
+    );
 
     for (let i = originalIndex + 1; i <= index; i++) {
       const log = this.logManager.logs[i].data;
@@ -224,6 +236,22 @@ export default class GameReplayManager {
   toggleControlledAreasHighlighting(): void {
     this.highlightHouseAreas = !this.highlightHouseAreas;
     this.highlighter.hightlightRelevantAreas();
+  }
+
+  // Returns the raw gameSnapshot of the nearest "orders-revealed" log at or before `index`,
+  // mirroring the log lookup in findNearestLogSnapshot without constructing a full
+  // EntireGameSnapshot (i.e. without mapping every region on the map).
+  private findNearestOrdersRevealedGameSnapshot(
+    logs: GameLog[],
+    reversedIndex: number
+  ): IGameSnapshot | undefined {
+    const log =
+      reversedIndex >= 0
+        ? logs[reversedIndex].data
+        : this.logManager.logs.find((l) => l.data.type == "orders-revealed")
+            ?.data;
+
+    return log?.type == "orders-revealed" ? log.gameSnapshot : undefined;
   }
 
   private findNearestLogSnapshot(
