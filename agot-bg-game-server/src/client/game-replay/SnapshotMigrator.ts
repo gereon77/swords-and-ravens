@@ -602,6 +602,13 @@ export default class SnapshotMigrator {
       case "pyromancer-executed": {
         const region = snap.getRegion(log.region);
         region.castleModifier = -1;
+        if (log.upgradeType == "Barrel") {
+          if (!region.barrelModifier) region.barrelModifier = 0;
+          region.barrelModifier++;
+        } else if (log.upgradeType == "Crown") {
+          if (!region.crownModifier) region.crownModifier = 0;
+          region.crownModifier++;
+        }
         return snap;
       }
 
