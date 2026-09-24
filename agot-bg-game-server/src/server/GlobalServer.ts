@@ -25,6 +25,11 @@ export default class GlobalServer {
 
   websiteClient: WebsiteClient;
   loadedGames = new BetterMap<string, EntireGame>();
+
+  // In-flight getEntireGame() loads, keyed by gameId. Used to make concurrent loads of the same
+  // not-yet-loaded game single-flight (see the comment in getEntireGame() for why this matters).
+  gameLoads = new Map<string, Promise<EntireGame | null>>();
+
   clientToUser = new BetterMap<WebSocket, User>();
   clientMessageValidator: ValidateFunction;
   debug = false;
@@ -494,7 +499,34 @@ export default class GlobalServer {
       return entireGame;
     }
 
-    // Otherwise, try to fetch it in the database
+    // Loading a game involves several `await`s (fetching it from the website, restarting its
+    // live-clock timers, checking for moderator cancellation) before it's registered in
+    // `loadedGames`. Without the single-flight guard below, multiple concurrent callers for the
+    // same not-yet-loaded gameId - e.g. every player of a live-clock game reconnecting at once
+    // right after a deploy - could each pass the `has()` check above before any of them finishes,
+    // each independently constructing its own EntireGame instance for the same game. A connecting
+    // player's socket is bound permanently to whichever instance handled its `authenticate`
+    // message (see `user.entireGame`), so a losing instance doesn't just get discarded: it stays
+    // alive, still ticking real live-clock timers, unattended, and can eventually save its (stale)
+    // state over the real game, since `gameSaveSequences` is keyed only by gameId and shared by
+    // every instance in the process. Making concurrent loads single-flight avoids ever creating
+    // more than one instance for the same game.
+    const existingLoad = this.gameLoads.get(gameId);
+    if (existingLoad) {
+      return existingLoad;
+    }
+
+    const loadPromise = this.loadEntireGame(gameId);
+    this.gameLoads.set(gameId, loadPromise);
+    try {
+      return await loadPromise;
+    } finally {
+      this.gameLoads.delete(gameId);
+    }
+  }
+
+  private async loadEntireGame(gameId: string): Promise<EntireGame | null> {
+    // Try to fetch it from the database
     const gameData = await this.websiteClient.getGame(gameId);
     if (!gameData) {
       return null;
@@ -810,7 +842,10 @@ export default class GlobalServer {
     if (entireGame.gameSettings.onlyLive && entireGame.ingameGameState) {
       const ingame = entireGame.ingameGameState;
       if (!ingame.isEndedOrCancelled) {
-        // Do not unload running clock games until they are finished
+        console.warn(
+          "Tried to unload live clock game that is still running: " +
+            entireGame.id
+        );
         return;
       }
     }
@@ -818,7 +853,10 @@ export default class GlobalServer {
     if (
       entireGame.users.values.map((u) => u.connectedClients).flat().length > 0
     ) {
-      // Don't unload games that are still connected to clients
+      console.warn(
+        "Tried to unload game that still has connected clients: " +
+          entireGame.id
+      );
       return;
     }
 
@@ -831,6 +869,7 @@ export default class GlobalServer {
     // Save the game before unloading but not if it is a cancelled lobby game
     if (!(entireGame.childGameState instanceof CancelledGameState)) {
       entireGame.onSaveGame(false);
+      entireGame.flushSaveGame();
     }
 
     entireGame.onSendClientMessage = undefined;
@@ -867,7 +906,7 @@ export default class GlobalServer {
           if (
             (game.gameSettings.pbem && secondsSinceLastIncomingMessage >= 60) ||
             (!game.gameSettings.pbem &&
-              secondsSinceLastIncomingMessage >= 35 * 60)
+              secondsSinceLastIncomingMessage >= 20 * 60)
           ) {
             this.unloadGame(game);
           }
