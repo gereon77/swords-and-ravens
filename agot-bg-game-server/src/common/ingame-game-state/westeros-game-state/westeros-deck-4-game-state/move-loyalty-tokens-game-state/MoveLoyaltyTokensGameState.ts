@@ -160,19 +160,14 @@ export default class MoveLoyaltyTokensGameState extends GameState<
       throw new Error("Tried to move a loyalty token which doesn't exist!");
     }
 
-    regionFrom.loyaltyTokens -= 1;
-    regionTo.loyaltyTokens += 1;
+    regionFrom.loyaltyTokens--;
+    regionTo.loyaltyTokens++;
 
+    // Sent as a single message so the client can apply both region changes atomically
     this.entireGame.broadcastToClients({
-      type: "loyalty-token-placed",
-      region: regionFrom.id,
-      newLoyaltyTokenCount: regionFrom.loyaltyTokens
-    });
-
-    this.entireGame.broadcastToClients({
-      type: "loyalty-token-placed",
-      region: regionTo.id,
-      newLoyaltyTokenCount: regionTo.loyaltyTokens
+      type: "loyalty-token-moved",
+      from: regionFrom.id,
+      to: regionTo.id
     });
   }
 
