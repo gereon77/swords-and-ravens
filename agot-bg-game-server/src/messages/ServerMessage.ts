@@ -82,6 +82,7 @@ export type ServerMessage =
   | UpdateOldPlayerHouseCards
   | LoyaltyTokenGained
   | LoyaltyTokenPlaced
+  | LoyaltyTokenMoved
   | DrangonStrengthTokenRemoved
   | UpdateLoanCards
   | UpdateRegionModifiers
@@ -488,6 +489,12 @@ interface LoyaltyTokenPlaced {
   type: "loyalty-token-placed";
   region: string;
   newLoyaltyTokenCount: number;
+}
+
+interface LoyaltyTokenMoved {
+  type: "loyalty-token-moved";
+  from: string;
+  to: string;
 }
 
 interface DrangonStrengthTokenRemoved {
