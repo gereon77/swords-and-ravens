@@ -204,7 +204,10 @@ export default class GlobalServer {
         allConnectedGamesOfUser.length >= 2 &&
         allConnectedGamesOfUser[0].connectedClients.length > 0
       ) {
-        allConnectedGamesOfUser[0].connectedClients[0].close();
+        this.disconnectClient(
+          allConnectedGamesOfUser[0].connectedClients[0],
+          allConnectedGamesOfUser[0]
+        );
       }
 
       this.clientToUser.set(client, user);
@@ -737,6 +740,34 @@ export default class GlobalServer {
       this.clientToUser.delete(client);
 
       user.updateConnectionStatus();
+    }
+  }
+
+  /**
+   * Purges the client's bookkeeping immediately instead of waiting for the async "close" event,
+   * so a client whose close handshake never completes (e.g. swallowed by a proxy, or a
+   * backgrounded tab that never processes it) can't keep counting as "connected" and let a user
+   * evade the per-user connection limit forever.
+   */
+  disconnectClient(client: WebSocket, user: User): void {
+    const ix = user.connectedClients.indexOf(client);
+    if (ix >= 0) {
+      user.connectedClients.splice(ix, 1);
+    }
+    this.clientToUser.delete(client);
+    user.updateConnectionStatus();
+
+    if (
+      client.readyState == WebSocket.OPEN ||
+      client.readyState == WebSocket.CONNECTING
+    ) {
+      client.close();
+      // Fallback in case the close handshake never reaches this client (e.g. dropped by a proxy).
+      setTimeout(() => {
+        if (client.readyState != WebSocket.CLOSED) {
+          client.terminate();
+        }
+      }, 5000);
     }
   }
 
