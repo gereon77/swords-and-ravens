@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Aumentará en la ronda<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Fuerza actual de los dragones",
     "theWildlingDeck090e33": "El mazo de los salvajes",
+
+    "usedWildlingCards3dcd43": "Ya usadas",
+    "remainingWildlingCardsc7dd4e": "Cartas restantes",
+
+    "noWildlingCardsUsedYet93f013": "Aún no se ha usado ninguna carta de los salvajes.",
     "topWildingCard5070eb": "Primera carta de los salvajes",
     "deckdede0b": "Mazo {{deckNumber}}",
     "remainingWesterosCards47a43b": "Cartas de Westeros restantes",

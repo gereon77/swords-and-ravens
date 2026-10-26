@@ -1052,6 +1052,11 @@
     "willIncreaseInRound7dd1c1": "Збільшиться в раунді<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Поточна сила дракона",
     "theWildlingDeck090e33": "Колода дикунів",
+
+    "usedWildlingCards3dcd43": "Уже використані",
+    "remainingWildlingCardsc7dd4e": "Карти, що залишилися",
+
+    "noWildlingCardsUsedYet93f013": "Карт дикунів ще не використовували.",
     "topWildingCard5070eb": "Верхня карта дикунів",
     "deckdede0b": "Колода {{deckNumber}}",
     "remainingWesterosCards47a43b": "Карти Вестероса, що залишилися",

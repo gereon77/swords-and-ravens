@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Augmentera au tour<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Force actuelle des dragons",
     "theWildlingDeck090e33": "Le paquet Sauvageons",
+
+    "usedWildlingCards3dcd43": "Déjà utilisées",
+    "remainingWildlingCardsc7dd4e": "Cartes restantes",
+
+    "noWildlingCardsUsedYet93f013": "Aucune carte sauvage n’a encore été utilisée.",
     "topWildingCard5070eb": "Première carte Sauvageons",
     "deckdede0b": "Paquet {{deckNumber}}",
     "remainingWesterosCards47a43b": "Cartes Westeros restantes",

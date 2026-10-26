@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": " növelés forduló<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Jelenlegi Sárkány Erő",
     "theWildlingDeck090e33": " Vad Pakli",
+
+    "usedWildlingCards3dcd43": "Már felhasznált",
+    "remainingWildlingCardsc7dd4e": "Hátralévő kártyák",
+
+    "noWildlingCardsUsedYet93f013": "Még egyetlen vadkártyát sem használtak fel.",
     "topWildingCard5070eb": "Felső vad Kártya",
     "deckdede0b": "Pakli {{deckNumber}}",
     "remainingWesterosCards47a43b": "Megmaradt Westeros Kártyák",

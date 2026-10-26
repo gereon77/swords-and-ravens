@@ -1052,6 +1052,11 @@
     "willIncreaseInRound7dd1c1": "Wzrośnie w rundzie<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Aktualna siła smoka",
     "theWildlingDeck090e33": "Talia Dzikich",
+
+    "usedWildlingCards3dcd43": "Już użyte",
+    "remainingWildlingCardsc7dd4e": "Pozostałe karty",
+
+    "noWildlingCardsUsedYet93f013": "Nie użyto jeszcze żadnych kart Dzikich.",
     "topWildingCard5070eb": "Wierzchnia karta Dzikich",
     "deckdede0b": "Talia {{deckNumber}}",
     "remainingWesterosCards47a43b": "Pozostałe karty Westeros",

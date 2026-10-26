@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "増加するラウンド：<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "現在のドラゴンの強さ",
     "theWildlingDeck090e33": "野人デッキ",
+
+    "usedWildlingCards3dcd43": "使用済み",
+    "remainingWildlingCardsc7dd4e": "残りのカード",
+
+    "noWildlingCardsUsedYet93f013": "野人カードはまだ使用されていません。",
     "topWildingCard5070eb": "野人デッキの一番上のカード",
     "deckdede0b": "デッキ{{deckNumber}}",
     "remainingWesterosCards47a43b": "残りのWesterosカード",

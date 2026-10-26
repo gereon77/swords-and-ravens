@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Øker i runde<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Nåværende dragestyrke",
     "theWildlingDeck090e33": "Villingkortstokken",
+
+    "usedWildlingCards3dcd43": "Allerede brukt",
+    "remainingWildlingCardsc7dd4e": "Gjenværende kort",
+
+    "noWildlingCardsUsedYet93f013": "Ingen villingskort er brukt ennå.",
     "topWildingCard5070eb": "Øverste villingkort",
     "deckdede0b": "Kortstokk {{deckNumber}}",
     "remainingWesterosCards47a43b": "Gjenstående Westeros-kort",

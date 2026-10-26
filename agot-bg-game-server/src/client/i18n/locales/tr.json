@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Şu turda artacak<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Mevcut ejderha gücü",
     "theWildlingDeck090e33": "Vahşi destesi",
+
+    "usedWildlingCards3dcd43": "Kullanılanlar",
+    "remainingWildlingCardsc7dd4e": "Kalan kartlar",
+
+    "noWildlingCardsUsedYet93f013": "Henüz hiçbir Vahşi kartı kullanılmadı.",
     "topWildingCard5070eb": "En üstteki Vahşi kartı",
     "deckdede0b": "Deste {{deckNumber}}",
     "remainingWesterosCards47a43b": "Kalan Westeros kartları",

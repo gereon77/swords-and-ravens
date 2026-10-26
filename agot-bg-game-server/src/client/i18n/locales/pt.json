@@ -1033,6 +1033,11 @@
     "willIncreaseInRound7dd1c1": "Aumentará na ronda<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Força atual dos dragões",
     "theWildlingDeck090e33": "O baralho dos Selvagens",
+
+    "usedWildlingCards3dcd43": "Já usadas",
+    "remainingWildlingCardsc7dd4e": "Cartas restantes",
+
+    "noWildlingCardsUsedYet93f013": "Ainda não foi usada nenhuma carta dos Selvagens.",
     "topWildingCard5070eb": "Carta do topo do baralho dos Selvagens",
     "deckdede0b": "Baralho {{deckNumber}}",
     "remainingWesterosCards47a43b": "Cartas de Westeros restantes",

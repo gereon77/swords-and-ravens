@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": " 증가 에서 라운드<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "현재 드래곤 전투력",
     "theWildlingDeck090e33": " 야인 덱",
+
+    "usedWildlingCards3dcd43": "이미 사용됨",
+    "remainingWildlingCardsc7dd4e": "남은 카드",
+
+    "noWildlingCardsUsedYet93f013": "아직 사용된 야인 카드가 없습니다.",
     "topWildingCard5070eb": "위 야인 카드",
     "deckdede0b": "덱 {{deckNumber}}",
     "remainingWesterosCards47a43b": "남은 Westeros 카드",

@@ -1052,6 +1052,11 @@
     "willIncreaseInRound7dd1c1": "Zvýší se v kole<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Aktuální síla draka",
     "theWildlingDeck090e33": "Balíček divokých",
+
+    "usedWildlingCards3dcd43": "Již použité",
+    "remainingWildlingCardsc7dd4e": "Zbývající karty",
+
+    "noWildlingCardsUsedYet93f013": "Zatím nebyly použity žádné karty Divokých.",
     "topWildingCard5070eb": "Vrchní karta divokých",
     "deckdede0b": "Balíček {{deckNumber}}",
     "remainingWesterosCards47a43b": "Zbývající karty Westerosu",

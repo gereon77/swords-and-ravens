@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "将在以下轮次提高<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "当前龙战力",
     "theWildlingDeck090e33": "野人牌堆",
+
+    "usedWildlingCards3dcd43": "已使用",
+    "remainingWildlingCardsc7dd4e": "剩余卡牌",
+
+    "noWildlingCardsUsedYet93f013": "尚未使用任何野人卡牌。",
     "topWildingCard5070eb": "野人牌堆顶牌",
     "deckdede0b": "第 {{deckNumber}} 牌堆",
     "remainingWesterosCards47a43b": "剩余 Westeros 卡",

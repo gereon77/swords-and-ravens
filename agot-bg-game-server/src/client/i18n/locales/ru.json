@@ -1052,6 +1052,11 @@
     "willIncreaseInRound7dd1c1": "Увеличится в раунде<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Текущая сила драконов",
     "theWildlingDeck090e33": "Колода одичалых",
+
+    "usedWildlingCards3dcd43": "Уже использованы",
+    "remainingWildlingCardsc7dd4e": "Оставшиеся карты",
+
+    "noWildlingCardsUsedYet93f013": "Карты одичалых ещё не использовались.",
     "topWildingCard5070eb": "Верхняя карта одичалых",
     "deckdede0b": "Колода {{deckNumber}}",
     "remainingWesterosCards47a43b": "Оставшиеся карты Westeros",

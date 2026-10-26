@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Neemt toe in ronde<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Huidige drakenkracht",
     "theWildlingDeck090e33": "De Wildling-stapel",
+
+    "usedWildlingCards3dcd43": "Al gebruikt",
+    "remainingWildlingCardsc7dd4e": "Resterende kaarten",
+
+    "noWildlingCardsUsedYet93f013": "Er zijn nog geen Wildling-kaarten gebruikt.",
     "topWildingCard5070eb": "Bovenste Wildling-kaart",
     "deckdede0b": "Stapel {{deckNumber}}",
     "remainingWesterosCards47a43b": "Resterende Westeros-kaarten",

@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Aumenterà nel round<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Forza attuale dei draghi",
     "theWildlingDeck090e33": "Il mazzo dei Bruti",
+
+    "usedWildlingCards3dcd43": "Già usate",
+    "remainingWildlingCardsc7dd4e": "Carte rimanenti",
+
+    "noWildlingCardsUsedYet93f013": "Non è stata ancora usata alcuna carta dei Bruti.",
     "topWildingCard5070eb": "Prima carta dei Bruti",
     "deckdede0b": "Mazzo {{deckNumber}}",
     "remainingWesterosCards47a43b": "Carte Westeros rimanenti",

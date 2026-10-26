@@ -1014,6 +1014,11 @@
     "willIncreaseInRound7dd1c1": "Steigt in Runde<lineBreak/>{{rounds}}",
     "currentDragonStrengthed8478": "Aktuelle Drachenstärke",
     "theWildlingDeck090e33": "Der Wildlingskarten Stapel",
+
+    "usedWildlingCards3dcd43": "Bereits verwendet",
+    "remainingWildlingCardsc7dd4e": "Verbleibende Karten",
+
+    "noWildlingCardsUsedYet93f013": "Bisher wurden keine Wildlingskarten verwendet.",
     "topWildingCard5070eb": "Oberste Wildlingskarte",
     "deckdede0b": "Stapel {{deckNumber}}",
     "remainingWesterosCards47a43b": "Verbleibende Westeros-Karten",
