@@ -49,7 +49,7 @@ public class AccountDeletionServiceTests : IDisposable
         );
     }
 
-    private async Task<ApplicationUser> CreateUserAsync()
+    private async Task<ApplicationUser> CreateUserAsync(bool usageExpired = false)
     {
         if (!await _db.Roles.AnyAsync(r => r.Name == RoleNames.Member))
         {
@@ -71,6 +71,8 @@ public class AccountDeletionServiceTests : IDisposable
             ProfileText = "King in the North",
             LastWonTournament = "Riverrun Cup",
             CustomUserBadge = "🐺 Direwolf",
+            UsageHour = usageExpired ? null : DateTimeOffset.UtcNow,
+            UsageRequests = usageExpired ? 0 : 42,
         };
         var createResult = await _userManager.CreateAsync(user, "P@ssw0rd123!");
         Assert.True(createResult.Succeeded);
@@ -96,11 +98,50 @@ public class AccountDeletionServiceTests : IDisposable
         Assert.Null(user.ProfileText);
         Assert.Null(user.LastWonTournament);
         Assert.Null(user.CustomUserBadge);
+        Assert.Null(user.UsageHour);
+        Assert.Equal(0, user.UsageRequests);
         Assert.False(user.EmailConfirmed);
         Assert.False(user.EmailNotificationActive);
         Assert.NotEqual(originalGameToken, user.GameToken);
         Assert.Equal("Took the Black", user.DisplayName);
         Assert.Empty(await _userManager.GetRolesAsync(user));
+
+        _db.ChangeTracker.Clear();
+        var stored = await _db.Users.SingleAsync(u => u.Id == user.Id);
+        Assert.True(stored.IsDeleted);
+        Assert.Null(stored.UsageHour);
+        Assert.Equal(0, stored.UsageRequests);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task IdentitySaveDoesNotOverwriteUsageCounters(bool expired)
+    {
+        var user = await CreateUserAsync(usageExpired: expired);
+        var storedHour = user.UsageHour;
+        if (expired)
+        {
+            // Simulate an Identity object loaded before the previous-hour cleanup.
+            user.UsageHour = DateTimeOffset.UtcNow.AddHours(-1);
+            user.UsageRequests = 99;
+        }
+        else
+        {
+            // Simulate an Identity object loaded before concurrent request increments.
+            user.UsageHour = null;
+            user.UsageRequests = 0;
+        }
+        user.ProfileText = "Updated profile";
+
+        var result = await _userManager.UpdateAsync(user);
+
+        Assert.True(result.Succeeded);
+        _db.ChangeTracker.Clear();
+        var stored = await _db.Users.SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("Updated profile", stored.ProfileText);
+        Assert.Equal(storedHour, stored.UsageHour);
+        Assert.Equal(expired ? 0 : 42, stored.UsageRequests);
     }
 
     [Fact]

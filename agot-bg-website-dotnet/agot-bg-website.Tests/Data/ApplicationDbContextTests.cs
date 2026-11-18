@@ -87,4 +87,26 @@ public class ApplicationDbContextTests
 
         Assert.Empty(await db.PreviousPlayersInGame.Where(p => p.GameId == game.Id).ToListAsync());
     }
+
+    [Fact]
+    public void SynchronousSaveDoesNotOverwriteUsageCounters()
+    {
+        using var db = CreateContext(nameof(SynchronousSaveDoesNotOverwriteUsageCounters));
+        var hour = DateTimeOffset.UtcNow;
+        var user = new ApplicationUser { UsageHour = hour, UsageRequests = 42 };
+        db.Users.Add(user);
+        db.SaveChanges();
+
+        user.UsageHour = null;
+        user.UsageRequests = 0;
+        user.ProfileText = "Updated profile";
+        db.Users.Update(user);
+        db.SaveChanges();
+
+        db.ChangeTracker.Clear();
+        var stored = db.Users.Single(u => u.Id == user.Id);
+        Assert.Equal("Updated profile", stored.ProfileText);
+        Assert.Equal(hour, stored.UsageHour);
+        Assert.Equal(42, stored.UsageRequests);
+    }
 }

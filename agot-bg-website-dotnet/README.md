@@ -21,11 +21,51 @@ Postgres/Redis/SMTP.
 ## Prerequisites
 
 - .NET SDK matching `agot-bg-website/agot-bg-website.csproj`'s `<TargetFramework>` (currently
-  `net10.0`).
+  `net11.0`).
 - Docker Desktop, for Postgres + Redis (+ optionally smtp4dev for local email testing).
 - Node.js LTS (currently 24.x) and Yarn — only needed if you also want to build the real game
   client (see below); the website runs fine without it and falls back to
   `GameClientTemplates/play_fake.html`.
+
+## Request limits
+
+`agot-bg-website/appsettings.json` has a `RequestRateLimits` section. Set `Enabled` to `false`
+to disable these limits, or adjust the positive integer thresholds and restart the website. The
+defaults allow ten statistics page requests and ten user profile requests per minute per
+signed-in user (separate limits), and 60 public game API requests per minute per IP. At most four
+statistics requests run concurrently. Windows are fixed one-minute windows, with no request queue;
+rejections return HTTP 429 and a `Retry-After` header when a wait time is known. Page requests show
+a warning; the public API returns JSON.
+
+These in-memory limits are per website instance and reset on restart. The IP limit relies on the
+reverse proxy supplying a trustworthy client address. If Cloudflare or another proxy is added,
+configure trusted proxies and forwarding carefully before relying on the IP limit. This switch
+does not affect the separate registration and contact-form limits.
+
+## Usage metrics
+
+The Admin area's **Usage** page shows seven days of hourly request counts, average request
+durations, 429/5xx responses, and sampled CPU and memory for the website process. CPU is expressed
+as a percentage of one core; memory is the maximum sampled working set. These do not measure the
+game server or the whole droplet, and are not a replacement for host alerts.
+
+The in-process `prometheus-net` collector uses only fixed categories and status groups; it stores no
+account identifiers, IP addresses, paths, query strings, or individual requests. Once per minute an
+adapter writes aggregates into the existing PostgreSQL database and deletes data older than seven
+days. Collection can be disabled with `UsageMetrics:Enabled`; expiration continues while disabled.
+Data pending in memory can be lost on a crash or restart, and counts collected during a database
+outage are attributed to the hour in which they are eventually captured, not their original hours.
+There is no separate Prometheus service or publicly exposed metrics endpoint.
+
+For abuse investigation, the page also lists up to 50 authenticated accounts with the most
+website requests in the current UTC hour, including rate-limited requests. The current-hour count
+is stored on the user row in the same update as last activity and is cleared shortly after the
+hour ends while the website is running; there is no per-user history. Account deletion clears it.
+Static assets, WebSocket connections and requests denied by authorization are excluded; unauthenticated requests and
+game-server actions cannot be attributed to an account here.
+The switch disables new account counts as well as aggregate collection, but not expiration.
+Because activity tracking runs before the rate limiter, even rejected authenticated requests
+perform a database update; the rate limiter itself does not shield PostgreSQL from those writes.
 
 ## Running locally
 

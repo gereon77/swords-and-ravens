@@ -1,0 +1,92 @@
+@page
+@model agot_bg_website.Areas.Admin.Pages.Usage.IndexModel
+@{
+    ViewData["Title"] = "Admin - Usage";
+    var requests = Model.Metrics.Where(m => m.Category != "process").ToList();
+    var total = requests.Sum(m => m.Requests);
+}
+<partial name="_AdminNav" />
+
+<h1 class="text-2xl font-bold mb-4">Usage metrics</h1>
+<p class="mb-4">Last seven days, grouped by UTC hour. Metrics are flushed approximately once a minute.
+    CPU and memory describe the website process only, not the game server or the whole droplet.</p>
+@if (!Model.Enabled)
+{
+    <div class="alert alert-warning mb-4">Collection is disabled. Existing data continues to expire.</div>
+}
+<p class="mb-4">
+    Requests: @total &middot;
+    Rate limited: @requests.Where(m => m.Outcome == "429").Sum(m => m.Requests) &middot;
+    Server errors: @requests.Where(m => m.Outcome == "5xx").Sum(m => m.Requests)
+</p>
+
+<h2 class="text-xl font-semibold mb-2">Most active accounts this hour</h2>
+<p class="mb-2">Top 50 authenticated accounts since @Model.CurrentHour.ToString("yyyy-MM-dd HH:mm") UTC,
+    including rate-limited requests, but excluding static assets and WebSocket connections.
+    This does not measure activity on the game server.</p>
+<div class="overflow-x-auto mb-4">
+    <table class="table">
+        <thead><tr><th>Account</th><th>Requests</th></tr></thead>
+        <tbody>
+        @foreach (var user in Model.ActiveUsers)
+        {
+            <tr>
+                <td><a class="link" asp-area="" asp-page="/User" asp-route-id="@user.Id">@(user.UserName ?? "Unknown")</a></td>
+                <td>@user.Requests</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+@if (Model.ActiveUsers.Count == 0)
+{
+    <p class="mb-4">No account activity recorded this hour.</p>
+}
+
+<h2 class="text-xl font-semibold mb-2">Request categories</h2>
+<div class="overflow-x-auto mb-4">
+    <table class="table">
+        <thead><tr><th>Category</th><th>Requests</th><th>Rate limited</th><th>Server errors</th><th>Average duration</th></tr></thead>
+        <tbody>
+        @foreach (var group in requests.GroupBy(m => m.Category).OrderBy(g => g.Key))
+        {
+            var count = group.Sum(m => m.Requests);
+            <tr>
+                <td>@group.Key</td><td>@count</td>
+                <td>@group.Where(m => m.Outcome == "429").Sum(m => m.Requests)</td>
+                <td>@group.Where(m => m.Outcome == "5xx").Sum(m => m.Requests)</td>
+                <td>@((group.Sum(m => m.DurationSeconds) / count * 1000).ToString("F0")) ms</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="text-xl font-semibold mb-2">Hourly history</h2>
+<p class="mb-2">CPU is an average of samples; 100% means one fully used CPU core. Memory is the maximum sampled working set.</p>
+<div class="overflow-x-auto">
+    <table class="table">
+        <thead><tr><th>Hour (UTC)</th><th>Requests</th><th>Statistics</th><th>Profiles</th><th>Public API</th><th>429</th><th>5xx</th><th>Website CPU</th><th>Website memory</th></tr></thead>
+        <tbody>
+        @foreach (var hour in Model.Metrics.GroupBy(m => m.Hour).OrderByDescending(g => g.Key))
+        {
+            var sample = hour.FirstOrDefault(m => m.Category == "process");
+            <tr>
+                <td>@hour.Key.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@hour.Sum(m => m.Requests)</td>
+                <td>@hour.Where(m => m.Category == "statistics").Sum(m => m.Requests)</td>
+                <td>@hour.Where(m => m.Category == "profiles").Sum(m => m.Requests)</td>
+                <td>@hour.Where(m => m.Category == "public-api").Sum(m => m.Requests)</td>
+                <td>@hour.Where(m => m.Outcome == "429").Sum(m => m.Requests)</td>
+                <td>@hour.Where(m => m.Outcome == "5xx").Sum(m => m.Requests)</td>
+                <td>@(sample is { ProcessSamples: > 0 } ? $"{sample.ProcessCpuPercentSum / sample.ProcessSamples:F1}%" : "-")</td>
+                <td>@(sample is not null ? $"{sample.ProcessMemoryBytesMax / 1048576.0:F1} MiB" : "-")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+@if (Model.Metrics.Count == 0)
+{
+    <p>No metrics are available yet.</p>
+}

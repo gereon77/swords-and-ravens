@@ -52,7 +52,7 @@ Closing and re-reunning `run-server` will create a new game.
 
 Requires `Docker` (for Postgres/Redis/smtp4dev) and the .NET SDK matching
 `agot-bg-website-dotnet/agot-bg-website/agot-bg-website.csproj`'s `<TargetFramework>` (currently
-`net10.0`). Runs natively on Windows/macOS/Linux — no WSL2/Linux-only requirement, unlike the old
+`net11.0`). Runs natively on Windows/macOS/Linux — no WSL2/Linux-only requirement, unlike the old
 Django setup.
 
 1. **Start Postgres, Redis, and smtp4dev** (a local SMTP catcher, so no real mail account is

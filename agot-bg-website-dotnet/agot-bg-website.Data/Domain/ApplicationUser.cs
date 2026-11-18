@@ -66,6 +66,12 @@ public class ApplicationUser : IdentityUser<Guid>
     [PersonalData]
     public DateTimeOffset LastActivity { get; set; } = DateTimeOffset.UtcNow;
 
+    [PersonalData]
+    public DateTimeOffset? UsageHour { get; set; }
+
+    [PersonalData]
+    public long UsageRequests { get; set; }
+
     /// <summary>True for rows created by the Snr.Migration importer from the legacy Django database.</summary>
     public bool ImportedFromLegacy { get; set; }
 

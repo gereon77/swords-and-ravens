@@ -1,6 +1,8 @@
+using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Paging;
 using agot_bg_website.Services.Statistics;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace agot_bg_website.Pages;
 
@@ -9,6 +11,7 @@ namespace agot_bg_website.Pages;
 /// the "/Statistics" AuthorizePage convention in Program.cs. All filters are plain GET parameters
 /// normalized by <see cref="GameStatisticsFilter.Parse"/> - invalid values never cause an error.
 /// </summary>
+[EnableRateLimiting(RequestRateLimiting.StatisticsPolicy)]
 public class StatisticsModel(GameStatisticsService statistics) : PageModel
 {
     private const int DefaultPageSize = 10;

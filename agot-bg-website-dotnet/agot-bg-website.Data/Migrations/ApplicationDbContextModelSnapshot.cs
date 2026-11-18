@@ -17,7 +17,7 @@ namespace agot_bg_website.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -202,25 +202,29 @@ namespace agot_bg_website.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<bool>("EmailCombatNotificationsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailGameNotificationsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("EmailNotificationActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("EmailGameNotificationsActive")
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("EmailCombatNotificationsActive")
+                    b.Property<bool>("EmailPrivateMessageNotificationsActive")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("EmailVoteGameEndNotificationsActive")
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("EmailPrivateMessageNotificationsActive")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
@@ -279,6 +283,12 @@ namespace agot_bg_website.Data.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("UsageHour")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UsageRequests")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("UseHouseNamesForChat")
                         .HasColumnType("boolean");
 
@@ -300,6 +310,9 @@ namespace agot_bg_website.Data.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("UsageHour")
+                        .HasFilter("\"UsageHour\" IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -486,6 +499,55 @@ namespace agot_bg_website.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Rooms");
+                });
+
+            modelBuilder.Entity("agot_bg_website.Domain.UsageMetric", b =>
+                {
+                    b.Property<DateTime>("Hour")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<double>("DurationSeconds")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("ProcessCpuPercentSum")
+                        .HasColumnType("double precision");
+
+                    b.Property<long>("ProcessMemoryBytesMax")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProcessSamples")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Requests")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Hour", "Category", "Outcome");
+
+                    b.ToTable("UsageMetrics");
+                });
+
+            modelBuilder.Entity("agot_bg_website.Domain.UsageMetricBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("UsageMetricBatches");
                 });
 
             modelBuilder.Entity("agot_bg_website.Domain.UserInRoom", b =>
