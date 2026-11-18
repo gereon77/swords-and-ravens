@@ -27,6 +27,21 @@ Postgres/Redis/SMTP.
   client (see below); the website runs fine without it and falls back to
   `GameClientTemplates/play_fake.html`.
 
+## Request limits
+
+`agot-bg-website/appsettings.json` has a `RequestRateLimits` section. Set `Enabled` to `false`
+to disable these limits, or adjust the positive integer thresholds and restart the website. The
+defaults allow ten statistics page requests and ten user profile requests per minute per
+signed-in user (separate limits), and 60 public game API requests per minute per IP. At most four
+statistics requests run concurrently. Windows are fixed one-minute windows, with no request queue;
+rejections return HTTP 429 and a `Retry-After` header when a wait time is known. Page requests show
+a warning; the public API returns JSON.
+
+These in-memory limits are per website instance and reset on restart. The IP limit relies on the
+reverse proxy supplying a trustworthy client address. If Cloudflare or another proxy is added,
+configure trusted proxies and forwarding carefully before relying on the IP limit. This switch
+does not affect the separate registration and contact-form limits.
+
 ## Running locally
 
 1. **Start Postgres, Redis, and smtp4dev** from the repository root:

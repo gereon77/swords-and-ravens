@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Pages;
@@ -19,6 +20,7 @@ namespace agot_bg_website.Pages;
 /// Authenticated-only user profile, mirroring Django's agotboardgame_main.views.user_profile (route
 /// "/user/&lt;uuid:user_id&gt;", template user_profile.html) — see MIGRATION_PLAN.md §10.2/§13/§14.
 /// </summary>
+[EnableRateLimiting(RequestRateLimiting.UserPagePolicy)]
 public class UserModel(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,

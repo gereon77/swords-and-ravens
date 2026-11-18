@@ -342,6 +342,13 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/User");
 });
 
+var requestRateLimits =
+    builder.Configuration.GetSection("RequestRateLimits").Get<RequestRateLimitSettings>()
+    ?? new RequestRateLimitSettings();
+builder.Services.AddRateLimiter(options =>
+    RequestRateLimiting.Configure(options, requestRateLimits)
+);
+
 // External logins: Google/Discord/Facebook — see MIGRATION_PLAN.md §5. Plus a MasterApi Basic
 // Auth scheme for the game server's service-to-service calls, see MIGRATION_PLAN.md §6.
 var authenticationBuilder = builder.Services.AddAuthentication();
@@ -537,6 +544,7 @@ if (Directory.Exists(staticGameDir))
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseLastActivityTracking();
 

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using agot_bg_website.Data;
 using agot_bg_website.Domain;
+using agot_bg_website.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Api;
@@ -74,6 +75,7 @@ public static class PublicApi
                     );
                 }
             )
+            .RequireRateLimiting(RequestRateLimiting.PublicGamesPolicy)
             .WithName("GetPublicGame")
             .WithSummary("Get a game's public view")
             .WithDescription(
@@ -84,7 +86,8 @@ public static class PublicApi
                     + "— no session cookie or credentials required; see api/PUBLIC_API.md."
             )
             .Produces(StatusCodes.Status200OK, contentType: "application/json")
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status429TooManyRequests, contentType: "application/json");
 
         return group;
     }
