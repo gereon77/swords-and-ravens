@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using agot_bg_website.Data;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 namespace agot_bg_website.Infrastructure;
@@ -24,7 +25,10 @@ public static class LastActivityMiddlewareExtensions
         return app.Use(
             async (context, next) =>
             {
-                if (StaticAssetEndpointMarker.IsStaticAsset(context))
+                if (
+                    context.Features.Get<IExceptionHandlerPathFeature>() is not null
+                    || StaticAssetEndpointMarker.IsStaticAsset(context)
+                )
                 {
                     await next(context);
                     return;

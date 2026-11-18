@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace agot_bg_website.Infrastructure.UsageMetrics;
@@ -8,7 +9,8 @@ internal sealed class UsageMetricsMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext context, UsageMetricsCollector collector)
     {
         if (
-            context.WebSockets.IsWebSocketRequest
+            context.Features.Get<IExceptionHandlerPathFeature>() is not null
+            || context.WebSockets.IsWebSocketRequest
             || StaticAssetEndpointMarker.IsStaticAsset(context)
             || IsStatic(context.Request.Path)
         )

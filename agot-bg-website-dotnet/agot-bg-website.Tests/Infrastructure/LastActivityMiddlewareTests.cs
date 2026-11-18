@@ -238,6 +238,58 @@ public class LastActivityMiddlewareTests
         Assert.Contains("\"UsageHour\" <", sql);
     }
 
+    [Fact]
+    public async Task ExceptionHandlerReexecutionDoesNotCountASecondRequest()
+    {
+        var commands = new CaptureCommands();
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options
+                .UseNpgsql("Host=unused;Database=unused;Username=unused;Password=unused")
+                .AddInterceptors(new SuppressConnections(), commands)
+        );
+        builder.Services.AddSingleton<UsageMetricsCollector>();
+        await using var app = builder.Build();
+        app.UseExceptionHandler("/Error");
+        app.UseRouting();
+        app.UseMiddleware<UsageMetricsMiddleware>();
+        app.UseLastActivityTracking(true);
+        ((IApplicationBuilder)app).UseEndpoints(endpoints =>
+        {
+            endpoints
+                .MapGet("/statistics", (HttpContext _) => throw new InvalidOperationException())
+                .RequireRateLimiting(RequestRateLimiting.StatisticsPolicy);
+            endpoints.MapGet("/Error", () => "error");
+        });
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider,
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())],
+                    "test"
+                )
+            ),
+        };
+        context.Request.Path = "/statistics";
+        context.Request.Method = "GET";
+        context.Response.Body = new MemoryStream();
+        await ((IApplicationBuilder)app).Build()(context);
+
+        Assert.Equal(500, context.Response.StatusCode);
+        Assert.Single(commands.Sql);
+        var value = Assert.Single(
+            app.Services.GetRequiredService<UsageMetricsCollector>()
+                .Snapshot(DateTime.UtcNow)
+                .Values
+        );
+        Assert.Equal("statistics", value.Category);
+        Assert.Equal("5xx", value.Outcome);
+        Assert.Equal(1, value.Count);
+    }
+
     private sealed class SuppressConnections : DbConnectionInterceptor
     {
         public override ValueTask<InterceptionResult> ConnectionOpeningAsync(

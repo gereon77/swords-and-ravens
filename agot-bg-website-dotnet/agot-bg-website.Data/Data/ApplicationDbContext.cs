@@ -34,6 +34,47 @@ namespace agot_bg_website.Data
 
         public DbSet<UsageMetricBatch> UsageMetricBatches => Set<UsageMetricBatch>();
 
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ProtectUsageCounters();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(
+            bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default
+        )
+        {
+            ProtectUsageCounters();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void ProtectUsageCounters()
+        {
+            foreach (var entry in ChangeTracker.Entries<ApplicationUser>())
+            {
+                if (entry.State != EntityState.Modified)
+                {
+                    continue;
+                }
+
+                if (entry.Entity.IsDeleted)
+                {
+                    entry.Entity.UsageHour = null;
+                    entry.Entity.UsageRequests = 0;
+                    entry.Property(u => u.UsageHour).IsModified = true;
+                    entry.Property(u => u.UsageRequests).IsModified = true;
+                }
+                else
+                {
+                    // Bulk counter updates bypass the change tracker; Identity's full-entity
+                    // updates must not write an older snapshot over them.
+                    entry.Property(u => u.UsageHour).IsModified = false;
+                    entry.Property(u => u.UsageRequests).IsModified = false;
+                }
+            }
+        }
+
         // EF Core has no built-in mapping for System.Text.Json.JsonDocument (it looks like a
         // complex/owned type to the model builder otherwise, which fails at model-build time with
         // "No suitable constructor was found for type 'JsonDocument'"). Store it as text/jsonb
