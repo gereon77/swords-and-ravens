@@ -24,6 +24,12 @@ public static class LastActivityMiddlewareExtensions
         return app.Use(
             async (context, next) =>
             {
+                if (StaticAssetEndpointMarker.IsStaticAsset(context))
+                {
+                    await next(context);
+                    return;
+                }
+
                 if (
                     context.User.Identity?.IsAuthenticated == true
                     && Guid.TryParse(
@@ -35,7 +41,7 @@ public static class LastActivityMiddlewareExtensions
                     var db = context.RequestServices.GetRequiredService<ApplicationDbContext>();
                     var now = DateTimeOffset.UtcNow;
                     var users = db.Users.Where(u => u.Id == userId && !u.IsDeleted);
-                    if (usageMetricsEnabled)
+                    if (usageMetricsEnabled && !context.WebSockets.IsWebSocketRequest)
                     {
                         var hour = new DateTimeOffset(
                             now.Year,

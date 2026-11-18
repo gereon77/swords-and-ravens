@@ -41,8 +41,8 @@
 </p>
 <p>
     To protect the site against excessive use, we also count authenticated website requests per
-    account for the current UTC hour, including requests rejected by the rate limiter. Static files
-    and requests denied by authorization are not counted. Administrators can view these counts.
+    account for the current UTC hour, including requests rejected by the rate limiter. Static assets,
+    WebSocket connections and requests denied by authorization are not counted. Administrators can view these counts.
     We rely on our legitimate interest in keeping the service available;
     the previous hour's account counts are removed shortly after the hour ends while the website is
     running. These counts do not include individual URLs or query parameters.

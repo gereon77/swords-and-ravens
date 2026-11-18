@@ -555,7 +555,7 @@ app.UseAuthorization();
 app.UseLastActivityTracking(usageMetricsEnabled);
 app.UseRateLimiter();
 
-app.MapStaticAssets();
+app.MapStaticAssets().Add(endpoint => endpoint.Metadata.Add(StaticAssetEndpointMarker.Instance));
 app.MapRazorPages().WithStaticAssets();
 app.MapDefaultControllerRoute();
 

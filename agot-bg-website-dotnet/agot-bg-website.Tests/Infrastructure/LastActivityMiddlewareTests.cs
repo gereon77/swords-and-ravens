@@ -1,10 +1,12 @@
 using System.Data.Common;
+using System.Net.WebSockets;
 using System.Security.Claims;
 using agot_bg_website.Data;
 using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.UsageMetrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -99,6 +101,116 @@ public class LastActivityMiddlewareTests
     }
 
     [Fact]
+    public async Task MappedStaticAssetIsExcludedFromUsageAndActivity()
+    {
+        var commands = new CaptureCommands();
+        var builder = WebApplication.CreateBuilder(
+            new WebApplicationOptions
+            {
+                ApplicationName = typeof(agot_bg_website.Pages.StatisticsModel)
+                    .Assembly.GetName()
+                    .Name,
+                ContentRootPath = AppContext.BaseDirectory,
+                WebRootPath = AppContext.BaseDirectory,
+            }
+        );
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options
+                .UseNpgsql("Host=unused;Database=unused;Username=unused;Password=unused")
+                .AddInterceptors(new SuppressConnections(), commands)
+        );
+        builder.Services.AddSingleton<UsageMetricsCollector>();
+        await using var app = builder.Build();
+        app.UseRouting();
+        var matchedStaticAsset = false;
+        app.Use(
+            async (context, next) =>
+            {
+                var endpoint = context.GetEndpoint();
+                matchedStaticAsset = StaticAssetEndpointMarker.IsStaticAsset(context);
+                if (endpoint is not null)
+                {
+                    context.SetEndpoint(
+                        new Endpoint(
+                            ctx =>
+                            {
+                                ctx.Response.StatusCode = 200;
+                                return Task.CompletedTask;
+                            },
+                            endpoint.Metadata,
+                            endpoint.DisplayName
+                        )
+                    );
+                }
+                await next();
+            }
+        );
+        app.UseMiddleware<UsageMetricsMiddleware>();
+        app.UseLastActivityTracking(true);
+        ((IApplicationBuilder)app).UseEndpoints(endpoints =>
+            endpoints
+                .MapStaticAssets()
+                .Add(endpoint => endpoint.Metadata.Add(StaticAssetEndpointMarker.Instance))
+        );
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider,
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())],
+                    "test"
+                )
+            ),
+        };
+        context.Request.Path = "/raven.svg";
+        context.Request.Method = "GET";
+        await ((IApplicationBuilder)app).Build()(context);
+
+        Assert.True(matchedStaticAsset);
+        Assert.Equal(200, context.Response.StatusCode);
+        Assert.Empty(commands.Sql);
+        Assert.Empty(
+            app.Services.GetRequiredService<UsageMetricsCollector>()
+                .Snapshot(DateTime.UtcNow)
+                .Values
+        );
+    }
+
+    [Fact]
+    public async Task WebSocketHandshakeUpdatesActivityButNotUsageCount()
+    {
+        var commands = new CaptureCommands();
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options
+                .UseNpgsql("Host=unused;Database=unused;Username=unused;Password=unused")
+                .AddInterceptors(new SuppressConnections(), commands)
+        );
+        await using var app = builder.Build();
+        app.UseLastActivityTracking(true);
+        app.Run(context => Task.CompletedTask);
+        await using var scope = app.Services.CreateAsyncScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider,
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())],
+                    "test"
+                )
+            ),
+        };
+        context.Features.Set<IHttpWebSocketFeature>(new WebSocketRequest());
+        await ((IApplicationBuilder)app).Build()(context);
+
+        var sql = Assert.Single(commands.Sql);
+        Assert.Contains("\"LastActivity\"", sql);
+        Assert.DoesNotContain("\"UsageRequests\"", sql);
+    }
+
+    [Fact]
     public async Task CleanupClearsExpiredAccountCountersWithPostgresSql()
     {
         var commands = new CaptureCommands();
@@ -134,6 +246,14 @@ public class LastActivityMiddlewareTests
             InterceptionResult result,
             CancellationToken cancellationToken = default
         ) => ValueTask.FromResult(InterceptionResult.Suppress());
+    }
+
+    private sealed class WebSocketRequest : IHttpWebSocketFeature
+    {
+        public bool IsWebSocketRequest => true;
+
+        public Task<WebSocket> AcceptAsync(WebSocketAcceptContext context) =>
+            throw new NotSupportedException();
     }
 
     private sealed class CaptureCommands : DbCommandInterceptor

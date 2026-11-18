@@ -7,7 +7,11 @@ internal sealed class UsageMetricsMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, UsageMetricsCollector collector)
     {
-        if (context.WebSockets.IsWebSocketRequest || IsStatic(context.Request.Path))
+        if (
+            context.WebSockets.IsWebSocketRequest
+            || StaticAssetEndpointMarker.IsStaticAsset(context)
+            || IsStatic(context.Request.Path)
+        )
         {
             await next(context);
             return;

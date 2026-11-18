@@ -22,7 +22,8 @@
 
 <h2 class="text-xl font-semibold mb-2">Most active accounts this hour</h2>
 <p class="mb-2">Top 50 authenticated accounts since @Model.CurrentHour.ToString("yyyy-MM-dd HH:mm") UTC,
-    including rate-limited requests. This does not measure activity on the game server.</p>
+    including rate-limited requests, but excluding static assets and WebSocket connections.
+    This does not measure activity on the game server.</p>
 <div class="overflow-x-auto mb-4">
     <table class="table">
         <thead><tr><th>Account</th><th>Requests</th></tr></thead>

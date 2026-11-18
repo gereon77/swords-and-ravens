@@ -61,7 +61,7 @@ For abuse investigation, the page also lists up to 50 authenticated accounts wit
 website requests in the current UTC hour, including rate-limited requests. The current-hour count
 is stored on the user row in the same update as last activity and is cleared shortly after the
 hour ends while the website is running; there is no per-user history. Account deletion clears it.
-Static files and requests denied by authorization are excluded; unauthenticated requests and
+Static assets, WebSocket connections and requests denied by authorization are excluded; unauthenticated requests and
 game-server actions cannot be attributed to an account here.
 The switch disables new account counts as well as aggregate collection, but not expiration.
 Because activity tracking runs before the rate limiter, even rejected authenticated requests
