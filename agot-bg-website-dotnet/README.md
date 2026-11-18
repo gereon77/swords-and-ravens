@@ -21,7 +21,7 @@ Postgres/Redis/SMTP.
 ## Prerequisites
 
 - .NET SDK matching `agot-bg-website/agot-bg-website.csproj`'s `<TargetFramework>` (currently
-  `net10.0`).
+  `net11.0`).
 - Docker Desktop, for Postgres + Redis (+ optionally smtp4dev for local email testing).
 - Node.js LTS (currently 24.x) and Yarn — only needed if you also want to build the real game
   client (see below); the website runs fine without it and falls back to
