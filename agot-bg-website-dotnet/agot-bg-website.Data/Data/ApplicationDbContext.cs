@@ -30,6 +30,10 @@ namespace agot_bg_website.Data
 
         public DbSet<UserInRoom> UsersInRoom => Set<UserInRoom>();
 
+        public DbSet<UsageMetric> UsageMetrics => Set<UsageMetric>();
+
+        public DbSet<UsageMetricBatch> UsageMetricBatches => Set<UsageMetricBatch>();
+
         // EF Core has no built-in mapping for System.Text.Json.JsonDocument (it looks like a
         // complex/owned type to the model builder otherwise, which fails at model-build time with
         // "No suitable constructor was found for type 'JsonDocument'"). Store it as text/jsonb
@@ -43,6 +47,24 @@ namespace agot_bg_website.Data
         {
             base.OnModelCreating(builder);
 
+            builder.Entity<UsageMetric>(metric =>
+            {
+                metric.HasKey(m => new
+                {
+                    m.Hour,
+                    m.Category,
+                    m.Outcome,
+                });
+                metric.Property(m => m.Category).HasMaxLength(32);
+                metric.Property(m => m.Outcome).HasMaxLength(16);
+            });
+
+            builder.Entity<UsageMetricBatch>(batch =>
+            {
+                batch.HasKey(b => b.Id);
+                batch.HasIndex(b => b.CreatedAt);
+            });
+
             builder.Entity<ApplicationUser>(user =>
             {
                 user.Ignore(u => u.PhoneNumber);
@@ -54,6 +76,7 @@ namespace agot_bg_website.Data
                 user.Property(u => u.EmailCombatNotificationsActive).HasDefaultValue(true);
                 user.Property(u => u.EmailVoteGameEndNotificationsActive).HasDefaultValue(true);
                 user.Property(u => u.EmailPrivateMessageNotificationsActive).HasDefaultValue(true);
+                user.HasIndex(u => u.UsageHour).HasFilter("\"UsageHour\" IS NOT NULL");
             });
 
             builder.Entity<Game>(game =>

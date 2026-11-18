@@ -71,6 +71,8 @@ public class AccountDeletionServiceTests : IDisposable
             ProfileText = "King in the North",
             LastWonTournament = "Riverrun Cup",
             CustomUserBadge = "🐺 Direwolf",
+            UsageHour = DateTimeOffset.UtcNow,
+            UsageRequests = 42,
         };
         var createResult = await _userManager.CreateAsync(user, "P@ssw0rd123!");
         Assert.True(createResult.Succeeded);
@@ -96,6 +98,8 @@ public class AccountDeletionServiceTests : IDisposable
         Assert.Null(user.ProfileText);
         Assert.Null(user.LastWonTournament);
         Assert.Null(user.CustomUserBadge);
+        Assert.Null(user.UsageHour);
+        Assert.Equal(0, user.UsageRequests);
         Assert.False(user.EmailConfirmed);
         Assert.False(user.EmailNotificationActive);
         Assert.NotEqual(originalGameToken, user.GameToken);

@@ -14,11 +14,12 @@ public static class LastActivityMiddlewareExtensions
 {
     /// <summary>
     /// Must be registered after <c>UseAuthentication()</c> (so <c>HttpContext.User</c> is
-    /// populated) — placement relative to <c>UseAuthorization()</c> doesn't matter since this
-    /// never rejects a request, it just best-effort records activity alongside whatever the rest
-    /// of the pipeline decides to do with it.
+    /// populated) and authorization, but before rate limiting so 429 responses are counted.
     /// </summary>
-    public static IApplicationBuilder UseLastActivityTracking(this IApplicationBuilder app)
+    public static IApplicationBuilder UseLastActivityTracking(
+        this IApplicationBuilder app,
+        bool usageMetricsEnabled
+    )
     {
         return app.Use(
             async (context, next) =>
@@ -31,16 +32,51 @@ public static class LastActivityMiddlewareExtensions
                     )
                 )
                 {
-                    // A single bulk UPDATE instead of loading the full ApplicationUser + SaveChanges -
-                    // this runs on every single authenticated request, so avoiding the round-trip to
-                    // fetch a row we're about to overwrite (and the risk of clobbering a concurrent
-                    // write to some other field on the same user) matters here.
                     var db = context.RequestServices.GetRequiredService<ApplicationDbContext>();
-                    await db
-                        .Users.Where(u => u.Id == userId)
-                        .ExecuteUpdateAsync(s =>
-                            s.SetProperty(u => u.LastActivity, DateTimeOffset.UtcNow)
+                    var now = DateTimeOffset.UtcNow;
+                    var users = db.Users.Where(u => u.Id == userId && !u.IsDeleted);
+                    if (usageMetricsEnabled)
+                    {
+                        var hour = new DateTimeOffset(
+                            now.Year,
+                            now.Month,
+                            now.Day,
+                            now.Hour,
+                            0,
+                            0,
+                            TimeSpan.Zero
                         );
+                        // A request delayed across an hour boundary must not reset a newer bucket.
+                        await users.ExecuteUpdateAsync(s =>
+                            s.SetProperty(
+                                    u => u.LastActivity,
+                                    u => u.LastActivity > now ? u.LastActivity : now
+                                )
+                                .SetProperty(
+                                    u => u.UsageRequests,
+                                    u =>
+                                        u.UsageHour != null && u.UsageHour >= hour
+                                            ? u.UsageRequests + 1
+                                            : 1
+                                )
+                                .SetProperty(
+                                    u => u.UsageHour,
+                                    u =>
+                                        u.UsageHour != null && u.UsageHour >= hour
+                                            ? u.UsageHour
+                                            : hour
+                                )
+                        );
+                    }
+                    else
+                    {
+                        await users.ExecuteUpdateAsync(s =>
+                            s.SetProperty(
+                                u => u.LastActivity,
+                                u => u.LastActivity > now ? u.LastActivity : now
+                            )
+                        );
+                    }
                 }
 
                 await next(context);

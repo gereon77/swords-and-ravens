@@ -29,6 +29,7 @@
     />
     <PackageReference Include="Scalar.AspNetCore" Version="3.0.2" />
     <PackageReference Include="Sentry.AspNetCore" Version="7.0.1" />
+    <PackageReference Include="prometheus-net" Version="8.2.1" />
     <PackageReference Include="Soenneker.Validators.Email.Disposable.Online" Version="11.0.5677" />
     <PackageReference Include="StackExchange.Redis" Version="3.4.35" />
   </ItemGroup>

@@ -5,6 +5,7 @@ using agot_bg_website.Domain;
 using agot_bg_website.Infrastructure;
 using agot_bg_website.Infrastructure.Auth;
 using agot_bg_website.Infrastructure.Chat;
+using agot_bg_website.Infrastructure.UsageMetrics;
 using agot_bg_website.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
@@ -85,6 +86,9 @@ var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+var usageMetricsEnabled = builder.Configuration.GetValue("UsageMetrics:Enabled", true);
+builder.Services.AddSingleton<UsageMetricsCollector>();
+builder.Services.AddHostedService<UsageMetricsWriter>();
 
 // Third-party "CoreAdmin" NuGet package, kept alongside the hand-built Admin area
 // (Users/Games/Rooms/Messages) rather than replacing it. It auto-scans ApplicationDbContext and
@@ -514,6 +518,10 @@ app.Use(
 app.UseCookiePolicy();
 app.UseWebSockets();
 app.UseRouting();
+if (usageMetricsEnabled)
+{
+    app.UseMiddleware<UsageMetricsMiddleware>();
+}
 
 // Enforce RequireLocalPort restrictions (see EndpointRoutingExtensions.cs) before authentication
 // so a request to the wrong port gets a plain 404 instead of reaching the Basic Auth challenge.
@@ -544,9 +552,8 @@ if (Directory.Exists(staticGameDir))
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseLastActivityTracking(usageMetricsEnabled);
 app.UseRateLimiter();
-
-app.UseLastActivityTracking();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
